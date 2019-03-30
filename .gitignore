@@ -1,0 +1,6 @@
+tcc
+tcc-test
+*.tc
+*.td
+bin/
+dependencies/

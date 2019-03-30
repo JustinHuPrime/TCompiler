@@ -1,0 +1,6 @@
+DisableFormat: false
+Language: Cpp
+
+BasedOnStyle: Google
+DerivePointerAlignment: false
+PointerAlignment: Right

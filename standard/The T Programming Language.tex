@@ -1,0 +1,169 @@
+\documentclass[letterpaper,12pt]{book}
+
+\usepackage{indentfirst}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{listings}
+
+% Make chapters display as sections
+\renewcommand{\chaptername}{Section}
+
+\begin{document}
+\title{The T Programming Language}
+\author{Justin Hu}
+\maketitle
+\tableofcontents
+
+\chapter{Introduction}
+
+\part{Language}
+
+The T programming language is based around modules. There are two kinds of module: definition modules and code modules.
+
+\chapter{Translation}
+
+\chapter{Basic Concepts}
+
+\section{Data Types}
+
+All data in T is associated with a data type, which defines how that data is interpreted and limits how that data may be manipulated.
+
+\subsection{Basic Data Types}
+
+T has the following basic data types, listed in order of size:
+
+\begin{itemize}
+	\item \texttt{bool}: one byte: a boolean value that holds either true or false. In T, boolean true is represented as 0x1, and boolean false is represented as 0x0.
+	\item \texttt{ubyte}: one byte: an unsigned integral byte value, from 0 to \(2^8 - 1\).
+	\item \texttt{byte}: one byte: a 2's complement value, from \(-2^7\) to \(2^7 - 1\).
+	\item \texttt{uint}: four bytes: an unsigned integral byte value, from 0 to \(2^{32} - 1\).
+	\item \texttt{int}: four bytes: a 2's complement value, from \(-2^{31}\) to \(2^{31} - 1\).
+	\item \texttt{ulong}: eight bytes: an unsigned integral value, from 0 to \(2^{64} - 1\).
+	\item \texttt{long}: eight bytes: a 2's complement value, from \(-2^{63}\) to \(2^{63} - 1\).
+	\item \texttt{float}: four bytes: a binary32 floating point number.
+	\item \texttt{double}: eight bytes: a binary64 floating point number.
+\end{itemize}
+
+\subsubsection{Derived Data Types}
+
+The following data types are aliases of the basic data types. This means that the alias has exactly the same representation as the underlying type, but is considered distinct in terms of what operations may be applied to the type, and is otherwise considered a separate type. Casting between an alias and its underlying type is guaranteed to have no effect, and should be considered syntactic salt.
+
+\begin{itemize}
+	\item \texttt{char}: alias of \texttt{ubyte}: represents a single-byte ASCII character.
+	\item \texttt{wchar}: alias of \texttt{uint}: represents a four-byte UTF-32 encoded character.
+\end{itemize}
+
+\subsection{Modifiers}
+
+The following modifiers may be applied to a data type, with the following precedence:
+
+% TODO: figure out precedence
+
+\begin{itemize}
+	\item \texttt{const}: marks the data type as a constant value, making all lvalues involving this data constant lvalues. This modifier is left associative.
+	\item \texttt{volatile}: marks the data type as volatile, which makes all accesses to said data type considered sequence points, prohibiting reordering or removal.
+	\item \texttt{pointer}: marks the data type as a pointer to some type
+	\item \texttt{array<N>}: marks the data type as an array, of some size
+	\item \texttt{function<T1...>}: marks the data type as a function pointer that takes in some parameters of the given type.
+\end{itemize}
+
+\section{Identifiers}
+
+\section{Structs}
+
+\section{Expressions}
+
+Expressions in T are syntactic elements that produce some sort of value. There are two categories of expression in T: lvalue expressions and rvalue expressions. However, lvalue expressions can be further decomposed into modifiable lvalue expressions and constant lvalue expressions. Additionally, expressions also have a type associated with them, which is determined by the types of the subexpressions and primary values.
+
+Expressions consist of a primary value, or of primary values joined with operators.
+
+\subsection{Primary Values}
+
+Primary values are the basic building blocks of an expression, and have the highest precedence when evaluated.
+
+\begin{itemize}
+	\item An identifier: this is either a modifiable lvalue or constant lvalue, depending on the type that the identifier refers to. The type of the expression is the data type of the identifier.
+	\item A literal: this is one of:
+	\begin{itemize}
+		\item A numerical constant: an rvalue, whose type is the smallest numerical type that can hold the constant, considering only integers and floating point numbers, preferring integers over floating point numbers, and preferring unsigned types over signed types.
+		\item A character constant: an rvalue, whose type is the character type.
+		\item A character string constant: an rvalue, whose type is pointer to constant characters, or, if the character string contains non-ASCII characters, pointer to constant wide characters.
+		\item The boolean constant \texttt{true} or \texttt{false}: an rvalue, whose type is boolean.
+	\end{itemize}
+	\item An expression in parentheses: this expression has the same category and type as the expression that it contains.
+\end{itemize}
+
+\subsection{Operators}
+
+The following operators exist in T:
+
+% TODO: figure out precedence
+
+\begin{itemize}
+	\item Addition: \texttt{a + b}
+	\item Subtraction: \texttt{a - b}
+	\item Multiplication: \texttt{a * b}
+	\item Division: \texttt{a / b}
+	\item Modulus: \texttt{a \% b}
+	\item Left shift: \texttt{a << b}
+	\item Right shift, zero extend: \texttt{a >> b}
+	\item Right shift, sign extend: \texttt{a >>> b}
+	\item Comparison: \texttt{a <=> b}
+	\item Less than: \texttt{a < b}
+	\item Greater than: \texttt{a > b}
+	\item Less than or equal to: \texttt{a <= b}
+	\item Greater than or equal to: \texttt{a >= b}
+	\item Equal to: \texttt{a == b}
+	\item Not equal to: \texttt{a != b}
+	\item Bitwise and: \texttt{a \& b}
+	\item Bitwise or: \texttt{a | b}
+	\item Bitwise xor: \texttt{a \^{} b}
+	\item Bitwise not: \texttt{~a}
+	\item Logical and: \texttt{a \&\& b}
+	\item Logical or: \texttt{a || b}
+	\item Logical not: \texttt{!a}
+	\item Ternary: \texttt{a ? b : c}
+	\item Comma: \texttt{a , b}
+	\item Assignment: \texttt{a = b}
+	\item Compound assignment: \texttt{a @= b}, where \texttt{@} is one of:
+	\begin{itemize}
+		\item \texttt{+}
+		\item \texttt{-}
+		\item \texttt{*}
+		\item \texttt{/}
+		\item \texttt{\%}
+		\item \texttt{<<}
+		\item \texttt{>>}
+		\item \texttt{>>>}
+		\item \texttt{\&}
+		\item \texttt{|}
+		\item \texttt{\^{}}
+		\item \texttt{\&\&}
+		\item \texttt{||}
+	\end{itemize}
+	\item Prefix increment: \texttt{++a}
+	\item Prefix decrement: \texttt{--a}
+	\item Postfix increment: \texttt{a++}
+	\item Postfix decrement: \texttt{a--}
+	\item Dereference: \texttt{*a}
+	\item Address of: \texttt{\&a}
+	\item Function call: \texttt{a(...)}
+	\item Array access: \texttt{a[b]}
+	\item Cast: \texttt{cast<t>(a)}
+	\item Member access: \texttt{a.b}
+	\item Dereferenced member access: \texttt{a->b}
+\end{itemize}
+
+\subsubsection{Casting}
+
+\section{Sequence Points}
+
+\chapter{Modules}
+
+\section{Definition Modules}
+
+\section{Code Modules}
+
+\part{Standard Library}
+
+\end{document}

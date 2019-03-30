@@ -1,0 +1,8 @@
+src/tests/catch.hpp linguist-vendored
+libs/** linguist-vendored
+
+standard/** linguist-documentation
+
+src/main/parser/*.yy.c linguist-generated
+src/main/parser/*.tab.c linguist-generated
+src/main/parser/*.tab.h linguist-generated
