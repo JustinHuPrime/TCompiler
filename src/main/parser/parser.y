@@ -123,15 +123,10 @@ statements:
           | statements statement
           ;
 
-if_statement: KWD_IF P_LPAREN expression P_RPAREN statement elseif_chain maybe_else ;
-elseif_chain:
-            | elseif_chain elseif
-            ;
-elseif: KWD_ELSE KWD_IF P_LPAREN expression P_RPAREN statement ;
+if_statement: KWD_IF P_LPAREN expression P_RPAREN statement maybe_else ;
 maybe_else:
-          | else
+          | KWD_ELSE statement
           ;
-else: KWD_ELSE statement ;
 
 while_statement: KWD_WHILE P_LPAREN expression P_RPAREN statement ;
 do_while_statement: KWD_DO statement KWD_WHILE P_LPAREN statement P_RPAREN ;
