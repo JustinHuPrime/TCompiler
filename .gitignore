@@ -2,5 +2,6 @@ tcc
 tcc-test
 *.tc
 *.td
+parser.output
 bin/
 dependencies/
