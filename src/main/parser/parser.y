@@ -1,17 +1,21 @@
-%{
+%code top {
   #include "ast/ast.h"
-
+  
   #include <stdio.h>
 
-  void yyerror(void*, const char *);
+  void yyerror(Node**, const char *);
   int yylex(void);
-%}
+}
+
+%code requires {
+  #include "ast/ast.h"
+}
 
 %define parse.error verbose
 
 %locations
 
-%parse-param {void *object}
+%parse-param {Node **ast}
 
 %union {
   int tokenID;
@@ -284,6 +288,6 @@ scoped_type_identifier: T_SCOPED_TYPE_ID
                       ;
 %%
 
-void yyerror(void* ignored, const char* msg) {
+void yyerror(Node** ast, const char* msg) {
   fprintf(stderr, "%s\n", msg);
 }
