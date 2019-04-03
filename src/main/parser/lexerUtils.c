@@ -2,6 +2,6 @@
 //
 // This file is part of the T Language Compiler.
 
-#include <stdio.h>
+#include "lexerUtils.h"
 
-int main(int argc, char *argv[]) { return 0; }
+int null;  // TODO: write this file

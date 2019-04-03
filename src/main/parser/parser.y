@@ -2,7 +2,7 @@
   #include <stdio.h>
 
   void yyerror(void*, const char *);
-  int yylex();
+  int yylex(void);
 %}
 
 %define parse.error verbose
@@ -32,33 +32,23 @@
        P_BANG P_TILDE P_SLASH P_PERCENT P_LSHIFT P_LRSHIFT P_ARSHIFT
        P_SPACESHIP P_LANGLE P_RANGLE P_LTEQ P_GTEQ P_EQ P_NEQ P_PIPE P_CARET
        P_LAND P_LOR P_QUESTION P_COLON P_ASSIGN P_MULASSIGN P_DIVASSIGN
-       P_MODASSIGN P_PLUSASSIGN P_MINUSASSIGN P_LSHIFTASSIGN P_LRSHIFTASSIGN
+       P_MODASSIGN P_ADDASSIGN P_SUBASSIGN P_LSHIFTASSIGN P_LRSHIFTASSIGN
        P_ARSHIFTASSIGN P_BITANDASSIGN P_BITXORASSIGN P_BITORASSIGN P_LANDASSIGN
        P_LORASSIGN P_COLONCOLON
 
 // identifier
-%token <tokenString> T_ID
+%token <tokenString>
+       T_ID T_TYPE_ID
 
 // literals
-%token <tokenString> L_STRINGLITERAL L_CHARLITERAL L_INTLITERAL L_FLOATLITERAL
+%token <tokenString>
+       L_STRINGLITERAL L_CHARLITERAL L_INTLITERAL L_FLOATLITERAL L_WSTRINGLITERAL L_WCHARLITERAL
 
-%token <invalidChar> E_INVALIDCHAR
+%token <invalidChar>
+       E_INVALIDCHAR
 
-%left  P_COLONCOLON
-%left  P_DOT P_ARROW O_FNCALL O_ARRAYACCESS O_POSTINC O_POSTDEC
-%right O_DEREF O_ADDROF O_PREINC O_PREDEC O_UNARYPLUS O_UNARYMINUS
-%left  O_MUL P_SLASH P_PERCENT
-%left  O_ADD O_SUB
-%left  P_LSHIFT P_LRSHIFT P_ARSHIFT
-%left  P_SPACESHIP
-%left  P_LANGLE P_RANGLE P_LTEQ P_GTEQ
-%left  P_EQ P_NEQ
-%left  O_BITAND P_PIPE P_CARET
-%left  P_LAND P_LOR
-%left  P_QUESTION
-%right P_ASSIGN P_MULASSIGN P_DIVASSIGN P_MODASSIGN P_PLUSASSIGN P_MINUSASSIGN P_LSHIFTASSIGN P_LRSHIFTASSIGN P_ARSHIFTASSIGN P_BITANDASSIGN P_BITXORASSIGN P_BITORASSIGN P_LANDASSIGN P_LORASSIGN
-%left  O_FNCALLARG
-%left  O_SEQ
+// other precedence (expressions) should go above this
+%right O_IF KWD_ELSE
 
 %start module
 %%
@@ -124,7 +114,7 @@ statements:
           ;
 
 if_statement: KWD_IF P_LPAREN expression P_RPAREN statement maybe_else ;
-maybe_else:
+maybe_else: %prec O_IF
           | KWD_ELSE statement
           ;
 
@@ -164,76 +154,7 @@ maybe_assign:
 
 asm_statement: KWD_ASM L_STRINGLITERAL ;
 
-expression: scoped_identifier
-          | L_INTLITERAL
-          | L_FLOATLITERAL
-          | L_STRINGLITERAL
-          | L_CHARLITERAL
-          | KWD_TRUE
-          | KWD_FALSE
-          | KWD_CAST P_LSQUARE type P_RSQUARE P_LPAREN expression P_RPAREN
-          | KWD_SIZEOF P_LPAREN expression_or_type P_RPAREN
-          | P_LPAREN expression P_RPAREN
-          | expression P_DOT T_ID
-          | expression P_ARROW T_ID
-          | expression P_LPAREN function_call_arg_list P_RPAREN  %prec O_FNCALL
-          | expression P_LSQUARE expression P_RSQUARE            %prec O_ARRAYACCESS
-          | expression P_PLUSPLUS                                %prec O_POSTINC
-          | expression P_MINUSMINUS                              %prec O_POSTDEC
-          | P_STAR expression                                    %prec O_DEREF
-          | P_AMPERSAND expression                               %prec O_ADDROF
-          | P_PLUSPLUS expression                                %prec O_PREINC
-          | P_MINUSMINUS expression                              %prec O_PREDEC
-          | P_PLUS expression                                    %prec O_UNARYPLUS
-          | P_MINUS expression                                   %prec O_UNARYMINUS
-          | P_BANG expression
-          | P_TILDE expression
-          | expression P_STAR expression                         %prec O_MUL
-          | expression P_SLASH expression
-          | expression P_PERCENT expression
-          | expression P_PLUS expression                         %prec O_ADD
-          | expression P_MINUS expression                        %prec O_SUB
-          | expression P_LSHIFT expression
-          | expression P_LRSHIFT expression
-          | expression P_ARSHIFT expression
-          | expression P_SPACESHIP expression
-          | expression P_LANGLE expression
-          | expression P_RANGLE expression
-          | expression P_LTEQ expression
-          | expression P_GTEQ expression
-          | expression P_EQ expression
-          | expression P_NEQ expression
-          | expression P_AMPERSAND expression                    %prec O_BITAND
-          | expression P_PIPE expression
-          | expression P_CARET expression
-          | expression P_LAND expression
-          | expression P_LOR expression
-          | expression P_QUESTION expression P_COLON expression
-          | expression P_ASSIGN expression
-          | expression P_MULASSIGN expression
-          | expression P_DIVASSIGN expression
-          | expression P_MODASSIGN expression
-          | expression P_PLUSASSIGN expression
-          | expression P_MINUSASSIGN expression
-          | expression P_LSHIFTASSIGN expression
-          | expression P_LRSHIFTASSIGN expression
-          | expression P_ARSHIFTASSIGN expression
-          | expression P_BITANDASSIGN expression
-          | expression P_BITXORASSIGN expression
-          | expression P_BITORASSIGN expression
-          | expression P_LANDASSIGN expression
-          | expression P_LORASSIGN expression
-          | expression P_COMMA expression                        %prec O_SEQ
-          ;
-expression_or_type: expression
-                  | type
-                  ;
-function_call_arg_list:
-                      | function_call_arg_list_nonempty
-                      ;
-function_call_arg_list_nonempty: expression
-                               | function_call_arg_list_nonempty P_COMMA expression %prec O_FNCALLARG
-                               ;
+expression: scoped_identifier ;
 
 type: KWD_VOID
     | KWD_UBYTE
@@ -245,7 +166,7 @@ type: KWD_VOID
     | KWD_FLOAT
     | KWD_DOUBLE
     | KWD_BOOL
-    | scoped_identifier
+    | scoped_type_identifier
     | type KWD_CONST
     | type P_LSQUARE L_INTLITERAL P_RSQUARE
     | type P_STAR
@@ -261,6 +182,9 @@ function_ptr_arg_list_nonempty: type
 scoped_identifier: T_ID
                  | scoped_identifier P_COLONCOLON T_ID
                  ;
+scoped_type_identifier: T_TYPE_ID
+                      | scoped_identifier P_COLONCOLON T_TYPE_ID
+                      ;
 %%
 
 void yyerror(void* ignored, const char* msg) {

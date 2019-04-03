@@ -1,6 +1,6 @@
 # Copyright 2019 Justin Hu
 #
-# This file is part of the T Compiler.
+# This file is part of the T Language Compiler.
 
 # command options
 CC := gcc
@@ -23,7 +23,8 @@ FILESRCS := $(shell find -O3 $(SRCDIR)/ -not -path "$(SRCDIR)/parser/parser.tab.
 SRCS := $(FILESRCS) $(filter-out %.h, $(GENERATEDSOURCES))
 
 OBJDIR := $(OBJDIRPREFIX)/main
-OBJS := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
+OBJS := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(FILESRCS))
+GENERATEDOBJS := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(filter-out %.h, $(GENERATEDSOURCES)))
 
 DEPDIR := $(DEPDIRPREFIX)/main
 DEPS := $(patsubst $(SRCDIR)/%.c,$(DEPDIR)/%.dep,$(FILESRCS))
@@ -39,9 +40,10 @@ TOBJS := $(patsubst $(TSRCDIR)/%.c,$(TOBJDIR)/%.o,$(TSRCS))
 TDEPDIR := $(DEPDIRPREFIX)/test
 TDEPS := $(patsubst $(TSRCDIR)/%.c,$(TDEPDIR)/%.dep,$(TSRCS))
 
+
 # final executable name
-EXENAME := tcc
-TEXENAME := tcc-test
+EXENAME := tlc
+TEXENAME := tlc-test
 
 
 # compiler warnings
@@ -51,8 +53,8 @@ WARNINGS := -pedantic -pedantic-errors -Wall -Wextra -Wdouble-promotion\
 -Wcast-align -Wwrite-strings -Wconversion -Wjump-misses-init -Wlogical-op\
 -Waggregate-return -Wstrict-prototypes -Wold-style-definition\
 -Wmissing-prototypes -Wmissing-declarations -Wmissing-format-attribute\
--Wpacked -Wredundant-decls -Wnested-externs -Winline -Winvalid-pch\
--Wdisabled-optimization -Wstack-protector
+-Wpacked -Wnested-externs -Winline -Winvalid-pch -Wdisabled-optimization\
+-Wstack-protector
 
 # compiler options
 OPTIONS := -std=c18 -m64 -D_POSIX_C_SOURCE=201803L -I$(SRCDIR) $(WARNINGS)
@@ -92,11 +94,16 @@ clean:
 	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) $(EXENAME) $(TEXENAME) $(GENERATEDSOURCES)
 
 
-$(EXENAME): $(OBJS)
+$(EXENAME): $(OBJS) $(GENERATEDOBJS)
 	@echo "Linking $@"
-	@$(CC) -o $(EXENAME) $(OPTIONS) $(OBJS) $(LIBS)
+	@$(CC) -o $(EXENAME) $(OPTIONS) $(OBJS) $(GENERATEDOBJS) $(LIBS)
 
 $(OBJS): $$(patsubst $(OBJDIR)/%.o,$(SRCDIR)/%.c,$$@) $$(patsubst $(OBJDIR)/%.o,$(DEPDIR)/%.dep,$$@) | $$(dir $$@)
+	@echo "Compiling $@"
+	@$(FORMATTER) $(filter-out %.dep,$^)
+	@$(CC) $(OPTIONS) -c $< -o $@
+
+$(GENERATEDOBJS): $$(patsubst $(OBJDIR)/%.o,$(SRCDIR)/%.c,$$@) | $$(dir $$@)
 	@echo "Compiling $@"
 	@$(FORMATTER) $(filter-out %.dep,$^)
 	@$(CC) $(OPTIONS) -c $< -o $@

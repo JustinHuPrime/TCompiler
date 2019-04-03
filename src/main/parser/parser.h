@@ -1,5 +1,9 @@
-#ifndef TCC_PARSER_PARSER_H_
-#define TCC_PARSER_PARSER_H_
+// Copyright 2019 Justin Hu
+//
+// This file is part of the T Language Compiler.
+
+#ifndef TLC_PARSER_PARSER_H_
+#define TLC_PARSER_PARSER_H_
 
 #include "parser/parser.tab.h"
 
@@ -15,4 +19,4 @@ int parse(char const *filename);
 
 extern FILE *yyin;
 
-#endif  // TCC_PARSER_PARSER_H_
+#endif  // TLC_PARSER_PARSER_H_

@@ -1,5 +1,5 @@
-tcc
-tcc-test
+tlc
+tlc-test
 *.tc
 *.td
 parser.output
