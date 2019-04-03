@@ -124,7 +124,9 @@ body_parts: { $$.size = 0;
               $$.items = realloc($$.items, $$.size * sizeof(Node *));
               $$.items[$$.size - 1] = $body_part; }
           ;
-body_part: function | declaration ;
+body_part: variable_declaration_statement
+         | function
+         | declaration ;
 
 declaration: function_declaration
            | variable_declaration
