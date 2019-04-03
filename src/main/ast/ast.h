@@ -12,6 +12,7 @@ typedef enum {
   TYPE_FUNDECL,
   TYPE_VARDECL,
   TYPE_STRUCTDECL,
+  TYPE_UNIONDECL,
   TYPE_TYPEDEFDECL,
   TYPE_FUNCTION,
   TYPE_COMPOUNDSTMT,
@@ -44,6 +45,7 @@ typedef enum {
   TYPE_ARRAYINDEXEXP,
   TYPE_IDEXP,
   TYPE_CONSTEXP,
+  TYPE_AGGREGATEINITEXP,
   TYPE_CASTEXP,
   TYPE_SIZEOFTYPEEXP,
   TYPE_SIZEOFEXPEXP,
@@ -174,6 +176,11 @@ typedef struct Node {
       size_t numDecls;
       struct Node **decls;
     } structDecl;
+    struct {
+      struct Node *id;
+      size_t numOpts;
+      struct Node **opts;
+    } unionDecl;
     struct {
       struct Node *type;
       struct Node *id;
@@ -317,6 +324,10 @@ typedef struct Node {
       } value;
     } constExp;
     struct {
+      size_t numElements;
+      struct Node **elements;
+    } aggregateInitExp;
+    struct {
       struct Node *toWhat;
       struct Node *target;
     } castExp;
@@ -363,6 +374,7 @@ Node *importNodeCreate(size_t, size_t, Node *);
 Node *funDeclNodeCreate(size_t, size_t, Node *, Node *, size_t, Node **);
 Node *varDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
 Node *structDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
+Node *unionDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
 Node *typedefNodeCreate(size_t, size_t, Node *, Node *);
 Node *functionNodeCreate(size_t, size_t, Node *, Node *, size_t, Node **,
                          Node **, Node *);
@@ -397,6 +409,7 @@ Node *arrayIndexNodeCreate(size_t, size_t, Node *, Node *);
 Node *idExpNodeCreate(size_t, size_t, char *);
 Node *constExpNodeCreate(size_t, size_t, ConstTypeHint,
                          char *);  // character representation of the constant
+Node *aggregateInitExpNodeCreate(size_t, size_t, size_t, Node **);
 Node *constTrueNodeCreate(size_t, size_t);
 Node *constFalseNodeCreate(size_t, size_t);
 Node *castExpNodeCreate(size_t, size_t, Node *, Node *);

@@ -61,6 +61,15 @@ Node *structDeclNodeCreate(size_t line, size_t character, Node *id,
   node->data.structDecl.decls = decls;
   return node;
 }
+Node *unionDeclNodeCreate(size_t line, size_t character, Node *id,
+                          size_t numOpts, Node **opts) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_UNIONDECL;
+  node->data.unionDecl.id = id;
+  node->data.unionDecl.numOpts = numOpts;
+  node->data.unionDecl.opts = opts;
+  return node;
+}
 Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *id) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_TYPEDEFDECL;
@@ -316,6 +325,14 @@ Node *constExpNodeCreate(size_t line, size_t character, ConstTypeHint hint,
   // TODO: parse the value
   return node;
 }
+Node *aggregateInitExpNodeCreate(size_t line, size_t character,
+                                 size_t numElements, Node **elements) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_AGGREGATEINITEXP;
+  node->data.aggregateInitExp.numElements = numElements;
+  node->data.aggregateInitExp.elements = elements;
+  return node;
+}
 Node *constTrueNodeCreate(size_t line, size_t character) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_CONSTEXP;
@@ -445,6 +462,13 @@ void nodeDestroy(Node *node) {
       for (size_t idx = 0; idx < node->data.structDecl.numDecls; idx++)
         nodeDestroy(node->data.structDecl.decls[idx]);
       freeIfNotNull(node->data.structDecl.decls);
+      break;
+    }
+    case TYPE_UNIONDECL: {
+      nodeDestroy(node->data.unionDecl.id);
+      for (size_t idx = 0; idx < node->data.unionDecl.numOpts; idx++)
+        nodeDestroy(node->data.unionDecl.opts[idx]);
+      freeIfNotNull(node->data.unionDecl.opts);
       break;
     }
     case TYPE_TYPEDEFDECL: {
@@ -610,6 +634,12 @@ void nodeDestroy(Node *node) {
     }
     case TYPE_CONSTEXP:
       break;
+    case TYPE_AGGREGATEINITEXP: {
+      for (size_t idx = 0; idx < node->data.aggregateInitExp.numElements; idx++)
+        nodeDestroy(node->data.aggregateInitExp.elements[idx]);
+      freeIfNotNull(node->data.aggregateInitExp.elements);
+      break;
+    }
     case TYPE_CASTEXP: {
       nodeDestroy(node->data.castExp.toWhat);
       nodeDestroy(node->data.castExp.target);

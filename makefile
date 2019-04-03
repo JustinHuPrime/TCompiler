@@ -69,7 +69,7 @@ LEXOPTIONS := --outfile=$(SRCDIR)/parser/lex.yy.c
 
 
 # yacc options
-YACCOPTIONS := --defines=$(SRCDIR)/parser/parser.tab.h --output=$(SRCDIR)/parser/parser.tab.c
+YACCOPTIONS := --defines=$(SRCDIR)/parser/parser.tab.h --output=$(SRCDIR)/parser/parser.tab.c --report=state
 
 
 .PHONY: debug release clean diagnose
