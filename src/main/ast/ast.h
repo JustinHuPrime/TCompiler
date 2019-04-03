@@ -8,11 +8,11 @@
 typedef enum {
   TYPE_PROGRAM,
   TYPE_MODULE,
-  TYPE_USING,
+  TYPE_IMPORT,
   TYPE_FUNDECL,
   TYPE_VARDECL,
   TYPE_STRUCTDECL,
-  TYPE_TYPEDEF,
+  TYPE_TYPEDEFDECL,
   TYPE_FUNCTION,
   TYPE_COMPOUNDSTMT,
   TYPE_IFSTMT,
@@ -139,15 +139,15 @@ typedef struct Node {
     } program;
 
     struct {
-      char *name;
+      char *id;
     } module;
     struct {
-      char *name;
+      char *id;
     } import;
 
     struct {
       struct Node *returnType;
-      char *name;
+      char *id;
       size_t numParamTypes;
       struct Node **paramTypes;
     } funDecl;
@@ -158,12 +158,12 @@ typedef struct Node {
     } varDecl;
     struct {
       char *id;
-      size_t numElements;
-      struct Node **elements;
+      size_t numDecls;
+      struct Node **decls;
     } structDecl;
     struct {
-      char *id;
       struct Node *type;
+      char *id;
     } typedefDecl;
 
     struct {
@@ -171,7 +171,7 @@ typedef struct Node {
       char *id;
       size_t numFormals;
       struct Node **formalTypes;
-      struct Node **formalIds;  // nullable elements
+      char **formalIds;  // nullable elements
       struct Node *body;
     } function;
 
@@ -189,8 +189,8 @@ typedef struct Node {
       struct Node *body;
     } whileStmt;
     struct {
-      struct Node *condition;
       struct Node *body;
+      struct Node *condition;
     } doWhileStmt;
     struct {
       struct Node *initialize;
@@ -237,8 +237,8 @@ typedef struct Node {
     } binopExp;
     struct {
       UnOpType op;
-      struct Node *exp;
-    } unopExp;
+      struct Node *target;
+    } unOpExp;
     struct {
       CompOpType op;
       struct Node *lhs;
@@ -276,7 +276,7 @@ typedef struct Node {
     struct {
       struct Node *who;
       size_t numArgs;
-      struct Node **withWhat;
+      struct Node **args;
     } fnCallExp;
     struct {
       char *id;
@@ -301,7 +301,7 @@ typedef struct Node {
     } constExp;
     struct {
       struct Node *toWhat;
-      struct Node *exp;
+      struct Node *target;
     } castExp;
     struct {
       struct Node *target;
@@ -317,7 +317,7 @@ typedef struct Node {
       struct Node *target;
     } constType;
     struct {
-      struct Node *target;
+      struct Node *element;
       size_t size;
     } arrayType;
     struct {
@@ -330,4 +330,58 @@ typedef struct Node {
     } fnPtrType;
   } data;
 } Node;
+
+Node *nodeCreate(size_t, size_t);
+Node *programNodeCreate(size_t, size_t, Node *, size_t, Node **, size_t,
+                        Node **);
+Node *moduleNodeCreate(size_t, size_t, char *);
+Node *importNodeCreate(size_t, size_t, char *);
+Node *funDeclNodeCreate(size_t, size_t, Node *, char *, size_t, Node **);
+Node *varDeclNodeCreate(size_t, size_t, Node *, size_t, char **);
+Node *structDeclNodeCreate(size_t, size_t, char *, size_t, Node **);
+Node *typedefNodeCreate(size_t, size_t, Node *, char *);
+Node *functionNodeCreate(size_t, size_t, Node *, char *, size_t, Node **,
+                         char **, Node *);
+Node *compoundStmtNodeCreate(size_t, size_t, size_t, Node **);
+Node *ifStmtNodeCreate(size_t, size_t, Node *, Node *, Node *);
+Node *whileStmtNodeCreate(size_t, size_t, Node *, Node *);
+Node *doWhileStmtNodeCreate(size_t, size_t, Node *, Node *);
+Node *forStmtNodeCreate(size_t, size_t, Node *, Node *, Node *, Node *);
+Node *switchStmtNodeCreate(size_t, size_t, Node *, size_t, Node **);
+Node *numCaseNodeCreate(size_t, size_t, Node *, Node *);
+Node *defaultCaseNodeCreate(size_t, size_t, Node *);
+Node *breakStmtNodeCreate(size_t, size_t);
+Node *continueStmtNodeCreate(size_t, size_t);
+Node *returnStmtNodeCreate(size_t, size_t, Node *);
+Node *varDeclStmtNodeCreate(size_t, size_t, Node *, size_t, char **, Node **);
+Node *asmStmtNodeCreate(size_t, size_t, char *);
+Node *expressionStmtNodeCreate(size_t, size_t, Node *);
+Node *nullStmtNodeCreate(size_t, size_t);
+Node *seqExpNodeCreate(size_t, size_t, Node *, Node *);
+Node *binOpExpNodeCreate(size_t, size_t, BinOpType, Node *, Node *);
+Node *unOpExpNodeCreate(size_t, size_t, UnOpType, Node *);
+Node *compOpExpNodeCreate(size_t, size_t, CompOpType, Node *, Node *);
+Node *landAssignExpNodeCreate(size_t, size_t, Node *, Node *);
+Node *lorAssignExpNodeCreate(size_t, size_t, Node *, Node *);
+Node *ternaryExpNodeCreate(size_t, size_t, Node *, Node *, Node *);
+Node *landExpNodeCreate(size_t, size_t, Node *, Node *);
+Node *lorExpNodeCreate(size_t, size_t, Node *, Node *);
+Node *structAccessExpNodeCreate(size_t, size_t, Node *, char *);
+Node *structPtrAccessExpNodeCreate(size_t, size_t, Node *, char *);
+Node *fnCallExpNodeCreate(size_t, size_t, Node *, size_t, Node **);
+Node *idExpNodeCreate(size_t, size_t, char *);
+Node *constExpNodeCreate(size_t, size_t,
+                         char *);  // character representation of the constant
+Node *castExpNodeCreate(size_t, size_t, Node *, Node *);
+Node *sizeofExpNodeCreate(size_t, size_t, Node *);
+Node *keywordTypeNodeCreate(size_t, size_t, TypeKeyword);
+Node *idTypeNodeCreate(size_t, size_t, char *);
+Node *constTypeNodeCreate(size_t, size_t, Node *);
+Node *arrayTypeNodeCreate(size_t, size_t, Node *,
+                          char *);  // character representation of the constant
+Node *ptrTypeNodeCreate(size_t, size_t, Node *);
+Node *fnPtrTypeNodeCreate(size_t, size_t, Node *, size_t, Node **);
+
+void nodeDestroy(Node *);
+
 #endif  // TLC_AST_AST_H_
