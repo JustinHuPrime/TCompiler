@@ -22,6 +22,12 @@ The T programming language is based around modules. There are two kinds of modul
 
 \chapter{Translation}
 
+Translation of the T programming language happens in ??? steps:
+
+\begin{enumerate}
+	\item 
+\end{enumerate}
+
 \chapter{Basic Concepts}
 
 \section{Data Types}
@@ -55,16 +61,14 @@ The following data types are aliases of the basic data types. This means that th
 
 \subsection{Modifiers}
 
-The following modifiers may be applied to a data type, with the following precedence:
-
-% TODO: figure out precedence
+The following modifiers may be applied to a data type, binding in a left-associative manner:
 
 \begin{itemize}
 	\item \texttt{const}: marks the data type as a constant value, making all lvalues involving this data constant lvalues. This modifier is left associative.
 	\item \texttt{volatile}: marks the data type as volatile, which makes all accesses to said data type considered sequence points, prohibiting reordering or removal.
-	\item \texttt{pointer}: marks the data type as a pointer to some type
-	\item \texttt{array<N>}: marks the data type as an array, of some size
-	\item \texttt{function<T1...>}: marks the data type as a function pointer that takes in some parameters of the given type.
+	\item \texttt{*}: marks the data type as a pointer to some type
+	\item \texttt{[\textit{N}]}: marks the data type as an array, of size \textit{N}
+	\item \texttt{(\textit{TYPE...})}: marks the data type as a function pointer that takes in some parameters \textit{TYPE...}.
 \end{itemize}
 
 \section{Identifiers}

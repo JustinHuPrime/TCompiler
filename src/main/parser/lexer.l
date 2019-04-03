@@ -7,6 +7,7 @@
 [ \n\r\t]               ;
 "//".*                  ;
 "/*"([^*]|\*[^\/])*"*/" ;
+
  /* keywords */
 module   { return KWD_MODULE; }
 using    { return KWD_USING; }
@@ -97,9 +98,9 @@ cast     { return KWD_CAST; }
 [a-zA-Z_][a-zA-Z0-9_]*   { yylval.tokenString = yytext; return T_ID; }
 
 \"(([0-9a-zA-Z !'#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\\""|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F][0-9a-fA-F]))*\" { yylval.tokenString = yytext; return L_STRINGLITERAL; }
-'([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F][0-9a-fA-F])'     { yylval.tokenString = yytext; return L_CHARLITERAL; } /*([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@[]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F][0-9a-fA-F])*/
--?(0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|[1-9][0-9]*|0)                                                                          { yylval.tokenString = yytext; return L_INTLITERAL; }
--?[0-9]+\.[0-9]+                                                                                                          { yylval.tokenString = yytext; return L_FLOATLITERAL; }
+'([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F][0-9a-fA-F])'       { yylval.tokenString = yytext; return L_CHARLITERAL; } /*([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@[]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F][0-9a-fA-F])*/
+-?(0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|[1-9][0-9]*|0)                                                                            { yylval.tokenString = yytext; return L_INTLITERAL; }
+-?[0-9]+\.[0-9]+                                                                                                            { yylval.tokenString = yytext; return L_FLOATLITERAL; }
 
 . { yylval.invalidChar = yytext[0]; return E_INVALIDCHAR; }
 %%

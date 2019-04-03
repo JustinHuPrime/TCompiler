@@ -7,7 +7,7 @@ CC := gcc
 RM := rm -rf
 MV := mv
 MKDIR := mkdir -p
-FORMATTER := clang-format
+FORMATTER := clang-format -i
 YACC := bison
 LEX := flex
 
@@ -45,18 +45,17 @@ TEXENAME := tcc-test
 
 
 # compiler warnings
-WARNINGS := -Wall -Wextra -Wpedantic -Wpedantic-errors -Wmissing-include-dirs\
--Wswitch-default -Wuninitialized -Wstrict-overflow=5 -Wsuggest-override\
--Wfloat-equal -Wshadow -Wundef -Wunused-macros -Wcast-qual -Wcast-align=strict\
--Wconversion -Wzero-as-null-pointer-constant -Wformat=2 -Wuseless-cast\
--Wextra-semi -Wsign-conversion -Wlogical-op -Wmissing-declarations\
--Wredundant-decls -Winline -Winvalid-pch -Wdisabled-optimization\
--Wstrict-null-sentinel -Wsign-promo -Wbad-function-cast -Wjump-misses-init\
--Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes\
--Wnormalized=nfc -Wpadded -Wnested-externs
+WARNINGS := -pedantic -pedantic-errors -Wall -Wextra -Wdouble-promotion\
+-Winit-self -Wmissing-include-dirs -Wswitch-enum -Wtrampolines -Wfloat-equal\
+-Wundef -Wshadow -Wunsafe-loop-optimizations -Wbad-function-cast -Wcast-qual\
+-Wcast-align -Wwrite-strings -Wconversion -Wjump-misses-init -Wlogical-op\
+-Waggregate-return -Wstrict-prototypes -Wold-style-definition\
+-Wmissing-prototypes -Wmissing-declarations -Wmissing-format-attribute\
+-Wpacked -Wredundant-decls -Wnested-externs -Winline -Winvalid-pch\
+-Wdisabled-optimization -Wstack-protector
 
 # compiler options
-OPTIONS := -std=c18 -m64 -D_POSIX_C_SOURCE=201803L -I$(SRCDIR)
+OPTIONS := -std=c18 -m64 -D_POSIX_C_SOURCE=201803L -I$(SRCDIR) $(WARNINGS)
 DEBUGOPTIONS := -Og -ggdb -Wno-unused
 RELEASEOPTIONS := -O3 -D NDEBUG -Wunused
 TOPTIONS := -I$(TSRCDIR)
@@ -68,10 +67,8 @@ LEXOPTIONS :=
 
 
 # yacc options
-YACCOPTIONS := -d -v --report=state
+YACCOPTIONS := -d --report=state
 
-
-DIAGNOSE := UNSET
 
 .PHONY: debug release clean diagnose
 .SECONDEXPANSION:
@@ -79,32 +76,39 @@ DIAGNOSE := UNSET
 
 debug: OPTIONS := $(OPTIONS) $(DEBUGOPTIONS)
 debug: $(EXENAME) $(TEXENAME)
+	@echo "Running tests"
 	@./$(TEXENAME)
 	@echo "Done building debug!"
 
 release: OPTIONS := $(OPTIONS) $(RELEASEOPTIONS)
 release: $(EXENAME) $(TEXENAME)
+	@echo "Running tests"
 	@./$(TEXENAME)
 	@echo "Done building release!"
 
 
 clean:
-	$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) $(EXENAME) $(TEXENAME) $(GENERATEDSOURCES)
+	@echo "Removing all generated files and folders."
+	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) $(EXENAME) $(TEXENAME) $(GENERATEDSOURCES)
 
 
 $(EXENAME): $(OBJS)
-	$(CC) -o $(EXENAME) $(OPTIONS) $(OBJS) $(LIBS)
+	@echo "Linking $@"
+	@$(CC) -o $(EXENAME) $(OPTIONS) $(OBJS) $(LIBS)
 
 $(OBJS): $$(patsubst $(OBJDIR)/%.o,$(SRCDIR)/%.c,$$@) $$(patsubst $(OBJDIR)/%.o,$(DEPDIR)/%.dep,$$@) | $$(dir $$@)
-	@clang-format -i $(filter-out %.dep,$^)
-	$(CC) $(OPTIONS) -c $< -o $@
+	@echo "Compiling $@"
+	@$(FORMATTER) $(filter-out %.dep,$^)
+	@$(CC) $(OPTIONS) -c $< -o $@
 
 $(SRCDIR)/parser/lex.yy.c: $(SRCDIR)/parser/lexer.l $(SRCDIR)/parser/parser.tab.h
-	$(LEX) $(LEXOPTIONS) $(SRCDIR)/parser/lexer.l
+	@echo "Creating $@"
+	@$(LEX) $(LEXOPTIONS) $(SRCDIR)/parser/lexer.l
 	@$(MV) lex.yy.c src/main/parser
 
 $(SRCDIR)/parser/parser.tab.c $(SRCDIR)/parser/parser.tab.h: $(SRCDIR)/parser/parser.y
-	$(YACC) $(YACCOPTIONS) src/main/parser/parser.y
+	@echo "Creating $@"
+	@$(YACC) $(YACCOPTIONS) src/main/parser/parser.y
 	@$(MV) parser.tab.[ch] src/main/parser
 
 $(DEPS): $$(patsubst $(DEPDIR)/%.dep,$(SRCDIR)/%.c,$$@) $(GENERATEDSOURCES) | $$(dir $$@)
@@ -115,11 +119,13 @@ $(DEPS): $$(patsubst $(DEPDIR)/%.dep,$(SRCDIR)/%.c,$$@) $(GENERATEDSOURCES) | $$
 
 
 $(TEXENAME): $(TOBJS) $(OBJS) $(GENERATEDOBJS)
-	$(CC) -o $(TEXENAME) $(OPTIONS) $(TOPTIONS) $(filter-out %main.o,$(OBJS)) $(GENERATEDOBJS) $(TOBJS) $(LIBS)
+	@echo "Linking $@"
+	@$(CC) -o $(TEXENAME) $(OPTIONS) $(TOPTIONS) $(filter-out %main.o,$(OBJS)) $(GENERATEDOBJS) $(TOBJS) $(LIBS)
 
 $(TOBJS): $$(patsubst $(TOBJDIR)/%.o,$(TSRCDIR)/%.c,$$@) $$(patsubst $(TOBJDIR)/%.o,$(TDEPDIR)/%.dep,$$@) | $$(dir $$@)
-	@clang-format -i $(filter-out %.dep,$^)
-	$(CC) $(OPTIONS) $(TOPTIONS) -c $< -o $@
+	@echo "Compiling $@"
+	@$(FORMATTER) $(filter-out %.dep,$^)
+	@$(CC) $(OPTIONS) $(TOPTIONS) -c $< -o $@
 
 $(TDEPS): $$(patsubst $(TDEPDIR)/%.dep,$(TSRCDIR)/%.c,$$@) | $$(dir $$@)
 	@set -e; $(RM) $@; \
