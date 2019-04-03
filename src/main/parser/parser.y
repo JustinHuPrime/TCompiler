@@ -1,6 +1,6 @@
 %{
   #include "ast/ast.h"
-  
+
   #include <stdio.h>
 
   void yyerror(void*, const char *);
@@ -151,7 +151,7 @@ variable_declaration_statement_chain: T_ID maybe_assign
                                     | variable_declaration_statement_chain P_COMMA T_ID maybe_assign
                                     ;
 maybe_assign:
-            | P_ASSIGN ternary_expression
+            | P_ASSIGN assignment_expression
             ;
 
 asm_statement: KWD_ASM L_STRINGLITERAL ;
