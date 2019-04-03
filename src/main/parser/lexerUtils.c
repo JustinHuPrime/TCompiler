@@ -4,4 +4,4 @@
 
 #include "lexerUtils.h"
 
-int null;  // TODO: write this file
+bool isType(char *id) { return false; }

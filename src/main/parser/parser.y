@@ -1,4 +1,6 @@
 %{
+  #include "ast/ast.h"
+  
   #include <stdio.h>
 
   void yyerror(void*, const char *);
@@ -34,15 +36,15 @@
        P_LAND P_LOR P_QUESTION P_COLON P_ASSIGN P_MULASSIGN P_DIVASSIGN
        P_MODASSIGN P_ADDASSIGN P_SUBASSIGN P_LSHIFTASSIGN P_LRSHIFTASSIGN
        P_ARSHIFTASSIGN P_BITANDASSIGN P_BITXORASSIGN P_BITORASSIGN P_LANDASSIGN
-       P_LORASSIGN P_COLONCOLON
+       P_LORASSIGN
 
 // identifier
 %token <tokenString>
-       T_ID T_TYPE_ID
+       T_ID T_SCOPED_ID T_TYPE_ID T_SCOPED_TYPE_ID
 
 // literals
 %token <tokenString>
-       L_STRINGLITERAL L_CHARLITERAL L_INTLITERAL L_FLOATLITERAL L_WSTRINGLITERAL L_WCHARLITERAL
+       L_INTLITERAL L_FLOATLITERAL L_STRINGLITERAL L_CHARLITERAL L_WSTRINGLITERAL L_WCHARLITERAL
 
 %token <invalidChar>
        E_INVALIDCHAR
@@ -149,12 +151,107 @@ variable_declaration_statement_chain: T_ID maybe_assign
                                     | variable_declaration_statement_chain P_COMMA T_ID maybe_assign
                                     ;
 maybe_assign:
-            | P_ASSIGN expression
+            | P_ASSIGN ternary_expression
             ;
 
 asm_statement: KWD_ASM L_STRINGLITERAL ;
 
-expression: scoped_identifier ;
+expression: assignment_expression
+          | expression P_COMMA assignment_expression
+          ;
+assignment_expression: ternary_expression
+                     | assignment_expression P_ASSIGN ternary_expression
+                     | assignment_expression P_MULASSIGN ternary_expression
+                     | assignment_expression P_DIVASSIGN ternary_expression
+                     | assignment_expression P_MODASSIGN ternary_expression
+                     | assignment_expression P_ADDASSIGN ternary_expression
+                     | assignment_expression P_SUBASSIGN ternary_expression
+                     | assignment_expression P_LSHIFTASSIGN ternary_expression
+                     | assignment_expression P_LRSHIFTASSIGN ternary_expression
+                     | assignment_expression P_ARSHIFTASSIGN ternary_expression
+                     | assignment_expression P_BITANDASSIGN ternary_expression
+                     | assignment_expression P_BITXORASSIGN ternary_expression
+                     | assignment_expression P_BITORASSIGN ternary_expression
+                     | assignment_expression P_LANDASSIGN ternary_expression
+                     | assignment_expression P_LORASSIGN ternary_expression
+                     ;
+ternary_expression: logical_expression
+                  | ternary_expression P_QUESTION expression P_COLON logical_expression
+                  ;
+logical_expression: bitwise_expression
+                  | logical_expression P_LAND bitwise_expression
+                  | logical_expression P_LOR bitwise_expression
+                  ;
+bitwise_expression: equality_expression
+                  | bitwise_expression P_AMPERSAND equality_expression
+                  | bitwise_expression P_PIPE equality_expression
+                  | bitwise_expression P_CARET equality_expression
+                  ;
+equality_expression: comparison_expression
+                   | equality_expression P_EQ comparison_expression
+                   | equality_expression P_NEQ comparison_expression
+                   ;
+comparison_expression: spaceship_expression
+                     | comparison_expression P_LANGLE spaceship_expression
+                     | comparison_expression P_RANGLE spaceship_expression
+                     | comparison_expression P_LTEQ spaceship_expression
+                     | comparison_expression P_GTEQ spaceship_expression
+                     ;
+spaceship_expression: shift_expression
+                    | spaceship_expression P_SPACESHIP shift_expression
+                    ;
+shift_expression: addition_expression
+                | shift_expression P_LSHIFT addition_expression
+                | shift_expression P_LRSHIFT addition_expression
+                | shift_expression P_ARSHIFT addition_expression
+                ;
+addition_expression: multiplication_expression
+                   | addition_expression P_PLUS multiplication_expression
+                   | addition_expression P_MINUS multiplication_expression
+                   ;
+multiplication_expression: prefix_expression
+                         | multiplication_expression P_STAR prefix_expression
+                         | multiplication_expression P_SLASH prefix_expression
+                         | multiplication_expression P_PERCENT prefix_expression
+                         ;
+prefix_expression: postfix_expression
+                 | P_STAR prefix_expression
+                 | P_AMPERSAND prefix_expression
+                 | P_PLUSPLUS prefix_expression
+                 | P_MINUSMINUS prefix_expression
+                 | P_PLUS prefix_expression
+                 | P_MINUS prefix_expression
+                 | P_BANG prefix_expression
+                 | P_TILDE prefix_expression
+                 ;
+postfix_expression: primary_expression
+                  | postfix_expression P_DOT T_ID
+                  | postfix_expression P_ARROW T_ID
+                  | postfix_expression P_LPAREN argument_list P_RPAREN
+                  | postfix_expression P_LSQUARE expression P_RSQUARE
+                  | postfix_expression P_PLUSPLUS
+                  | postfix_expression P_MINUSMINUS
+                  ;
+primary_expression: scoped_identifier
+                  | L_INTLITERAL
+                  | L_FLOATLITERAL
+                  | L_STRINGLITERAL
+                  | L_CHARLITERAL
+                  | L_WSTRINGLITERAL
+                  | L_WCHARLITERAL
+                  | KWD_TRUE
+                  | KWD_FALSE
+                  | KWD_CAST P_LSQUARE type P_RSQUARE P_LPAREN expression P_RPAREN
+                  | KWD_SIZEOF P_LPAREN expression P_RPAREN
+                  | KWD_SIZEOF P_LPAREN type P_RPAREN
+                  | P_LPAREN expression P_RPAREN
+                  ;
+argument_list:
+             | argument_list_nonempty
+             ;
+argument_list_nonempty: assignment_expression
+                      | argument_list_nonempty P_COMMA assignment_expression
+                      ;
 
 type: KWD_VOID
     | KWD_UBYTE
@@ -179,14 +276,14 @@ function_ptr_arg_list_nonempty: type
                               | function_ptr_arg_list_nonempty P_COMMA type
                               ;
 
-scoped_identifier: T_ID
-                 | scoped_identifier P_COLONCOLON T_ID
+scoped_identifier: T_SCOPED_ID
+                 | T_ID
                  ;
-scoped_type_identifier: T_TYPE_ID
-                      | scoped_identifier P_COLONCOLON T_TYPE_ID
+scoped_type_identifier: T_SCOPED_TYPE_ID
+                      | T_TYPE_ID
                       ;
 %%
 
 void yyerror(void* ignored, const char* msg) {
-  fprintf(stderr, "%s", msg);
+  fprintf(stderr, "%s\n", msg);
 }

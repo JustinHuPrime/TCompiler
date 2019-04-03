@@ -93,14 +93,14 @@ const    { return KWD_CONST; }
 "|="   { return P_BITORASSIGN; }
 "&&="  { return P_LANDASSIGN; }
 "||="  { return P_LORASSIGN; }
-"::"   { return P_COLONCOLON; }
 
-[a-zA-Z_][a-zA-Z0-9_]*   { yylval.tokenString = yytext; return 1 ? T_ID : T_TYPE_ID ; }
+[a-zA-Z_][a-zA-Z0-9_]*                           { yylval.tokenString = yytext; return isType(yytext) ? T_TYPE_ID : T_ID; }
+[a-zA-Z_][a-zA-Z0-9_]*(::[a-zA-Z_][a-zA-Z0-9_]*) { yylval.tokenString = yytext; return isType(yytext) ? T_SCOPED_TYPE_ID : T_SCOPED_ID; }
 
-\"(([0-9a-zA-Z !'#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\\""|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}))*\"                      { yylval.tokenString = yytext; return L_STRINGLITERAL; }
-'([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2})'                            { yylval.tokenString = yytext; return L_CHARLITERAL; }
 -?(0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|[1-9][0-9]*|0)                                                                                         { yylval.tokenString = yytext; return L_INTLITERAL; }
 -?[0-9]+\.[0-9]+                                                                                                                         { yylval.tokenString = yytext; return L_FLOATLITERAL; }
+\"(([0-9a-zA-Z !'#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\\""|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}))*\"                      { yylval.tokenString = yytext; return L_STRINGLITERAL; }
+'([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2})'                            { yylval.tokenString = yytext; return L_CHARLITERAL; }
 \"(([0-9a-zA-Z !'#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\\""|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}|"\\u"[0-9a-fA-F]{8}))*\"w { yylval.tokenString = yytext; return L_WSTRINGLITERAL; }
 '([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}|"\\u"[0-9a-fA-F]{8})'w       { yylval.tokenString = yytext; return L_WCHARLITERAL; }
 
