@@ -19,7 +19,7 @@ DEPDIRPREFIX := dependencies
 
 SRCDIR := $(SRCDIRPREFIX)/main
 GENERATEDSOURCES := $(SRCDIR)/parser/lex.yy.c $(SRCDIR)/parser/parser.tab.c $(SRCDIR)/parser/parser.tab.h
-FILESRCS := $(shell find -O3 $(SRCDIR)/ -not -path "$(SRCDIR)/parser/parser.tab.[ch]" -not -path "$(SRCDIR)/parser/lex.yy.c" -type f -name '*.c')
+FILESRCS := $(shell find -O3 $(SRCDIR)/ -not -path "$(SRCDIR)/parser/parser.tab.[ch]" -not -path "$(SRCDIR)/parser/lex.yy.[ch]" -type f -name '*.c')
 SRCS := $(FILESRCS) $(filter-out %.h, $(GENERATEDSOURCES))
 
 OBJDIR := $(OBJDIRPREFIX)/main
@@ -65,11 +65,11 @@ LIBS :=
 
 
 # lex options
-LEXOPTIONS :=
+LEXOPTIONS := --outfile=$(SRCDIR)/parser/lex.yy.c
 
 
 # yacc options
-YACCOPTIONS := -d --report=state
+YACCOPTIONS := --defines=$(SRCDIR)/parser/parser.tab.h --output=$(SRCDIR)/parser/parser.tab.c
 
 
 .PHONY: debug release clean diagnose
@@ -111,12 +111,10 @@ $(GENERATEDOBJS): $$(patsubst $(OBJDIR)/%.o,$(SRCDIR)/%.c,$$@) | $$(dir $$@)
 $(SRCDIR)/parser/lex.yy.c: $(SRCDIR)/parser/lexer.l $(SRCDIR)/parser/parser.tab.h
 	@echo "Creating $@"
 	@$(LEX) $(LEXOPTIONS) $(SRCDIR)/parser/lexer.l
-	@$(MV) lex.yy.c src/main/parser
 
 $(SRCDIR)/parser/parser.tab.c $(SRCDIR)/parser/parser.tab.h: $(SRCDIR)/parser/parser.y
 	@echo "Creating $@"
 	@$(YACC) $(YACCOPTIONS) src/main/parser/parser.y
-	@$(MV) parser.tab.[ch] src/main/parser
 
 $(DEPS): $$(patsubst $(DEPDIR)/%.dep,$(SRCDIR)/%.c,$$@) $(GENERATEDSOURCES) | $$(dir $$@)
 	@set -e; $(RM) $@; \
