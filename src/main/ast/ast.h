@@ -41,10 +41,12 @@ typedef enum {
   TYPE_STRUCTACCESSEXP,
   TYPE_STRUCTPTRACCESSEXP,
   TYPE_FNCALLEXP,
+  TYPE_ARRAYINDEXEXP,
   TYPE_IDEXP,
   TYPE_CONSTEXP,
   TYPE_CASTEXP,
-  TYPE_SIZEOFEXP,
+  TYPE_SIZEOFTYPEEXP,
+  TYPE_SIZEOFEXPEXP,
   TYPE_KEYWORDTYPE,
   TYPE_IDTYPE,
   TYPE_CONSTTYPE,
@@ -57,6 +59,7 @@ typedef enum {
   OP_ASSIGN,
   OP_MULASSIGN,
   OP_DIVASSIGN,
+  OP_MODASSIGN,
   OP_ADDASSIGN,
   OP_SUBASSIGN,
   OP_LSHIFTASSIGN,
@@ -115,6 +118,14 @@ typedef enum {
   CTYPE_BOOL,
 } ConstType;
 typedef enum {
+  TYPEHINT_INT,
+  TYPEHINT_FLOAT,
+  TYPEHINT_STRING,
+  TYPEHINT_CHAR,
+  TYPEHINT_WSTRING,
+  TYPEHINT_WCHAR,
+} ConstTypeHint;
+typedef enum {
   TYPEKWD_VOID,
   TYPEKWD_UBYTE,
   TYPEKWD_BYTE,
@@ -123,7 +134,8 @@ typedef enum {
   TYPEKWD_ULONG,
   TYPEKWD_LONG,
   TYPEKWD_FLOAT,
-  TYPEKWD_DOUBLE
+  TYPEKWD_DOUBLE,
+  TYPEKWD_BOOL,
 } TypeKeyword;
 
 typedef struct Node {
@@ -280,6 +292,10 @@ typedef struct Node {
       struct Node **args;
     } fnCallExp;
     struct {
+      struct Node *base;
+      struct Node *index;
+    } arrayIndexExp;
+    struct {
       char *id;
     } idExp;
     struct {
@@ -306,7 +322,10 @@ typedef struct Node {
     } castExp;
     struct {
       struct Node *target;
-    } sizeofExp;
+    } sizeofTypeExp;
+    struct {
+      struct Node *target;
+    } sizeofExpExp;
 
     struct {
       TypeKeyword type;
@@ -319,7 +338,7 @@ typedef struct Node {
     } constType;
     struct {
       struct Node *element;
-      size_t size;
+      struct Node *size;
     } arrayType;
     struct {
       struct Node *target;
@@ -374,16 +393,19 @@ Node *lorExpNodeCreate(size_t, size_t, Node *, Node *);
 Node *structAccessExpNodeCreate(size_t, size_t, Node *, Node *);
 Node *structPtrAccessExpNodeCreate(size_t, size_t, Node *, Node *);
 Node *fnCallExpNodeCreate(size_t, size_t, Node *, size_t, Node **);
+Node *arrayIndexNodeCreate(size_t, size_t, Node *, Node *);
 Node *idExpNodeCreate(size_t, size_t, char *);
-Node *constExpNodeCreate(size_t, size_t,
+Node *constExpNodeCreate(size_t, size_t, ConstTypeHint,
                          char *);  // character representation of the constant
+Node *constTrueNodeCreate(size_t, size_t);
+Node *constFalseNodeCreate(size_t, size_t);
 Node *castExpNodeCreate(size_t, size_t, Node *, Node *);
-Node *sizeofExpNodeCreate(size_t, size_t, Node *);
+Node *sizeofTypeExpNodeCreate(size_t, size_t, Node *);
+Node *sizeofExpExpNodeCreate(size_t, size_t, Node *);
 Node *keywordTypeNodeCreate(size_t, size_t, TypeKeyword);
 Node *idTypeNodeCreate(size_t, size_t, char *);
 Node *constTypeNodeCreate(size_t, size_t, Node *);
-Node *arrayTypeNodeCreate(size_t, size_t, Node *,
-                          char *);  // character representation of the constant
+Node *arrayTypeNodeCreate(size_t, size_t, Node *, Node *);
 Node *ptrTypeNodeCreate(size_t, size_t, Node *);
 Node *fnPtrTypeNodeCreate(size_t, size_t, Node *, size_t, Node **);
 Node *idNodeCreate(size_t, size_t, char *);

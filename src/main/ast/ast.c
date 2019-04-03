@@ -294,17 +294,40 @@ Node *fnCallExpNodeCreate(size_t line, size_t character, Node *who,
   node->data.fnCallExp.args = args;
   return node;
 }
+Node *arrayIndexNodeCreate(size_t line, size_t character, Node *base,
+                           Node *index) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_ARRAYINDEXEXP;
+  node->data.arrayIndexExp.base = base;
+  node->data.arrayIndexExp.index = index;
+  return node;
+}
 Node *idExpNodeCreate(size_t line, size_t character, char *id) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_IDEXP;
   node->data.idExp.id = id;
   return node;
 }
-Node *constExpNodeCreate(size_t line, size_t character, char *value) {
+Node *constExpNodeCreate(size_t line, size_t character, ConstTypeHint hint,
+                         char *value) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_CONSTEXP;
   // node->data.constExp
   // TODO: parse the value
+  return node;
+}
+Node *constTrueNodeCreate(size_t line, size_t character) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_CONSTEXP;
+  node->data.constExp.type = CTYPE_BOOL;
+  node->data.constExp.value.boolVal = true;
+  return node;
+}
+Node *constFalseNodeCreate(size_t line, size_t character) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_CONSTEXP;
+  node->data.constExp.type = CTYPE_BOOL;
+  node->data.constExp.value.boolVal = false;
   return node;
 }
 Node *castExpNodeCreate(size_t line, size_t character, Node *toWhat,
@@ -315,10 +338,16 @@ Node *castExpNodeCreate(size_t line, size_t character, Node *toWhat,
   node->data.castExp.target = target;
   return node;
 }
-Node *sizeofExpNodeCreate(size_t line, size_t character, Node *target) {
+Node *sizeofTypeExpNodeCreate(size_t line, size_t character, Node *target) {
   Node *node = nodeCreate(line, character);
-  node->type = TYPE_SIZEOFEXP;
-  node->data.sizeofExp.target;
+  node->type = TYPE_SIZEOFTYPEEXP;
+  node->data.sizeofTypeExp.target;
+  return node;
+}
+Node *sizeofExpExpNodeCreate(size_t line, size_t character, Node *target) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_SIZEOFEXPEXP;
+  node->data.sizeofExpExp.target;
   return node;
 }
 Node *keywordTypeNodeCreate(size_t line, size_t character, TypeKeyword type) {
@@ -340,7 +369,7 @@ Node *constTypeNodeCreate(size_t line, size_t character, Node *target) {
   return node;
 }
 Node *arrayTypeNodeCreate(size_t line, size_t character, Node *element,
-                          char *size) {
+                          Node *size) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_ARRAYTYPE;
   node->data.arrayType.element = element;
@@ -570,6 +599,11 @@ void nodeDestroy(Node *node) {
       freeIfNotNull(node->data.fnCallExp.args);
       break;
     }
+    case TYPE_ARRAYINDEXEXP: {
+      nodeDestroy(node->data.arrayIndexExp.base);
+      nodeDestroy(node->data.arrayIndexExp.index);
+      break;
+    }
     case TYPE_IDEXP: {
       free(node->data.idExp.id);
       break;
@@ -581,8 +615,12 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.castExp.target);
       break;
     }
-    case TYPE_SIZEOFEXP: {
-      nodeDestroy(node->data.sizeofExp.target);
+    case TYPE_SIZEOFTYPEEXP: {
+      nodeDestroy(node->data.sizeofTypeExp.target);
+      break;
+    }
+    case TYPE_SIZEOFEXPEXP: {
+      nodeDestroy(node->data.sizeofExpExp.target);
       break;
     }
     case TYPE_KEYWORDTYPE:
