@@ -1,6 +1,8 @@
 %code top {
   #include "ast/ast.h"
   
+  #include <stddef.h>
+  #include <stdlib.h>
   #include <stdio.h>
 
   void yyerror(Node**, const char *);
@@ -21,6 +23,16 @@
   int tokenID;
   char* tokenString;
   char invalidChar;
+  Node* ast;
+  struct {
+    size_t size;
+    Node **items;
+  } nodePtrList;
+  struct {
+    size_t size;
+    Node **firstItems;
+    Node **secondItems;
+  } nodePtrDoubleList;
 }
 
 // keywords
@@ -43,7 +55,7 @@
        P_LORASSIGN
 
 // identifier
-%token <tokenString>
+%token <ast>
        T_ID T_SCOPED_ID T_TYPE_ID T_SCOPED_TYPE_ID
 
 // literals
@@ -53,21 +65,48 @@
 %token <invalidChar>
        E_INVALIDCHAR
 
+%type <ast>
+      module_name import body_part function declaration function_declaration
+      variable_declaration struct_declaration typedef_declaration type
+      compound_statement
+%type <nodePtrList>
+      imports body_parts struct_declaration_chain variable_declaration_chain
+%type <nodePtrDoubleList>
+      function_arg_list function_arg_list_nonempty
+%type <ast>
+      scoped_identifier opt_id
+
 // other precedence (expressions) should go above this
 %right O_IF KWD_ELSE
 
 %start module
 %%
-module: module_name imports body_parts ;
-module_name: KWD_MODULE scoped_identifier P_SEMI ;
+module: module_name imports body_parts
+        { *ast = programNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $module_name, $imports.size, $imports.items, $body_parts.size, $body_parts.items); }
+      ;
+module_name: KWD_MODULE scoped_identifier P_SEMI
+             { $$ = moduleNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $scoped_identifier); }
+           ;
 
-imports:
+imports: { $$.size = 0;
+           $$.items = NULL; }
        | imports import
+         { $$ = $1;
+           $$.size++;
+           $$.items = realloc($$.items, $$.size * sizeof(Node *));
+           $$.items[$$.size - 1] = $import; }
        ;
-import: KWD_USING scoped_identifier P_SEMI ;
+import: KWD_USING scoped_identifier P_SEMI
+        { $$ = importNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $scoped_identifier); }
+      ;
 
-body_parts:
+body_parts: { $$.size = 0;
+              $$.items = NULL; }
           | body_parts body_part
+            { $$ = $1;
+              $$.size++;
+              $$.items = realloc($$.items, $$.size * sizeof(Node *));
+              $$.items[$$.size - 1] = $body_part; }
           ;
 body_part: function | declaration ;
 
@@ -76,27 +115,61 @@ declaration: function_declaration
            | struct_declaration
            | typedef_declaration
            ;
-function_declaration: type T_ID P_LPAREN function_arg_list P_RPAREN P_SEMI ;
-variable_declaration: type T_ID variable_declaration_chain P_SEMI ;
+function_declaration: type T_ID P_LPAREN function_arg_list P_RPAREN P_SEMI
+                      { $$ = funDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, $T_ID, $function_arg_list.size, $function_arg_list.firstItems); }
+                    ;
+variable_declaration: type T_ID variable_declaration_chain P_SEMI
+                      { $$ = varDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, $variable_declaration_chain.size, $variable_declaration_chain.items); }
+                    ;
 variable_declaration_chain: T_ID
+                            { $$.size = 1;
+                              $$.items = malloc(sizeof(char *));
+                              $$.items[0] = $T_ID; }
                           | variable_declaration_chain P_COMMA T_ID
+                            { $$ = $1;
+                              $$.size++;
+                              $$.items = realloc($$.items, $$.size * sizeof(char *));
+                              $$.items[$$.size - 1] = $T_ID; }
                           ;
-struct_declaration: KWD_STRUCT T_ID P_LBRACE P_RBRACE struct_declaration_chain P_SEMI ;
-struct_declaration_chain:
+struct_declaration: KWD_STRUCT T_ID P_LBRACE P_RBRACE struct_declaration_chain P_SEMI
+                    { $$ = structDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $T_ID, $struct_declaration_chain.size, $struct_declaration_chain.items); }
+                  ;
+struct_declaration_chain: { $$.size = 0;
+                            $$.items = malloc(sizeof(Node *)); }
                         | struct_declaration_chain variable_declaration
+                          { $$ = $1;
+                            $$.size++;
+                            $$.items = realloc($$.items, $$.size * sizeof(Node *));
+                            $$.items[$$.size - 1] = $variable_declaration; }
                         ;
-typedef_declaration: KWD_TYPEDEF type T_ID ;
+typedef_declaration: KWD_TYPEDEF type T_ID 
+                     { $$ = typedefNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, $T_ID); }
+                   ;
 
-function: type T_ID P_LPAREN function_arg_list P_RPAREN compound_statement ;
+function: type T_ID P_LPAREN function_arg_list P_RPAREN compound_statement
+          { $$ = functionNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, $T_ID, $function_arg_list.size, $function_arg_list.firstItems, $function_arg_list.secondItems, $compound_statement); }
+        ;
 
-function_arg_list:
+function_arg_list: { $$.size = 0;
+                     $$.firstItems = NULL;
+                     $$.secondItems = NULL; }
                  | function_arg_list_nonempty
                  ;
 function_arg_list_nonempty: type opt_id
+                            { $$.size = 1;
+                              $$.firstItems = malloc(sizeof(Node *));
+                              $$.secondItems = malloc(sizeof(Node *)); }
                           | function_arg_list_nonempty P_COMMA type opt_id
+                            { $$ = $1;
+                              $$.size++;
+                              $$.firstItems = realloc($$.firstItems, $$.size * sizeof(Node *));
+                              $$.secondItems = realloc($$.secondItems, $$.size * sizeof(Node *));
+                              $$.firstItems[$$.size - 1] = $type;
+                              $$.secondItems[$$.size - 1] = $opt_id; }
                           ;
-opt_id:
+opt_id: { $$ = NULL; }
       | T_ID
+        { $$ = $T_ID; }
       ;
 
 statement: compound_statement

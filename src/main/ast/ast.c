@@ -21,20 +21,20 @@ Node *programNodeCreate(size_t line, size_t character, Node *module,
   return node;
 }
 
-Node *moduleNodeCreate(size_t line, size_t character, char *id) {
+Node *moduleNodeCreate(size_t line, size_t character, Node *id) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_MODULE;
   node->data.module.id = id;
   return node;
 }
-Node *importNodeCreate(size_t line, size_t character, char *id) {
+Node *importNodeCreate(size_t line, size_t character, Node *id) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_IMPORT;
   node->data.import.id = id;
   return node;
 }
 Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
-                        char *id, size_t numParamTypes, Node **paramTypes) {
+                        Node *id, size_t numParamTypes, Node **paramTypes) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_FUNDECL;
   node->data.funDecl.returnType = returnType;
@@ -44,7 +44,7 @@ Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
   return node;
 }
 Node *varDeclNodeCreate(size_t line, size_t character, Node *type,
-                        size_t numIds, char **ids) {
+                        size_t numIds, Node **ids) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_VARDECL;
   node->data.varDecl.type = type;
@@ -52,7 +52,7 @@ Node *varDeclNodeCreate(size_t line, size_t character, Node *type,
   node->data.varDecl.ids = ids;
   return node;
 }
-Node *structDeclNodeCreate(size_t line, size_t character, char *id,
+Node *structDeclNodeCreate(size_t line, size_t character, Node *id,
                            size_t numDecls, Node **decls) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_STRUCTDECL;
@@ -61,7 +61,7 @@ Node *structDeclNodeCreate(size_t line, size_t character, char *id,
   node->data.structDecl.decls = decls;
   return node;
 }
-Node *typedefNodeCreate(size_t line, size_t character, Node *type, char *id) {
+Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *id) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_TYPEDEFDECL;
   node->data.typedefDecl.type = type;
@@ -69,8 +69,8 @@ Node *typedefNodeCreate(size_t line, size_t character, Node *type, char *id) {
   return node;
 }
 Node *functionNodeCreate(size_t line, size_t character, Node *returnType,
-                         char *id, size_t numFormals, Node **formalTypes,
-                         char **formalIds, Node *body) {
+                         Node *id, size_t numFormals, Node **formalTypes,
+                         Node **formalIds, Node *body) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_FUNCTION;
   node->data.function.returnType = returnType;
@@ -116,6 +116,7 @@ Node *doWhileStmtNodeCreate(size_t line, size_t character, Node *body,
 }
 Node *forStmtNodeCreate(size_t line, size_t character, Node *initialize,
                         Node *condition, Node *update, Node *body) {
+  // TODO: implement desugaring
   Node *node = nodeCreate(line, character);
   node->type = TYPE_FORSTMT;
   node->data.forStmt.initialize = initialize;
@@ -164,7 +165,7 @@ Node *returnStmtNodeCreate(size_t line, size_t character, Node *value) {
   return node;
 }
 Node *varDeclStmtNodeCreate(size_t line, size_t character, Node *type,
-                            size_t numIds, char **ids, Node **values) {
+                            size_t numIds, Node **ids, Node **values) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_VARDECLSTMT;
   node->data.varDeclStmt.type = type;
@@ -173,7 +174,7 @@ Node *varDeclStmtNodeCreate(size_t line, size_t character, Node *type,
   node->data.varDeclStmt.values = values;
   return node;
 }
-Node *asmStmtNodeCreate(size_t line, size_t character, char *assembly) {
+Node *asmStmtNodeCreate(size_t line, size_t character, Node *assembly) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_ASMSTMT;
   node->data.asmStmt.assembly = assembly;
@@ -227,6 +228,7 @@ Node *compOpExpNodeCreate(size_t line, size_t character, CompOpType op,
 }
 Node *landAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
                               Node *rhs) {
+  // TODO: implement desugaring to ternaryExp
   Node *node = nodeCreate(line, character);
   node->type = TYPE_LANDASSIGNEXP;
   node->data.landAssignExp.lhs = lhs;
@@ -235,6 +237,7 @@ Node *landAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
 }
 Node *lorAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
                              Node *rhs) {
+  // TODO: implement desugaring to ternaryExp
   Node *node = nodeCreate(line, character);
   node->type = TYPE_LORASSIGNEXP;
   node->data.lorAssignExp.lhs = lhs;
@@ -251,6 +254,7 @@ Node *ternaryExpNodeCreate(size_t line, size_t character, Node *condition,
   return node;
 }
 Node *landExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
+  // TODO: implement desugaring to ternaryExp
   Node *node = nodeCreate(line, character);
   node->type = TYPE_LANDEXP;
   node->data.landExp.lhs = lhs;
@@ -258,6 +262,7 @@ Node *landExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
   return node;
 }
 Node *lorExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
+  // TODO: implement desugaring to ternaryExp
   Node *node = nodeCreate(line, character);
   node->type = TYPE_LOREXP;
   node->data.lorExp.lhs = lhs;
@@ -265,7 +270,7 @@ Node *lorExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
   return node;
 }
 Node *structAccessExpNodeCreate(size_t line, size_t character, Node *base,
-                                char *element) {
+                                Node *element) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_STRUCTACCESSEXP;
   node->data.structAccessExp.base = base;
@@ -273,7 +278,7 @@ Node *structAccessExpNodeCreate(size_t line, size_t character, Node *base,
   return node;
 }
 Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *base,
-                                   char *element) {
+                                   Node *element) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_STRUCTPTRACCESSEXP;
   node->data.structPtrAccessExp.base = base;
@@ -358,6 +363,16 @@ Node *fnPtrTypeNodeCreate(size_t line, size_t character, Node *returnType,
   node->data.fnPtrType.argTypes = argTypes;
   return node;
 }
+Node *idNodeCreate(size_t line, size_t character, char *id) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_ID;
+  node->data.id.id = id;
+  return node;
+}
+
+void freeIfNotNull(void *ptr) {
+  if (ptr != NULL) free(ptr);
+}
 
 void nodeDestroy(Node *node) {
   if (node == NULL) return;
@@ -367,23 +382,23 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.program.module);
       for (size_t idx = 0; idx < node->data.program.numImports; idx++)
         nodeDestroy(node->data.program.imports[idx]);
-      free(node->data.program.imports);
+      freeIfNotNull(node->data.program.imports);
       for (size_t idx = 0; idx < node->data.program.numBodies; idx++)
         nodeDestroy(node->data.program.bodies[idx]);
-      free(node->data.program.bodies);
+      freeIfNotNull(node->data.program.bodies);
       break;
     }
     case TYPE_MODULE: {
-      free(node->data.module.id);
+      nodeDestroy(node->data.module.id);
       break;
     }
     case TYPE_IMPORT: {
-      free(node->data.import.id);
+      nodeDestroy(node->data.import.id);
       break;
     }
     case TYPE_FUNDECL: {
       nodeDestroy(node->data.funDecl.returnType);
-      free(node->data.funDecl.id);
+      nodeDestroy(node->data.funDecl.id);
       for (size_t idx = 0; idx < node->data.funDecl.numParamTypes; idx++)
         nodeDestroy(node->data.funDecl.paramTypes[idx]);
       free(node->data.funDecl.paramTypes);
@@ -392,40 +407,38 @@ void nodeDestroy(Node *node) {
     case TYPE_VARDECL: {
       nodeDestroy(node->data.varDecl.type);
       for (size_t idx = 0; idx < node->data.varDecl.numIds; idx++)
-        free(node->data.varDecl.ids[idx]);
-      free(node->data.varDecl.ids);
+        nodeDestroy(node->data.varDecl.ids[idx]);
+      freeIfNotNull(node->data.varDecl.ids);
       break;
     }
     case TYPE_STRUCTDECL: {
-      free(node->data.structDecl.id);
+      nodeDestroy(node->data.structDecl.id);
       for (size_t idx = 0; idx < node->data.structDecl.numDecls; idx++)
         nodeDestroy(node->data.structDecl.decls[idx]);
-      free(node->data.structDecl.decls);
+      freeIfNotNull(node->data.structDecl.decls);
       break;
     }
     case TYPE_TYPEDEFDECL: {
       nodeDestroy(node->data.typedefDecl.type);
-      free(node->data.typedefDecl.id);
+      nodeDestroy(node->data.typedefDecl.id);
       break;
     }
     case TYPE_FUNCTION: {
       nodeDestroy(node->data.function.returnType);
-      free(node->data.function.id);
+      nodeDestroy(node->data.function.id);
       for (size_t idx = 0; idx < node->data.function.numFormals; idx++) {
         nodeDestroy(node->data.function.formalTypes[idx]);
-        if (node->data.function.formalIds[idx] != NULL) {
-          free(node->data.function.formalIds[idx]);
-        }
+        nodeDestroy(node->data.function.formalIds[idx]);
       }
-      free(node->data.function.formalTypes);
-      free(node->data.function.formalIds);
+      freeIfNotNull(node->data.function.formalTypes);
+      freeIfNotNull(node->data.function.formalIds);
       nodeDestroy(node->data.function.body);
       break;
     }
     case TYPE_COMPOUNDSTMT: {
       for (size_t idx = 0; idx < node->data.compoundStmt.numStatements; idx++)
         nodeDestroy(node->data.compoundStmt.statements[idx]);
-      free(node->data.compoundStmt.statements);
+      freeIfNotNull(node->data.compoundStmt.statements);
       break;
     }
     case TYPE_IFSTMT: {
@@ -455,7 +468,7 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.switchStmt.onWhat);
       for (size_t idx = 0; idx < node->data.switchStmt.numCases; idx++)
         nodeDestroy(node->data.switchStmt.cases[idx]);
-      free(node->data.switchStmt.cases);
+      freeIfNotNull(node->data.switchStmt.cases);
       break;
     }
     case TYPE_NUMCASE: {
@@ -478,15 +491,15 @@ void nodeDestroy(Node *node) {
     case TYPE_VARDECLSTMT: {
       nodeDestroy(node->data.varDeclStmt.type);
       for (size_t idx = 0; idx < node->data.varDeclStmt.numIds; idx++) {
-        free(node->data.varDeclStmt.ids[idx]);
+        nodeDestroy(node->data.varDeclStmt.ids[idx]);
         nodeDestroy(node->data.varDeclStmt.values[idx]);
       }
-      free(node->data.varDeclStmt.ids);
-      free(node->data.varDeclStmt.values);
+      freeIfNotNull(node->data.varDeclStmt.ids);
+      freeIfNotNull(node->data.varDeclStmt.values);
       break;
     }
     case TYPE_ASMSTMT: {
-      free(node->data.asmStmt.assembly);
+      nodeDestroy(node->data.asmStmt.assembly);
       break;
     }
     case TYPE_EXPRESSIONSTMT: {
@@ -542,19 +555,19 @@ void nodeDestroy(Node *node) {
     }
     case TYPE_STRUCTACCESSEXP: {
       nodeDestroy(node->data.structAccessExp.base);
-      free(node->data.structAccessExp.element);
+      nodeDestroy(node->data.structAccessExp.element);
       break;
     }
     case TYPE_STRUCTPTRACCESSEXP: {
       nodeDestroy(node->data.structPtrAccessExp.base);
-      free(node->data.structPtrAccessExp.element);
+      nodeDestroy(node->data.structPtrAccessExp.element);
       break;
     }
     case TYPE_FNCALLEXP: {
       nodeDestroy(node->data.fnCallExp.who);
       for (size_t idx = 0; idx < node->data.fnCallExp.numArgs; idx++)
         nodeDestroy(node->data.fnCallExp.args[idx]);
-      free(node->data.fnCallExp.args);
+      freeIfNotNull(node->data.fnCallExp.args);
       break;
     }
     case TYPE_IDEXP: {
@@ -594,7 +607,11 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.fnPtrType.returnType);
       for (size_t idx = 0; idx < node->data.fnPtrType.numArgTypes; idx++)
         nodeDestroy(node->data.fnPtrType.argTypes[idx]);
-      free(node->data.fnPtrType.argTypes);
+      freeIfNotNull(node->data.fnPtrType.argTypes);
+      break;
+    }
+    case TYPE_ID: {
+      free(node->data.id.id);
       break;
     }
   }
