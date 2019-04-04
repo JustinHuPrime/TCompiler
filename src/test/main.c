@@ -4,10 +4,12 @@
 
 #include "engine.h"
 
+#include "ast/constExpParseTest.h"
+
 int main(int argc, char *argv[]) {
   TestStatus *status = testStatusCreate();
 
-  // call all tests, and pass them status
+  constExpParseTest(status);
 
   testStatusDisplay(status, stdout);
 

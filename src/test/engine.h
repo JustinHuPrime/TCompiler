@@ -1,5 +1,5 @@
-#ifndef TLC_TEST_TESTING_H_
-#define TLC_TEST_TESTING_H_
+#ifndef TLC_TEST_ENGINE_H_
+#define TLC_TEST_ENGINE_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -21,4 +21,4 @@ int testStatusStatus(TestStatus *);
 void testStatusDestroy(TestStatus *);
 void test(TestStatus *, char const *, bool);
 
-#endif  // TLC_TEST_TESTING_H_
+#endif  // TLC_TEST_ENGINE_H_
