@@ -46,7 +46,6 @@ typedef enum {
   TYPE_STRUCTACCESSEXP,
   TYPE_STRUCTPTRACCESSEXP,
   TYPE_FNCALLEXP,
-  TYPE_ARRAYINDEXEXP,
   TYPE_IDEXP,
   TYPE_CONSTEXP,
   TYPE_AGGREGATEINITEXP,
@@ -303,10 +302,6 @@ typedef struct Node {
       struct Node **args;
     } fnCallExp;
     struct {
-      struct Node *base;
-      struct Node *index;
-    } arrayIndexExp;
-    struct {
       char *id;
     } idExp;
     struct {
@@ -409,7 +404,6 @@ Node *lorExpNodeCreate(size_t, size_t, Node *, Node *);
 Node *structAccessExpNodeCreate(size_t, size_t, Node *, Node *);
 Node *structPtrAccessExpNodeCreate(size_t, size_t, Node *, Node *);
 Node *fnCallExpNodeCreate(size_t, size_t, Node *, size_t, Node **);
-Node *arrayIndexNodeCreate(size_t, size_t, Node *, Node *);
 Node *idExpNodeCreate(size_t, size_t, char *);
 Node *constExpNodeCreate(size_t, size_t, ConstTypeHint,
                          char *);  // character representation of the constant

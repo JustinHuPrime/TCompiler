@@ -446,7 +446,7 @@ postfix_expression: primary_expression
                   | postfix_expression P_LPAREN argument_list P_RPAREN
                     { $$ = fnCallExpNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $1, $argument_list.size, $argument_list.items); }
                   | postfix_expression P_LSQUARE expression P_RSQUARE
-                    { $$ = arrayIndexNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $1, $expression); }
+                    { $$ = binOpExpNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, OP_ARRAYACCESS, $1, $expression); }
                   | postfix_expression P_PLUSPLUS
                     { $$ = unOpExpNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, OP_POSTINC, $1); }
                   | postfix_expression P_MINUSMINUS

@@ -307,14 +307,6 @@ Node *fnCallExpNodeCreate(size_t line, size_t character, Node *who,
   node->data.fnCallExp.args = args;
   return node;
 }
-Node *arrayIndexNodeCreate(size_t line, size_t character, Node *base,
-                           Node *index) {
-  Node *node = nodeCreate(line, character);
-  node->type = TYPE_ARRAYINDEXEXP;
-  node->data.arrayIndexExp.base = base;
-  node->data.arrayIndexExp.index = index;
-  return node;
-}
 Node *idExpNodeCreate(size_t line, size_t character, char *id) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_IDEXP;
@@ -325,6 +317,7 @@ Node *constExpNodeCreate(size_t line, size_t character, ConstTypeHint hint,
                          char *value) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_CONSTEXP;
+  free(value);
   // node->data.constExp
   // TODO: parse the value
   return node;
@@ -394,8 +387,7 @@ Node *arrayTypeNodeCreate(size_t line, size_t character, Node *element,
   Node *node = nodeCreate(line, character);
   node->type = TYPE_ARRAYTYPE;
   node->data.arrayType.element = element;
-  // node->data.arrayType.size
-  // TODO: parse size
+  node->data.arrayType.size = size;
   return node;
 }
 Node *ptrTypeNodeCreate(size_t line, size_t character, Node *target) {
@@ -627,11 +619,6 @@ void nodeDestroy(Node *node) {
       freeIfNotNull(node->data.fnCallExp.args);
       break;
     }
-    case TYPE_ARRAYINDEXEXP: {
-      nodeDestroy(node->data.arrayIndexExp.base);
-      nodeDestroy(node->data.arrayIndexExp.index);
-      break;
-    }
     case TYPE_IDEXP: {
       free(node->data.idExp.id);
       break;
@@ -669,6 +656,7 @@ void nodeDestroy(Node *node) {
     }
     case TYPE_ARRAYTYPE: {
       nodeDestroy(node->data.arrayType.element);
+      nodeDestroy(node->data.arrayType.size);
       break;
     }
     case TYPE_PTRTYPE: {

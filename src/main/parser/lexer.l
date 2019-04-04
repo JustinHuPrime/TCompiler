@@ -6,6 +6,8 @@
 
   #include "parser/parser.tab.h"
   #include "parser/lexerUtils.h"
+
+  #include <string.h>
 %}
 %%
  /* whitespace is ignored */
@@ -98,15 +100,15 @@ const    { return KWD_CONST; }
 "&&="  { return P_LANDASSIGN; }
 "||="  { return P_LORASSIGN; }
 
-[a-zA-Z_][a-zA-Z0-9_]*                           { yylval.tokenString = yytext; return isType(yytext) ? T_TYPE_ID : T_ID; }
-[a-zA-Z_][a-zA-Z0-9_]*(::[a-zA-Z_][a-zA-Z0-9_]*) { yylval.tokenString = yytext; return isType(yytext) ? T_SCOPED_TYPE_ID : T_SCOPED_ID; }
+[a-zA-Z_][a-zA-Z0-9_]*                           { yylval.tokenString = strcpy(malloc((size_t)yyleng + 1), yytext); return isType(yylval.tokenString) ? T_TYPE_ID : T_ID; }
+[a-zA-Z_][a-zA-Z0-9_]*(::[a-zA-Z_][a-zA-Z0-9_]*) { yylval.tokenString = strcpy(malloc((size_t)yyleng + 1), yytext); return isType(yylval.tokenString) ? T_SCOPED_TYPE_ID : T_SCOPED_ID; }
 
--?(0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|[1-9][0-9]*|0)                                                                                         { yylval.tokenString = yytext; return L_INTLITERAL; }
--?[0-9]+\.[0-9]+                                                                                                                         { yylval.tokenString = yytext; return L_FLOATLITERAL; }
-\"(([0-9a-zA-Z !'#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\\""|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}))*\"                      { yylval.tokenString = yytext; return L_STRINGLITERAL; }
-'([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2})'                            { yylval.tokenString = yytext; return L_CHARLITERAL; }
-\"(([0-9a-zA-Z !'#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\\""|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}|"\\u"[0-9a-fA-F]{8}))*\"w { yylval.tokenString = yytext; return L_WSTRINGLITERAL; }
-'([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}|"\\u"[0-9a-fA-F]{8})'w       { yylval.tokenString = yytext; return L_WCHARLITERAL; }
+-?(0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|[1-9][0-9]*|0)                                                                                         { yylval.tokenString = strcpy(malloc((size_t)yyleng + 1), yytext); return L_INTLITERAL; }
+-?[0-9]+\.[0-9]+                                                                                                                         { yylval.tokenString = strcpy(malloc((size_t)yyleng + 1), yytext); return L_FLOATLITERAL; }
+\"(([0-9a-zA-Z !'#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\\""|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}))*\"                      { yylval.tokenString = strcpy(malloc((size_t)yyleng + 1), yytext); return L_STRINGLITERAL; }
+'([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2})'                            { yylval.tokenString = strcpy(malloc((size_t)yyleng + 1), yytext); return L_CHARLITERAL; }
+\"(([0-9a-zA-Z !'#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\\""|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}|"\\u"[0-9a-fA-F]{8}))*\"w { yylval.tokenString = strcpy(malloc((size_t)yyleng + 1), yytext); return L_WSTRINGLITERAL; }
+'([0-9a-zA-Z !"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}|"\\u"[0-9a-fA-F]{8})'w       { yylval.tokenString = strcpy(malloc((size_t)yyleng + 1), yytext); return L_WCHARLITERAL; }
 
 . { yylval.invalidChar = yytext[0]; return E_INVALIDCHAR; }
 %%
