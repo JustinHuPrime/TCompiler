@@ -138,7 +138,6 @@ Node *doWhileStmtNodeCreate(size_t line, size_t character, Node *body,
 }
 Node *forStmtNodeCreate(size_t line, size_t character, Node *initialize,
                         Node *condition, Node *update, Node *body) {
-  // TODO: implement desugaring
   Node *node = nodeCreate(line, character);
   node->type = TYPE_FORSTMT;
   node->data.forStmt.initialize = initialize;
