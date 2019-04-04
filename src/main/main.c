@@ -23,6 +23,11 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
+  printf("Structure:\n");
+  printNodeStructure(ast);
+  printf("\n");
+
+  printf("Pretty print:\n");
   printNode(ast);
 
   nodeDestroy(ast);
