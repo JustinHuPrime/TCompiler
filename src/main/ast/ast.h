@@ -122,6 +122,7 @@ typedef enum {
   CTYPE_WCSTRING,
   CTYPE_WCHAR,
   CTYPE_BOOL,
+  CTYPE_RANGE_ERROR,
 } ConstType;
 typedef enum {
   TYPEHINT_INT,

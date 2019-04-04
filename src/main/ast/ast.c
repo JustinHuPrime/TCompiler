@@ -250,7 +250,6 @@ Node *compOpExpNodeCreate(size_t line, size_t character, CompOpType op,
 }
 Node *landAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
                               Node *rhs) {
-  // TODO: implement desugaring to ternaryExp
   Node *node = nodeCreate(line, character);
   node->type = TYPE_LANDASSIGNEXP;
   node->data.landAssignExp.lhs = lhs;
@@ -259,7 +258,6 @@ Node *landAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
 }
 Node *lorAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
                              Node *rhs) {
-  // TODO: implement desugaring to ternaryExp
   Node *node = nodeCreate(line, character);
   node->type = TYPE_LORASSIGNEXP;
   node->data.lorAssignExp.lhs = lhs;
@@ -276,7 +274,6 @@ Node *ternaryExpNodeCreate(size_t line, size_t character, Node *condition,
   return node;
 }
 Node *landExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
-  // TODO: implement desugaring to ternaryExp
   Node *node = nodeCreate(line, character);
   node->type = TYPE_LANDEXP;
   node->data.landExp.lhs = lhs;
@@ -284,7 +281,6 @@ Node *landExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
   return node;
 }
 Node *lorExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
-  // TODO: implement desugaring to ternaryExp
   Node *node = nodeCreate(line, character);
   node->type = TYPE_LOREXP;
   node->data.lorExp.lhs = lhs;
@@ -326,9 +322,33 @@ Node *constExpNodeCreate(size_t line, size_t character, ConstTypeHint hint,
                          char *value) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_CONSTEXP;
+  switch (hint) {
+    case TYPEHINT_INT: {
+      // node->data.constExp
+      break;
+    }
+    case TYPEHINT_FLOAT: {
+      // node->data.constExp
+      break;
+    }
+    case TYPEHINT_STRING: {
+      // node->data.constExp
+      break;
+    }
+    case TYPEHINT_CHAR: {
+      // node->data.constExp
+      break;
+    }
+    case TYPEHINT_WSTRING: {
+      // node->data.constExp
+      break;
+    }
+    case TYPEHINT_WCHAR: {
+      // node->data.constExp
+      break;
+    }
+  }
   free(value);
-  // node->data.constExp
-  // TODO: parse the value
   return node;
 }
 Node *aggregateInitExpNodeCreate(size_t line, size_t character,
