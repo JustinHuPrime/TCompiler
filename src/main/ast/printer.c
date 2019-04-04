@@ -569,6 +569,11 @@ void printNodeStructure(Node *node) {
         case CTYPE_BOOL: {
           printf(node->data.constExp.value.boolVal ? "CONST(true)"
                                                    : "CONST(false)");
+          break;
+        }
+        case CTYPE_RANGE_ERROR: {
+          printf("RANGE_ERROR");
+          break;
         }
       }
       break;
@@ -1268,6 +1273,11 @@ void printNode(Node *node) {
         }
         case CTYPE_BOOL: {
           printf(node->data.constExp.value.boolVal ? "true" : "false");
+          break;
+        }
+        case CTYPE_RANGE_ERROR: {
+          printf("<RANGE_ERROR>");
+          break;
         }
       }
       break;
