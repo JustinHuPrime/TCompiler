@@ -4,13 +4,16 @@
 
 #include "parser/parser.h"
 
-int parse(char const *filename) {
+#include "ast/ast.h"
+
+int parse(char const *filename, Node **ast) {
   FILE *inFile = fopen(filename, "r");
 
   if (inFile == NULL) return -1;
 
   yyin = inFile;
-  if (yyparse(NULL) == 1) return -2;
+  *ast = NULL;
+  if (yyparse(ast) == 1) return -2;
 
   if (fclose(inFile) == EOF) return -3;
 

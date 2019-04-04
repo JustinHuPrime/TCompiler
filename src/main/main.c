@@ -2,6 +2,8 @@
 //
 // This file is part of the T Language Compiler.
 
+#include "ast/ast.h"
+#include "ast/printer.h"
 #include "parser/parser.h"
 
 #include <stdio.h>
@@ -13,11 +15,17 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  int parseStatus = parse(argv[1]);
+  Node *ast;
+
+  int parseStatus = parse(argv[1], &ast);
   if (parseStatus < 0) {
     fprintf(stderr, "Parsing error number %d.\n", -parseStatus);
     exit(EXIT_FAILURE);
   }
+
+  printNode(ast);
+
+  nodeDestroy(ast);
 
   exit(EXIT_SUCCESS);
 }

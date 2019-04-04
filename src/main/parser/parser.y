@@ -1,3 +1,7 @@
+// Copyright 2019 Justin Hu
+//
+// This file is part of the T Language Compiler.
+
 %code top {
   #include "ast/ast.h"
   
@@ -10,6 +14,10 @@
 }
 
 %code requires {
+// Copyright 2019 Justin Hu
+// 
+// This file is part of the T Language Compiler.
+
   #include "ast/ast.h"
 }
 
@@ -150,7 +158,7 @@ variable_declaration_chain: T_ID
                               $$.items = realloc($$.items, $$.size * sizeof(char *));
                               $$.items[$$.size - 1] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID); }
                           ;
-struct_declaration: KWD_STRUCT T_ID P_LBRACE P_RBRACE struct_declaration_chain P_SEMI
+struct_declaration: KWD_STRUCT T_ID P_LBRACE struct_declaration_chain P_RBRACE P_SEMI
                     { $$ = structDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $struct_declaration_chain.size, $struct_declaration_chain.items); }
                   ;
 struct_declaration_chain: variable_declaration
@@ -163,7 +171,7 @@ struct_declaration_chain: variable_declaration
                             $$.items = realloc($$.items, $$.size * sizeof(Node *));
                             $$.items[$$.size - 1] = $variable_declaration; }
                         ;
-union_declaration: KWD_UNION T_ID P_LBRACE P_RBRACE union_declaration_chain P_SEMI
+union_declaration: KWD_UNION T_ID P_LBRACE union_declaration_chain P_RBRACE P_SEMI
                     { $$ = unionDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $union_declaration_chain.size, $union_declaration_chain.items); }
                   ;
 union_declaration_chain: variable_declaration

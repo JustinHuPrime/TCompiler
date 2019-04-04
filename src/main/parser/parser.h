@@ -5,6 +5,7 @@
 #ifndef TLC_PARSER_PARSER_H_
 #define TLC_PARSER_PARSER_H_
 
+#include "ast/ast.h"
 #include "parser/parser.tab.h"
 
 #include <stdio.h>
@@ -15,7 +16,7 @@
 //         -1 if the file couldn't be opened,
 //         -2 if the file couldn't be parsed,
 //         -3 if the file couldn't be closed.
-int parse(char const *filename);
+int parse(char const *filename, Node **);
 
 extern FILE *yyin;
 
