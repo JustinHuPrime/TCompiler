@@ -17,6 +17,7 @@ typedef enum {
   TYPE_VARDECL,
   TYPE_STRUCTDECL,
   TYPE_UNIONDECL,
+  TYPE_ENUMDECL,
   TYPE_TYPEDEFDECL,
   TYPE_FUNCTION,
   TYPE_COMPOUNDSTMT,
@@ -184,6 +185,11 @@ typedef struct Node {
       size_t numOpts;
       struct Node **opts;
     } unionDecl;
+    struct {
+      struct Node *id;
+      size_t numElements;
+      struct Node **elements;
+    } enumDecl;
     struct {
       struct Node *type;
       struct Node *id;
@@ -374,6 +380,7 @@ Node *funDeclNodeCreate(size_t, size_t, Node *, Node *, size_t, Node **);
 Node *varDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
 Node *structDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
 Node *unionDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
+Node *enumDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
 Node *typedefNodeCreate(size_t, size_t, Node *, Node *);
 Node *functionNodeCreate(size_t, size_t, Node *, Node *, size_t, Node **,
                          Node **, Node *);

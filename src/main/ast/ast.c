@@ -74,6 +74,15 @@ Node *unionDeclNodeCreate(size_t line, size_t character, Node *id,
   node->data.unionDecl.opts = opts;
   return node;
 }
+Node *enumDeclNodeCreate(size_t line, size_t character, Node *id,
+                         size_t numElements, Node **elements) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_ENUMDECL;
+  node->data.enumDecl.id = id;
+  node->data.enumDecl.numElements = numElements;
+  node->data.enumDecl.elements = elements;
+  return node;
+}
 Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *id) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_TYPEDEFDECL;
@@ -465,6 +474,13 @@ void nodeDestroy(Node *node) {
       for (size_t idx = 0; idx < node->data.unionDecl.numOpts; idx++)
         nodeDestroy(node->data.unionDecl.opts[idx]);
       freeIfNotNull(node->data.unionDecl.opts);
+      break;
+    }
+    case TYPE_ENUMDECL: {
+      nodeDestroy(node->data.enumDecl.id);
+      for (size_t idx = 0; idx < node->data.enumDecl.numElements; idx++)
+        nodeDestroy(node->data.enumDecl.elements[idx]);
+      freeIfNotNull(node->data.enumDecl.elements);
       break;
     }
     case TYPE_TYPEDEFDECL: {

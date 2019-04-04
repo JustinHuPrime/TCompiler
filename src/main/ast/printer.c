@@ -79,6 +79,16 @@ void printNodeStructure(Node *node) {
       printf(")");
       break;
     }
+    case TYPE_ENUMDECL: {
+      printf("ENUMDECL(");
+      printNodeStructure(node->data.enumDecl.id);
+      for (size_t idx = 0; idx < node->data.enumDecl.numElements; idx++) {
+        printf(" ");
+        printNodeStructure(node->data.enumDecl.elements[idx]);
+      }
+      printf(")");
+      break;
+    }
     case TYPE_TYPEDEFDECL: {
       printf("TYPEDEFDECL(");
       printNodeStructure(node->data.typedefDecl.type);
@@ -739,9 +749,7 @@ void printNode(Node *node) {
       printf(" {\n");
       for (size_t idx = 0; idx < node->data.structDecl.numDecls; idx++) {
         printNode(node->data.structDecl.decls[idx]);
-        if (idx != node->data.structDecl.numDecls - 1) {
-          printf("\n");
-        }
+        printf("\n");
       }
       printf("};\n");
       break;
@@ -752,9 +760,18 @@ void printNode(Node *node) {
       printf(" {\n");
       for (size_t idx = 0; idx < node->data.unionDecl.numOpts; idx++) {
         printNode(node->data.unionDecl.opts[idx]);
-        if (idx != node->data.unionDecl.numOpts - 1) {
-          printf("\n");
-        }
+        printf("\n");
+      }
+      printf("};\n");
+      break;
+    }
+    case TYPE_ENUMDECL: {
+      printf("enum ");
+      printNode(node->data.enumDecl.id);
+      printf(" {\n");
+      for (size_t idx = 0; idx < node->data.unionDecl.numOpts; idx++) {
+        printNode(node->data.unionDecl.opts[idx]);
+        printf(",\n");
       }
       printf("};\n");
       break;

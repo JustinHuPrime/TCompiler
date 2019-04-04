@@ -45,11 +45,11 @@
 
 // keywords
 %token <tokenID>
-       KWD_MODULE KWD_USING KWD_STRUCT KWD_UNION KWD_TYPEDEF KWD_IF KWD_ELSE
-       KWD_WHILE KWD_DO KWD_FOR KWD_SWITCH KWD_CASE KWD_DEFAULT KWD_BREAK
-       KWD_CONTINUE KWD_RETURN KWD_ASM KWD_SIZEOF KWD_VOID KWD_UBYTE KWD_BYTE
-       KWD_UINT KWD_INT KWD_ULONG KWD_LONG KWD_FLOAT KWD_DOUBLE KWD_BOOL
-       KWD_CONST KWD_TRUE KWD_FALSE KWD_CAST
+       KWD_MODULE KWD_USING KWD_STRUCT KWD_UNION KWD_ENUM KWD_TYPEDEF KWD_IF
+       KWD_ELSE KWD_WHILE KWD_DO KWD_FOR KWD_SWITCH KWD_CASE KWD_DEFAULT
+       KWD_BREAK KWD_CONTINUE KWD_RETURN KWD_ASM KWD_SIZEOF KWD_VOID KWD_UBYTE
+       KWD_BYTE KWD_UINT KWD_INT KWD_ULONG KWD_LONG KWD_FLOAT KWD_DOUBLE
+       KWD_BOOL KWD_CONST KWD_TRUE KWD_FALSE KWD_CAST
 
 // punctuation
 %token <tokenID>
@@ -76,20 +76,20 @@
 %type <ast>
       module_name import body_part function declaration function_declaration
       variable_declaration struct_declaration union_declaration
-      typedef_declaration type compound_statement statement opt_id maybe_else
-      expression if_statement while_statement do_while_statement for_init
-      for_statement switch_body switch_statement switch_case_body
-      switch_default_body break_statement continue_statement opt_expression
-      return_statement variable_declaration_statement maybe_assign
-      assignment_expression asm_statement ternary_expression logical_expression
-      bitwise_expression equality_expression comparison_expression
-      spaceship_expression shift_expression addition_expression
-      multiplication_expression prefix_expression postfix_expression
-      primary_expression aggregate_initializer literal
+      enum_declaration typedef_declaration type compound_statement statement
+      opt_id maybe_else expression if_statement while_statement
+      do_while_statement for_init for_statement switch_body switch_statement
+      switch_case_body switch_default_body break_statement continue_statement
+      opt_expression return_statement variable_declaration_statement
+      opt_assign assignment_expression asm_statement ternary_expression
+      logical_expression bitwise_expression equality_expression
+      comparison_expression spaceship_expression shift_expression
+      addition_expression multiplication_expression prefix_expression
+      postfix_expression primary_expression aggregate_initializer literal
 %type <nodePtrList>
       imports body_parts struct_declaration_chain union_declaration_chain
-      variable_declaration_chain statements switch_bodies argument_list
-      argument_list_nonempty function_ptr_arg_list
+      enum_declaration_chain variable_declaration_chain statements
+      switch_bodies argument_list argument_list_nonempty function_ptr_arg_list
       function_ptr_arg_list_nonempty literal_list literal_list_nonempty
 %type <nodePtrDoubleList>
       function_arg_list function_arg_list_nonempty
@@ -134,13 +134,15 @@ body_parts: { $$.size = 0;
           ;
 body_part: variable_declaration_statement
          | function
-         | declaration ;
+         | declaration
+         ;
 
 declaration: function_declaration
            | variable_declaration
            | struct_declaration
-           | typedef_declaration
            | union_declaration
+           | enum_declaration
+           | typedef_declaration
            ;
 function_declaration: type T_ID P_LPAREN function_arg_list P_RPAREN P_SEMI
                       { $$ = funDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $function_arg_list.size, $function_arg_list.firstItems); }
@@ -184,6 +186,22 @@ union_declaration_chain: variable_declaration
                            $$.items = realloc($$.items, $$.size * sizeof(Node *));
                            $$.items[$$.size - 1] = $variable_declaration; }
                         ;
+enum_declaration: KWD_ENUM T_ID P_LBRACE enum_declaration_chain opt_comma P_RBRACE P_SEMI
+                  { $$ = enumDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $enum_declaration_chain.size, $enum_declaration_chain.items); }
+                ;
+enum_declaration_chain: T_ID
+                        { $$.size = 1;
+                          $$.items = malloc(sizeof(Node *));
+                          $$.items[0] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID); }
+                      | enum_declaration_chain P_COMMA T_ID
+                        { $$ = $1;
+                          $$.size++;
+                          $$.items = realloc($$.items, $$.size * sizeof(Node *));
+                          $$.items[$$.size - 1] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID); }
+                      ;
+opt_comma:
+         | P_COMMA
+         ;
 typedef_declaration: KWD_TYPEDEF type T_ID 
                      { $$ = typedefNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
                    ;
@@ -303,21 +321,21 @@ opt_expression: { $$ = NULL; }
 variable_declaration_statement: type variable_declaration_statement_chain P_SEMI
                                 { $$ = varDeclStmtNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, $variable_declaration_statement_chain.size, $variable_declaration_statement_chain.firstItems, $variable_declaration_statement_chain.secondItems); }
                               ;
-variable_declaration_statement_chain: T_ID maybe_assign
+variable_declaration_statement_chain: T_ID opt_assign
                                       { $$.size = 1;
                                         $$.firstItems = malloc(sizeof(Node *));
                                         $$.secondItems = malloc(sizeof(Node *));
                                         $$.firstItems[0] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID);
-                                        $$.secondItems[0] = $maybe_assign; }
-                                    | variable_declaration_statement_chain P_COMMA T_ID maybe_assign
+                                        $$.secondItems[0] = $opt_assign; }
+                                    | variable_declaration_statement_chain P_COMMA T_ID opt_assign
                                       { $$ = $1;
                                         $$.size++;
                                         $$.firstItems = realloc($$.firstItems, $$.size * sizeof(Node *));
                                         $$.secondItems = realloc($$.secondItems, $$.size * sizeof(Node *));
                                         $$.firstItems[$$.size - 1] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID);
-                                        $$.secondItems[$$.size - 1] = $maybe_assign; }
+                                        $$.secondItems[$$.size - 1] = $opt_assign; }
                                     ;
-maybe_assign: { $$ = NULL; }
+opt_assign: { $$ = NULL; }
             | P_ASSIGN assignment_expression
               { $$ = $assignment_expression; }
             ;
