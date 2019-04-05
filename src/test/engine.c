@@ -11,8 +11,8 @@ TestStatus *testStatusCreate(void) {
   status->numTests = 0;
   status->numPassed = 0;
   status->numMessages = 0;
-  status->messagesCapacity = 0;
-  status->messages = NULL;
+  status->messagesCapacity = 1;
+  status->messages = malloc(sizeof(char const *));
   return status;
 }
 void testStatusPass(TestStatus *status) {
@@ -22,10 +22,6 @@ void testStatusPass(TestStatus *status) {
 void testStatusFail(TestStatus *status, char const *msg) {
   status->numTests++;
   if (status->messagesCapacity == status->numMessages) {
-    if (status->messagesCapacity == 0) {
-      status->messages = malloc(sizeof(char const *));
-      status->messagesCapacity = 1;
-    }
     status->messages = realloc(
         status->messages, status->messagesCapacity * 2 * sizeof(char const *));
     status->messagesCapacity *= 2;
@@ -44,7 +40,10 @@ void testStatusDisplay(TestStatus *status, FILE *where) {
 int testStatusStatus(TestStatus *status) {
   return status->numTests != status->numPassed;
 }
-void testStatusDestroy(TestStatus *status) { free(status); }
+void testStatusDestroy(TestStatus *status) {
+  free(status->messages);
+  free(status);
+}
 void test(TestStatus *status, char const *name, bool condition) {
   if (condition) {
     testStatusPass(status);
