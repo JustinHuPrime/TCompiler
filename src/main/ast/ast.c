@@ -599,7 +599,48 @@ static void parseWString(Node *node, char *value) {
   // TODO: write this
 }
 static void parseWChar(Node *node, char *value) {
-  // TODO: write this
+  // value is at least 4 chars long, by lex
+  node->data.constExp.type = CTYPE_WCHAR;
+
+  if (value[1] == '\\') {  // special character
+    switch (value[2]) {
+      case '\'':
+      case '\\': {
+        node->data.constExp.value.wcharVal = (uint32_t)value[2];
+        break;
+      }
+      case 'n': {
+        node->data.constExp.value.wcharVal = '\n';
+        break;
+      }
+      case 'r': {
+        node->data.constExp.value.wcharVal = '\r';
+        break;
+      }
+      case 't': {
+        node->data.constExp.value.wcharVal = '\t';
+        break;
+      }
+      case '0': {
+        node->data.constExp.value.wcharVal = '\0';
+        break;
+      }
+      case 'x': {
+        node->data.constExp.value.wcharVal =
+            (uint32_t)((charToHex(value[3]) << 4) + charToHex(value[4]));
+        break;
+      }
+      case 'u': {
+        node->data.constExp.value.wcharVal = 0;
+        for (size_t idx = 3; idx < 3 + 8; idx++) {
+          node->data.constExp.value.wcharVal <<= 4;
+          node->data.constExp.value.wcharVal |= (uint32_t)charToHex(value[idx]);
+        }
+      }
+    }
+  } else {
+    node->data.constExp.value.wcharVal = (uint32_t)value[1];
+  }
 }
 Node *constExpNodeCreate(size_t line, size_t character, ConstTypeHint hint,
                          char *value) {

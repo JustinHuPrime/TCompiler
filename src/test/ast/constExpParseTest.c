@@ -579,4 +579,116 @@ void constExpParseCharTest(TestStatus *status) {
   nodeDestroy(node);
 }
 void constExpParseWStringTest(TestStatus *status) {}
-void constExpParseWCharTest(TestStatus *status) {}
+void constExpParseWCharTest(TestStatus *status) {
+  char *string;
+  Node *node;
+
+  // simple case
+  string = strcpy(malloc(5), "'a'w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WCHAR, string);
+  test(status,
+       "[ast] [constantExp] [wchar] [type] parsing 'a'w produces type wchar.",
+       node->data.constExp.type == CTYPE_WCHAR);
+  test(status,
+       "[ast] [constantExp] [wchar] [simple] parsing 'a'w produces value 'a'.",
+       node->data.constExp.value.wcharVal == U'a');
+  nodeDestroy(node);
+
+  // escaped quote
+  string = strcpy(malloc(6), "'\\''w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WCHAR, string);
+  test(status,
+       "[ast] [constantExp] [wchar] [type] parsing '\\''w produces type wchar.",
+       node->data.constExp.type == CTYPE_WCHAR);
+  test(status,
+       "[ast] [constantExp] [wchar] [escape] parsing '\\''w produces single "
+       "quote.",
+       node->data.constExp.value.wcharVal == U'\'');
+  nodeDestroy(node);
+
+  // newline
+  string = strcpy(malloc(6), "'\\n'w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WCHAR, string);
+  test(status,
+       "[ast] [constantExp] [wchar] [type] parsing '\\n'w produces type wchar.",
+       node->data.constExp.type == CTYPE_WCHAR);
+  test(status,
+       "[ast] [constantExp] [wchar] [escape] parsing '\\n'w produces newline.",
+       node->data.constExp.value.wcharVal == U'\n');
+  nodeDestroy(node);
+
+  // carriage return
+  string = strcpy(malloc(6), "'\\r'w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WCHAR, string);
+  test(status,
+       "[ast] [constantExp] [wchar] [type] parsing '\\r'w produces type wchar.",
+       node->data.constExp.type == CTYPE_WCHAR);
+  test(status,
+       "[ast] [constantExp] [wchar] [escape] parsing '\\r'w produces carriage "
+       "return.",
+       node->data.constExp.value.wcharVal == U'\r');
+  nodeDestroy(node);
+
+  // tab
+  string = strcpy(malloc(6), "'\\t'w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WCHAR, string);
+  test(status,
+       "[ast] [constantExp] [wchar] [type] parsing '\\t'w produces type wchar.",
+       node->data.constExp.type == CTYPE_WCHAR);
+  test(status,
+       "[ast] [constantExp] [wchar] [escape] parsing '\\t'w produces tab.",
+       node->data.constExp.value.wcharVal == U'\t');
+  nodeDestroy(node);
+
+  // null
+  string = strcpy(malloc(6), "'\\0'w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WCHAR, string);
+  test(status,
+       "[ast] [constantExp] [wchar] [type] parsing '\\0'w produces type wchar.",
+       node->data.constExp.type == CTYPE_WCHAR);
+  test(status,
+       "[ast] [constantExp] [wchar] [escape] parsing '\\0'w produces null.",
+       node->data.constExp.value.wcharVal == U'\0');
+  nodeDestroy(node);
+
+  // backslash
+  string = strcpy(malloc(6), "'\\\\'w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WCHAR, string);
+  test(
+      status,
+      "[ast] [constantExp] [wchar] [type] parsing '\\\\'w produces type wchar.",
+      node->data.constExp.type == CTYPE_WCHAR);
+  test(status,
+       "[ast] [constantExp] [wchar] [escape] parsing '\\\\'w produces '\\'.",
+       node->data.constExp.value.wcharVal == U'\\');
+  nodeDestroy(node);
+
+  // hex
+  string = strcpy(malloc(8), "'\\x0f'w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WCHAR, string);
+  test(status,
+       "[ast] [constantExp] [wchar] [type] parsing '\\x0f'w produces type "
+       "wchar.",
+       node->data.constExp.type == CTYPE_WCHAR);
+  test(status,
+       "[ast] [constantExp] [wchar] [escape] parsing '\\x0f'w produces shift "
+       "in.",
+       node->data.constExp.value.wcharVal == U'\x0F');
+  nodeDestroy(node);
+
+  // long hex
+  string = strcpy(malloc(14), "'\\u0001F34c'w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WCHAR, string);
+  test(
+      status,
+      "[ast] [constantExp] [wchar] [type] parsing '\\u0001F34c'w produces type "
+      "wchar.",
+      node->data.constExp.type == CTYPE_WCHAR);
+  test(status,
+       "[ast] [constantExp] [wchar] [escape] parsing '\\u0001F34c'w produces "
+       "emoji banana.",
+       node->data.constExp.value.wcharVal == U'\U0001f34c');
+  nodeDestroy(node);
+  //'([0-9a-zA-Z
+  //!"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}|"\\u"[0-9a-fA-F]{8})'w
+}
