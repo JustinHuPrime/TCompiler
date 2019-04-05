@@ -688,7 +688,7 @@ Node *idNodeCreate(size_t line, size_t character, char *id) {
   return node;
 }
 
-void freeIfNotNull(void *ptr) {
+static void freeIfNotNull(void *ptr) {
   if (ptr != NULL) free(ptr);
 }
 

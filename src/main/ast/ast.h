@@ -440,7 +440,6 @@ Node *ptrTypeNodeCreate(size_t, size_t, Node *);
 Node *fnPtrTypeNodeCreate(size_t, size_t, Node *, size_t, Node **);
 Node *idNodeCreate(size_t, size_t, char *);
 
-void freeIfNotNull(void *);
 void nodeDestroy(Node *);
 
 #endif  // TLC_AST_AST_H_
