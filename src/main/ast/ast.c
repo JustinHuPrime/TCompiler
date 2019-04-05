@@ -557,6 +557,7 @@ static void parseFloat(Node *node, char *value) {
 }
 static void parseString(Node *node, char *value) {
   node->data.constExp.type = CTYPE_CSTRING;
+  node->data.constExp.value.cstringVal = malloc(1);
   // TODO: write this
 }
 static void parseChar(Node *node, char *value) {
@@ -598,6 +599,7 @@ static void parseChar(Node *node, char *value) {
 }
 static void parseWString(Node *node, char *value) {
   node->data.constExp.type = CTYPE_WCSTRING;
+  node->data.constExp.value.cstringVal = malloc(1);
   // TODO: write this
 }
 static void parseWChar(Node *node, char *value) {
@@ -986,8 +988,32 @@ void nodeDestroy(Node *node) {
       free(node->data.idExp.id);
       break;
     }
-    case TYPE_CONSTEXP:
+    case TYPE_CONSTEXP: {
+      switch (node->data.constExp.type) {
+        case CTYPE_CSTRING: {
+          free(node->data.constExp.value.cstringVal);
+          break;
+        }
+        case CTYPE_WCSTRING: {
+          free(node->data.constExp.value.wcstringVal);
+          break;
+        }
+        case CTYPE_UBYTE:
+        case CTYPE_BYTE:
+        case CTYPE_UINT:
+        case CTYPE_INT:
+        case CTYPE_ULONG:
+        case CTYPE_LONG:
+        case CTYPE_FLOAT:
+        case CTYPE_DOUBLE:
+        case CTYPE_CHAR:
+        case CTYPE_WCHAR:
+        case CTYPE_BOOL:
+        case CTYPE_RANGE_ERROR:
+          break;
+      }
       break;
+    }
     case TYPE_AGGREGATEINITEXP: {
       for (size_t idx = 0; idx < node->data.aggregateInitExp.numElements; idx++)
         nodeDestroy(node->data.aggregateInitExp.elements[idx]);
