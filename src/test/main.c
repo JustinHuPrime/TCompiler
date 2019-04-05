@@ -8,7 +8,12 @@
 int main(int argc, char *argv[]) {
   TestStatus *status = testStatusCreate();
 
-  constExpParseTest(status);
+  constExpParseIntTest(status);
+  constExpParseFloatTest(status);
+  constExpParseStringTest(status);
+  constExpParseCharTest(status);
+  constExpParseWStringTest(status);
+  constExpParseWCharTest(status);
 
   testStatusDisplay(status, stdout);
 

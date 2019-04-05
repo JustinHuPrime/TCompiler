@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <stdio.h>
+
 uint64_t const UBYTE_MAX = 255;
 uint64_t const BYTE_MAX = 127;
 uint64_t const BYTE_MIN = 128;
@@ -330,9 +332,16 @@ Node *idExpNodeCreate(size_t line, size_t character, char *id) {
   return node;
 }
 
+static uint8_t charToHex(char c) {
+  if (isdigit(c)) {
+    return (uint8_t)(c - '0');
+  } else if (isupper(c)) {
+    return (uint8_t)(c - 'A' + 0xA);
+  } else {
+    return (uint8_t)(c - 'a' + 0xA);
+  }
+}
 static void parseInt(Node *node, char *value) {
-  // This uses a DFA to figure out what sort of number this is
-
   enum {
     START,
     SEEN_SIGN,
@@ -342,7 +351,7 @@ static void parseInt(Node *node, char *value) {
     IS_OCTAL,
     IS_DECIMAL,
     IS_HEX,
-  } state = START;
+  } state = START;  // this uses a DFA to parse the int
   size_t length = strlen(value);
 
   enum {
@@ -477,13 +486,7 @@ static void parseInt(Node *node, char *value) {
           size_t oldAcc = acc;
 
           acc *= 16;
-          if (isdigit(current)) {
-            acc += (uint64_t)(current - '0');
-          } else if (isupper(current)) {
-            acc += (uint64_t)(current - 'A' + 0xA);
-          } else {
-            acc += (uint64_t)(current - 'a' + 0xA);
-          }
+          acc += charToHex(current);
 
           if (acc < oldAcc) {  // overflowed!
             overflow = true;
@@ -556,7 +559,41 @@ static void parseString(Node *node, char *value) {
   // TODO: write this
 }
 static void parseChar(Node *node, char *value) {
-  // TODO: write this
+  // value is at least 3 chars long, by lex
+  node->data.constExp.type = CTYPE_CHAR;
+
+  if (value[1] == '\\') {  // special character
+    switch (value[2]) {
+      case '\'':
+      case '\\': {
+        node->data.constExp.value.charVal = (uint8_t)value[2];
+        break;
+      }
+      case 'n': {
+        node->data.constExp.value.charVal = '\n';
+        break;
+      }
+      case 'r': {
+        node->data.constExp.value.charVal = '\r';
+        break;
+      }
+      case 't': {
+        node->data.constExp.value.charVal = '\t';
+        break;
+      }
+      case '0': {
+        node->data.constExp.value.charVal = '\0';
+        break;
+      }
+      case 'x': {
+        node->data.constExp.value.charVal =
+            (uint8_t)((charToHex(value[3]) << 4) + charToHex(value[4]));
+        break;
+      }
+    }
+  } else {
+    node->data.constExp.value.charVal = (uint8_t)value[1];
+  }
 }
 static void parseWString(Node *node, char *value) {
   // TODO: write this

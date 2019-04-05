@@ -7,6 +7,11 @@
 
 #include "engine.h"
 
-void constExpParseTest(TestStatus *);
+void constExpParseIntTest(TestStatus *);
+void constExpParseFloatTest(TestStatus *);
+void constExpParseStringTest(TestStatus *);
+void constExpParseCharTest(TestStatus *);
+void constExpParseWStringTest(TestStatus *);
+void constExpParseWCharTest(TestStatus *);
 
 #endif  // TLC_TEST_AST_CONSTEXPPARSETEST_H_
