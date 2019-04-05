@@ -372,6 +372,17 @@ typedef struct Node {
   } data;
 } Node;
 
+// absolute value of maximum data values
+extern uint64_t const UBYTE_MAX;
+extern uint64_t const BYTE_MAX;
+extern uint64_t const BYTE_MIN;
+extern uint64_t const UINT_MAX;
+extern uint64_t const INT_MAX;
+extern uint64_t const INT_MIN;
+extern uint64_t const ULONG_MAX;
+extern uint64_t const LONG_MAX;
+extern uint64_t const LONG_MIN;
+
 Node *nodeCreate(size_t, size_t);
 Node *programNodeCreate(size_t, size_t, Node *, size_t, Node **, size_t,
                         Node **);

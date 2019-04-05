@@ -4,7 +4,19 @@
 
 #include "ast/ast.h"
 
+#include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
+
+uint64_t const UBYTE_MAX = 255;
+uint64_t const BYTE_MAX = 127;
+uint64_t const BYTE_MIN = 128;
+uint64_t const UINT_MAX = 4294967295;
+uint64_t const INT_MAX = 2147483647;
+uint64_t const INT_MIN = 2147483648;
+uint64_t const ULONG_MAX = 18446744073709551615UL;
+uint64_t const LONG_MAX = 9223372036854775807;
+uint64_t const LONG_MIN = 9223372036854775808UL;
 
 Node *nodeCreate(size_t line, size_t character) {
   Node *node = malloc(sizeof(Node));
@@ -317,39 +329,275 @@ Node *idExpNodeCreate(size_t line, size_t character, char *id) {
   node->data.idExp.id = id;
   return node;
 }
+
+static void parseInt(Node *node, char *value) {
+  // This uses a DFA to figure out what sort of number this is
+
+  enum {
+    START,
+    SEEN_SIGN,
+    SEEN_ZERO,
+    IS_ZERO,
+    IS_BINARY,
+    IS_OCTAL,
+    IS_DECIMAL,
+    IS_HEX,
+  } state = START;
+  size_t length = strlen(value);
+
+  enum {
+    POSITIVE,
+    NEGATIVE,
+    UNSIGNED,
+  } sign = UNSIGNED;
+  bool overflow = false;
+
+  uint64_t acc = 0;
+
+  for (size_t idx = 0; idx <= length; idx++) {
+    char current = value[idx];
+    switch (state) {
+      case START: {
+        switch (current) {
+          case '-': {
+            sign = NEGATIVE;
+            state = SEEN_SIGN;
+            break;
+          }
+          case '+': {
+            sign = POSITIVE;
+            state = SEEN_SIGN;
+            break;
+          }
+          case '0': {
+            state = SEEN_ZERO;
+            break;
+          }
+          default: {
+            state = IS_DECIMAL;  // must be [0-9] based on lex
+            idx--;               // back up, keep going
+            break;
+          }
+        }
+        break;
+      }
+      case SEEN_SIGN: {
+        switch (current) {
+          case '0': {
+            state = SEEN_ZERO;
+            break;
+          }
+          default: {
+            state = IS_DECIMAL;  // must be [0-9] based on lex
+            idx--;               // back up, keep going
+            break;
+          }
+        }
+        break;
+      }
+      case SEEN_ZERO: {
+        switch (current) {
+          case '\0': {
+            state = IS_ZERO;
+            idx--;  // back up, keep going
+            break;
+          }
+          case 'x': {
+            state = IS_HEX;
+            break;
+          }
+          case 'b': {
+            state = IS_BINARY;
+            break;
+          }
+          default: {
+            state = IS_OCTAL;  // must be [0-7] based on lex
+            idx--;             // back up, keep going
+            break;
+          }
+        }
+        break;
+      }
+      case IS_ZERO: {
+        acc = 0;
+        idx = length;  // be done
+        break;
+      }
+      case IS_BINARY: {
+        for (; idx < length; idx++) {
+          size_t oldAcc = acc;
+
+          acc *= 2;
+          acc += (uint64_t)(value[idx] - '0');
+
+          if (acc < oldAcc) {  // overflowed!
+            overflow = true;
+            break;
+          }
+        }
+
+        idx = length;  // be done
+        break;
+      }
+      case IS_OCTAL: {
+        for (; idx < length; idx++) {
+          size_t oldAcc = acc;
+
+          acc *= 8;
+          acc += (uint64_t)(value[idx] - '0');
+
+          if (acc < oldAcc) {  // overflowed!
+            overflow = true;
+            break;
+          }
+        }
+
+        idx = length;  // be done
+        break;
+      }
+      case IS_DECIMAL: {
+        for (; idx < length; idx++) {
+          size_t oldAcc = acc;
+
+          acc *= 10;
+          acc += (uint64_t)(value[idx] - '0');
+
+          if (acc < oldAcc) {  // overflowed!
+            overflow = true;
+            break;
+          }
+        }
+
+        idx = length;  // be done
+        break;
+      }
+      case IS_HEX: {
+        for (; idx < length; idx++) {
+          current = value[idx];
+          size_t oldAcc = acc;
+
+          acc *= 16;
+          if (isdigit(current)) {
+            acc += (uint64_t)(current - '0');
+          } else if (isupper(current)) {
+            acc += (uint64_t)(current - 'A' + 0xA);
+          } else {
+            acc += (uint64_t)(current - 'a' + 0xA);
+          }
+
+          if (acc < oldAcc) {  // overflowed!
+            overflow = true;
+            break;
+          }
+        }
+
+        idx = length;  // be done
+        break;
+      }
+    }
+  }
+
+  if (overflow) {
+    node->data.constExp.type = CTYPE_RANGE_ERROR;
+  } else {
+    switch (sign) {
+      case UNSIGNED: {
+        if (acc <= UBYTE_MAX) {
+          node->data.constExp.type = CTYPE_UBYTE;
+          node->data.constExp.value.ubyteVal = (uint8_t)acc;
+        } else if (acc <= UINT_MAX) {
+          node->data.constExp.type = CTYPE_UINT;
+          node->data.constExp.value.uintVal = (uint32_t)acc;
+        } else if (acc <= ULONG_MAX) {
+          node->data.constExp.type = CTYPE_ULONG;
+          node->data.constExp.value.ulongVal = acc;
+        } else {
+          node->data.constExp.type = CTYPE_RANGE_ERROR;
+        }
+        break;
+      }
+      case POSITIVE: {
+        if (acc <= BYTE_MAX) {
+          node->data.constExp.type = CTYPE_BYTE;
+          node->data.constExp.value.byteVal = (int8_t)acc;
+        } else if (acc <= INT_MAX) {
+          node->data.constExp.type = CTYPE_INT;
+          node->data.constExp.value.intVal = (int32_t)acc;
+        } else if (acc <= LONG_MAX) {
+          node->data.constExp.type = CTYPE_LONG;
+          node->data.constExp.value.longVal = (int64_t)acc;
+        } else {
+          node->data.constExp.type = CTYPE_RANGE_ERROR;
+        }
+        break;
+      }
+      case NEGATIVE: {
+        if (acc <= BYTE_MIN) {
+          node->data.constExp.type = CTYPE_BYTE;
+          node->data.constExp.value.byteVal = (int8_t)-acc;
+        } else if (acc <= INT_MIN) {
+          node->data.constExp.type = CTYPE_INT;
+          node->data.constExp.value.intVal = (int32_t)-acc;
+        } else if (acc <= LONG_MIN) {
+          node->data.constExp.type = CTYPE_LONG;
+          node->data.constExp.value.longVal = (int64_t)-acc;
+        } else {
+          node->data.constExp.type = CTYPE_RANGE_ERROR;
+        }
+        break;
+      }
+    }
+  }
+}
+static void parseFloat(Node *node, char *value) {
+  // TODO: write this
+}
+static void parseString(Node *node, char *value) {
+  // TODO: write this
+}
+static void parseChar(Node *node, char *value) {
+  // TODO: write this
+}
+static void parseWString(Node *node, char *value) {
+  // TODO: write this
+}
+static void parseWChar(Node *node, char *value) {
+  // TODO: write this
+}
 Node *constExpNodeCreate(size_t line, size_t character, ConstTypeHint hint,
                          char *value) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_CONSTEXP;
   switch (hint) {
     case TYPEHINT_INT: {
-      // node->data.constExp
+      parseInt(node, value);
       break;
     }
     case TYPEHINT_FLOAT: {
-      // node->data.constExp
+      parseFloat(node, value);
       break;
     }
     case TYPEHINT_STRING: {
-      // node->data.constExp
+      parseString(node, value);
       break;
     }
     case TYPEHINT_CHAR: {
-      // node->data.constExp
+      parseChar(node, value);
       break;
     }
     case TYPEHINT_WSTRING: {
-      // node->data.constExp
+      parseWString(node, value);
       break;
     }
     case TYPEHINT_WCHAR: {
-      // node->data.constExp
+      parseWChar(node, value);
       break;
     }
   }
   free(value);
   return node;
 }
+
 Node *aggregateInitExpNodeCreate(size_t line, size_t character,
                                  size_t numElements, Node **elements) {
   Node *node = nodeCreate(line, character);
