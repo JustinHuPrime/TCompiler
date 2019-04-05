@@ -20,7 +20,7 @@ typedef struct {
 TestStatus *testStatusCreate(void);
 void testStatusPass(TestStatus *);
 void testStatusFail(TestStatus *, char const *);
-void testStatusDisplay(TestStatus *, FILE *);
+void testStatusDisplay(TestStatus *);
 int testStatusStatus(TestStatus *);
 void testStatusDestroy(TestStatus *);
 void test(TestStatus *, char const *, bool);

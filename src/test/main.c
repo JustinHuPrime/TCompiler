@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
   constExpParseWStringTest(status);
   constExpParseWCharTest(status);
 
-  testStatusDisplay(status, stdout);
+  testStatusDisplay(status);
 
   int retVal = testStatusStatus(status);
   testStatusDestroy(status);

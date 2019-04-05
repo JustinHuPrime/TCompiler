@@ -556,6 +556,7 @@ static void parseFloat(Node *node, char *value) {
   // TODO: write this
 }
 static void parseString(Node *node, char *value) {
+  node->data.constExp.type = CTYPE_CSTRING;
   // TODO: write this
 }
 static void parseChar(Node *node, char *value) {
@@ -596,6 +597,7 @@ static void parseChar(Node *node, char *value) {
   }
 }
 static void parseWString(Node *node, char *value) {
+  node->data.constExp.type = CTYPE_WCSTRING;
   // TODO: write this
 }
 static void parseWChar(Node *node, char *value) {

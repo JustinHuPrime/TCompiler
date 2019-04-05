@@ -28,13 +28,29 @@ void testStatusFail(TestStatus *status, char const *msg) {
   }
   status->messages[status->numMessages++] = msg;
 }
-void testStatusDisplay(TestStatus *status, FILE *where) {
-  fprintf(where, "Test summary:\n%zd out of %zd tests passed.\n",
-          status->numPassed, status->numTests);
-  if (status->numMessages != 0) {
-    fprintf(where, "Tests failed:\n");
-    for (size_t idx = 0; idx < status->numMessages; idx++)
-      fprintf(where, "%s\n", status->messages[idx]);
+void testStatusDisplay(TestStatus *status) {
+  if (status->numPassed == status->numTests) {
+    printf(
+        "\x1B[1;32m============================================================"
+        "====================\n\nAll %zd tests "
+        "passed!\n\n==========================================================="
+        "=====================\n\x1B[m",
+        status->numTests);
+  } else {
+    printf(
+        "\x1B[1;91m============================================================"
+        "====================\n\n%zd out of %zd tests passed.\n%zd tests "
+        "failed.\n",
+        status->numPassed, status->numTests,
+        status->numTests - status->numPassed);
+    if (status->numMessages != 0) {
+      printf("\x1B[4mFailed Tests:\n\x1B[m");
+      for (size_t idx = 0; idx < status->numMessages; idx++)
+        printf("%s\n", status->messages[idx]);
+    }
+    printf(
+        "\x1B[1;91m\n=========================================================="
+        "======================\n\x1B[m");
   }
 }
 int testStatusStatus(TestStatus *status) {
