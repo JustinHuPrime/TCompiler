@@ -482,8 +482,52 @@ void constExpParseFloatTest(TestStatus *status) {
   nodeDestroy(node);
 
   // accuracy of conversion
+  string =
+      strcpy(malloc(50), "3.14159265358979323846264338327950288419716939937");
+  node = constExpNodeCreate(0, 0, TYPEHINT_FLOAT, string);
+  test(
+      status,
+      "[ast] [constantExp] [float] [accuracy] parsing pi produces type double.",
+      node->data.constExp.type == CTYPE_DOUBLE);
+  test(status,
+       "[ast] [constantExp] [float] [zero] parsing pi produces value "
+       "+1.5707963267948966e1",
+       node->data.constExp.value.doubleBits == 0x400921FB54442D18);
+  nodeDestroy(node);
 }
-void constExpParseStringTest(TestStatus *status) {}
+void constExpParseStringTest(TestStatus *status) {
+  char *string;
+  Node *node;
+
+  // simple case
+  string = strcpy(malloc(15), "\"abcd1234!@#$\"");
+  node = constExpNodeCreate(0, 0, TYPEHINT_STRING, string);
+  test(status,
+       "[ast] [constantExp] [string] [type] parsing \"abcd1234!@#$\" produces "
+       "type cstring.",
+       node->data.constExp.type == CTYPE_CSTRING);
+  test(status,
+       "[ast] [constantExp] [string] [simple] parsing \"abcd1234!@#$\" "
+       "produces value \"abcd1234!@#$\".",
+       strcmp((char *)node->data.constExp.value.cstringVal, "abcd1234!@#$") ==
+           0);
+  nodeDestroy(node);
+
+  // escape sequence
+  string = strcpy(malloc(19), "\"\\\"\\n\\r\\t\\0\\\\\\x0f\"");
+  node = constExpNodeCreate(0, 0, TYPEHINT_STRING, string);
+  test(status,
+       "[ast] [constantExp] [string] [type] parsing "
+       "\"\\\"\\n\\r\\t\\0\\\\\\x0f\" "
+       "produces type cstring.",
+       node->data.constExp.type == CTYPE_CSTRING);
+  test(status,
+       "[ast] [constantExp] [string] [escape] parsing "
+       "\"\\\"\\n\\r\\t\\0\\\\\\x0f\" produces escaped string.",
+       strcmp((char *)node->data.constExp.value.cstringVal,
+              "\"\n\r\t\0\\\x0f") == 0);
+  nodeDestroy(node);
+}
 void constExpParseCharTest(TestStatus *status) {
   char *string;
   Node *node;
