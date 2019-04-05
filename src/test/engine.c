@@ -40,7 +40,7 @@ void testStatusDisplay(TestStatus *status) {
     printf(
         "\x1B[1;91m============================================================"
         "====================\n\n%zd out of %zd tests passed.\n%zd tests "
-        "failed.\n",
+        "failed.\n\n",
         status->numPassed, status->numTests,
         status->numTests - status->numPassed);
     if (status->numMessages != 0) {

@@ -91,7 +91,7 @@ release: $(EXENAME) $(TEXENAME)
 
 clean:
 	@echo "Removing all generated files and folders."
-	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) $(EXENAME) $(TEXENAME) $(GENERATEDSOURCES)
+	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) $(EXENAME) $(TEXENAME) $(GENERATEDSOURCES) $(SRCDIR)/parser/parser.output
 
 
 $(EXENAME): $(OBJS) $(GENERATEDOBJS)
