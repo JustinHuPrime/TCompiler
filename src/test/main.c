@@ -3,8 +3,7 @@
 // This file is part of the T Language Compiler.
 
 #include "engine.h"
-
-#include "ast/constExpParseTest.h"
+#include "tests.h"
 
 int main(int argc, char *argv[]) {
   TestStatus *status = testStatusCreate();

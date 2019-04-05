@@ -1,11 +1,13 @@
-#include "ast/constExpParseTest.h"
+// Copyright 2019 Justin Hu
+//
+// This file is part of the T Language Compiler.
 
 #include "ast/ast.h"
 
+#include "tests.h"
+
 #include <stdlib.h>
 #include <string.h>
-
-#include <stdio.h>
 
 void constExpParseTest(TestStatus *status) {
   char *string;
@@ -439,6 +441,8 @@ void constExpParseTest(TestStatus *status) {
        "[ast] [constantExp] [float] parsing '-0.0' produces value -0e0.",
        node->data.constExp.value.floatBits == 0x80000000);
   nodeDestroy(node);
+
+  // accuracy of conversion
 
   // STRING
   // CHAR
