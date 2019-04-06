@@ -549,17 +549,16 @@ void printNodeStructure(Node *node) {
           printf("CONST(%e)", *(double *)&node->data.constExp.value.doubleBits);
           break;
         }
-        case CTYPE_CSTRING: {
-          printf("CONST(%s)", node->data.constExp.value.cstringVal);
+        case CTYPE_STRING: {
+          printf("CONST(%s)", node->data.constExp.value.stringVal);
           break;
         }
         case CTYPE_CHAR: {
           printf("CONST(%c)", node->data.constExp.value.charVal);
           break;
         }
-        case CTYPE_WCSTRING: {
-          printf("CONST(%ls)",
-                 (wchar_t *)node->data.constExp.value.wcstringVal);
+        case CTYPE_WSTRING: {
+          printf("CONST(%ls)", (wchar_t *)node->data.constExp.value.wstringVal);
           break;
         }
         case CTYPE_WCHAR: {
@@ -1255,16 +1254,16 @@ void printNode(Node *node) {
           printf("%e", *(double *)&node->data.constExp.value.doubleBits);
           break;
         }
-        case CTYPE_CSTRING: {
-          printf("%s", node->data.constExp.value.cstringVal);
+        case CTYPE_STRING: {
+          printf("%s", node->data.constExp.value.stringVal);
           break;
         }
         case CTYPE_CHAR: {
           printf("%c", node->data.constExp.value.charVal);
           break;
         }
-        case CTYPE_WCSTRING: {
-          printf("%ls", (wchar_t *)node->data.constExp.value.wcstringVal);
+        case CTYPE_WSTRING: {
+          printf("%ls", (wchar_t *)node->data.constExp.value.wstringVal);
           break;
         }
         case CTYPE_WCHAR: {

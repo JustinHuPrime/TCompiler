@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 
 void constExpParseIntTest(TestStatus *status) {
   char *string;
@@ -504,13 +505,13 @@ void constExpParseStringTest(TestStatus *status) {
   node = constExpNodeCreate(0, 0, TYPEHINT_STRING, string);
   test(status,
        "[ast] [constantExp] [string] [type] parsing \"abcd1234!@#$\" produces "
-       "type cstring.",
-       node->data.constExp.type == CTYPE_CSTRING);
-  test(status,
-       "[ast] [constantExp] [string] [simple] parsing \"abcd1234!@#$\" "
-       "produces value \"abcd1234!@#$\".",
-       strcmp((char *)node->data.constExp.value.cstringVal, "abcd1234!@#$") ==
-           0);
+       "type string.",
+       node->data.constExp.type == CTYPE_STRING);
+  test(
+      status,
+      "[ast] [constantExp] [string] [simple] parsing \"abcd1234!@#$\" "
+      "produces value \"abcd1234!@#$\".",
+      strcmp((char *)node->data.constExp.value.stringVal, "abcd1234!@#$") == 0);
   nodeDestroy(node);
 
   // escape sequence
@@ -519,12 +520,12 @@ void constExpParseStringTest(TestStatus *status) {
   test(status,
        "[ast] [constantExp] [string] [type] parsing "
        "\"\\\"\\n\\r\\t\\0\\\\\\x0f\" "
-       "produces type cstring.",
-       node->data.constExp.type == CTYPE_CSTRING);
+       "produces type string.",
+       node->data.constExp.type == CTYPE_STRING);
   test(status,
        "[ast] [constantExp] [string] [escape] parsing "
        "\"\\\"\\n\\r\\t\\0\\\\\\x0f\" produces escaped string.",
-       strcmp((char *)node->data.constExp.value.cstringVal,
+       strcmp((char *)node->data.constExp.value.stringVal,
               "\"\n\r\t\0\\\x0f") == 0);
   nodeDestroy(node);
 }
@@ -622,7 +623,39 @@ void constExpParseCharTest(TestStatus *status) {
        node->data.constExp.value.charVal == '\x0F');
   nodeDestroy(node);
 }
-void constExpParseWStringTest(TestStatus *status) {}
+void constExpParseWStringTest(TestStatus *status) {
+  char *string;
+  Node *node;
+
+  // simple case
+  string = strcpy(malloc(16), "\"abcd1234!@#$\"w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WSTRING, string);
+  test(status,
+       "[ast] [constantExp] [wstring] [type] parsing \"abcd1234!@#$\"w "
+       "produces "
+       "type wstring.",
+       node->data.constExp.type == CTYPE_WSTRING);
+  test(status,
+       "[ast] [constantExp] [wstring] [simple] parsing \"abcd1234!@#$\" "
+       "produces value \"abcd1234!@#$\".",
+       wcscmp((wchar_t *)node->data.constExp.value.stringVal,
+              L"abcd1234!@#$") == 0);
+  nodeDestroy(node);
+
+  // escape sequence
+  string = strcpy(malloc(30), "\"\\\"\\n\\r\\t\\0\\\\\\x0f\\u0001F34c\"w");
+  node = constExpNodeCreate(0, 0, TYPEHINT_WSTRING, string);
+  test(status,
+       "[ast] [constantExp] [wstring] [type] parsing "
+       "\"\\\"\\n\\r\\t\\0\\\\\\x0f\\u0001F34c\"w produces type wstring.",
+       node->data.constExp.type == CTYPE_WSTRING);
+  test(status,
+       "[ast] [constantExp] [wstring] [escape] parsing "
+       "\"\\\"\\n\\r\\t\\0\\\\\\x0f\\u0001F34c\"w produces escaped string.",
+       wcscmp((wchar_t *)node->data.constExp.value.stringVal,
+              L"\"\n\r\t\0\\\x0f\U0001F34c") == 0);
+  nodeDestroy(node);
+}
 void constExpParseWCharTest(TestStatus *status) {
   char *string;
   Node *node;
@@ -733,6 +766,4 @@ void constExpParseWCharTest(TestStatus *status) {
        "emoji banana.",
        node->data.constExp.value.wcharVal == U'\U0001f34c');
   nodeDestroy(node);
-  //'([0-9a-zA-Z
-  //!"#$%&\(\)*+,-\./:;>=<?@\[\]^_`\{\|\}~]|"\\'"|"\\n"|"\\r"|"\\t"|"\\0"|"\\"|"\\x"[0-9a-fA-F]{2}|"\\u"[0-9a-fA-F]{8})'w
 }

@@ -117,9 +117,9 @@ typedef enum {
   CTYPE_LONG,
   CTYPE_FLOAT,
   CTYPE_DOUBLE,
-  CTYPE_CSTRING,
+  CTYPE_STRING,
   CTYPE_CHAR,
-  CTYPE_WCSTRING,
+  CTYPE_WSTRING,
   CTYPE_WCHAR,
   CTYPE_BOOL,
   CTYPE_RANGE_ERROR,
@@ -322,9 +322,9 @@ typedef struct Node {
         int64_t longVal;
         uint32_t floatBits;
         uint64_t doubleBits;
-        uint8_t *cstringVal;
+        uint8_t *stringVal;
         uint8_t charVal;
-        uint32_t *wcstringVal;
+        uint32_t *wstringVal;
         uint32_t wcharVal;
         bool boolVal;
       } value;

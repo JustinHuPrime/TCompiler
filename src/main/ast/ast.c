@@ -556,8 +556,8 @@ static void parseFloat(Node *node, char *value) {
   // TODO: write this
 }
 static void parseString(Node *node, char *value) {
-  node->data.constExp.type = CTYPE_CSTRING;
-  node->data.constExp.value.cstringVal = malloc(1);
+  node->data.constExp.type = CTYPE_STRING;
+  node->data.constExp.value.stringVal = malloc(1);
   // TODO: write this
 }
 static void parseChar(Node *node, char *value) {
@@ -598,8 +598,8 @@ static void parseChar(Node *node, char *value) {
   }
 }
 static void parseWString(Node *node, char *value) {
-  node->data.constExp.type = CTYPE_WCSTRING;
-  node->data.constExp.value.cstringVal = malloc(1);
+  node->data.constExp.type = CTYPE_WSTRING;
+  node->data.constExp.value.stringVal = malloc(1);
   // TODO: write this
 }
 static void parseWChar(Node *node, char *value) {
@@ -990,12 +990,12 @@ void nodeDestroy(Node *node) {
     }
     case TYPE_CONSTEXP: {
       switch (node->data.constExp.type) {
-        case CTYPE_CSTRING: {
-          free(node->data.constExp.value.cstringVal);
+        case CTYPE_STRING: {
+          free(node->data.constExp.value.stringVal);
           break;
         }
-        case CTYPE_WCSTRING: {
-          free(node->data.constExp.value.wcstringVal);
+        case CTYPE_WSTRING: {
+          free(node->data.constExp.value.wstringVal);
           break;
         }
         case CTYPE_UBYTE:
