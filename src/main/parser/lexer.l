@@ -19,6 +19,8 @@
 module   { return KWD_MODULE; }
 using    { return KWD_USING; }
 struct   { return KWD_STRUCT; }
+union    { return KWD_UNION; }
+enum     { return KWD_ENUM; }
 typedef  { return KWD_TYPEDEF; }
 if       { return KWD_IF; }
 else     { return KWD_ELSE; }
