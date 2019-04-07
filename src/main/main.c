@@ -8,14 +8,17 @@
 #include "ast/ast.h"
 #include "ast/printer.h"
 #include "parser/parser.h"
+#include "util/options.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    fprintf(stderr, "Expected one argument - file to process.\n");
-    exit(EXIT_FAILURE);
+  Options *options = optionsParseCmdlineArgs(argc, argv);
+
+  if (options->argSize == 0) {
+    fprintf(stderr, "Expected at least one argument - file to process.\n");
+    return EXIT_FAILURE;
   }
 
   Node *ast;
@@ -23,7 +26,7 @@ int main(int argc, char *argv[]) {
   int parseStatus = parse(argv[1], &ast);
   if (parseStatus < 0) {
     fprintf(stderr, "Parsing error number %d.\n", -parseStatus);
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
 
   printf("Structure:\n");
@@ -35,5 +38,5 @@ int main(int argc, char *argv[]) {
 
   nodeDestroy(ast);
 
-  exit(EXIT_SUCCESS);
+  return EXIT_SUCCESS;
 }
