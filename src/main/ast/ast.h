@@ -413,7 +413,7 @@ extern uint64_t const LONG_MAX;
 extern uint64_t const LONG_MIN;
 
 // constructors
-// Node *nodeCreate(size_t line, size_t character);
+// Note that all pointers should be owning pointers
 Node *programNodeCreate(size_t line, size_t character, Node *module,
                         NodeList *imports, NodeList *bodyParts);
 Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);

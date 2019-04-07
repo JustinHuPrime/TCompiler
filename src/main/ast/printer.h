@@ -10,9 +10,9 @@
 #include "ast/ast.h"
 
 // prints the structure of a node, in function format
-void printNodeStructure(Node *);
+void printNodeStructure(Node const *);
 
 // prints the original code, modulo whitespace and ignored syntactic elements
-void printNode(Node *);
+void printNode(Node const *);
 
 #endif  // TLC_AST_PRINTER_H_

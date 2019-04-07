@@ -26,6 +26,7 @@ TestStatus *testStatusCreate(void);
 // adds a test pass
 void testStatusPass(TestStatus *);
 // adds a test failure, with the name of the failed test
+// Note that the test name should be a constant c-string
 void testStatusFail(TestStatus *, char const *name);
 
 // displays the test status to stdout
@@ -38,6 +39,7 @@ int testStatusStatus(TestStatus *);
 void testStatusDestroy(TestStatus *);
 
 // wrapper function that passes or fails a test depending on the condition
+// Note that the test name should be a constant c-string
 void test(TestStatus *, char const *name, bool condition);
 
 #endif  // TLC_TEST_ENGINE_H_
