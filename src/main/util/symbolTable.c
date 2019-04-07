@@ -9,8 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <stdio.h>  // FIXME: debug only
-
 static SymbolTableEntry *symbolTableEntryCreate(char *name) {
   SymbolTableEntry *entry = malloc(sizeof(SymbolTableEntry));
   entry->name = name;
@@ -102,7 +100,7 @@ static size_t symbolTableLookupExpectedIndex(SymbolTable *table,
     int cmpVal = strcmp(table->entries[half]->name, name);
     if (cmpVal < 0) {  // entries[half] is before name
       low = half + 1;
-      if (low == table->size) {
+      if (low == table->size) {  // should be after the end
         return table->size;
       }
     } else if (cmpVal > 0) {  // entries[half] is after name
@@ -143,8 +141,6 @@ static int symbolTableInsert(SymbolTable *table, SymbolTableEntry *entry) {
 
     size_t insertionIndex = symbolTableLookupExpectedIndex(
         table, entry->name);  // find where it should go
-    printf("Inserting %s into %zd.\n", entry->name,
-           insertionIndex);  // FIXME: debug only
     memcpy(newTable, table->entries,
            insertionIndex *
                sizeof(SymbolTableEntry *));  // copy everything before it
@@ -160,14 +156,9 @@ static int symbolTableInsert(SymbolTable *table, SymbolTableEntry *entry) {
   } else {
     size_t insertionIndex = symbolTableLookupExpectedIndex(
         table, entry->name);  // find where it should go
-    printf("Inserting %s into %zd.\n", entry->name,
-           insertionIndex);  // FIXME: debug only
     memmove(table->entries + insertionIndex + 1,
             table->entries + insertionIndex,
             (table->size - insertionIndex) * sizeof(SymbolTableEntry *));
-    // for (size_t idx = table->size; idx > insertionIndex; idx--)
-    //   table->entries[idx] =
-    //       table->entries[idx - 1];  // shift everything down by one
 
     table->entries[insertionIndex] = entry;
     table->size++;
@@ -257,7 +248,7 @@ static size_t symbolTableTableLookupExpectedIndex(SymbolTableTable *table,
     int cmpVal = strcmp(table->names[half], name);
     if (cmpVal < 0) {  // entries[half] is before name
       low = half + 1;
-      if (low >= table->size) {
+      if (low >= table->size) {  // should be after the end
         return table->size;
       }
     } else if (cmpVal > 0) {  // entries[half] is after name
@@ -324,11 +315,11 @@ int symbolTableTableInsert(SymbolTableTable *table, char *name,
   } else {
     size_t insertionIndex = symbolTableTableLookupExpectedIndex(
         table, name);  // find where it should go
-    for (size_t idx = table->size; idx > insertionIndex; idx--) {
-      // shift everything down by one
-      table->tables[idx] = table->tables[idx - 1];
-      table->names[idx] = table->names[idx - 1];
-    }
+    memmove(table->tables + insertionIndex + 1, table->tables + insertionIndex,
+            (table->size - insertionIndex) * sizeof(SymbolTable *));
+    memmove(table->names + insertionIndex + 1, table->names + insertionIndex,
+            (table->size - insertionIndex) *
+                sizeof(char *));  // shift everything down by one
 
     table->tables[insertionIndex] = toInsert;
     table->names[insertionIndex] = name;
