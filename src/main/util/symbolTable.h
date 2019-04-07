@@ -82,4 +82,8 @@ SymbolTableEntry *symbolTableLookup(SymbolTable *, char const *name);
 // Destructor
 void symbolTableDestroy(SymbolTable *);
 
+// typedef struct {
+//   SymbolTable **
+// } Environment;
+
 #endif  // TLC_UTIL_SYMBOLTABLE_H_

@@ -146,24 +146,50 @@ static int symbolTableInsert(SymbolTable *table, SymbolTableEntry *entry) {
 }
 int symbolTableInsertStruct(SymbolTable *table, char *name,
                             NodePairList *elements) {
-  return symbolTableInsert(table,
-                           structTypeSymbolTableEntryCreate(name, elements));
+  SymbolTableEntry *entry = structTypeSymbolTableEntryCreate(name, elements);
+  entry->category = ST_STRUCT;
+  int retVal = symbolTableInsert(table, entry);
+  if (retVal != ST_OK) {
+    symbolTableEntryDestroy(entry);
+  }
+  return retVal;
 }
 int symbolTableInsertUnion(SymbolTable *table, char *name,
                            NodePairList *options) {
-  return symbolTableInsert(table,
-                           unionTypeSymbolTableEntryCreate(name, options));
+  SymbolTableEntry *entry = unionTypeSymbolTableEntryCreate(name, options);
+  entry->category = ST_UNION;
+  int retVal = symbolTableInsert(table, entry);
+  if (retVal != ST_OK) {
+    symbolTableEntryDestroy(entry);
+  }
+  return retVal;
 }
 int symbolTableInsertEnum(SymbolTable *table, char *name, NodeList *elements) {
-  return symbolTableInsert(table,
-                           enumTypeSymbolTableEntryCreate(name, elements));
+  SymbolTableEntry *entry = enumTypeSymbolTableEntryCreate(name, elements);
+  entry->category = ST_ENUM;
+  int retVal = symbolTableInsert(table, entry);
+  if (retVal != ST_OK) {
+    symbolTableEntryDestroy(entry);
+  }
+  return retVal;
 }
 int symbolTableInsertTypedef(SymbolTable *table, char *name, Node *actualType) {
-  return symbolTableInsert(table,
-                           typedefTypeSymbolTableEntryCreate(name, actualType));
+  SymbolTableEntry *entry = typedefTypeSymbolTableEntryCreate(name, actualType);
+  entry->category = ST_TYPEDEF;
+  int retVal = symbolTableInsert(table, entry);
+  if (retVal != ST_OK) {
+    symbolTableEntryDestroy(entry);
+  }
+  return retVal;
 }
 int symbolTableInsertVar(SymbolTable *table, char *name, Node *type) {
-  return symbolTableInsert(table, varSymbolTableEntryCreate(name, type));
+  SymbolTableEntry *entry = varSymbolTableEntryCreate(name, type);
+  entry->category = ST_VAR;
+  int retVal = symbolTableInsert(table, entry);
+  if (retVal != ST_OK) {
+    symbolTableEntryDestroy(entry);
+  }
+  return retVal;
 }
 static size_t symbolTableLookupIndex(SymbolTable *table, char const *name) {
   if (table->size == 0) return SIZE_MAX;  // edge case

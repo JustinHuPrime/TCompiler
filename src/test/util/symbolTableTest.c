@@ -48,7 +48,8 @@ void symbolTableTest(TestStatus *status) {
        retVal == ST_OK);
   Node *varValue = keywordTypeNodeCreate(0, 0, TYPEKWD_BOOL);
   symbolTableInsertVar(table, strcpy(malloc(4), "var"), varValue);
-  retVal = symbolTableInsertVar(table, strcpy(malloc(4), "var"), varValue);
+  retVal = symbolTableInsertVar(table, strcpy(malloc(4), "var"),
+                                keywordTypeNodeCreate(0, 0, TYPEKWD_BOOL));
   test(status,
        "[util] [symbolTable] [insert] return value for failure is correct",
        retVal == ST_EEXISTS);
