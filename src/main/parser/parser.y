@@ -14,10 +14,6 @@
 }
 
 %code requires {
-// Copyright 2019 Justin Hu
-// 
-// This file is part of the T Language Compiler.
-
   #include "ast/ast.h"
 }
 
@@ -32,11 +28,11 @@
   char* tokenString;
   char invalidChar;
   Node* ast;
-  struct {
+  struct { // Note that this list has O(n) insert time to save memory
     size_t size;
     Node **items;
   } nodePtrList;
-  struct {
+  struct { // Note that this list has O(n) insert time to save memory
     size_t size;
     Node **firstItems;
     Node **secondItems;
@@ -62,7 +58,7 @@
        P_ARSHIFTASSIGN P_BITANDASSIGN P_BITXORASSIGN P_BITORASSIGN P_LANDASSIGN
        P_LORASSIGN
 
-// identifier
+// identifiers
 %token <tokenString>
        T_ID T_SCOPED_ID T_TYPE_ID T_SCOPED_TYPE_ID
 
@@ -70,9 +66,11 @@
 %token <tokenString>
        L_INTLITERAL L_FLOATLITERAL L_STRINGLITERAL L_CHARLITERAL L_WSTRINGLITERAL L_WCHARLITERAL
 
+// error case
 %token <invalidChar>
        E_INVALIDCHAR
 
+// internal nodes
 %type <ast>
       module_name import body_part function declaration function_declaration
       variable_declaration struct_declaration union_declaration
@@ -97,7 +95,7 @@
 %type <tokenString>
       scoped_type_identifier scoped_identifier
 
-// other precedence (expressions) should go above this
+// precedence goes from least to most tightly bound
 %right O_IF KWD_ELSE
 %right P_ASSIGN P_MULASSIGN P_DIVASSIGN P_MODASSIGN P_ADDASSIGN P_SUBASSIGN
        P_LSHIFTASSIGN P_LRSHIFTASSIGN P_ARSHIFTASSIGN P_BITANDASSIGN
@@ -209,7 +207,6 @@ typedef_declaration: KWD_TYPEDEF type T_ID
 function: type T_ID P_LPAREN function_arg_list P_RPAREN compound_statement
           { $$ = functionNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $function_arg_list.size, $function_arg_list.firstItems, $function_arg_list.secondItems, $compound_statement); }
         ;
-
 function_arg_list: { $$.size = 0;
                      $$.firstItems = NULL;
                      $$.secondItems = NULL; }

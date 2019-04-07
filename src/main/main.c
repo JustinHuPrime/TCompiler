@@ -2,6 +2,9 @@
 //
 // This file is part of the T Language Compiler.
 
+// The primary driver for the TLC.
+// Currently just a boilerplate file.
+
 #include "ast/ast.h"
 #include "ast/printer.h"
 #include "parser/parser.h"

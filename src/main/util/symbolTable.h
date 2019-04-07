@@ -2,6 +2,8 @@
 //
 // This file is part of the T Language Compiler.
 
+// A vector-style symbol table
+
 #ifndef TLC_UTIL_SYMBOLTABLE_H_
 #define TLC_UTIL_SYMBOLTABLE_H_
 
@@ -29,9 +31,17 @@ typedef struct {
   SymbolTableEntry *entries;
 } SymbolTable;
 
+// Constructor
 SymbolTable *symbolTableCreate(void);
-void symbolTableInsert(SymbolTable *);
-SymbolTableEntry *symbolTableLookup(SymbolTable *, char const *);
+
+// Inserts an entry into the table with the given name, and returns a pointer to
+// the inserted entry
+SymbolTableEntry *symbolTableInsert(SymbolTable *, char *name);
+// Finds an entry in the table, and returns it. Returns NULL if no entry could
+// be found
+SymbolTableEntry *symbolTableLookup(SymbolTable *, char const *name);
+
+// Destructor
 void symbolTableDestroy(SymbolTable *);
 
 #endif  // TLC_UTIL_SYMBOLTABLE_H_

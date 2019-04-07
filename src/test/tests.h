@@ -2,6 +2,8 @@
 //
 // This file is part of the T Language Compiler.
 
+// A list of all test modules
+
 #ifndef TLC_TEST_TESTS_H_
 #define TLC_TEST_TESTS_H_
 

@@ -2,6 +2,8 @@
 //
 // This file is part of the T Language Compiler.
 
+// Implementation of the test engine status object
+
 #include "engine.h"
 
 #include <stdlib.h>

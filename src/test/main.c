@@ -2,6 +2,8 @@
 //
 // This file is part of the T Language Compiler.
 
+// Calls all test modules and reports the stats
+
 #include "engine.h"
 #include "tests.h"
 

@@ -2,14 +2,17 @@
 //
 // This file is part of the T Language Compiler.
 
+// Implementation for the printers
+
 #include "ast/printer.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
 void printNodeStructure(Node *node) {
-  if (node == NULL) return;
+  if (node == NULL) return;  // base case
 
+  // polymorphically, recursively print
   switch (node->type) {
     case TYPE_PROGRAM: {
       printf("PROGRAM(");
@@ -694,8 +697,9 @@ void printNodeStructure(Node *node) {
 }
 
 void printNode(Node *node) {
-  if (node == NULL) return;
+  if (node == NULL) return;  // base case
 
+  // recursively, polymorphically print
   switch (node->type) {
     case TYPE_PROGRAM: {
       printNode(node->data.program.module);

@@ -2,6 +2,8 @@
 //
 // This file is part of the T Language Compiler.
 
+// Implementation of AST nodes
+
 #include "ast/ast.h"
 
 #include <ctype.h>
@@ -20,6 +22,7 @@ uint64_t const ULONG_MAX = 18446744073709551615UL;
 uint64_t const LONG_MAX = 9223372036854775807;
 uint64_t const LONG_MIN = 9223372036854775808UL;
 
+// Constructors
 Node *nodeCreate(size_t line, size_t character) {
   Node *node = malloc(sizeof(Node));
   node->line = line;
@@ -332,6 +335,7 @@ Node *idExpNodeCreate(size_t line, size_t character, char *id) {
   return node;
 }
 
+// Constant parsing
 static uint8_t charToHex(char c) {
   if (isdigit(c)) {
     return (uint8_t)(c - '0');
@@ -680,6 +684,7 @@ Node *constExpNodeCreate(size_t line, size_t character, ConstTypeHint hint,
   return node;
 }
 
+// More constructors
 Node *aggregateInitExpNodeCreate(size_t line, size_t character,
                                  size_t numElements, Node **elements) {
   Node *node = nodeCreate(line, character);
@@ -770,13 +775,15 @@ Node *idNodeCreate(size_t line, size_t character, char *id) {
   return node;
 }
 
+// Destructor
 static void freeIfNotNull(void *ptr) {
   if (ptr != NULL) free(ptr);
 }
-
 void nodeDestroy(Node *node) {
-  if (node == NULL) return;
+  if (node == NULL)
+    return;  // base case: might be asked internally to free NULL.
 
+  // free contents
   switch (node->type) {
     case TYPE_PROGRAM: {
       nodeDestroy(node->data.program.module);

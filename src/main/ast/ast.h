@@ -2,6 +2,8 @@
 //
 // This file is part of the T Language Compiler.
 
+// A "polymorphic" AST node.
+
 #ifndef TLC_AST_AST_H_
 #define TLC_AST_AST_H_
 
@@ -9,6 +11,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// tag for the specialized type of the AST node
 typedef enum {
   TYPE_PROGRAM,
   TYPE_MODULE,
@@ -61,6 +64,7 @@ typedef enum {
   TYPE_FNPTRTYPE,
   TYPE_ID,
 } NodeType;
+// Type of a simple binop (land, lor, and derivatives are complex, like ternary)
 typedef enum {
   OP_ASSIGN,
   OP_MULASSIGN,
@@ -77,7 +81,7 @@ typedef enum {
   OP_BITAND,
   OP_BITOR,
   OP_BITXOR,
-  OP_SPACESHIP,
+  OP_SPACESHIP,  // technically not a comparison - doesn't produce bool
   OP_LSHIFT,
   OP_LRSHIFT,
   OP_ARSHIFT,
@@ -88,6 +92,7 @@ typedef enum {
   OP_MOD,
   OP_ARRAYACCESS,
 } BinOpType;
+// Type of a comparison op
 typedef enum {
   OP_EQ,
   OP_NEQ,
@@ -96,6 +101,7 @@ typedef enum {
   OP_LTEQ,
   OP_GTEQ,
 } CompOpType;
+// Type of a unary op
 typedef enum {
   OP_DEREF,
   OP_ADDROF,
@@ -108,6 +114,7 @@ typedef enum {
   OP_POSTINC,
   OP_POSTDEC,
 } UnOpType;
+// type of a const
 typedef enum {
   CTYPE_UBYTE,
   CTYPE_BYTE,
@@ -124,6 +131,7 @@ typedef enum {
   CTYPE_BOOL,
   CTYPE_RANGE_ERROR,
 } ConstType;
+// general category that a const should be interpreted as - guarenteed by lexer
 typedef enum {
   TYPEHINT_INT,
   TYPEHINT_FLOAT,
@@ -132,6 +140,7 @@ typedef enum {
   TYPEHINT_WSTRING,
   TYPEHINT_WCHAR,
 } ConstTypeHint;
+// built-in type
 typedef enum {
   TYPEKWD_VOID,
   TYPEKWD_UBYTE,
@@ -145,6 +154,7 @@ typedef enum {
   TYPEKWD_BOOL,
 } TypeKeyword;
 
+// the actual node definition
 typedef struct Node {
   NodeType type;
   size_t line;
@@ -372,7 +382,7 @@ typedef struct Node {
   } data;
 } Node;
 
-// absolute value of maximum data values
+// absolute value of maximum for some data type
 extern uint64_t const UBYTE_MAX;
 extern uint64_t const BYTE_MAX;
 extern uint64_t const BYTE_MIN;
@@ -383,63 +393,92 @@ extern uint64_t const ULONG_MAX;
 extern uint64_t const LONG_MAX;
 extern uint64_t const LONG_MIN;
 
-Node *nodeCreate(size_t, size_t);
-Node *programNodeCreate(size_t, size_t, Node *, size_t, Node **, size_t,
-                        Node **);
-Node *moduleNodeCreate(size_t, size_t, Node *);
-Node *importNodeCreate(size_t, size_t, Node *);
-Node *funDeclNodeCreate(size_t, size_t, Node *, Node *, size_t, Node **);
-Node *varDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
-Node *structDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
-Node *unionDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
-Node *enumDeclNodeCreate(size_t, size_t, Node *, size_t, Node **);
-Node *typedefNodeCreate(size_t, size_t, Node *, Node *);
-Node *functionNodeCreate(size_t, size_t, Node *, Node *, size_t, Node **,
-                         Node **, Node *);
-Node *compoundStmtNodeCreate(size_t, size_t, size_t, Node **);
-Node *ifStmtNodeCreate(size_t, size_t, Node *, Node *, Node *);
-Node *whileStmtNodeCreate(size_t, size_t, Node *, Node *);
-Node *doWhileStmtNodeCreate(size_t, size_t, Node *, Node *);
-Node *forStmtNodeCreate(size_t, size_t, Node *, Node *, Node *, Node *);
-Node *switchStmtNodeCreate(size_t, size_t, Node *, size_t, Node **);
-Node *numCaseNodeCreate(size_t, size_t, Node *, Node *);
-Node *defaultCaseNodeCreate(size_t, size_t, Node *);
-Node *breakStmtNodeCreate(size_t, size_t);
-Node *continueStmtNodeCreate(size_t, size_t);
-Node *returnStmtNodeCreate(size_t, size_t, Node *);
-Node *varDeclStmtNodeCreate(size_t, size_t, Node *, size_t, Node **, Node **);
-Node *asmStmtNodeCreate(size_t, size_t, Node *);
-Node *expressionStmtNodeCreate(size_t, size_t, Node *);
-Node *nullStmtNodeCreate(size_t, size_t);
-Node *seqExpNodeCreate(size_t, size_t, Node *, Node *);
-Node *binOpExpNodeCreate(size_t, size_t, BinOpType, Node *, Node *);
-Node *unOpExpNodeCreate(size_t, size_t, UnOpType, Node *);
-Node *compOpExpNodeCreate(size_t, size_t, CompOpType, Node *, Node *);
-Node *landAssignExpNodeCreate(size_t, size_t, Node *, Node *);
-Node *lorAssignExpNodeCreate(size_t, size_t, Node *, Node *);
-Node *ternaryExpNodeCreate(size_t, size_t, Node *, Node *, Node *);
-Node *landExpNodeCreate(size_t, size_t, Node *, Node *);
-Node *lorExpNodeCreate(size_t, size_t, Node *, Node *);
-Node *structAccessExpNodeCreate(size_t, size_t, Node *, Node *);
-Node *structPtrAccessExpNodeCreate(size_t, size_t, Node *, Node *);
-Node *fnCallExpNodeCreate(size_t, size_t, Node *, size_t, Node **);
-Node *idExpNodeCreate(size_t, size_t, char *);
-Node *constExpNodeCreate(size_t, size_t, ConstTypeHint,
-                         char *);  // character representation of the constant
-Node *aggregateInitExpNodeCreate(size_t, size_t, size_t, Node **);
-Node *constTrueNodeCreate(size_t, size_t);
-Node *constFalseNodeCreate(size_t, size_t);
-Node *castExpNodeCreate(size_t, size_t, Node *, Node *);
-Node *sizeofTypeExpNodeCreate(size_t, size_t, Node *);
-Node *sizeofExpExpNodeCreate(size_t, size_t, Node *);
-Node *keywordTypeNodeCreate(size_t, size_t, TypeKeyword);
-Node *idTypeNodeCreate(size_t, size_t, char *);
-Node *constTypeNodeCreate(size_t, size_t, Node *);
-Node *arrayTypeNodeCreate(size_t, size_t, Node *, Node *);
-Node *ptrTypeNodeCreate(size_t, size_t, Node *);
-Node *fnPtrTypeNodeCreate(size_t, size_t, Node *, size_t, Node **);
-Node *idNodeCreate(size_t, size_t, char *);
+// constructors
+Node *nodeCreate(size_t line, size_t character);  // base constructor
+Node *programNodeCreate(size_t line, size_t character, Node *module,
+                        size_t numImports, Node **imports, size_t numBodyParts,
+                        Node **bodyParts);
+Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);
+Node *importNodeCreate(size_t line, size_t character, Node *importId);
+Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
+                        Node *functionId, size_t numArgs, Node **argTypes);
+Node *varDeclNodeCreate(size_t line, size_t character, Node *varType,
+                        size_t numIds, Node **ids);
+Node *structDeclNodeCreate(size_t line, size_t character, Node *structId,
+                           size_t numElements, Node **elements);
+Node *unionDeclNodeCreate(size_t line, size_t character, Node *unionId,
+                          size_t numOpts, Node **opts);
+Node *enumDeclNodeCreate(size_t line, size_t character, Node *enumId,
+                         size_t numElements, Node **elements);
+Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *newId);
+Node *functionNodeCreate(size_t line, size_t character, Node *returnType,
+                         Node *functionId, size_t numArgs, Node **argTypes,
+                         Node **argNames, Node *body);
+Node *compoundStmtNodeCreate(size_t line, size_t character, size_t numStmts,
+                             Node **stmts);
+Node *ifStmtNodeCreate(size_t line, size_t character, Node *condition,
+                       Node *thenCase, Node *elseCase);
+Node *whileStmtNodeCreate(size_t line, size_t character, Node *condition,
+                          Node *body);
+Node *doWhileStmtNodeCreate(size_t line, size_t character, Node *condition,
+                            Node *body);
+Node *forStmtNodeCreate(size_t line, size_t character, Node *initializer,
+                        Node *condition, Node *update, Node *body);
+Node *switchStmtNodeCreate(size_t line, size_t character, Node *switchedOn,
+                           size_t numCases, Node **cases);
+Node *numCaseNodeCreate(size_t line, size_t character, Node *value, Node *body);
+Node *defaultCaseNodeCreate(size_t line, size_t character, Node *body);
+Node *breakStmtNodeCreate(size_t line, size_t character);
+Node *continueStmtNodeCreate(size_t line, size_t character);
+Node *returnStmtNodeCreate(size_t line, size_t character, Node *value);
+Node *varDeclStmtNodeCreate(size_t line, size_t character, Node *type,
+                            size_t numIds, Node **ids, Node **initializers);
+Node *asmStmtNodeCreate(size_t line, size_t character, Node *asmString);
+Node *expressionStmtNodeCreate(size_t line, size_t character, Node *expression);
+Node *nullStmtNodeCreate(size_t line, size_t character);
+Node *seqExpNodeCreate(size_t line, size_t character, Node *first,
+                       Node *second);
+Node *binOpExpNodeCreate(size_t line, size_t character, BinOpType, Node *lhs,
+                         Node *rhs);
+Node *unOpExpNodeCreate(size_t line, size_t character, UnOpType, Node *target);
+Node *compOpExpNodeCreate(size_t line, size_t character, CompOpType, Node *lhs,
+                          Node *rhs);
+Node *landAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
+                              Node *rhs);
+Node *lorAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
+                             Node *rhs);
+Node *ternaryExpNodeCreate(size_t line, size_t character, Node *condition,
+                           Node *trueCase, Node *falseCase);
+Node *landExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs);
+Node *lorExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs);
+Node *structAccessExpNodeCreate(size_t line, size_t character, Node *base,
+                                Node *elementId);
+Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *basePtr,
+                                   Node *elementId);
+Node *fnCallExpNodeCreate(size_t line, size_t character, Node *functionId,
+                          size_t numArgs, Node **args);
+Node *idExpNodeCreate(size_t line, size_t character, char *idString);
+Node *constExpNodeCreate(size_t line, size_t character, ConstTypeHint type,
+                         char *constantString);
+Node *aggregateInitExpNodeCreate(size_t line, size_t character,
+                                 size_t numElements, Node **elements);
+Node *constTrueNodeCreate(size_t line, size_t character);
+Node *constFalseNodeCreate(size_t line, size_t character);
+Node *castExpNodeCreate(size_t line, size_t character, Node *type,
+                        Node *target);
+Node *sizeofTypeExpNodeCreate(size_t line, size_t character, Node *target);
+Node *sizeofExpExpNodeCreate(size_t line, size_t character, Node *target);
+Node *keywordTypeNodeCreate(size_t line, size_t character, TypeKeyword type);
+Node *idTypeNodeCreate(size_t line, size_t character, char *idString);
+Node *constTypeNodeCreate(size_t line, size_t character, Node *target);
+Node *arrayTypeNodeCreate(size_t line, size_t character, Node *target,
+                          Node *size);
+Node *ptrTypeNodeCreate(size_t line, size_t character, Node *target);
+Node *fnPtrTypeNodeCreate(size_t line, size_t character, Node *returnType,
+                          size_t numArgs, Node **argTypes);
+Node *idNodeCreate(size_t line, size_t character, char *idString);
 
+// Destructor
 void nodeDestroy(Node *);
 
 #endif  // TLC_AST_AST_H_
