@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+// SymbolTable
 static SymbolTableEntry *symbolTableEntryCreate(char *name) {
   SymbolTableEntry *entry = malloc(sizeof(SymbolTableEntry));
   entry->name = name;
@@ -217,7 +218,6 @@ SymbolTableEntry *symbolTableLookup(SymbolTable *table, char const *name) {
   return index == SIZE_MAX ? NULL : table->entries[index];
 }
 
-// Destructor
 void symbolTableDestroy(SymbolTable *table) {
   for (size_t idx = 0; idx < table->size; idx++)
     symbolTableEntryDestroy(table->entries[idx]);
@@ -225,6 +225,7 @@ void symbolTableDestroy(SymbolTable *table) {
   free(table);
 }
 
+// SymbolTableTable
 SymbolTableTable *symbolTableTableCreate(void) {
   SymbolTableTable *table = malloc(sizeof(SymbolTableTable));
   table->size = 0;
@@ -341,4 +342,91 @@ void symbolTableTableDestroy(SymbolTableTable *table) {
   free(table->names);
   free(table->tables);
   free(table);
+}
+
+// Environment
+Environment *environmentCreate(void) {
+  Environment *env = malloc(sizeof(Environment));
+  env->localTablesSize = 0;
+  env->localTablesCapacity = 1;
+  env->localTables = malloc(sizeof(SymbolTable *));
+  env->globalTables = symbolTableTableCreate();
+  return env;
+}
+
+void environmentPush(Environment *env) {
+  if (env->localTablesSize == env->localTablesCapacity) {
+    env->localTablesCapacity *= 2;
+    env->localTables = realloc(
+        env->localTables, env->localTablesCapacity * sizeof(SymbolTable *));
+  }
+  env->localTables[env->localTablesSize++] = symbolTableCreate();
+}
+
+void environmentPop(Environment *env) {
+  symbolTableDestroy(env->localTables[--env->localTablesSize]);
+}
+
+SymbolTable *environmentTop(Environment *env) {
+  return env->localTables[env->localTablesSize - 1];
+}
+
+static bool scopedId(char const *id) {
+  char previous = '\0';
+  for (; *id != '\0'; id++) {
+    if (previous == ':' && *id == ':') {
+      return true;
+    } else {
+      previous = *id;
+    }
+  }
+  return false;
+}
+static void splitId(char const *id, char **prefix, char const **postfix) {
+  *postfix = id;
+  while (**postfix != '\0') (*postfix)++;
+  while (**postfix != ':') (*postfix)--;
+  size_t length = (size_t)(*postfix - id);
+  *prefix = malloc(length);
+  memcpy(*prefix, id, length - 1);
+  (*prefix)[length - 1] = '\0';
+  (*postfix)++;
+}
+SymbolTableEntry *environmentLookup(Environment *env, char const *name) {
+  if (!scopedId(name)) {  // if name is scoped, can't be in localTables.
+    for (size_t idx = env->localTablesSize; idx-- > 0;) {
+      SymbolTableEntry *entry = symbolTableLookup(env->localTables[idx], name);
+      if (entry != NULL) return entry;
+    }
+    // not in localTables, try each globalTable individually, since there is no
+    // scope.
+    for (size_t idx = 0; idx < env->globalTables->size; idx++) {
+      SymbolTableEntry *entry =
+          symbolTableLookup(env->globalTables->tables[idx], name);
+      if (entry != NULL) return entry;
+    }
+    return NULL;  // couldn't find it
+  } else {
+    // compute the prefix, and search for that in the globalTables
+    char *prefix;
+    char const *postfix;
+    splitId(name, &prefix, &postfix);
+    SymbolTable *table = symbolTableTableLookup(env->globalTables, prefix);
+    if (table == NULL) {
+      free(prefix);
+      return NULL;
+    } else {
+      free(prefix);
+      return symbolTableLookup(table, postfix);
+    }
+  }
+}
+
+void environmentDestroy(Environment *env) {
+  for (size_t idx = 0; idx < env->localTablesSize; idx++)
+    symbolTableDestroy(env->localTables[idx]);
+  free(env->localTables);
+  free(env->globalTables->tables);  // not calling element destructor because
+                                    // this is a non-owning instance
+  free(env);
 }

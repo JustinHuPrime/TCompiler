@@ -111,9 +111,28 @@ SymbolTable *symbolTableTableLookup(SymbolTableTable *, char const *name);
 // destructor
 void symbolTableTableDestroy(SymbolTableTable *);
 
-// typedef struct {
-//   SymbolTable **localTables;
-//   SymbolTableTable *globalTables;
-// } Environment;
+typedef struct {
+  size_t localTablesSize;
+  size_t localTablesCapacity;
+  SymbolTable **localTables;
+  SymbolTableTable *
+      globalTables;  // due to destructor, this is a non-owning SymbolTableTable
+} Environment;
+
+// constructor
+Environment *environmentCreate(void);
+
+// adds a table to the top of the localTables stack
+void environmentPush(Environment *);
+// removes a table from the top of the LocalTables stack
+void environmentPop(Environment *);
+// gets the top table, as a non-owning instance
+SymbolTable *environmentTop(Environment *);
+// looks up an element in the environment
+// returns null if no such element can be found
+SymbolTableEntry *environmentLookup(Environment *, char const *);
+
+// destructor
+void environmentDestroy(Environment *);
 
 #endif  // TLC_UTIL_SYMBOLTABLE_H_
