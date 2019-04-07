@@ -1,0 +1,72 @@
+The following operators are parts of expressions, and use the following precedence:
+
+1 (postfix):
+a.b
+a->b
+a(...)
+a[b]
+a++, a--
+
+2 (prefix):
+*a, &a
+++a, --a
++a, -a
+!a, ~a
+
+3 (multiplication):
+a * b
+a / b
+a % b
+
+4 (addition):
+a + b
+a - b
+
+5 (shift):
+a << b
+a >> b
+a >>> b
+
+6 (spaceship):
+a <=> b
+
+7 (comparison):
+a < b
+a > b
+a <= b
+a >= b
+
+8 (equality):
+a == b
+a != b
+
+9 (bitwise):
+a & b
+a ^ b
+a | b
+
+10 (logical):
+a && b
+a || b
+
+11 (ternary):
+a ? b : c
+
+12 (assignment):
+a = b
+a *= b
+a /= b
+a %= b
+a += b
+a -= b
+a <<= b
+a >>= b
+a >>>= b
+a &= b
+a ^= b
+a |= b
+a &&= b
+a ||= b
+
+13 (sequence):
+a, b

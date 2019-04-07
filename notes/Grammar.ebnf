@@ -1,0 +1,189 @@
+(*
+Note that this grammar is in terms of the tokens, and not the characters.
+See Tokens.ebnf for rules on tokenization.
+*)
+(*
+Further, note that as an extension to EBNF, the EBNF tokens described by the EBNF
+"{", inner, "}+"
+Shall mean the EBNF tokens described by the EBNF
+inner, ",", "{", inner, "}"
+*)
+program = { declaration_module }, { code_module }+ ;
+declaration_module = module_name, { import }, { declaration } ;
+code_module = module_name, { import }, { function | variable_declaration_statement | declaration } ;
+
+module_name = "module", scoped_identifier, ";" ;
+import = "using", scoped_identifier, ";" ;
+
+declaration = function_declaration
+            | variable_declaration
+            | struct_declaration
+            | union_declaration
+            | enum_declaration
+            | typedef_declaration
+            ;
+function_declaration = type, identifier, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")", ";" ;
+variable_declaration = type, identifier, { ",", identifier }, ";" ;
+struct_declaration = "struct", identifier, "{", { variable_declaration }+, "}", ";" ;
+union_declaration = "union", identifier, "{", { variable_declaration }+, "}", ";" ;
+enum_declaration = "enum", identifier, "{", { identifier }+, "}", ";", ;
+typedef_declaration = "typedef", type, identifier, ";" ;
+
+function = type, identifier, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")", compound_statement ;
+
+statement = compound_statement
+          | if_statement
+          | while_statement
+          | do_while_statement
+          | for_statement
+          | switch_statement
+          | break_statement
+          | continue_statement
+          | return_statement
+          | variable_declaration_statement
+          | asm_statement
+          | expression, ";"
+          | ";"
+          ;
+compound_statement = "{", { statement }, "}" ;
+if_statement = "if", "(", expression, ")", statement, [ "else", statement ] ;
+while_statement = "while", "(", expression, ")", statement ;
+do_while_statement = "do", statement, "while", "(", expression, ")" ;
+for_statement = "for", "(", ( variable_declaration_statement | expression, ";" ), expression, ";", expression, ")", statement ;
+switch_statement = "switch", "(", expression, ")", "{", { "case", int_constant, ":", compound_statement | "default", ":", compound_statement }, "}" ;
+break_statement = "break", ";" ;
+continue_statement = "continue", ";" ;
+return_statement = "return", [ expression ], ";" ;
+variable_declaration_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
+asm_statement = "asm", cstring_constant ;
+expression = assignment_expression
+           | expression, ",", assignment_expression
+           ;
+assignment_expression = ternary_expression
+                      | assignment_expression, "=", ternary_expression
+                      | assignment_expression, "*=", ternary_expression
+                      | assignment_expression, "/=", ternary_expression
+                      | assignment_expression, "%=", ternary_expression
+                      | assignment_expression, "+=", ternary_expression
+                      | assignment_expression, "-=", ternary_expression
+                      | assignment_expression, "<<=", ternary_expression
+                      | assignment_expression, ">>=", ternary_expression
+                      | assignment_expression, ">>>=", ternary_expression
+                      | assignment_expression, "&=", ternary_expression
+                      | assignment_expression, "^=", ternary_expression
+                      | assignment_expression, "|=", ternary_expression
+                      | assignment_expression, "&&=", ternary_expression
+                      | assignment_expression, "||=", ternary_expression
+                      ;
+ternary_expression = logical_expression
+                   | ternary_expression, "?", expression, ":", logical_expression
+                   ;
+logical_expression = bitwise_expression
+                   | logical_expression, "&&", bitwise_expression
+                   | logical_expression, "||", bitwise_expression
+                   ;
+bitwise_expression = equality_expression
+                   | bitwise_expression, "&", equality_expression
+                   | bitwise_expression, "|", equality_expression
+                   | bitwise_expression, "^", equality_expression
+                   ;
+equality_expression = comparison_expression
+                    | equality_expression, "==", comparison_expression
+                    | equality_expression, "!=", comparison_expression
+                    ;
+comparison_expression = spaceship_expression
+                      | comparison_expression, "<", spaceship_expression
+                      | comparison_expression, ">", spaceship_expression
+                      | comparison_expression, "<=", spaceship_expression
+                      | comparison_expression, ">=", spaceship_expression
+                      ;
+spaceship_expression = shift_expression
+                     | spaceship_expression, "<=>", shift_expression
+                     ;
+shift_expression = addition_expression
+                 | shift_expression, "<<", addition_expression
+                 | shift_expression, ">>", addition_expression
+                 | shift_expression, ">>>", addition_expression
+                 ;
+addition_expression = multiplication_expression
+                    | addition_expression, "+", multiplication_expression
+                    | addition_expression, "-", multiplication_expression
+                    ;
+multiplication_expression = prefix_expression
+                          | multiplication_expression, "*", prefix_expression
+                          | multiplication_expression, "/", prefix_expression
+                          | multiplication_expression, "%", prefix_expression
+                          ;
+prefix_expression = postfix_expression
+                  | "*", prefix_expression
+                  | "&", prefix_expression
+                  | "++", prefix_expression
+                  | "--", prefix_expression
+                  | "+", prefix_expression
+                  | "-", prefix_expression
+                  | "!", prefix_expression
+                  | "~", prefix_expression
+                  ;
+postfix_expression = primary_expression
+                   | postfix_expression, ".", identifier
+                   | postfix_expression, "->", identifier
+                   | postfix_expression, "(", argument_list, ")"
+                   | postfix_expression, "[", expression, "]"
+                   | postfix_expression, "++" 
+                   | postfix_expression, "--"
+                   ;
+primary_expression = scoped_identifier
+                   | int_constant
+                   | float_constant
+                   | cstring_constant
+                   | character_constant
+                   | wcstring_constant
+                   | wcharacter_constant
+                   | "true"
+                   | "false"
+                   | aggregate_initializer
+                   | "cast", "[", type, "]", "(", expression, ")"
+                   | "sizeof", "(", ( expression | type ), ")"
+                   | "(", expression, ")"
+                   ;
+argument_list = [ assignment_expression, { ",", assignment_expression } ] ;
+aggregate_initializer: "<", literal_list, ">" ;
+literal_list = [ literal, { ",", literal } ] ;
+literal = int_constant
+        | float_constant
+        | cstring_constant
+        | character_constant
+        | wcstring_constant
+        | wcharacter_constant
+        | "true"
+        | "false"
+        | aggregate_initializer
+        ;
+
+type = "void"
+     | "ubyte"
+     | "byte"
+     | "uint"
+     | "int"
+     | "ulong"
+     | "long"
+     | "float"
+     | "double"
+     | "bool"
+     | scoped_type_identifier
+     | type, "const"
+     | type, "[", int_constant, "]"
+     | type, "*"
+     | type, "(", [ type, { ",", type } ], ")"
+     ;
+
+scoped_identifier = ? Any scoped identifier ? ;
+scoped_type_identifier = ? Any scoped identifier that names a type ? ;
+
+identifier = ? Anything starting with an underscore or an alphabetical character, and containing only alphanumeric characters or underscores ? ;
+int_constant = ? Any integer constant that fits in a long, possibly including a sign ? ;
+float_constant = ? Any floating point constant that fits in a double, possibly including a sign ? ;
+cstring_constant = ? Any string literal constant ? ;
+character_constant = ? Any character literal constant ? ;
+wcstring_constant = ? Any wide string literal constant ? ;
+wcharacter_constant= ? Any wide character literal constant ? ;
