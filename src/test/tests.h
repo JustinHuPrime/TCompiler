@@ -23,5 +23,6 @@ void nodeListPairTest(TestStatus *);
 
 // in util/symbolTableTest/c
 void symbolTableTest(TestStatus *);
+void symbolTableTableTest(TestStatus *);
 
 #endif  // TLC_TEST_AST_CONSTEXPPARSETEST_H_

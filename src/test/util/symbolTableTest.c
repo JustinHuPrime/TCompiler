@@ -80,6 +80,66 @@ void symbolTableTest(TestStatus *status) {
   test(status,
        "[util] [symbolTable] [insert] insertion complex case inserts into "
        "correct place",
-       strcmp(table->entries[3]->name, "c") == 0);
+       strcmp(table->entries[2]->name, "c") == 0);
   symbolTableDestroy(table);
+}
+
+void symbolTableTableTest(TestStatus *status) {
+  SymbolTableTable *table = symbolTableTableCreate();
+  test(status,
+       "[util] [symbolTableTable] [constructor] table created has size zero",
+       table->size == 0);
+  test(status,
+       "[util] [symbolTableTable] [constructor] table created has capacity one",
+       table->capacity == 1);
+  test(status,
+       "[util] [symbolTableTable] [constructor] table created has non-null "
+       "pointer for entries",
+       table->tables != NULL);
+  test(status,
+       "[util] [symbolTableTable] [constructor] table created has non-null "
+       "pointer for entries",
+       table->names != NULL);
+  SymbolTable *s1 = symbolTableCreate();
+  SymbolTable *s2 = symbolTableCreate();
+  SymbolTable *s3 = symbolTableCreate();
+  SymbolTable *s4 = symbolTableCreate();
+  symbolTableTableInsert(table, strcpy(malloc(2), "a"), s1);
+  test(status, "[util] [symbolTableTable] [insert] insertion adds one to size",
+       table->size == 1);
+  int retVal = symbolTableTableInsert(table, strcpy(malloc(2), "c"), s3);
+  test(status,
+       "[util] [symbolTableTable] [insert] table insertion has correct return "
+       "value",
+       retVal == STT_OK);
+  symbolTableTableInsert(table, strcpy(malloc(2), "d"), s4);
+  test(status,
+       "[util] [symbolTableTable] [insert] insertion increases capacity",
+       table->capacity == 4);
+  symbolTableTableInsert(table, strcpy(malloc(2), "b"), s2);
+  test(status,
+       "[util] [symbolTableTable] [insert] insertion inserts into correct "
+       "location",
+       strcmp(table->names[1], "b") == 0);
+  test(status,
+       "[util] [symbolTableTable] [insert] insertion inserts correct pointer",
+       table->tables[1] == s2);
+
+  retVal = symbolTableTableInsert(table, strcpy(malloc(2), "b"),
+                                  symbolTableCreate());
+  test(status,
+       "[util] [symbolTableTable] [insert] table insertion fails when it "
+       "already exists",
+       retVal == STT_EEXISTS);
+
+  SymbolTable *entry = symbolTableTableLookup(table, "b");
+  test(status,
+       "[util] [symbolTableTable] [lookup] return value for success is correct",
+       entry == s2);
+
+  entry = symbolTableTableLookup(table, "s6");
+  test(status,
+       "[util] [symbolTableTable] [lookup] return value for failure is null",
+       entry == NULL);
+  symbolTableTableDestroy(table);
 }

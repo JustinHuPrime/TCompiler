@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
   nodeListTest(status);
   nodeListPairTest(status);
   symbolTableTest(status);
+  symbolTableTableTest(status);
 
   testStatusDisplay(status);
 

@@ -84,8 +84,36 @@ SymbolTableEntry *symbolTableLookup(SymbolTable *, char const *name);
 // Destructor
 void symbolTableDestroy(SymbolTable *);
 
+// a table of tables associated some name
+typedef struct {
+  size_t size;
+  size_t capacity;
+  SymbolTable **tables;
+  char **names;
+} SymbolTableTable;
+
+// constructor
+SymbolTableTable *symbolTableTableCreate(void);
+
+extern int const STT_OK;
+extern int const STT_EEXISTS;
+
+// inserts a table (owning instance) into the table of tables, associated with
+// some name (owning instance)
+// returns: STT_OK if insertion was successful
+//          STT_EEXISTS if a table with that name already exists
+// Note that both pointers should be owning instances
+int symbolTableTableInsert(SymbolTableTable *, char *name, SymbolTable *table);
+// finds an entry in the table, and returns a non-owning pointer to it
+// returns NULL if no entry could be found.
+SymbolTable *symbolTableTableLookup(SymbolTableTable *, char const *name);
+
+// destructor
+void symbolTableTableDestroy(SymbolTableTable *);
+
 // typedef struct {
-//   SymbolTable **
+//   SymbolTable **localTables;
+//   SymbolTableTable *globalTables;
 // } Environment;
 
 #endif  // TLC_UTIL_SYMBOLTABLE_H_

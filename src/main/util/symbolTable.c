@@ -97,12 +97,12 @@ static size_t symbolTableLookupExpectedIndex(SymbolTable *table,
   size_t high = table->size - 1;   // hightest possible index that might match
   size_t low = 0;                  // lowest possible index that might match
 
-  while (high >= low) {
+  while (high != low) {
     size_t half = low + (high - low) / 2;
     int cmpVal = strcmp(table->entries[half]->name, name);
     if (cmpVal < 0) {  // entries[half] is before name
       low = half + 1;
-      if (low >= table->size) {
+      if (low == table->size) {
         return table->size;
       }
     } else if (cmpVal > 0) {  // entries[half] is after name
@@ -116,10 +116,25 @@ static size_t symbolTableLookupExpectedIndex(SymbolTable *table,
     }
   }
 
-  return high;
+  // high == expected place
+  int cmpVal = strcmp(table->entries[high]->name, name);
+  if (cmpVal < 0) {  // entries[high] is before name
+    return high + 1;
+  } else {  // entries[high] is after name or equal to name
+    return high;
+  }
+}
+static size_t symbolTableLookupIndex(SymbolTable *table, char const *name) {
+  if (table->size == 0) return SIZE_MAX;  // edge case
+
+  size_t expectedIndex = symbolTableLookupExpectedIndex(table, name);
+  if (expectedIndex >= table->size) return SIZE_MAX;
+
+  return strcmp(table->entries[expectedIndex]->name, name) == 0 ? expectedIndex
+                                                                : SIZE_MAX;
 }
 static int symbolTableInsert(SymbolTable *table, SymbolTableEntry *entry) {
-  if (symbolTableLookup(table, entry->name) != NULL) return ST_EEXISTS;
+  if (symbolTableLookupIndex(table, entry->name) != SIZE_MAX) return ST_EEXISTS;
 
   if (table->size == table->capacity) {
     table->capacity *= 2;
@@ -128,6 +143,8 @@ static int symbolTableInsert(SymbolTable *table, SymbolTableEntry *entry) {
 
     size_t insertionIndex = symbolTableLookupExpectedIndex(
         table, entry->name);  // find where it should go
+    printf("Inserting %s into %zd.\n", entry->name,
+           insertionIndex);  // FIXME: debug only
     memcpy(newTable, table->entries,
            insertionIndex *
                sizeof(SymbolTableEntry *));  // copy everything before it
@@ -141,9 +158,19 @@ static int symbolTableInsert(SymbolTable *table, SymbolTableEntry *entry) {
     table->size++;
     return ST_OK;
   } else {
-    size_t idx = 0;
+    size_t insertionIndex = symbolTableLookupExpectedIndex(
+        table, entry->name);  // find where it should go
+    printf("Inserting %s into %zd.\n", entry->name,
+           insertionIndex);  // FIXME: debug only
+    memmove(table->entries + insertionIndex + 1,
+            table->entries + insertionIndex,
+            (table->size - insertionIndex) * sizeof(SymbolTableEntry *));
+    // for (size_t idx = table->size; idx > insertionIndex; idx--)
+    //   table->entries[idx] =
+    //       table->entries[idx - 1];  // shift everything down by one
 
-    table->entries[table->size++] = entry;  // do insertion sort
+    table->entries[insertionIndex] = entry;
+    table->size++;
     return ST_OK;
   }
 }
@@ -194,15 +221,6 @@ int symbolTableInsertVar(SymbolTable *table, char *name, Node *type) {
   }
   return retVal;
 }
-static size_t symbolTableLookupIndex(SymbolTable *table, char const *name) {
-  if (table->size == 0) return SIZE_MAX;  // edge case
-
-  size_t expectedIndex = symbolTableLookupExpectedIndex(table, name);
-  if (expectedIndex >= table->size) return SIZE_MAX;
-
-  return strcmp(table->entries[expectedIndex]->name, name) == 0 ? expectedIndex
-                                                                : SIZE_MAX;
-}
 SymbolTableEntry *symbolTableLookup(SymbolTable *table, char const *name) {
   size_t index = symbolTableLookupIndex(table, name);
   return index == SIZE_MAX ? NULL : table->entries[index];
@@ -213,5 +231,123 @@ void symbolTableDestroy(SymbolTable *table) {
   for (size_t idx = 0; idx < table->size; idx++)
     symbolTableEntryDestroy(table->entries[idx]);
   free(table->entries);
+  free(table);
+}
+
+SymbolTableTable *symbolTableTableCreate(void) {
+  SymbolTableTable *table = malloc(sizeof(SymbolTableTable));
+  table->size = 0;
+  table->capacity = 1;
+  table->tables = malloc(sizeof(SymbolTable *));
+  table->names = malloc(sizeof(char *));
+  return table;
+}
+
+int const STT_OK = 0;
+int const STT_EEXISTS = 1;
+
+static size_t symbolTableTableLookupExpectedIndex(SymbolTableTable *table,
+                                                  char const *name) {
+  if (table->size == 0) return 0;  // edge case
+  size_t high = table->size - 1;   // hightest possible index that might match
+  size_t low = 0;                  // lowest possible index that might match
+
+  while (high >= low) {
+    size_t half = low + (high - low) / 2;
+    int cmpVal = strcmp(table->names[half], name);
+    if (cmpVal < 0) {  // entries[half] is before name
+      low = half + 1;
+      if (low >= table->size) {
+        return table->size;
+      }
+    } else if (cmpVal > 0) {  // entries[half] is after name
+      if (half == 0) {        // should be before zero
+        return 0;
+      } else {
+        high = half - 1;
+      }
+    } else {  // match!
+      return half;
+    }
+  }
+
+  // high == expected place
+  int cmpVal = strcmp(table->names[high], name);
+  if (cmpVal < 0) {  // entries[high] is before name
+    return high + 1;
+  } else {  // entries[high] is after name or equal to name
+    return high;
+  }
+}
+static size_t symbolTableTableLookupIndex(SymbolTableTable *table,
+                                          char const *name) {
+  if (table->size == 0) return SIZE_MAX;  // edge case
+
+  size_t expectedIndex = symbolTableTableLookupExpectedIndex(table, name);
+  if (expectedIndex >= table->size) return SIZE_MAX;
+
+  return strcmp(table->names[expectedIndex], name) == 0 ? expectedIndex
+                                                        : SIZE_MAX;
+}
+int symbolTableTableInsert(SymbolTableTable *table, char *name,
+                           SymbolTable *toInsert) {
+  if (symbolTableTableLookupIndex(table, name) != SIZE_MAX) {
+    free(name);
+    symbolTableDestroy(toInsert);
+    return STT_EEXISTS;
+  }
+
+  if (table->size == table->capacity) {
+    table->capacity *= 2;
+    SymbolTable **newTables = malloc(table->capacity * sizeof(SymbolTable *));
+    char **newNames = malloc(table->capacity * sizeof(char *));
+
+    size_t insertionIndex = symbolTableTableLookupExpectedIndex(
+        table, name);  // find where it should go
+    memcpy(newTables, table->tables, insertionIndex * sizeof(SymbolTable *));
+    memcpy(newNames, table->names,
+           insertionIndex * sizeof(char *));  // copy everything before it
+    newTables[insertionIndex] = toInsert;     // copy it
+    newNames[insertionIndex] = name;
+    memcpy(newTables + insertionIndex + 1, table->tables + insertionIndex,
+           (table->size - insertionIndex) * sizeof(SymbolTable *));
+    memcpy(newNames + insertionIndex + 1, table->names + insertionIndex,
+           (table->size - insertionIndex) *
+               sizeof(char *));  // copy everything after it
+
+    free(table->tables);
+    free(table->names);
+    table->tables = newTables;
+    table->names = newNames;
+    table->size++;
+    return STT_OK;
+  } else {
+    size_t insertionIndex = symbolTableTableLookupExpectedIndex(
+        table, name);  // find where it should go
+    for (size_t idx = table->size; idx > insertionIndex; idx--) {
+      // shift everything down by one
+      table->tables[idx] = table->tables[idx - 1];
+      table->names[idx] = table->names[idx - 1];
+    }
+
+    table->tables[insertionIndex] = toInsert;
+    table->names[insertionIndex] = name;
+    table->size++;
+    return STT_OK;
+  }
+}
+SymbolTable *symbolTableTableLookup(SymbolTableTable *table, char const *name) {
+  size_t index = symbolTableTableLookupIndex(table, name);
+  return index == SIZE_MAX ? NULL : table->tables[index];
+}
+
+// destructor
+void symbolTableTableDestroy(SymbolTableTable *table) {
+  for (size_t idx = 0; idx < table->size; idx++) {
+    free(table->names[idx]);
+    symbolTableDestroy(table->tables[idx]);
+  }
+  free(table->names);
+  free(table->tables);
   free(table);
 }
