@@ -28,15 +28,8 @@
   char* tokenString;
   char invalidChar;
   Node* ast;
-  struct { // Note that this list has O(n) insert time to save memory
-    size_t size;
-    Node **items;
-  } nodePtrList;
-  struct { // Note that this list has O(n) insert time to save memory
-    size_t size;
-    Node **firstItems;
-    Node **secondItems;
-  } nodePtrDoubleList;
+  NodeList *list;
+  NodePairList *pairList;
 }
 
 // keywords
@@ -84,12 +77,13 @@
       comparison_expression spaceship_expression shift_expression
       addition_expression multiplication_expression prefix_expression
       postfix_expression primary_expression aggregate_initializer literal
-%type <nodePtrList>
-      imports body_parts struct_declaration_chain union_declaration_chain
-      enum_declaration_chain variable_declaration_chain statements
-      switch_bodies argument_list argument_list_nonempty function_ptr_arg_list
-      function_ptr_arg_list_nonempty literal_list literal_list_nonempty
-%type <nodePtrDoubleList>
+%type <list>
+      imports body_parts struct_declaration_chain
+      union_declaration_chain enum_declaration_chain variable_declaration_chain
+      statements switch_bodies argument_list argument_list_nonempty
+      function_ptr_arg_list function_ptr_arg_list_nonempty literal_list
+      literal_list_nonempty
+%type <pairList>
       function_arg_list function_arg_list_nonempty
       variable_declaration_statement_chain
 %type <tokenString>
@@ -104,31 +98,25 @@
 %start module
 %%
 module: module_name imports body_parts
-        { *ast = programNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $module_name, $imports.size, $imports.items, $body_parts.size, $body_parts.items); }
+        { *ast = programNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $module_name, $imports, $body_parts); }
       ;
 module_name: KWD_MODULE scoped_identifier P_SEMI
              { $$ = moduleNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@scoped_identifier.first_line, (size_t)@scoped_identifier.first_column, $scoped_identifier)); }
            ;
 
-imports: { $$.size = 0;
-           $$.items = NULL; }
+imports: { $$ = nodeListCreate(); }
        | imports import
          { $$ = $1;
-           $$.size++;
-           $$.items = realloc($$.items, $$.size * sizeof(Node *));
-           $$.items[$$.size - 1] = $import; }
+           nodeListInsert($$, $import); }
        ;
 import: KWD_USING scoped_identifier P_SEMI
         { $$ = importNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@scoped_identifier.first_line, (size_t)@scoped_identifier.first_column, $scoped_identifier)); }
       ;
 
-body_parts: { $$.size = 0;
-              $$.items = NULL; }
+body_parts: { $$ = nodeListCreate(); }
           | body_parts body_part
             { $$ = $1;
-              $$.size++;
-              $$.items = realloc($$.items, $$.size * sizeof(Node *));
-              $$.items[$$.size - 1] = $body_part; }
+              nodeListInsert($$, $body_part); }
           ;
 body_part: variable_declaration_statement
          | function
@@ -143,59 +131,56 @@ declaration: function_declaration
            | typedef_declaration
            ;
 function_declaration: type T_ID P_LPAREN function_arg_list P_RPAREN P_SEMI
-                      { $$ = funDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $function_arg_list.size, $function_arg_list.firstItems); }
+                      { NodeList *list = malloc(sizeof(NodeList));
+                        list->size = $function_arg_list->size;
+                        list->capacity = $function_arg_list->capacity;
+                        list->elements = $function_arg_list->firstElements;
+                        for(size_t idx = 0; idx < $function_arg_list->size; idx++) {
+                          nodeDestroy($function_arg_list->secondElements[idx]);
+                        }
+                        free($function_arg_list->secondElements);
+                        $$ = funDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), list); }
                     ;
+                          ;
 variable_declaration: type T_ID variable_declaration_chain P_SEMI
-                      { $$ = varDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, $variable_declaration_chain.size, $variable_declaration_chain.items); }
+                      { $$ = varDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, $variable_declaration_chain); }
                     ;
 variable_declaration_chain: T_ID
-                            { $$.size = 1;
-                              $$.items = malloc(sizeof(char *));
-                              $$.items[0] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID); }
+                            { $$ = nodeListCreate();
+                              nodeListInsert($$, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
                           | variable_declaration_chain P_COMMA T_ID
                             { $$ = $1;
-                              $$.size++;
-                              $$.items = realloc($$.items, $$.size * sizeof(char *));
-                              $$.items[$$.size - 1] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID); }
+                              nodeListInsert($$, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
                           ;
 struct_declaration: KWD_STRUCT T_ID P_LBRACE struct_declaration_chain P_RBRACE P_SEMI
-                    { $$ = structDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $struct_declaration_chain.size, $struct_declaration_chain.items); }
+                    { $$ = structDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $struct_declaration_chain); }
                   ;
 struct_declaration_chain: variable_declaration
-                          { $$.size = 1;
-                            $$.items = malloc(sizeof(Node *));
-                            $$.items[0] = $variable_declaration; }
+                          { $$ = nodeListCreate();
+                            nodeListInsert($$, $variable_declaration); }
                         | struct_declaration_chain variable_declaration
                           { $$ = $1;
-                            $$.size++;
-                            $$.items = realloc($$.items, $$.size * sizeof(Node *));
-                            $$.items[$$.size - 1] = $variable_declaration; }
+                            nodeListInsert($$, $variable_declaration); }
                         ;
 union_declaration: KWD_UNION T_ID P_LBRACE union_declaration_chain P_RBRACE P_SEMI
-                    { $$ = unionDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $union_declaration_chain.size, $union_declaration_chain.items); }
+                    { $$ = unionDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $union_declaration_chain); }
                   ;
 union_declaration_chain: variable_declaration
-                         { $$.size = 1;
-                           $$.items = malloc(sizeof(Node *));
-                           $$.items[0] = $variable_declaration; }
+                         { $$ = nodeListCreate();
+                            nodeListInsert($$, $variable_declaration); }
                        | union_declaration_chain variable_declaration
                          { $$ = $1;
-                           $$.size++;
-                           $$.items = realloc($$.items, $$.size * sizeof(Node *));
-                           $$.items[$$.size - 1] = $variable_declaration; }
+                            nodeListInsert($$, $variable_declaration); }
                         ;
 enum_declaration: KWD_ENUM T_ID P_LBRACE enum_declaration_chain opt_comma P_RBRACE P_SEMI
-                  { $$ = enumDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $enum_declaration_chain.size, $enum_declaration_chain.items); }
+                  { $$ = enumDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $enum_declaration_chain); }
                 ;
 enum_declaration_chain: T_ID
-                        { $$.size = 1;
-                          $$.items = malloc(sizeof(Node *));
-                          $$.items[0] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID); }
+                        { $$ = nodeListCreate();
+                          nodeListInsert($$, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
                       | enum_declaration_chain P_COMMA T_ID
                         { $$ = $1;
-                          $$.size++;
-                          $$.items = realloc($$.items, $$.size * sizeof(Node *));
-                          $$.items[$$.size - 1] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID); }
+                          nodeListInsert($$, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
                       ;
 opt_comma:
          | P_COMMA
@@ -205,24 +190,17 @@ typedef_declaration: KWD_TYPEDEF type T_ID
                    ;
 
 function: type T_ID P_LPAREN function_arg_list P_RPAREN compound_statement
-          { $$ = functionNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $function_arg_list.size, $function_arg_list.firstItems, $function_arg_list.secondItems, $compound_statement); }
+          { $$ = functionNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $function_arg_list, $compound_statement); }
         ;
-function_arg_list: { $$.size = 0;
-                     $$.firstItems = NULL;
-                     $$.secondItems = NULL; }
+function_arg_list: { $$ = nodePairListCreate(); }
                  | function_arg_list_nonempty
                  ;
 function_arg_list_nonempty: type opt_id
-                            { $$.size = 1;
-                              $$.firstItems = malloc(sizeof(Node *));
-                              $$.secondItems = malloc(sizeof(Node *)); }
+                            { $$ = nodePairListCreate();
+                              nodePairListInsert($$, $type, $opt_id); }
                           | function_arg_list_nonempty P_COMMA type opt_id
                             { $$ = $1;
-                              $$.size++;
-                              $$.firstItems = realloc($$.firstItems, $$.size * sizeof(Node *));
-                              $$.secondItems = realloc($$.secondItems, $$.size * sizeof(Node *));
-                              $$.firstItems[$$.size - 1] = $type;
-                              $$.secondItems[$$.size - 1] = $opt_id; }
+                              nodePairListInsert($$, $type, $opt_id); }
                           ;
 opt_id: { $$ = NULL; }
       | T_ID
@@ -247,15 +225,12 @@ statement: compound_statement
          ;
 
 compound_statement: P_LBRACE statements P_RBRACE 
-                    { $$ = compoundStmtNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $statements.size, $statements.items); }
+                    { $$ = compoundStmtNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $statements); }
                   ;
-statements: { $$.size = 0;
-              $$.items = NULL; }
+statements: { $$ = nodeListCreate(); }
           | statements statement
             { $$ = $1;
-              $$.size++;
-              $$.items = realloc($$.items, $$.size * sizeof(Node *));
-              $$.items[$$.size - 1] = $statement; }
+              nodeListInsert($$, $statement); }
           ;
 
 if_statement: KWD_IF P_LPAREN expression P_RPAREN statement maybe_else
@@ -280,15 +255,12 @@ for_init: variable_declaration_statement
         ;
 
 switch_statement: KWD_SWITCH P_LPAREN expression P_RPAREN P_LBRACE switch_bodies P_RBRACE 
-                  { $$ = switchStmtNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $expression, $switch_bodies.size, $switch_bodies.items); }
+                  { $$ = switchStmtNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $expression, $switch_bodies); }
                 ;
-switch_bodies: { $$.size = 0;
-                 $$.items = NULL; }
+switch_bodies: { $$ = nodeListCreate(); }
              | switch_bodies switch_body
                { $$ = $1;
-                 $$.size++;
-                 $$.items = realloc($$.items, $$.size * sizeof(Node *));
-                 $$.items[$$.size - 1] = $switch_body; }
+                 nodeListInsert($$, $switch_body); }
              ;
 switch_body: switch_case_body
            | switch_default_body
@@ -316,21 +288,14 @@ opt_expression: { $$ = NULL; }
               ;
 
 variable_declaration_statement: type variable_declaration_statement_chain P_SEMI
-                                { $$ = varDeclStmtNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, $variable_declaration_statement_chain.size, $variable_declaration_statement_chain.firstItems, $variable_declaration_statement_chain.secondItems); }
+                                { $$ = varDeclStmtNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, $variable_declaration_statement_chain); }
                               ;
 variable_declaration_statement_chain: T_ID opt_assign
-                                      { $$.size = 1;
-                                        $$.firstItems = malloc(sizeof(Node *));
-                                        $$.secondItems = malloc(sizeof(Node *));
-                                        $$.firstItems[0] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID);
-                                        $$.secondItems[0] = $opt_assign; }
+                                      { $$ = nodePairListCreate();
+                                        nodePairListInsert($$, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $opt_assign); }
                                     | variable_declaration_statement_chain P_COMMA T_ID opt_assign
                                       { $$ = $1;
-                                        $$.size++;
-                                        $$.firstItems = realloc($$.firstItems, $$.size * sizeof(Node *));
-                                        $$.secondItems = realloc($$.secondItems, $$.size * sizeof(Node *));
-                                        $$.firstItems[$$.size - 1] = idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID);
-                                        $$.secondItems[$$.size - 1] = $opt_assign; }
+                                        nodePairListInsert($$, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $opt_assign); }
                                     ;
 opt_assign: { $$ = NULL; }
             | P_ASSIGN assignment_expression
@@ -459,7 +424,7 @@ postfix_expression: primary_expression
                   | postfix_expression P_ARROW T_ID
                     { $$ = structPtrAccessExpNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $1, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
                   | postfix_expression P_LPAREN argument_list P_RPAREN
-                    { $$ = fnCallExpNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $1, $argument_list.size, $argument_list.items); }
+                    { $$ = fnCallExpNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $1, $argument_list); }
                   | postfix_expression P_LSQUARE expression P_RSQUARE
                     { $$ = binOpExpNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, OP_ARRAYACCESS, $1, $expression); }
                   | postfix_expression P_PLUSPLUS
@@ -495,36 +460,28 @@ primary_expression: scoped_identifier
                   | P_LPAREN expression P_RPAREN
                     { $$ = $expression; } 
                   ;
-argument_list: { $$.size = 0;
-                 $$.items = NULL; }
+argument_list: { $$ = nodeListCreate(); }
              | argument_list_nonempty
              ;
 argument_list_nonempty: assignment_expression
-                        { $$.size = 1;
-                          $$.items = malloc(sizeof(Node *));
-                          $$.items[0] = $assignment_expression; }
+                        { $$ = nodeListCreate();
+                          nodeListInsert($$, $assignment_expression); }
                       | argument_list_nonempty P_COMMA assignment_expression
                         { $$ = $1;
-                          $$.size++;
-                          $$.items = realloc($$.items, $$.size * sizeof(Node *));
-                          $$.items[$$.size - 1] = $assignment_expression; }
+                          nodeListInsert($$, $assignment_expression); }
                       ;
 aggregate_initializer: P_LANGLE literal_list P_RANGLE
-                       { $$ = aggregateInitExpNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $literal_list.size, $literal_list.items); }
+                       { $$ = aggregateInitExpNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $literal_list); }
                      ;
-literal_list: { $$.size = 0;
-                $$.items = NULL; }
+literal_list: { $$ = nodeListCreate(); }
             | literal_list_nonempty
             ;
 literal_list_nonempty: literal
-                       { $$.size = 1;
-                         $$.items = malloc(sizeof(Node *));
-                         $$.items[0] = $literal; }
+                       { $$ = nodeListCreate();
+                         nodeListInsert($$, $literal); }
                      | literal_list_nonempty P_COMMA literal
                        { $$ = $1;
-                         $$.size++;
-                         $$.items = realloc($$.items, $$.size * sizeof(Node *));
-                         $$.items[$$.size - 1] = $literal; }
+                         nodeListInsert($$, $literal); }
                      ;
 literal: L_INTLITERAL
          { $$ = constExpNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, TYPEHINT_INT, $L_INTLITERAL); }
@@ -574,21 +531,17 @@ type: KWD_VOID
     | type P_STAR
       { $$ = ptrTypeNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $1); }
     | type P_LPAREN function_ptr_arg_list P_RPAREN
-      { $$ = fnPtrTypeNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $1, $function_ptr_arg_list.size, $function_ptr_arg_list.items); }
+      { $$ = fnPtrTypeNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $1, $function_ptr_arg_list); }
     ;
-function_ptr_arg_list: { $$.size = 0;
-                         $$.items = NULL; }
+function_ptr_arg_list: { $$ = nodeListCreate(); }
                      | function_ptr_arg_list_nonempty
                      ;
 function_ptr_arg_list_nonempty: type
-                                { $$.size = 1;
-                                  $$.items = malloc(sizeof(Node *));
-                                  $$.items[0] = $type; }
+                                { $$ = nodeListCreate();
+                                  nodeListInsert($$, $type); }
                               | function_ptr_arg_list_nonempty P_COMMA type
                                 { $$ = $1;
-                                  $$.size++;
-                                  $$.items = realloc($$.items, $$.size * sizeof(Node *));
-                                  $$.items[$$.size - 1] = $type; }
+                                  nodeListInsert($$, $type); }
                               ;
 
 scoped_identifier: T_SCOPED_ID

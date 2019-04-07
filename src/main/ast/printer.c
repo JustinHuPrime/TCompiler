@@ -17,13 +17,13 @@ void printNodeStructure(Node *node) {
     case TYPE_PROGRAM: {
       printf("PROGRAM(");
       printNodeStructure(node->data.program.module);
-      for (size_t idx = 0; idx < node->data.program.numImports; idx++) {
+      for (size_t idx = 0; idx < node->data.program.imports->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.program.imports[idx]);
+        printNodeStructure(node->data.program.imports->elements[idx]);
       }
-      for (size_t idx = 0; idx < node->data.program.numBodies; idx++) {
+      for (size_t idx = 0; idx < node->data.program.bodies->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.program.bodies[idx]);
+        printNodeStructure(node->data.program.bodies->elements[idx]);
       }
       printf(")");
       break;
@@ -45,9 +45,9 @@ void printNodeStructure(Node *node) {
       printNodeStructure(node->data.funDecl.returnType);
       printf(" ");
       printNodeStructure(node->data.funDecl.id);
-      for (size_t idx = 0; idx < node->data.funDecl.numParamTypes; idx++) {
+      for (size_t idx = 0; idx < node->data.funDecl.paramTypes->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.funDecl.paramTypes[idx]);
+        printNodeStructure(node->data.funDecl.paramTypes->elements[idx]);
       }
       printf(")");
       break;
@@ -55,9 +55,9 @@ void printNodeStructure(Node *node) {
     case TYPE_VARDECL: {
       printf("VARDECL(");
       printNodeStructure(node->data.varDecl.type);
-      for (size_t idx = 0; idx < node->data.varDecl.numIds; idx++) {
+      for (size_t idx = 0; idx < node->data.varDecl.ids->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.varDecl.ids[idx]);
+        printNodeStructure(node->data.varDecl.ids->elements[idx]);
       }
       printf(")");
       break;
@@ -65,9 +65,9 @@ void printNodeStructure(Node *node) {
     case TYPE_STRUCTDECL: {
       printf("STRUCTDECL(");
       printNodeStructure(node->data.structDecl.id);
-      for (size_t idx = 0; idx < node->data.structDecl.numDecls; idx++) {
+      for (size_t idx = 0; idx < node->data.structDecl.decls->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.structDecl.decls[idx]);
+        printNodeStructure(node->data.structDecl.decls->elements[idx]);
       }
       printf(")");
       break;
@@ -75,9 +75,9 @@ void printNodeStructure(Node *node) {
     case TYPE_UNIONDECL: {
       printf("UNIONDECL(");
       printNodeStructure(node->data.unionDecl.id);
-      for (size_t idx = 0; idx < node->data.unionDecl.numOpts; idx++) {
+      for (size_t idx = 0; idx < node->data.unionDecl.opts->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.unionDecl.opts[idx]);
+        printNodeStructure(node->data.unionDecl.opts->elements[idx]);
       }
       printf(")");
       break;
@@ -85,9 +85,9 @@ void printNodeStructure(Node *node) {
     case TYPE_ENUMDECL: {
       printf("ENUMDECL(");
       printNodeStructure(node->data.enumDecl.id);
-      for (size_t idx = 0; idx < node->data.enumDecl.numElements; idx++) {
+      for (size_t idx = 0; idx < node->data.enumDecl.elements->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.enumDecl.elements[idx]);
+        printNodeStructure(node->data.enumDecl.elements->elements[idx]);
       }
       printf(")");
       break;
@@ -105,12 +105,12 @@ void printNodeStructure(Node *node) {
       printNodeStructure(node->data.function.returnType);
       printf(" ");
       printNodeStructure(node->data.function.id);
-      for (size_t idx = 0; idx < node->data.function.numFormals; idx++) {
+      for (size_t idx = 0; idx < node->data.function.formals->size; idx++) {
         printf(" FORMAL(");
-        printNodeStructure(node->data.function.formalTypes[idx]);
-        if (node->data.function.formalIds[idx] != NULL) {
+        printNodeStructure(node->data.function.formals->firstElements[idx]);
+        if (node->data.function.formals->secondElements[idx] != NULL) {
           printf(" ");
-          printNodeStructure(node->data.function.formalIds[idx]);
+          printNodeStructure(node->data.function.formals->secondElements[idx]);
         }
         printf(")");
       }
@@ -121,9 +121,10 @@ void printNodeStructure(Node *node) {
     }
     case TYPE_COMPOUNDSTMT: {
       printf("COMPOUNDSTMT(");
-      for (size_t idx = 0; idx < node->data.compoundStmt.numStatements; idx++) {
+      for (size_t idx = 0; idx < node->data.compoundStmt.statements->size;
+           idx++) {
         if (idx != 0) printf(" ");
-        printNodeStructure(node->data.compoundStmt.statements[idx]);
+        printNodeStructure(node->data.compoundStmt.statements->elements[idx]);
       }
       printf(")");
       break;
@@ -172,9 +173,9 @@ void printNodeStructure(Node *node) {
       printf("SWITCHSTMT(");
       printNodeStructure(node->data.switchStmt.onWhat);
       printf(" ");
-      for (size_t idx = 0; idx < node->data.switchStmt.numCases; idx++) {
+      for (size_t idx = 0; idx < node->data.switchStmt.cases->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.switchStmt.cases[idx]);
+        printNodeStructure(node->data.switchStmt.cases->elements[idx]);
       }
       printf(")");
       break;
@@ -214,12 +215,15 @@ void printNodeStructure(Node *node) {
       printf("VARDECLSTMT(");
       printNodeStructure(node->data.varDeclStmt.type);
       printf(" ");
-      for (size_t idx = 0; idx < node->data.varDeclStmt.numIds; idx++) {
+      for (size_t idx = 0; idx < node->data.varDeclStmt.idValuePairs->size;
+           idx++) {
         printf(" DECL(");
-        printNodeStructure(node->data.varDeclStmt.ids[idx]);
-        if (node->data.varDeclStmt.values[idx] != NULL) {
+        printNodeStructure(
+            node->data.varDeclStmt.idValuePairs->firstElements[idx]);
+        if (node->data.varDeclStmt.idValuePairs->secondElements[idx] != NULL) {
           printf(" ");
-          printNodeStructure(node->data.varDeclStmt.values[idx]);
+          printNodeStructure(
+              node->data.varDeclStmt.idValuePairs->secondElements[idx]);
         }
         printf(")");
       }
@@ -506,9 +510,9 @@ void printNodeStructure(Node *node) {
     case TYPE_FNCALLEXP: {
       printf("FNCALLEXP(");
       printNodeStructure(node->data.fnCallExp.who);
-      for (size_t idx = 0; idx < node->data.fnCallExp.numArgs; idx++) {
+      for (size_t idx = 0; idx < node->data.fnCallExp.args->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.fnCallExp.args[idx]);
+        printNodeStructure(node->data.fnCallExp.args->elements[idx]);
       }
       printf(")");
       break;
@@ -582,10 +586,10 @@ void printNodeStructure(Node *node) {
     }
     case TYPE_AGGREGATEINITEXP: {
       printf("AGGREGATEINITEXP(");
-      for (size_t idx = 0; idx < node->data.aggregateInitExp.numElements;
+      for (size_t idx = 0; idx < node->data.aggregateInitExp.elements->size;
            idx++) {
         if (idx != 0) printf(" ");
-        printNodeStructure(node->data.aggregateInitExp.elements[idx]);
+        printNodeStructure(node->data.aggregateInitExp.elements->elements[idx]);
       }
       printf(")");
       break;
@@ -682,9 +686,9 @@ void printNodeStructure(Node *node) {
     case TYPE_FNPTRTYPE: {
       printf("FNPTRTYPE(");
       printNodeStructure(node->data.fnPtrType.returnType);
-      for (size_t idx = 0; idx < node->data.fnPtrType.numArgTypes; idx++) {
+      for (size_t idx = 0; idx < node->data.fnPtrType.argTypes->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.fnPtrType.argTypes[idx]);
+        printNodeStructure(node->data.fnPtrType.argTypes->elements[idx]);
       }
       printf(")");
       break;
@@ -704,12 +708,12 @@ void printNode(Node *node) {
     case TYPE_PROGRAM: {
       printNode(node->data.program.module);
       printf("\n");
-      for (size_t idx = 0; idx < node->data.program.numImports; idx++) {
-        printNode(node->data.program.imports[idx]);
+      for (size_t idx = 0; idx < node->data.program.imports->size; idx++) {
+        printNode(node->data.program.imports->elements[idx]);
       }
-      if (node->data.program.numImports != 0) printf("\n");
-      for (size_t idx = 0; idx < node->data.program.numBodies; idx++) {
-        printNode(node->data.program.bodies[idx]);
+      if (node->data.program.imports->size != 0) printf("\n");
+      for (size_t idx = 0; idx < node->data.program.bodies->size; idx++) {
+        printNode(node->data.program.bodies->elements[idx]);
       }
       break;
     }
@@ -730,9 +734,9 @@ void printNode(Node *node) {
       printf(" ");
       printNode(node->data.funDecl.id);
       printf("(");
-      for (size_t idx = 0; idx < node->data.funDecl.numParamTypes; idx++) {
-        printNode(node->data.funDecl.paramTypes[idx]);
-        if (idx != node->data.funDecl.numParamTypes - 1) {
+      for (size_t idx = 0; idx < node->data.funDecl.paramTypes->size; idx++) {
+        printNode(node->data.funDecl.paramTypes->elements[idx]);
+        if (idx != node->data.funDecl.paramTypes->size - 1) {
           printf(", ");
         }
       }
@@ -742,9 +746,9 @@ void printNode(Node *node) {
     case TYPE_VARDECL: {
       printNode(node->data.varDecl.type);
       printf(" ");
-      for (size_t idx = 0; idx < node->data.varDecl.numIds; idx++) {
-        printNode(node->data.varDecl.ids[idx]);
-        if (idx != node->data.varDecl.numIds - 1) {
+      for (size_t idx = 0; idx < node->data.varDecl.ids->size; idx++) {
+        printNode(node->data.varDecl.ids->elements[idx]);
+        if (idx != node->data.varDecl.ids->size - 1) {
           printf(", ");
         }
         printf(";\n");
@@ -755,8 +759,8 @@ void printNode(Node *node) {
       printf("struct ");
       printNode(node->data.structDecl.id);
       printf(" {\n");
-      for (size_t idx = 0; idx < node->data.structDecl.numDecls; idx++) {
-        printNode(node->data.structDecl.decls[idx]);
+      for (size_t idx = 0; idx < node->data.structDecl.decls->size; idx++) {
+        printNode(node->data.structDecl.decls->elements[idx]);
         printf("\n");
       }
       printf("};\n");
@@ -766,8 +770,8 @@ void printNode(Node *node) {
       printf("union ");
       printNode(node->data.unionDecl.id);
       printf(" {\n");
-      for (size_t idx = 0; idx < node->data.unionDecl.numOpts; idx++) {
-        printNode(node->data.unionDecl.opts[idx]);
+      for (size_t idx = 0; idx < node->data.unionDecl.opts->size; idx++) {
+        printNode(node->data.unionDecl.opts->elements[idx]);
         printf("\n");
       }
       printf("};\n");
@@ -777,8 +781,8 @@ void printNode(Node *node) {
       printf("enum ");
       printNode(node->data.enumDecl.id);
       printf(" {\n");
-      for (size_t idx = 0; idx < node->data.unionDecl.numOpts; idx++) {
-        printNode(node->data.unionDecl.opts[idx]);
+      for (size_t idx = 0; idx < node->data.enumDecl.elements->size; idx++) {
+        printNode(node->data.enumDecl.elements->elements[idx]);
         printf(",\n");
       }
       printf("};\n");
@@ -797,13 +801,13 @@ void printNode(Node *node) {
       printf(" ");
       printNode(node->data.function.id);
       printf("(");
-      for (size_t idx = 0; idx < node->data.function.numFormals; idx++) {
-        printNode(node->data.function.formalTypes[idx]);
-        if (node->data.function.formalIds[idx] != NULL) {
+      for (size_t idx = 0; idx < node->data.function.formals->size; idx++) {
+        printNode(node->data.function.formals->firstElements[idx]);
+        if (node->data.function.formals->secondElements[idx] != NULL) {
           printf(" ");
-          printNode(node->data.function.formalIds[idx]);
+          printNode(node->data.function.formals->secondElements[idx]);
         }
-        if (idx != node->data.function.numFormals - 1) {
+        if (idx != node->data.function.formals->size - 1) {
           printf(", ");
         }
       }
@@ -814,8 +818,9 @@ void printNode(Node *node) {
     }
     case TYPE_COMPOUNDSTMT: {
       printf("{\n");
-      for (size_t idx = 0; idx < node->data.compoundStmt.numStatements; idx++) {
-        printNode(node->data.compoundStmt.statements[idx]);
+      for (size_t idx = 0; idx < node->data.compoundStmt.statements->size;
+           idx++) {
+        printNode(node->data.compoundStmt.statements->elements[idx]);
       }
       printf("}");
       break;
@@ -864,8 +869,8 @@ void printNode(Node *node) {
       printf("switch (");
       printNode(node->data.switchStmt.onWhat);
       printf(") {\n");
-      for (size_t idx = 0; idx < node->data.switchStmt.numCases; idx++) {
-        printNode(node->data.switchStmt.cases[idx]);
+      for (size_t idx = 0; idx < node->data.switchStmt.cases->size; idx++) {
+        printNode(node->data.switchStmt.cases->elements[idx]);
       }
       printf("}\n");
       break;
@@ -904,13 +909,14 @@ void printNode(Node *node) {
     case TYPE_VARDECLSTMT: {
       printNode(node->data.varDeclStmt.type);
       printf(" ");
-      for (size_t idx = 0; idx < node->data.varDeclStmt.numIds; idx++) {
-        printNode(node->data.varDeclStmt.ids[idx]);
-        if (node->data.varDeclStmt.values[idx] != NULL) {
+      for (size_t idx = 0; idx < node->data.varDeclStmt.idValuePairs->size;
+           idx++) {
+        printNode(node->data.varDeclStmt.idValuePairs->firstElements[idx]);
+        if (node->data.varDeclStmt.idValuePairs->secondElements[idx] != NULL) {
           printf(" = ");
-          printNode(node->data.varDeclStmt.values[idx]);
+          printNode(node->data.varDeclStmt.idValuePairs->secondElements[idx]);
         }
-        if (idx != node->data.varDeclStmt.numIds - 1) {
+        if (idx != node->data.varDeclStmt.idValuePairs->size - 1) {
           printf(", ");
         }
       }
@@ -1211,9 +1217,9 @@ void printNode(Node *node) {
       printf("(");
       printNode(node->data.fnCallExp.who);
       printf("(");
-      for (size_t idx = 0; idx < node->data.fnCallExp.numArgs; idx++) {
-        printNode(node->data.fnCallExp.args[idx]);
-        if (idx != node->data.fnCallExp.numArgs - 1) {
+      for (size_t idx = 0; idx < node->data.fnCallExp.args->size; idx++) {
+        printNode(node->data.fnCallExp.args->elements[idx]);
+        if (idx != node->data.fnCallExp.args->size - 1) {
           printf(", ");
         }
       }
@@ -1287,10 +1293,10 @@ void printNode(Node *node) {
     }
     case TYPE_AGGREGATEINITEXP: {
       printf("<");
-      for (size_t idx = 0; idx < node->data.aggregateInitExp.numElements;
+      for (size_t idx = 0; idx < node->data.aggregateInitExp.elements->size;
            idx++) {
-        printNode(node->data.aggregateInitExp.elements[idx]);
-        if (idx != node->data.aggregateInitExp.numElements - 1) {
+        printNode(node->data.aggregateInitExp.elements->elements[idx]);
+        if (idx != node->data.aggregateInitExp.elements->size - 1) {
           printf(", ");
         }
       }
@@ -1386,9 +1392,9 @@ void printNode(Node *node) {
     case TYPE_FNPTRTYPE: {
       printNode(node->data.fnPtrType.returnType);
       printf("(");
-      for (size_t idx = 0; idx < node->data.fnPtrType.numArgTypes; idx++) {
-        printNode(node->data.fnPtrType.argTypes[idx]);
-        if (idx != node->data.fnPtrType.numArgTypes - 1) {
+      for (size_t idx = 0; idx < node->data.fnPtrType.argTypes->size; idx++) {
+        printNode(node->data.fnPtrType.argTypes->elements[idx]);
+        if (idx != node->data.fnPtrType.argTypes->size - 1) {
           printf(", ");
         }
       }

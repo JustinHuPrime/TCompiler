@@ -12,6 +12,65 @@
 
 #include <stdio.h>
 
+// NodeList
+NodeList *nodeListCreate(void) {
+  NodeList *list = malloc(sizeof(NodeList));
+  list->size = 0;
+  list->capacity = 1;
+  list->elements = malloc(sizeof(Node *));
+  return list;
+}
+
+void nodeListInsert(NodeList *list, Node *node) {
+  if (list->size == list->capacity) {
+    list->capacity *= 2;
+    list->elements = realloc(list->elements, list->capacity * sizeof(Node *));
+  }
+  list->elements[list->size] = node;
+  list->size++;
+}
+
+void nodeListDestroy(NodeList *list) {
+  for (size_t idx = 0; idx < list->size; idx++) {
+    nodeDestroy(list->elements[idx]);
+  }
+  free(list->elements);
+  free(list);
+}
+
+// NodePairList
+NodePairList *nodePairListCreate(void) {
+  NodePairList *list = malloc(sizeof(NodePairList));
+  list->size = 0;
+  list->capacity = 1;
+  list->firstElements = malloc(sizeof(Node *));
+  list->secondElements = malloc(sizeof(Node *));
+  return list;
+}
+
+void nodePairListInsert(NodePairList *list, Node *first, Node *second) {
+  if (list->size == list->capacity) {
+    list->capacity *= 2;
+    list->firstElements =
+        realloc(list->firstElements, list->capacity * sizeof(Node *));
+    list->secondElements =
+        realloc(list->secondElements, list->capacity * sizeof(Node *));
+  }
+  list->firstElements[list->size] = first;
+  list->secondElements[list->size] = second;
+  list->size++;
+}
+
+void nodePairListDestroy(NodePairList *list) {
+  for (size_t idx = 0; idx < list->size; idx++) {
+    nodeDestroy(list->firstElements[idx]);
+    nodeDestroy(list->secondElements[idx]);
+  }
+  free(list->firstElements);
+  free(list->secondElements);
+  free(list);
+}
+
 uint64_t const UBYTE_MAX = 255;
 uint64_t const BYTE_MAX = 127;
 uint64_t const BYTE_MIN = 128;
@@ -30,14 +89,11 @@ Node *nodeCreate(size_t line, size_t character) {
   return node;
 }
 Node *programNodeCreate(size_t line, size_t character, Node *module,
-                        size_t numImports, Node **imports, size_t numBodies,
-                        Node **bodies) {
+                        NodeList *imports, NodeList *bodies) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_PROGRAM;
   node->data.program.module = module;
-  node->data.program.numImports = numImports;
   node->data.program.imports = imports;
-  node->data.program.numBodies = numBodies;
   node->data.program.bodies = bodies;
   return node;
 }
@@ -55,48 +111,43 @@ Node *importNodeCreate(size_t line, size_t character, Node *id) {
   return node;
 }
 Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
-                        Node *id, size_t numParamTypes, Node **paramTypes) {
+                        Node *id, NodeList *paramTypes) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_FUNDECL;
   node->data.funDecl.returnType = returnType;
   node->data.funDecl.id = id;
-  node->data.funDecl.numParamTypes = numParamTypes;
   node->data.funDecl.paramTypes = paramTypes;
   return node;
 }
 Node *varDeclNodeCreate(size_t line, size_t character, Node *type,
-                        size_t numIds, Node **ids) {
+                        NodeList *ids) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_VARDECL;
   node->data.varDecl.type = type;
-  node->data.varDecl.numIds = numIds;
   node->data.varDecl.ids = ids;
   return node;
 }
 Node *structDeclNodeCreate(size_t line, size_t character, Node *id,
-                           size_t numDecls, Node **decls) {
+                           NodeList *decls) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_STRUCTDECL;
   node->data.structDecl.id = id;
-  node->data.structDecl.numDecls = numDecls;
   node->data.structDecl.decls = decls;
   return node;
 }
 Node *unionDeclNodeCreate(size_t line, size_t character, Node *id,
-                          size_t numOpts, Node **opts) {
+                          NodeList *opts) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_UNIONDECL;
   node->data.unionDecl.id = id;
-  node->data.unionDecl.numOpts = numOpts;
   node->data.unionDecl.opts = opts;
   return node;
 }
 Node *enumDeclNodeCreate(size_t line, size_t character, Node *id,
-                         size_t numElements, Node **elements) {
+                         NodeList *elements) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_ENUMDECL;
   node->data.enumDecl.id = id;
-  node->data.enumDecl.numElements = numElements;
   node->data.enumDecl.elements = elements;
   return node;
 }
@@ -108,23 +159,19 @@ Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *id) {
   return node;
 }
 Node *functionNodeCreate(size_t line, size_t character, Node *returnType,
-                         Node *id, size_t numFormals, Node **formalTypes,
-                         Node **formalIds, Node *body) {
+                         Node *id, NodePairList *formals, Node *body) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_FUNCTION;
   node->data.function.returnType = returnType;
   node->data.function.id = id;
-  node->data.function.numFormals = numFormals;
-  node->data.function.formalTypes = formalTypes;
-  node->data.function.formalIds = formalIds;
+  node->data.function.formals = formals;
   node->data.function.body = body;
   return node;
 }
 Node *compoundStmtNodeCreate(size_t line, size_t character,
-                             size_t numStatements, Node **statements) {
+                             NodeList *statements) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_COMPOUNDSTMT;
-  node->data.compoundStmt.numStatements = numStatements;
   node->data.compoundStmt.statements = statements;
   return node;
 }
@@ -164,11 +211,10 @@ Node *forStmtNodeCreate(size_t line, size_t character, Node *initialize,
   return node;
 }
 Node *switchStmtNodeCreate(size_t line, size_t character, Node *onWhat,
-                           size_t numCases, Node **cases) {
+                           NodeList *cases) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_SWITCHSTMT;
   node->data.switchStmt.onWhat = onWhat;
-  node->data.switchStmt.numCases = numCases;
   node->data.switchStmt.cases = cases;
   return node;
 }
@@ -203,13 +249,11 @@ Node *returnStmtNodeCreate(size_t line, size_t character, Node *value) {
   return node;
 }
 Node *varDeclStmtNodeCreate(size_t line, size_t character, Node *type,
-                            size_t numIds, Node **ids, Node **values) {
+                            NodePairList *idValuePairs) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_VARDECLSTMT;
   node->data.varDeclStmt.type = type;
-  node->data.varDeclStmt.numIds = numIds;
-  node->data.varDeclStmt.ids = ids;
-  node->data.varDeclStmt.values = values;
+  node->data.varDeclStmt.idValuePairs = idValuePairs;
   return node;
 }
 Node *asmStmtNodeCreate(size_t line, size_t character, Node *assembly) {
@@ -320,11 +364,10 @@ Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *base,
   return node;
 }
 Node *fnCallExpNodeCreate(size_t line, size_t character, Node *who,
-                          size_t numArgs, Node **args) {
+                          NodeList *args) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_FNCALLEXP;
   node->data.fnCallExp.who = who;
-  node->data.fnCallExp.numArgs = numArgs;
   node->data.fnCallExp.args = args;
   return node;
 }
@@ -686,10 +729,9 @@ Node *constExpNodeCreate(size_t line, size_t character, ConstTypeHint hint,
 
 // More constructors
 Node *aggregateInitExpNodeCreate(size_t line, size_t character,
-                                 size_t numElements, Node **elements) {
+                                 NodeList *elements) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_AGGREGATEINITEXP;
-  node->data.aggregateInitExp.numElements = numElements;
   node->data.aggregateInitExp.elements = elements;
   return node;
 }
@@ -760,11 +802,10 @@ Node *ptrTypeNodeCreate(size_t line, size_t character, Node *target) {
   return node;
 }
 Node *fnPtrTypeNodeCreate(size_t line, size_t character, Node *returnType,
-                          size_t numArgTypes, Node **argTypes) {
+                          NodeList *argTypes) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_FNPTRTYPE;
   node->data.fnPtrType.returnType = returnType;
-  node->data.fnPtrType.numArgTypes = numArgTypes;
   node->data.fnPtrType.argTypes = argTypes;
   return node;
 }
@@ -787,12 +828,8 @@ void nodeDestroy(Node *node) {
   switch (node->type) {
     case TYPE_PROGRAM: {
       nodeDestroy(node->data.program.module);
-      for (size_t idx = 0; idx < node->data.program.numImports; idx++)
-        nodeDestroy(node->data.program.imports[idx]);
-      freeIfNotNull(node->data.program.imports);
-      for (size_t idx = 0; idx < node->data.program.numBodies; idx++)
-        nodeDestroy(node->data.program.bodies[idx]);
-      freeIfNotNull(node->data.program.bodies);
+      nodeListDestroy(node->data.program.imports);
+      nodeListDestroy(node->data.program.bodies);
       break;
     }
     case TYPE_MODULE: {
@@ -806,37 +843,27 @@ void nodeDestroy(Node *node) {
     case TYPE_FUNDECL: {
       nodeDestroy(node->data.funDecl.returnType);
       nodeDestroy(node->data.funDecl.id);
-      for (size_t idx = 0; idx < node->data.funDecl.numParamTypes; idx++)
-        nodeDestroy(node->data.funDecl.paramTypes[idx]);
-      free(node->data.funDecl.paramTypes);
+      nodeListDestroy(node->data.funDecl.paramTypes);
       break;
     }
     case TYPE_VARDECL: {
       nodeDestroy(node->data.varDecl.type);
-      for (size_t idx = 0; idx < node->data.varDecl.numIds; idx++)
-        nodeDestroy(node->data.varDecl.ids[idx]);
-      freeIfNotNull(node->data.varDecl.ids);
+      nodeListDestroy(node->data.varDecl.ids);
       break;
     }
     case TYPE_STRUCTDECL: {
       nodeDestroy(node->data.structDecl.id);
-      for (size_t idx = 0; idx < node->data.structDecl.numDecls; idx++)
-        nodeDestroy(node->data.structDecl.decls[idx]);
-      freeIfNotNull(node->data.structDecl.decls);
+      nodeListDestroy(node->data.structDecl.decls);
       break;
     }
     case TYPE_UNIONDECL: {
       nodeDestroy(node->data.unionDecl.id);
-      for (size_t idx = 0; idx < node->data.unionDecl.numOpts; idx++)
-        nodeDestroy(node->data.unionDecl.opts[idx]);
-      freeIfNotNull(node->data.unionDecl.opts);
+      nodeListDestroy(node->data.unionDecl.opts);
       break;
     }
     case TYPE_ENUMDECL: {
       nodeDestroy(node->data.enumDecl.id);
-      for (size_t idx = 0; idx < node->data.enumDecl.numElements; idx++)
-        nodeDestroy(node->data.enumDecl.elements[idx]);
-      freeIfNotNull(node->data.enumDecl.elements);
+      nodeListDestroy(node->data.enumDecl.elements);
       break;
     }
     case TYPE_TYPEDEFDECL: {
@@ -847,19 +874,12 @@ void nodeDestroy(Node *node) {
     case TYPE_FUNCTION: {
       nodeDestroy(node->data.function.returnType);
       nodeDestroy(node->data.function.id);
-      for (size_t idx = 0; idx < node->data.function.numFormals; idx++) {
-        nodeDestroy(node->data.function.formalTypes[idx]);
-        nodeDestroy(node->data.function.formalIds[idx]);
-      }
-      freeIfNotNull(node->data.function.formalTypes);
-      freeIfNotNull(node->data.function.formalIds);
+      nodePairListDestroy(node->data.function.formals);
       nodeDestroy(node->data.function.body);
       break;
     }
     case TYPE_COMPOUNDSTMT: {
-      for (size_t idx = 0; idx < node->data.compoundStmt.numStatements; idx++)
-        nodeDestroy(node->data.compoundStmt.statements[idx]);
-      freeIfNotNull(node->data.compoundStmt.statements);
+      nodeListDestroy(node->data.compoundStmt.statements);
       break;
     }
     case TYPE_IFSTMT: {
@@ -887,9 +907,7 @@ void nodeDestroy(Node *node) {
     }
     case TYPE_SWITCHSTMT: {
       nodeDestroy(node->data.switchStmt.onWhat);
-      for (size_t idx = 0; idx < node->data.switchStmt.numCases; idx++)
-        nodeDestroy(node->data.switchStmt.cases[idx]);
-      freeIfNotNull(node->data.switchStmt.cases);
+      nodeListDestroy(node->data.switchStmt.cases);
       break;
     }
     case TYPE_NUMCASE: {
@@ -911,12 +929,7 @@ void nodeDestroy(Node *node) {
     }
     case TYPE_VARDECLSTMT: {
       nodeDestroy(node->data.varDeclStmt.type);
-      for (size_t idx = 0; idx < node->data.varDeclStmt.numIds; idx++) {
-        nodeDestroy(node->data.varDeclStmt.ids[idx]);
-        nodeDestroy(node->data.varDeclStmt.values[idx]);
-      }
-      freeIfNotNull(node->data.varDeclStmt.ids);
-      freeIfNotNull(node->data.varDeclStmt.values);
+      nodePairListDestroy(node->data.varDeclStmt.idValuePairs);
       break;
     }
     case TYPE_ASMSTMT: {
@@ -986,9 +999,7 @@ void nodeDestroy(Node *node) {
     }
     case TYPE_FNCALLEXP: {
       nodeDestroy(node->data.fnCallExp.who);
-      for (size_t idx = 0; idx < node->data.fnCallExp.numArgs; idx++)
-        nodeDestroy(node->data.fnCallExp.args[idx]);
-      freeIfNotNull(node->data.fnCallExp.args);
+      nodeListDestroy(node->data.fnCallExp.args);
       break;
     }
     case TYPE_IDEXP: {
@@ -1022,9 +1033,7 @@ void nodeDestroy(Node *node) {
       break;
     }
     case TYPE_AGGREGATEINITEXP: {
-      for (size_t idx = 0; idx < node->data.aggregateInitExp.numElements; idx++)
-        nodeDestroy(node->data.aggregateInitExp.elements[idx]);
-      freeIfNotNull(node->data.aggregateInitExp.elements);
+      nodeListDestroy(node->data.aggregateInitExp.elements);
       break;
     }
     case TYPE_CASTEXP: {
@@ -1061,9 +1070,7 @@ void nodeDestroy(Node *node) {
     }
     case TYPE_FNPTRTYPE: {
       nodeDestroy(node->data.fnPtrType.returnType);
-      for (size_t idx = 0; idx < node->data.fnPtrType.numArgTypes; idx++)
-        nodeDestroy(node->data.fnPtrType.argTypes[idx]);
-      freeIfNotNull(node->data.fnPtrType.argTypes);
+      nodeListDestroy(node->data.fnPtrType.argTypes);
       break;
     }
     case TYPE_ID: {

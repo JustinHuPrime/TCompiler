@@ -16,6 +16,8 @@ int main(int argc, char *argv[]) {
   constExpParseCharTest(status);
   constExpParseWStringTest(status);
   constExpParseWCharTest(status);
+  nodeListTest(status);
+  nodeListPairTest(status);
 
   testStatusDisplay(status);
 

@@ -2,7 +2,7 @@
 //
 // This file is part of the T Language Compiler.
 
-// A "polymorphic" AST node.
+// A "polymorphic" AST node, and lists of nodes
 
 #ifndef TLC_AST_AST_H_
 #define TLC_AST_AST_H_
@@ -10,6 +10,41 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+struct Node;
+
+// A list of nodes, vector-style
+typedef struct {
+  size_t size;
+  size_t capacity;
+  struct Node **elements;
+} NodeList;
+
+// constructor
+NodeList *nodeListCreate(void);
+
+// inserts a pointer into the list. The list now owns the pointer
+void nodeListInsert(NodeList *, struct Node *);
+
+// destructor
+void nodeListDestroy(NodeList *);
+
+// A list of pairs of nodes, vector-style
+typedef struct {
+  size_t size;
+  size_t capacity;
+  struct Node **firstElements;
+  struct Node **secondElements;
+} NodePairList;
+
+// constructor
+NodePairList *nodePairListCreate(void);
+
+// inserts a pair of pointers into the list. The list now owns both pointers
+void nodePairListInsert(NodePairList *, struct Node *, struct Node *);
+
+// destructor
+void nodePairListDestroy(NodePairList *);
 
 // tag for the specialized type of the AST node
 typedef enum {
@@ -162,10 +197,8 @@ typedef struct Node {
   union {
     struct {
       struct Node *module;
-      size_t numImports;
-      struct Node **imports;
-      size_t numBodies;
-      struct Node **bodies;
+      NodeList *imports;
+      NodeList *bodies;
     } program;
 
     struct {
@@ -178,28 +211,23 @@ typedef struct Node {
     struct {
       struct Node *returnType;
       struct Node *id;
-      size_t numParamTypes;
-      struct Node **paramTypes;
+      NodeList *paramTypes;
     } funDecl;
     struct {
       struct Node *type;
-      size_t numIds;
-      struct Node **ids;
+      NodeList *ids;
     } varDecl;
     struct {
       struct Node *id;
-      size_t numDecls;
-      struct Node **decls;
+      NodeList *decls;
     } structDecl;
     struct {
       struct Node *id;
-      size_t numOpts;
-      struct Node **opts;
+      NodeList *opts;
     } unionDecl;
     struct {
       struct Node *id;
-      size_t numElements;
-      struct Node **elements;
+      NodeList *elements;
     } enumDecl;
     struct {
       struct Node *type;
@@ -209,15 +237,12 @@ typedef struct Node {
     struct {
       struct Node *returnType;
       struct Node *id;
-      size_t numFormals;
-      struct Node **formalTypes;
-      struct Node **formalIds;  // nullable elements
+      NodePairList *formals;  // second in this list is nullable
       struct Node *body;
     } function;
 
     struct {
-      size_t numStatements;
-      struct Node **statements;
+      NodeList *statements;
     } compoundStmt;
     struct {
       struct Node *condition;
@@ -240,8 +265,7 @@ typedef struct Node {
     } forStmt;
     struct {
       struct Node *onWhat;
-      size_t numCases;
-      struct Node **cases;
+      NodeList *cases;
     } switchStmt;
     struct {
       struct Node *constVal;
@@ -255,9 +279,7 @@ typedef struct Node {
     } returnStmt;
     struct {
       struct Node *type;
-      size_t numIds;
-      struct Node **ids;
-      struct Node **values;  // nullable elements
+      NodePairList *idValuePairs;  // second in this list is nullable
     } varDeclStmt;
     struct {
       struct Node *assembly;
@@ -315,8 +337,7 @@ typedef struct Node {
     } structPtrAccessExp;
     struct {
       struct Node *who;
-      size_t numArgs;
-      struct Node **args;
+      NodeList *args;
     } fnCallExp;
     struct {
       char *id;
@@ -340,8 +361,7 @@ typedef struct Node {
       } value;
     } constExp;
     struct {
-      size_t numElements;
-      struct Node **elements;
+      NodeList *elements;
     } aggregateInitExp;
     struct {
       struct Node *toWhat;
@@ -372,8 +392,7 @@ typedef struct Node {
     } ptrType;
     struct {
       struct Node *returnType;
-      size_t numArgTypes;
-      struct Node **argTypes;
+      NodeList *argTypes;
     } fnPtrType;
 
     struct {
@@ -396,26 +415,23 @@ extern uint64_t const LONG_MIN;
 // constructors
 Node *nodeCreate(size_t line, size_t character);  // base constructor
 Node *programNodeCreate(size_t line, size_t character, Node *module,
-                        size_t numImports, Node **imports, size_t numBodyParts,
-                        Node **bodyParts);
+                        NodeList *imports, NodeList *bodyParts);
 Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);
 Node *importNodeCreate(size_t line, size_t character, Node *importId);
 Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
-                        Node *functionId, size_t numArgs, Node **argTypes);
+                        Node *functionId, NodeList *argTypes);
 Node *varDeclNodeCreate(size_t line, size_t character, Node *varType,
-                        size_t numIds, Node **ids);
+                        NodeList *ids);
 Node *structDeclNodeCreate(size_t line, size_t character, Node *structId,
-                           size_t numElements, Node **elements);
+                           NodeList *elements);
 Node *unionDeclNodeCreate(size_t line, size_t character, Node *unionId,
-                          size_t numOpts, Node **opts);
+                          NodeList *opts);
 Node *enumDeclNodeCreate(size_t line, size_t character, Node *enumId,
-                         size_t numElements, Node **elements);
+                         NodeList *elements);
 Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *newId);
 Node *functionNodeCreate(size_t line, size_t character, Node *returnType,
-                         Node *functionId, size_t numArgs, Node **argTypes,
-                         Node **argNames, Node *body);
-Node *compoundStmtNodeCreate(size_t line, size_t character, size_t numStmts,
-                             Node **stmts);
+                         Node *functionId, NodePairList *args, Node *body);
+Node *compoundStmtNodeCreate(size_t line, size_t character, NodeList *stmts);
 Node *ifStmtNodeCreate(size_t line, size_t character, Node *condition,
                        Node *thenCase, Node *elseCase);
 Node *whileStmtNodeCreate(size_t line, size_t character, Node *condition,
@@ -425,14 +441,14 @@ Node *doWhileStmtNodeCreate(size_t line, size_t character, Node *condition,
 Node *forStmtNodeCreate(size_t line, size_t character, Node *initializer,
                         Node *condition, Node *update, Node *body);
 Node *switchStmtNodeCreate(size_t line, size_t character, Node *switchedOn,
-                           size_t numCases, Node **cases);
+                           NodeList *cases);
 Node *numCaseNodeCreate(size_t line, size_t character, Node *value, Node *body);
 Node *defaultCaseNodeCreate(size_t line, size_t character, Node *body);
 Node *breakStmtNodeCreate(size_t line, size_t character);
 Node *continueStmtNodeCreate(size_t line, size_t character);
 Node *returnStmtNodeCreate(size_t line, size_t character, Node *value);
 Node *varDeclStmtNodeCreate(size_t line, size_t character, Node *type,
-                            size_t numIds, Node **ids, Node **initializers);
+                            NodePairList *idValuePairs);
 Node *asmStmtNodeCreate(size_t line, size_t character, Node *asmString);
 Node *expressionStmtNodeCreate(size_t line, size_t character, Node *expression);
 Node *nullStmtNodeCreate(size_t line, size_t character);
@@ -456,12 +472,12 @@ Node *structAccessExpNodeCreate(size_t line, size_t character, Node *base,
 Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *basePtr,
                                    Node *elementId);
 Node *fnCallExpNodeCreate(size_t line, size_t character, Node *functionId,
-                          size_t numArgs, Node **args);
+                          NodeList *args);
 Node *idExpNodeCreate(size_t line, size_t character, char *idString);
 Node *constExpNodeCreate(size_t line, size_t character, ConstTypeHint type,
                          char *constantString);
 Node *aggregateInitExpNodeCreate(size_t line, size_t character,
-                                 size_t numElements, Node **elements);
+                                 NodeList *elements);
 Node *constTrueNodeCreate(size_t line, size_t character);
 Node *constFalseNodeCreate(size_t line, size_t character);
 Node *castExpNodeCreate(size_t line, size_t character, Node *type,
@@ -475,7 +491,7 @@ Node *arrayTypeNodeCreate(size_t line, size_t character, Node *target,
                           Node *size);
 Node *ptrTypeNodeCreate(size_t line, size_t character, Node *target);
 Node *fnPtrTypeNodeCreate(size_t line, size_t character, Node *returnType,
-                          size_t numArgs, Node **argTypes);
+                          NodeList *argTypes);
 Node *idNodeCreate(size_t line, size_t character, char *idString);
 
 // Destructor
