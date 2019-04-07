@@ -13,11 +13,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+extern FILE *yyin;
+
 extern int const PARSE_OK;
 extern int const PARSE_EIO;
 extern int const PARSE_EPARSE;
-
-extern FILE *yyin;
 
 // Parses the file at the given name into an abstract syntax tree.
 // Returns: PARSE_OK if successful, PARSE_EIO if file couldn't be opened/closed,

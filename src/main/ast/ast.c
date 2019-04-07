@@ -26,8 +26,7 @@ void nodeListInsert(NodeList *list, Node *node) {
     list->capacity *= 2;
     list->elements = realloc(list->elements, list->capacity * sizeof(Node *));
   }
-  list->elements[list->size] = node;
-  list->size++;
+  list->elements[list->size++] = node;
 }
 
 void nodeListDestroy(NodeList *list) {
@@ -82,7 +81,7 @@ uint64_t const LONG_MAX = 9223372036854775807;
 uint64_t const LONG_MIN = 9223372036854775808UL;
 
 // Constructors
-Node *nodeCreate(size_t line, size_t character) {
+static Node *nodeCreate(size_t line, size_t character) {
   Node *node = malloc(sizeof(Node));
   node->line = line;
   node->character = character;

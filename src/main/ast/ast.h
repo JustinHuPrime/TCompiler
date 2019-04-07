@@ -237,7 +237,7 @@ typedef struct Node {
     struct {
       struct Node *returnType;
       struct Node *id;
-      NodePairList *formals;  // second in this list is nullable
+      NodePairList *formals;  // pair of type, id (nullable)
       struct Node *body;
     } function;
 
@@ -279,7 +279,7 @@ typedef struct Node {
     } returnStmt;
     struct {
       struct Node *type;
-      NodePairList *idValuePairs;  // second in this list is nullable
+      NodePairList *idValuePairs;  // pair of id, value (nullable)
     } varDeclStmt;
     struct {
       struct Node *assembly;
@@ -413,7 +413,7 @@ extern uint64_t const LONG_MAX;
 extern uint64_t const LONG_MIN;
 
 // constructors
-Node *nodeCreate(size_t line, size_t character);  // base constructor
+// Node *nodeCreate(size_t line, size_t character);
 Node *programNodeCreate(size_t line, size_t character, Node *module,
                         NodeList *imports, NodeList *bodyParts);
 Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);
