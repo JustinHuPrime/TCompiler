@@ -14,30 +14,28 @@
 void symbolTableTest(TestStatus *status) {
   SymbolTable *table = symbolTableCreate();
 
-  test(status,
-       "[util] [symbolTable] [constructor] sTable created has size zero",
+  test(status, "[util] [symbolTable] [constructor] table created has size zero",
        table->size == 0);
   test(status,
-       "[util] [symbolTable] [constructor] sTable created has capacity one",
+       "[util] [symbolTable] [constructor] table created has capacity one",
        table->capacity == 1);
   test(status,
-       "[util] [symbolTable] [constructor] sTable created has non-null pointer "
+       "[util] [symbolTable] [constructor] table created has non-null pointer "
        "for entries",
        table->entries != NULL);
 
   symbolTableInsertStruct(table, strcpy(malloc(7), "struct"),
                           nodePairListCreate());
-  test(status,
-       "[util] [symbolTable] [insert] sTable insertion adds one to size",
+  test(status, "[util] [symbolTable] [insert] table insertion adds one to size",
        table->size == 1);
   symbolTableInsertUnion(table, strcpy(malloc(6), "union"),
                          nodePairListCreate());
   test(status,
-       "[util] [symbolTable] [insert] sTable insertion has correct category",
+       "[util] [symbolTable] [insert] table insertion has correct category",
        table->entries[1]->category == ST_UNION);
   symbolTableInsertEnum(table, strcpy(malloc(5), "enum"), nodeListCreate());
   test(status,
-       "[util] [symbolTable] [insert] sTable insertion increases capacity "
+       "[util] [symbolTable] [insert] table insertion increases capacity "
        "exponentially",
        table->capacity == 4);
   int retVal =
@@ -72,5 +70,16 @@ void symbolTableTest(TestStatus *status) {
   test(status, "[util] [symbolTable] [lookup] return value for failure is null",
        entry == NULL);
 
+  symbolTableDestroy(table);
+
+  table = symbolTableCreate();
+  symbolTableInsertStruct(table, strcpy(malloc(2), "a"), nodePairListCreate());
+  symbolTableInsertStruct(table, strcpy(malloc(2), "b"), nodePairListCreate());
+  symbolTableInsertStruct(table, strcpy(malloc(2), "d"), nodePairListCreate());
+  symbolTableInsertStruct(table, strcpy(malloc(2), "c"), nodePairListCreate());
+  test(status,
+       "[util] [symbolTable] [insert] insertion complex case inserts into "
+       "correct place",
+       strcmp(table->entries[3]->name, "c") == 0);
   symbolTableDestroy(table);
 }

@@ -70,6 +70,8 @@ extern int const ST_EEXISTS;
 // inserts an entry of the given type into the table
 // returns: ST_OK if insertion was successful,
 //          ST_EEXISTS if element already exists
+// Note that all pointers are owning instances (i.e. you should deep copy the
+// AST nodes)
 int symbolTableInsertStruct(SymbolTable *, char *name, NodePairList *elements);
 int symbolTableInsertUnion(SymbolTable *, char *name, NodePairList *options);
 int symbolTableInsertEnum(SymbolTable *, char *name, NodeList *elements);

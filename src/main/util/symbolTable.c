@@ -102,6 +102,9 @@ static size_t symbolTableLookupExpectedIndex(SymbolTable *table,
     int cmpVal = strcmp(table->entries[half]->name, name);
     if (cmpVal < 0) {  // entries[half] is before name
       low = half + 1;
+      if (low >= table->size) {
+        return table->size;
+      }
     } else if (cmpVal > 0) {  // entries[half] is after name
       if (half == 0) {        // should be before zero
         return 0;
@@ -113,7 +116,7 @@ static size_t symbolTableLookupExpectedIndex(SymbolTable *table,
     }
   }
 
-  return high + 1;
+  return high;
 }
 static int symbolTableInsert(SymbolTable *table, SymbolTableEntry *entry) {
   if (symbolTableLookup(table, entry->name) != NULL) return ST_EEXISTS;
