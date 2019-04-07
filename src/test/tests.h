@@ -21,4 +21,7 @@ void constExpParseWCharTest(TestStatus *);
 void nodeListTest(TestStatus *);
 void nodeListPairTest(TestStatus *);
 
+// in util/symbolTableTest/c
+void symbolTableTest(TestStatus *);
+
 #endif  // TLC_TEST_AST_CONSTEXPPARSETEST_H_

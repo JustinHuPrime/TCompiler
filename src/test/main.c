@@ -18,6 +18,7 @@ int main(int argc, char *argv[]) {
   constExpParseWCharTest(status);
   nodeListTest(status);
   nodeListPairTest(status);
+  symbolTableTest(status);
 
   testStatusDisplay(status);
 
