@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
   printNode(ast);
 
   nodeDestroy(ast);
+  optionsDestroy(options);
 
   return EXIT_SUCCESS;
 }

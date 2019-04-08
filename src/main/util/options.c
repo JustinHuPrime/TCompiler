@@ -23,7 +23,7 @@ Options *optionsParseCmdlineArgs(int argc, char *argv[]) {
   options->argCapacity = 1;
   options->args = malloc(sizeof(char const *));
 
-  // TODO: actually parse them
+  // TODO: actually parse the args
   return options;
 }
 

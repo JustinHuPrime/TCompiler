@@ -7,7 +7,7 @@
 #include "engine.h"
 #include "tests.h"
 
-int main(int argc, char *argv[]) {
+int main(void) {
   TestStatus *status = testStatusCreate();
 
   printf("\x1B[91mWarning! Three test suites disabled!\n\x1B[m\n");

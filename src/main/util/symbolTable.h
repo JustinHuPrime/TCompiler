@@ -2,7 +2,7 @@
 //
 // This file is part of the T Language Compiler.
 
-// A vector-style symbol table
+// Tables used during parsing
 
 #ifndef TLC_UTIL_SYMBOLTABLE_H_
 #define TLC_UTIL_SYMBOLTABLE_H_
@@ -20,6 +20,7 @@ typedef enum {
   ST_VAR,
 } SymbolCategory;
 
+// An entry in the symbol table
 typedef struct {
   char *name;
   SymbolCategory category;
@@ -55,6 +56,7 @@ SymbolTableEntry *varSymbolTableEntryCreate(char *name, Node *type);
 
 void symbolTableEntryDestroy(SymbolTableEntry *);
 
+// A vector-style symbol table
 typedef struct {
   size_t size;
   size_t capacity;
