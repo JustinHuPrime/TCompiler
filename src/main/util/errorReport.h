@@ -35,7 +35,7 @@ void reportDisplay(Report *);
 extern int const RPT_OK;
 extern int const RPT_ERR;
 extern int const RPT_WARN;
-// produces RPT_OK if no errors and no warnings,
+// returns: RPT_OK if no errors and no warnings,
 //          RPT_ERR if any errors exist,
 //          RPT_WARN if any warnings exist.
 int reportState(Report *);

@@ -11,18 +11,22 @@
 int const PARSE_OK = 0;
 int const PARSE_EIO = 1;
 int const PARSE_EPARSE = 2;
+int const PARSE_ESCAN = 3;
 
 int parse(char const *filename, Node **ast) {
+  yyscan_t scanner;
+  if (yylex_init(&scanner) != 0) return PARSE_ESCAN;
+
   FILE *inFile = fopen(filename, "r");
-
   if (inFile == NULL) return PARSE_EIO;
+  yyset_in(inFile, scanner);
 
-  yyin = inFile;
   *ast = NULL;
-  if (yyparse(ast) == 1) return PARSE_EPARSE;
+  if (yyparse(scanner, ast) == 1) return PARSE_EPARSE;
 
   if (fclose(inFile) == EOF) return PARSE_EIO;
 
+  yylex_destroy(scanner);
   return PARSE_OK;
 }
 

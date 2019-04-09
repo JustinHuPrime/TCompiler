@@ -1,4 +1,5 @@
 standard/** linguist-documentation
+docs/** linguist-documentation
 
 src/main/parser/*.yy.c linguist-generated
 src/main/parser/*.tab.c linguist-generated

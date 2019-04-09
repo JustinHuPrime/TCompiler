@@ -65,7 +65,7 @@ LIBS :=
 
 
 # lex options
-LEXOPTIONS := --outfile=$(SRCDIR)/parser/lex.yy.c
+LEXOPTIONS :=  --header-file=$(SRCDIR)/parser/lex.yy.h --outfile=$(SRCDIR)/parser/lex.yy.c
 
 
 # yacc options
@@ -105,7 +105,6 @@ $(OBJS): $$(patsubst $(OBJDIR)/%.o,$(SRCDIR)/%.c,$$@) $$(patsubst $(OBJDIR)/%.o,
 
 $(GENERATEDOBJS): $$(patsubst $(OBJDIR)/%.o,$(SRCDIR)/%.c,$$@) | $$(dir $$@)
 	@echo "Compiling $@"
-	@$(FORMATTER) $(filter-out %.dep,$^)
 	@$(CC) $(OPTIONS) -c $< -o $@
 
 $(SRCDIR)/parser/lex.yy.c: $(SRCDIR)/parser/lexer.l $(SRCDIR)/parser/parser.tab.h

@@ -3,25 +3,28 @@
 // This file is part of the T Language Compiler.
 
 %code top {
-  #include "ast/ast.h"
+#include "ast/ast.h"
+#include "parser/parser.tab.h"
+#include "parser/lex.yy.h"
   
-  #include <stddef.h>
-  #include <stdlib.h>
-  #include <stdio.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-  void yyerror(Node**, const char *);
-  int yylex(void);
+void yyerror(YYLTYPE *, void *, Node**, const char *);
 }
 
 %code requires {
-  #include "ast/ast.h"
+#include "ast/ast.h"
 }
 
 %define parse.error verbose
+%define api.pure full
 
 %locations
 
-%parse-param {Node **ast}
+%lex-param { void *scanner }
+%parse-param { void *scanner } { Node **ast }
 
 %union {
   int tokenID;
@@ -551,7 +554,6 @@ scoped_type_identifier: T_SCOPED_TYPE_ID
                       | T_TYPE_ID
                       ;
 %%
-
-void yyerror(Node** ast, const char* msg) {
+void yyerror(YYLTYPE *location, void *scanner, Node** ast, const char* msg) {
   fprintf(stderr, "%s\n", msg);
 }

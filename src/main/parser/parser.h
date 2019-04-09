@@ -8,16 +8,20 @@
 #define TLC_PARSER_PARSER_H_
 
 #include "ast/ast.h"
+
+// these includes must be in this order
+// clang-format off
 #include "parser/parser.tab.h"
+#include "parser/lex.yy.h"
+// clang-format on
 
 #include <stdbool.h>
 #include <stdio.h>
 
-extern FILE *yyin;
-
 extern int const PARSE_OK;
 extern int const PARSE_EIO;
 extern int const PARSE_EPARSE;
+extern int const PARSE_ESCAN;
 
 // Parses the file at the given name into an abstract syntax tree.
 // Returns: PARSE_OK if successful, PARSE_EIO if file couldn't be opened/closed,
