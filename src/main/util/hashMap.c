@@ -25,7 +25,7 @@ void *hashMapGet(HashMap *map, char const *key) {
   if (map->keys[hash] == NULL) {
     return NULL;                                   // not found
   } else if (strcmp(map->keys[hash], key) != 0) {  // collision
-    uint64_t hash2 = djb2add(key);
+    uint64_t hash2 = djb2add(key) + 1;
     for (size_t idx = (hash + hash2) % map->size; idx != hash;
          idx = (idx + hash2) % map->size) {
       if (map->keys[idx] == NULL) {
@@ -52,7 +52,7 @@ int hashMapPut(HashMap *map, char const *key, void *data,
     map->values[hash] = data;
     return HM_OK;                                  // empty spot
   } else if (strcmp(map->keys[hash], key) != 0) {  // collision
-    uint64_t hash2 = djb2add(key);
+    uint64_t hash2 = djb2add(key) + 1;
     for (size_t idx = (hash + hash2) % map->size; idx != hash;
          idx = (idx + hash2) % map->size) {
       if (map->keys[idx] == NULL) {  // empty spot
