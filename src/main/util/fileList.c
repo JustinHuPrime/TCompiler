@@ -11,7 +11,7 @@
 #include <string.h>
 
 // ctor
-FileList *sortFiles(Report *report, int argc, char **argv) {
+FileList *sortFiles(Report *report, size_t argc, char **argv) {
   FileList *list = malloc(sizeof(FileList));
 
   list->numDecl = 0;
@@ -19,7 +19,7 @@ FileList *sortFiles(Report *report, int argc, char **argv) {
   list->numCode = 0;
   list->codes = NULL;
 
-  for (size_t idx = 1; idx < (size_t)argc; idx++) {
+  for (size_t idx = 1; idx < argc; idx++) {
     // skip - this is an option
     if (argv[idx][0] == '-') continue;
 
@@ -35,9 +35,9 @@ FileList *sortFiles(Report *report, int argc, char **argv) {
         }
       }
       if (duplicated) {
-        size_t bufferSize = 18 + length;
+        size_t bufferSize = 25 + length;
         char *buffer = malloc(bufferSize);
-        snprintf(buffer, bufferSize, "%s: duplicated file", argv[idx]);
+        snprintf(buffer, bufferSize, "%s: error: duplicated file", argv[idx]);
         reportError(report, buffer);
       } else {
         list->codes =
@@ -55,9 +55,9 @@ FileList *sortFiles(Report *report, int argc, char **argv) {
         }
       }
       if (duplicated) {
-        size_t bufferSize = 18 + length;
+        size_t bufferSize = 25 + length;
         char *buffer = malloc(bufferSize);
-        snprintf(buffer, bufferSize, "%s: duplicated file", argv[idx]);
+        snprintf(buffer, bufferSize, "%s: error: duplicated file", argv[idx]);
         reportError(report, buffer);
       } else {
         list->decls =
@@ -65,12 +65,16 @@ FileList *sortFiles(Report *report, int argc, char **argv) {
         list->decls[list->numDecl - 1] = argv[idx];
       }
     } else {
-      size_t bufferSize = 24 + length;
+      size_t bufferSize = 31 + length;
       char *buffer = malloc(bufferSize);
-      snprintf(buffer, bufferSize, "%s: unrecogized extension", argv[idx]);
+      snprintf(buffer, bufferSize, "%s: error: unrecogized extension",
+               argv[idx]);
       reportError(report, buffer);
     }
   }
+
+  if (list->codes == 0)
+    reportError(report, strcpy(malloc(27), "tlc: error: no input files"));
 
   return list;
 }

@@ -22,7 +22,7 @@ typedef struct {
 } FileList;
 
 // ctor
-FileList *sortFiles(Report *, int, char **);
+FileList *sortFiles(Report *, size_t, char **);
 // dtor
 void fileListDestroy(FileList *);
 

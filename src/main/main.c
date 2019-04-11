@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
   Report *report = reportCreate();
 
   // Report *, int, char ** -> Report *, FileList *
-  FileList *files = sortFiles(report, argc, argv);
+  FileList *files = sortFiles(report, (size_t)argc, argv);
 
   reportDisplay(report);
   if (reportState(report) == RPT_ERR) {
