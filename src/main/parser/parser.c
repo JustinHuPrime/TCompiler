@@ -15,7 +15,7 @@ int const PARSE_ESCAN = 3;
 
 int parse(char const *filename, Node **ast) {
   yyscan_t scanner;
-  if (yylex_init(&scanner) != 0) return PARSE_ESCAN;
+  yylex_init(&scanner);
 
   FILE *inFile = fopen(filename, "r");
   if (inFile == NULL) return PARSE_EIO;
@@ -24,8 +24,20 @@ int parse(char const *filename, Node **ast) {
   *ast = NULL;
   if (yyparse(scanner, ast) == 1) return PARSE_EPARSE;
 
-  if (fclose(inFile) == EOF) return PARSE_EIO;
-
+  fclose(inFile);
   yylex_destroy(scanner);
   return PARSE_OK;
+}
+
+ModuleNodeTablePair *parseFiles(Report *report, FileList *files) {
+  ModuleNodeTablePair *pair = moduleNodeTablePairCreate();
+
+  // while there are unparsed files: {
+  // from the list of unparsed files, chose one
+  // parse all of its dependencies
+  // if you need to parse it, abort - circular dependency error
+  // parse it
+  // }
+
+  return pair;
 }
