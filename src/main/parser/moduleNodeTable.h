@@ -10,21 +10,18 @@
 #include "ast/ast.h"
 #include "util/hashMap.h"
 
+// hashMap between module name and ast node
 // specialization of a generic
 typedef HashMap ModuleNodeTable;
-
 // ctor
 ModuleNodeTable *moduleNodeTableCreate(void);
-
 // get
 // returns the node, or NULL if the key is not in the table
 Node *moduleNodeTableGet(ModuleNodeTable *, char const *key);
-
 // put - note that key is not owned by the table, but the node is
 // returns: HT_OK if the insertion was successful
 //          HT_EEXISTS if the key exists
 int moduleNodeTablePut(ModuleNodeTable *, char const *key, Node *data);
-
 // dtor
 void moduleNodeTableDestroy(ModuleNodeTable *);
 
