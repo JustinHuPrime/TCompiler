@@ -3,41 +3,28 @@
 // This file is part of the T Language Compiler.
 
 // The primary driver for the TLC.
-// Currently just a boilerplate file.
 
-#include "ast/ast.h"
-#include "ast/printer.h"
-#include "parser/parser.h"
-#include "util/options.h"
+#include "util/errorReport.h"
+#include "util/fileList.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  Options *options = optionsParseCmdlineArgs(argc, argv);
+  Report *report = reportCreate();
 
-  if (options->argSize == 0) {
-    fprintf(stderr, "Expected at least one argument - file to process.\n");
+  // Report *, int, char ** -> Report *, FileList *
+  FileList *files = sortFiles(report, argc, argv);
+
+  reportDisplay(report);
+  if (reportState(report) == RPT_ERR) {
+    fileListDestroy(files);
+    reportDestroy(report);
     return EXIT_FAILURE;
   }
 
-  Node *ast;
+  // Report *, int, char ** -> Report *, Options *
 
-  int parseStatus = parse(argv[1], &ast);
-  if (parseStatus < 0) {
-    fprintf(stderr, "Parsing error number %d.\n", -parseStatus);
-    return EXIT_FAILURE;
-  }
-
-  printf("Structure:\n");
-  printNodeStructure(ast);
-  printf("\n");
-
-  printf("Pretty print:\n");
-  printNode(ast);
-
-  nodeDestroy(ast);
-  optionsDestroy(options);
+  // FileList * -> FileNodeList *
 
   return EXIT_SUCCESS;
 }

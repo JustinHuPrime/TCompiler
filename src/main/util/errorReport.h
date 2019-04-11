@@ -22,10 +22,8 @@ Report *reportCreate(void);
 
 // adds a message
 void reportMessage(Report *, char *message);
-
 // adds an error
 void reportError(Report *, char *message);
-
 // adds a warning
 void reportWarning(Report *, char *message);
 

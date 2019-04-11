@@ -10,7 +10,7 @@
 int main(void) {
   TestStatus *status = testStatusCreate();
 
-  printf("\x1B[91mWarning! Three test suites disabled!\n\x1B[m\n");
+  printf("\x1B[91mWarning! Five test suites disabled!\n\x1B[m\n");
 
   constExpParseIntTest(status);
   // constExpParseFloatTest(status);
@@ -20,8 +20,8 @@ int main(void) {
   constExpParseWCharTest(status);
   nodeListTest(status);
   nodeListPairTest(status);
-  symbolTableTest(status);
-  symbolTableTableTest(status);
+  // symbolTableTest(status);
+  // symbolTableTableTest(status);
 
   testStatusDisplay(status);
 
