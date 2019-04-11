@@ -8,18 +8,10 @@
 #define TLC_PARSER_MODULENODETABLE_H_
 
 #include "ast/ast.h"
+#include "util/hashMap.h"
 
-// a hash table entry
-typedef struct {
-  char const *key;
-  Node *value;
-} ModuleNodeTableEntry;
-
-// A hash table between a module name and that module's ast
-typedef struct {
-  size_t size;
-  ModuleNodeTableEntry *entries;
-} ModuleNodeTable;
+// specialization of a generic
+typedef HashMap ModuleNodeTable;
 
 // ctor
 ModuleNodeTable *moduleNodeTableCreate(void);
@@ -28,11 +20,9 @@ ModuleNodeTable *moduleNodeTableCreate(void);
 // returns the node, or NULL if the key is not in the table
 Node *moduleNodeTableGet(ModuleNodeTable *, char const *key);
 
-extern int const MNT_OK;
-extern int const MNT_EEXISTS;
 // put - note that key is not owned by the table, but the node is
-// returns: MNT_OK if the insertion was successful
-//          MNT_EEXISTS if the key exists
+// returns: HT_OK if the insertion was successful
+//          HT_EEXISTS if the key exists
 int moduleNodeTablePut(ModuleNodeTable *, char const *key, Node *data);
 
 // dtor
