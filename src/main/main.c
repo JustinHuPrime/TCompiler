@@ -13,6 +13,7 @@
 int main(int argc, char *argv[]) {
   Report *report = reportCreate();
 
+  // Sort the given files, and validate them
   // Report *, int, char ** -> Report *, FileList *
   FileList *files = sortFiles(report, (size_t)argc, argv);
   if (reportState(report) == RPT_ERR) {
@@ -23,6 +24,7 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
+  // Read the given options, and validate them
   // Report *, int, char ** -> Report *, Options *
   Options *options = parseArgs(report, (size_t)argc, argv);
   if (reportState(report) == RPT_ERR) {
@@ -34,7 +36,12 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  // FileList * -> FileNodeList *
+  // lex+parse phase (also includes circular dependency check)
+  // Report *, FileList * -> Report *, ModuleNodeList *
+  // ModuleNodeList *asts = parseFiles(report, fileList);
+
+  // symbol table building + type check phase
+  // Report *, FileNodeList * -> Report *, ModuleNodeList *
 
   return EXIT_SUCCESS;
 }
