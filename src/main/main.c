@@ -5,6 +5,7 @@
 // The primary driver for the TLC.
 
 #include "parser/moduleNodeTable.h"
+#include "parser/parser.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
@@ -35,7 +36,10 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  // lex+parse phase (also includes circular dependency check)
+  // Generate dependency graph
+  // Report *, FileList * -> Report *, ModuleInfoTable *,
+
+  // lex+parse phase
   // ModuleNodeTablePair *asts = parseFiles(report, files);
 
   // check that decls are decls and codes are codes
