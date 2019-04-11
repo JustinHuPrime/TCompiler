@@ -37,11 +37,14 @@ int main(int argc, char *argv[]) {
   }
 
   // lex+parse phase (also includes circular dependency check)
-  // Report *, FileList * -> Report *, ModuleNodeList *
-  // ModuleNodeList *asts = parseFiles(report, fileList);
+  // Report *, FileList * -> Report *, ModuleNodeTablePair *
+  // ModuleNodeTablePair *asts = parseFiles(report, fileList);
+
+  // check that decls are decls and codes are codes
+  // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *
 
   // symbol table building + type check phase
-  // Report *, FileNodeList * -> Report *, ModuleNodeList *
+  // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *
 
   return EXIT_SUCCESS;
 }
