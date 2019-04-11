@@ -11,8 +11,8 @@
 
 // these includes must be in this order
 // clang-format off
-#include "parser/parser.tab.h"
-#include "parser/lex.yy.h"
+#include "parser/impl/parser.tab.h"
+#include "parser/impl/lex.yy.h"
 // clang-format on
 
 #include <stdbool.h>
@@ -27,9 +27,5 @@ extern int const PARSE_ESCAN;
 // Returns: PARSE_OK if successful, PARSE_EIO if file couldn't be opened/closed,
 // and PARSE_EPARSE if file has bad syntax.
 int parse(char const *filename, Node **astOut);
-
-// Determines if an idnetifier is a type or not given the currently active
-// symbol tables.
-bool isType(char const *id);
 
 #endif  // TLC_PARSER_PARSER_H_

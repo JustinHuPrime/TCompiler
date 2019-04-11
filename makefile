@@ -18,8 +18,8 @@ OBJDIRPREFIX := bin
 DEPDIRPREFIX := dependencies
 
 SRCDIR := $(SRCDIRPREFIX)/main
-GENERATEDSOURCES := $(SRCDIR)/parser/lex.yy.c $(SRCDIR)/parser/parser.tab.c $(SRCDIR)/parser/parser.tab.h
-FILESRCS := $(shell find -O3 $(SRCDIR)/ -not -path "$(SRCDIR)/parser/parser.tab.[ch]" -not -path "$(SRCDIR)/parser/lex.yy.[ch]" -type f -name '*.c')
+GENERATEDSOURCES := $(SRCDIR)/parser/impl/lex.yy.c $(SRCDIR)/parser/impl/lex.yy.h $(SRCDIR)/parser/impl/parser.tab.c $(SRCDIR)/parser/impl/parser.tab.h
+FILESRCS := $(shell find -O3 $(SRCDIR)/ -not -path "$(SRCDIR)/parser/impl/parser.tab.c" -not -path "$(SRCDIR)/parser/impl/lex.yy.c" -type f -name '*.c')
 SRCS := $(FILESRCS) $(filter-out %.h, $(GENERATEDSOURCES))
 
 OBJDIR := $(OBJDIRPREFIX)/main
@@ -65,11 +65,11 @@ LIBS :=
 
 
 # lex options
-LEXOPTIONS :=  --header-file=$(SRCDIR)/parser/lex.yy.h --outfile=$(SRCDIR)/parser/lex.yy.c
+LEXOPTIONS :=  --header-file=$(SRCDIR)/parser/impl/lex.yy.h --outfile=$(SRCDIR)/parser/impl/lex.yy.c
 
 
 # yacc options
-YACCOPTIONS := --defines=$(SRCDIR)/parser/parser.tab.h --output=$(SRCDIR)/parser/parser.tab.c --report=state
+YACCOPTIONS := --defines=$(SRCDIR)/parser/impl/parser.tab.h --output=$(SRCDIR)/parser/impl/parser.tab.c --report=state
 
 
 .PHONY: debug release clean diagnose
@@ -91,7 +91,7 @@ release: $(EXENAME) $(TEXENAME)
 
 clean:
 	@echo "Removing all generated files and folders."
-	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) $(EXENAME) $(TEXENAME) $(GENERATEDSOURCES) $(SRCDIR)/parser/parser.output
+	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) $(EXENAME) $(TEXENAME) $(GENERATEDSOURCES) $(SRCDIR)/parser/impl/parser.output
 
 
 $(EXENAME): $(OBJS) $(GENERATEDOBJS)
@@ -107,13 +107,13 @@ $(GENERATEDOBJS): $$(patsubst $(OBJDIR)/%.o,$(SRCDIR)/%.c,$$@) | $$(dir $$@)
 	@echo "Compiling $@"
 	@$(CC) $(OPTIONS) -c $< -o $@
 
-$(SRCDIR)/parser/lex.yy.c: $(SRCDIR)/parser/lexer.l $(SRCDIR)/parser/parser.tab.h
+$(SRCDIR)/parser/impl/lex.yy.c: $(SRCDIR)/parser/impl/lexer.l $(SRCDIR)/parser/impl/parser.tab.h
 	@echo "Creating $@"
-	@$(LEX) $(LEXOPTIONS) $(SRCDIR)/parser/lexer.l
+	@$(LEX) $(LEXOPTIONS) $(SRCDIR)/parser/impl/lexer.l
 
-$(SRCDIR)/parser/parser.tab.c $(SRCDIR)/parser/parser.tab.h: $(SRCDIR)/parser/parser.y
+$(SRCDIR)/parser/impl/parser.tab.c $(SRCDIR)/parser/impl/parser.tab.h: $(SRCDIR)/parser/impl/parser.y
 	@echo "Creating $@"
-	@$(YACC) $(YACCOPTIONS) src/main/parser/parser.y
+	@$(YACC) $(YACCOPTIONS) src/main/parser/impl/parser.y
 
 $(DEPS): $$(patsubst $(DEPDIR)/%.dep,$(SRCDIR)/%.c,$$@) $(GENERATEDSOURCES) | $$(dir $$@)
 	@set -e; $(RM) $@; \

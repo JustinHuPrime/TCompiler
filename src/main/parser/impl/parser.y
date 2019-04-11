@@ -3,9 +3,8 @@
 // This file is part of the T Language Compiler.
 
 %code top {
-#include "ast/ast.h"
-#include "parser/parser.tab.h"
-#include "parser/lex.yy.h"
+#include "parser/impl/parser.tab.h"
+#include "parser/impl/lex.yy.h"
   
 #include <stddef.h>
 #include <stdlib.h>

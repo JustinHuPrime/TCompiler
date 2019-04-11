@@ -29,5 +29,3 @@ int parse(char const *filename, Node **ast) {
   yylex_destroy(scanner);
   return PARSE_OK;
 }
-
-bool isType(char const *id) { return false; }

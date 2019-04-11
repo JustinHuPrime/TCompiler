@@ -2,7 +2,7 @@
 %option bison-bridge bison-locations
 %option warn noyywrap
 %{
-#include "parser/parser.tab.h"
+#include "parser/impl/parser.tab.h"
 
 #include <string.h>
 

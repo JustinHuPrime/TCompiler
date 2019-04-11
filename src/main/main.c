@@ -4,6 +4,7 @@
 
 // The primary driver for the TLC.
 
+#include "parser/moduleNodeTable.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
@@ -14,7 +15,6 @@ int main(int argc, char *argv[]) {
   Report *report = reportCreate();
 
   // Sort the given files, and validate them
-  // Report *, int, char ** -> Report *, FileList *
   FileList *files = sortFiles(report, (size_t)argc, argv);
   if (reportState(report) == RPT_ERR) {
     reportDisplay(report);
@@ -25,7 +25,6 @@ int main(int argc, char *argv[]) {
   }
 
   // Read the given options, and validate them
-  // Report *, int, char ** -> Report *, Options *
   Options *options = parseArgs(report, (size_t)argc, argv);
   if (reportState(report) == RPT_ERR) {
     reportDisplay(report);
@@ -37,8 +36,7 @@ int main(int argc, char *argv[]) {
   }
 
   // lex+parse phase (also includes circular dependency check)
-  // Report *, FileList * -> Report *, ModuleNodeTablePair *
-  // ModuleNodeTablePair *asts = parseFiles(report, fileList);
+  // ModuleNodeTablePair *asts = parseFiles(report, files);
 
   // check that decls are decls and codes are codes
   // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *
