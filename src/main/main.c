@@ -4,6 +4,7 @@
 
 // The primary driver for the TLC.
 
+#include "dependencyGraph/grapher.h"
 #include "parser/moduleNodeTable.h"
 #include "parser/parser.h"
 #include "util/errorReport.h"
@@ -37,7 +38,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Generate dependency graph
-  // Report *, FileList * -> Report *, ModuleInfoTable *,
+  ModuleInfoTable *moduleInfo = moduleInfoTableCreate(report, files);
 
   // lex+parse phase
   // ModuleNodeTablePair *asts = parseFiles(report, files);
@@ -47,6 +48,16 @@ int main(int argc, char *argv[]) {
 
   // symbol table building + type check phase
   // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *
+
+  // translation into IR
+
+  // IR level optimizations
+
+  // translation into target language
+
+  // target language optimizations
+
+  // write-out
 
   return EXIT_SUCCESS;
 }

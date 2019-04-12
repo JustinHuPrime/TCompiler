@@ -2,12 +2,13 @@
 //
 // This file is part of the T Language Compiler.
 
-// Information attached to modules created during the dependency-finding phase
+// Generates the dependency graph
 
-#ifndef TLC_UTIL_MODULEINFOTABLE_H_
-#define TLC_UTIL_MODULEINFOTABLE_H_
+#ifndef TLC_DEPENDENCYGRAPH_GRAPHER_H_
+#define TLC_DEPENDENCYGRAPH_GRAPHER_H_
 
-#include "ast/ast.h"
+#include "util/errorReport.h"
+#include "util/fileList.h"
 #include "util/hashMap.h"
 
 // holds the module name and its dependencies - POD object
@@ -27,7 +28,7 @@ void moduleInfoDestroy(ModuleInfo *);
 // specialization of a generic
 typedef HashMap ModuleInfoTable;
 // ctor
-ModuleInfoTable *moduleInfoTableCreate(void);
+ModuleInfoTable *moduleInfoTableCreate(Report *report, FileList *files);
 // get
 // returns the node, or NULL if the key is not in the table
 ModuleInfo *moduleInfoTableGet(ModuleInfoTable *, char const *key);
@@ -38,4 +39,4 @@ int moduleInfoTablePut(ModuleInfoTable *, char const *key, ModuleInfo *data);
 // dtor
 void moduleInfoTableDestroy(ModuleInfoTable *);
 
-#endif  // TLC_UTIL_MODULEINFOTABLE_H_
+#endif  // TLC_DEPENDENCYGRAPH_GRAPHER_H_

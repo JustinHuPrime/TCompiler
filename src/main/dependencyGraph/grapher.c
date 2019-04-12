@@ -4,7 +4,13 @@
 
 // Information attached to modules created during the dependency-finding phase
 
-#include "util/moduleInfoTable.h"
+#include "dependencyGraph/grapher.h"
+
+// these includes must be in this order
+// clang-format off
+#include "dependencyGraph/impl/parser.tab.h"
+#include "dependencyGraph/impl/lex.yy.h"
+// clang-format on
 
 #include <stdlib.h>
 
@@ -18,7 +24,9 @@ ModuleInfo *moduleInfoCreate(const char *moduleName, size_t numDependencies,
 }
 void moduleInfoDestroy(ModuleInfo *info) { free(info); }
 
-ModuleInfoTable *moduleInfoTableCreate(void) { return hashMapCreate(); }
+ModuleInfoTable *moduleInfoTableCreate(Report *report, FileList *files) {
+  return hashMapCreate();
+}
 ModuleInfo *moduleInfoTableGet(ModuleInfoTable *table, char const *key) {
   return hashMapGet(table, key);
 }
