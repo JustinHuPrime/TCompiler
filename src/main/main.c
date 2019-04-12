@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Sort the given files, and validate them
-  FileList *files = sortFiles(report, (size_t)argc, argv);
+  FileList *files = sortFiles(report, options, (size_t)argc, argv);
   if (reportState(report) == RPT_ERR) {
     reportDisplay(report);
 
@@ -47,17 +47,23 @@ int main(int argc, char *argv[]) {
   // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *
 
   // symbol table building + type check phase
-  // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *
+  // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *,
+  // SymbolTable *
 
   // translation into IR
+  // Report *, ModuleNodeTablePair *, SymbolTable * -> Report *, IRList *
 
   // IR level optimizations
+  // IRList * -> IRList *
 
   // translation into target language
+  // IRList * -> SEPList * OR X86List *
 
   // target language optimizations
+  // SEPList * OR X86List * -> SEPList * OR X86List *
 
   // write-out
+  // SEPList * OR X86List * -> (void)
 
   // cleanup
   moduleInfoTableDestroy(moduleInfo);

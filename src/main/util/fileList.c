@@ -11,7 +11,8 @@
 #include <string.h>
 
 // ctor
-FileList *sortFiles(Report *report, size_t argc, char **argv) {
+FileList *sortFiles(Report *report, Options *options, size_t argc,
+                    char **argv) {
   FileList *list = malloc(sizeof(FileList));
 
   list->numDecl = 0;
@@ -55,21 +56,42 @@ FileList *sortFiles(Report *report, size_t argc, char **argv) {
         }
       }
       if (duplicated) {
-        size_t bufferSize = 25 + length;
-        char *buffer = malloc(bufferSize);
-        snprintf(buffer, bufferSize, "%s: error: duplicated file", argv[idx]);
-        reportError(report, buffer);
+        if (getOpt(options, OPT_WARN_DUPLICATE_FILE)) {
+          if (getOpt(options, OPT_WARN_DUPLICATE_FILE_ERROR)) {
+            size_t bufferSize = 25 + length;
+            char *buffer = malloc(bufferSize);
+            snprintf(buffer, bufferSize, "%s: error: duplicated file",
+                     argv[idx]);
+            reportError(report, buffer);
+          } else {
+            size_t bufferSize = 27 + length;
+            char *buffer = malloc(bufferSize);
+            snprintf(buffer, bufferSize, "%s: warning: duplicated file",
+                     argv[idx]);
+            reportWarning(report, buffer);
+          }
+        }
       } else {
         list->decls =
             realloc(list->decls, ++list->numDecl * sizeof(char const *));
         list->decls[list->numDecl - 1] = argv[idx];
       }
     } else {
-      size_t bufferSize = 31 + length;
-      char *buffer = malloc(bufferSize);
-      snprintf(buffer, bufferSize, "%s: error: unrecogized extension",
-               argv[idx]);
-      reportError(report, buffer);
+      if (getOpt(options, OPT_WARN_UNRECOGNIZED_FILE)) {
+        if (getOpt(options, OPT_WARN_UNRECOGNIZED_FILE_ERROR)) {
+          size_t bufferSize = 31 + length;
+          char *buffer = malloc(bufferSize);
+          snprintf(buffer, bufferSize, "%s: error: unrecogized extension",
+                   argv[idx]);
+          reportError(report, buffer);
+        } else {
+          size_t bufferSize = 33 + length;
+          char *buffer = malloc(bufferSize);
+          snprintf(buffer, bufferSize, "%s: warning: unrecogized extension",
+                   argv[idx]);
+          reportWarning(report, buffer);
+        }
+      }
     }
   }
 

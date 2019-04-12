@@ -10,6 +10,7 @@
 
 #include "ast/ast.h"
 #include "util/errorReport.h"
+#include "util/options.h"
 
 #include <stddef.h>
 
@@ -22,7 +23,7 @@ typedef struct {
 } FileList;
 
 // ctor
-FileList *sortFiles(Report *report, size_t argc, char **argv);
+FileList *sortFiles(Report *report, Options *options, size_t argc, char **argv);
 // dtor
 void fileListDestroy(FileList *);
 
