@@ -10,17 +10,21 @@
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/hashMap.h"
+#include "util/options.h"
 
-// holds the module name and its dependencies - POD object
+// holds the module name and its dependencies
 typedef struct {
-  const char *moduleName;
+  char *moduleName;
+  bool isCode;
   size_t numDependencies;
-  const char **dependencyNames;
+  size_t capacityDependencies;
+  char **dependencyNames;
 } ModuleInfo;
 
 // ctor
-ModuleInfo *moduleInfoCreate(const char *moduleName, size_t numDependencies,
-                             const char **dependencyNames);
+ModuleInfo *moduleInfoCreate(bool isCode);
+// add
+void moduleInfoAddDependency(ModuleInfo *, char *);
 // dtor
 void moduleInfoDestroy(ModuleInfo *);
 
@@ -28,7 +32,8 @@ void moduleInfoDestroy(ModuleInfo *);
 // specialization of a generic
 typedef HashMap ModuleInfoTable;
 // ctor
-ModuleInfoTable *moduleInfoTableCreate(Report *report, FileList *files);
+ModuleInfoTable *moduleInfoTableCreate(Report *report, Options *options,
+                                       FileList *files);
 // get
 // returns the node, or NULL if the key is not in the table
 ModuleInfo *moduleInfoTableGet(ModuleInfoTable *, char const *key);

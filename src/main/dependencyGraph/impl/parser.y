@@ -9,14 +9,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void dgerror(DGLTYPE *, void *, const char *);
+void dgerror(DGLTYPE *, void *, ModuleInfo *, const char *);
 }
 
 %code requires {
+#include "dependencyGraph/grapher.h"
 }
 
 %code provides {
-  #define YY_DECL                             \
+  #define YY_DECL\
     int dglex (DGSTYPE *dglval, DGLTYPE *dglloc, void *scanner)
   YY_DECL;
   #undef YY_DECL
@@ -29,7 +30,7 @@ void dgerror(DGLTYPE *, void *, const char *);
 %locations
 
 %lex-param { void *scanner }
-%parse-param { void *scanner }
+%parse-param { void *scanner } { ModuleInfo *info }
 
 %union {
   int tokenID;
@@ -54,6 +55,8 @@ void dgerror(DGLTYPE *, void *, const char *);
        E_INVALIDCHAR
 
 // internal nodes
+%type <tokenString>
+      import
 
 // precedence goes from least to most tightly bound
 
@@ -63,19 +66,19 @@ module: module_name imports body
         {  }
       ;
 module_name: KWD_MODULE T_ID P_SEMI
-             {  }
+             { info->moduleName = $T_ID; }
            ;
 
-imports: {  }
+imports:
        | imports import
-         {  }
+         { moduleInfoAddDependency(info, $import); }
        ;
 import: KWD_USING T_ID P_SEMI
-        {  }
+        { $$ = $T_ID; }
       ;
 
-body: 
+body: { YYACCEPT; }
 %%
-void dgerror(YYLTYPE *location, void *scanner, const char* msg) {
+void dgerror(YYLTYPE *location, void *scanner, ModuleInfo *info, const char* msg) {
   fprintf(stderr, "%s\n", msg);
 }

@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Generate dependency graph
-  ModuleInfoTable *moduleInfo = moduleInfoTableCreate(report, files);
+  ModuleInfoTable *moduleInfo = moduleInfoTableCreate(report, options, files);
 
   // lex+parse phase
   // ModuleNodeTablePair *asts = parseFiles(report, files);
@@ -58,6 +58,12 @@ int main(int argc, char *argv[]) {
   // target language optimizations
 
   // write-out
+
+  // cleanup
+  moduleInfoTableDestroy(moduleInfo);
+  optionsDestroy(options);
+  fileListDestroy(files);
+  reportDestroy(report);
 
   return EXIT_SUCCESS;
 }
