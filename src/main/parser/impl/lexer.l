@@ -1,6 +1,7 @@
 %option reentrant
 %option bison-bridge bison-locations
 %option warn noyywrap
+%option prefix="ast"
 %{
 #include "parser/impl/parser.tab.h"
 
@@ -128,3 +129,5 @@ const    { return KWD_CONST; }
 . { yylval->invalidChar = yytext[0];
     return E_INVALIDCHAR; }
 %%
+
+bool isType(char const *id) { return false; }

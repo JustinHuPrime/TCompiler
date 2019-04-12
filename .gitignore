@@ -1,7 +1,7 @@
-tlc
-tlc-test
+/tlc
+/tlc-test
 *.tc
 *.td
 parser.output
-bin/
-dependencies/
+/bin/
+/dependencies/

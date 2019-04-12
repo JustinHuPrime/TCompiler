@@ -15,17 +15,17 @@ int const PARSE_ESCAN = 3;
 
 int parse(char const *filename, Node **ast) {
   yyscan_t scanner;
-  yylex_init(&scanner);
+  astlex_init(&scanner);
 
   FILE *inFile = fopen(filename, "r");
   if (inFile == NULL) return PARSE_EIO;
-  yyset_in(inFile, scanner);
+  astset_in(inFile, scanner);
 
   *ast = NULL;
-  if (yyparse(scanner, ast) == 1) return PARSE_EPARSE;
+  if (astparse(scanner, ast) == 1) return PARSE_EPARSE;
 
   fclose(inFile);
-  yylex_destroy(scanner);
+  astlex_destroy(scanner);
   return PARSE_OK;
 }
 

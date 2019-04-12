@@ -10,6 +10,7 @@ MKDIR := mkdir -p
 FORMATTER := clang-format -i
 YACC := bison
 LEX := flex
+SEDINPLACE := sed -i
 
 
 # File options
@@ -18,8 +19,9 @@ OBJDIRPREFIX := bin
 DEPDIRPREFIX := dependencies
 
 SRCDIR := $(SRCDIRPREFIX)/main
-GENERATEDSOURCES := $(SRCDIR)/parser/impl/lex.yy.c $(SRCDIR)/parser/impl/lex.yy.h $(SRCDIR)/parser/impl/parser.tab.c $(SRCDIR)/parser/impl/parser.tab.h
-FILESRCS := $(shell find -O3 $(SRCDIR)/ -not -path "$(SRCDIR)/parser/impl/parser.tab.c" -not -path "$(SRCDIR)/parser/impl/lex.yy.c" -type f -name '*.c')
+GENERATEDSOURCES := $(SRCDIR)/parser/impl/lex.yy.c $(SRCDIR)/parser/impl/lex.yy.h $(SRCDIR)/parser/impl/parser.tab.c $(SRCDIR)/parser/impl/parser.tab.h\
+$(SRCDIR)/dependencyGraph/impl/lex.yy.c $(SRCDIR)/dependencyGraph/impl/lex.yy.h $(SRCDIR)/dependencyGraph/impl/parser.tab.c $(SRCDIR)/dependencyGraph/impl/parser.tab.h
+FILESRCS := $(shell find -O3 $(SRCDIR)/ -not -path "$(SRCDIR)/*/impl/*.c" -type f -name '*.c')
 SRCS := $(FILESRCS) $(filter-out %.h, $(GENERATEDSOURCES))
 
 OBJDIR := $(OBJDIRPREFIX)/main
@@ -65,11 +67,11 @@ LIBS :=
 
 
 # lex options
-LEXOPTIONS :=  --header-file=$(SRCDIR)/parser/impl/lex.yy.h --outfile=$(SRCDIR)/parser/impl/lex.yy.c
+LEXOPTIONS :=
 
 
 # yacc options
-YACCOPTIONS := --defines=$(SRCDIR)/parser/impl/parser.tab.h --output=$(SRCDIR)/parser/impl/parser.tab.c --report=state
+YACCOPTIONS := --report=state
 
 
 .PHONY: debug release clean diagnose
@@ -107,13 +109,28 @@ $(GENERATEDOBJS): $$(patsubst $(OBJDIR)/%.o,$(SRCDIR)/%.c,$$@) | $$(dir $$@)
 	@echo "Compiling $@"
 	@$(CC) $(OPTIONS) -c $< -o $@
 
-$(SRCDIR)/parser/impl/lex.yy.c: $(SRCDIR)/parser/impl/lexer.l $(SRCDIR)/parser/impl/parser.tab.h
+$(SRCDIR)/parser/impl/lex.yy.c $(SRCDIR)/parser/impl/lex.yy.h: $(SRCDIR)/parser/impl/lexer.l $(SRCDIR)/parser/impl/parser.tab.h
 	@echo "Creating $@"
-	@$(LEX) $(LEXOPTIONS) $(SRCDIR)/parser/impl/lexer.l
+	@$(LEX) $(LEXOPTIONS) --header-file=$(SRCDIR)/parser/impl/lex.yy.h --outfile=$(SRCDIR)/parser/impl/lex.yy.c $(SRCDIR)/parser/impl/lexer.l
+# hack to rename YY... to AST... cause lex assumes it's YY
+	@$(SEDINPLACE) 's/YYLTYPE/ASTLTYPE/g' $(SRCDIR)/parser/impl/lex.yy.[ch]
+	@$(SEDINPLACE) 's/YYSTYPE/ASTSTYPE/g' $(SRCDIR)/parser/impl/lex.yy.[ch]
 
 $(SRCDIR)/parser/impl/parser.tab.c $(SRCDIR)/parser/impl/parser.tab.h: $(SRCDIR)/parser/impl/parser.y
 	@echo "Creating $@"
-	@$(YACC) $(YACCOPTIONS) src/main/parser/impl/parser.y
+	@$(YACC) $(YACCOPTIONS) --defines=$(SRCDIR)/parser/impl/parser.tab.h --output=$(SRCDIR)/parser/impl/parser.tab.c src/main/parser/impl/parser.y
+
+$(SRCDIR)/dependencyGraph/impl/lex.yy.c $(SRCDIR)/dependencyGraph/impl/lex.yy.h: $(SRCDIR)/dependencyGraph/impl/lexer.l $(SRCDIR)/dependencyGraph/impl/parser.tab.h
+	@echo "Creating $@"
+	@$(LEX) $(LEXOPTIONS) --header-file=$(SRCDIR)/dependencyGraph/impl/lex.yy.h --outfile=$(SRCDIR)/dependencyGraph/impl/lex.yy.c $(SRCDIR)/dependencyGraph/impl/lexer.l
+# hack to rename YY... to DG... cause lex assumes it's YY
+	@$(SEDINPLACE) 's/YYLTYPE/DGLTYPE/g' $(SRCDIR)/dependencyGraph/impl/lex.yy.[ch]
+	@$(SEDINPLACE) 's/YYSTYPE/DGSTYPE/g' $(SRCDIR)/dependencyGraph/impl/lex.yy.[ch]
+
+$(SRCDIR)/dependencyGraph/impl/parser.tab.c $(SRCDIR)/dependencyGraph/impl/parser.tab.h: $(SRCDIR)/dependencyGraph/impl/parser.y
+	@echo "Creating $@"
+	@$(YACC) $(YACCOPTIONS) --defines=$(SRCDIR)/dependencyGraph/impl/parser.tab.h --output=$(SRCDIR)/dependencyGraph/impl/parser.tab.c src/main/dependencyGraph/impl/parser.y
+
 
 $(DEPS): $$(patsubst $(DEPDIR)/%.dep,$(SRCDIR)/%.c,$$@) $(GENERATEDSOURCES) | $$(dir $$@)
 	@set -e; $(RM) $@; \

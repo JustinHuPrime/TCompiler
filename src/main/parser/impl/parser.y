@@ -4,20 +4,27 @@
 
 %code top {
 #include "parser/impl/parser.tab.h"
-#include "parser/impl/lex.yy.h"
   
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-void yyerror(YYLTYPE *, void *, Node**, const char *);
+void asterror(ASTLTYPE *, void *, Node**, const char *);
 }
 
 %code requires {
 #include "ast/ast.h"
 }
 
+%code provides {
+  #define YY_DECL                             \
+    int astlex (ASTSTYPE *astlval, ASTLTYPE *astlloc, void *scanner)
+  YY_DECL;
+  #undef YY_DECL
+}
+
 %define parse.error verbose
+%define api.prefix {ast}
 %define api.pure full
 
 %locations
@@ -553,6 +560,6 @@ scoped_type_identifier: T_SCOPED_TYPE_ID
                       | T_TYPE_ID
                       ;
 %%
-void yyerror(YYLTYPE *location, void *scanner, Node** ast, const char* msg) {
+void asterror(YYLTYPE *location, void *scanner, Node** ast, const char* msg) {
   fprintf(stderr, "%s\n", msg);
 }
