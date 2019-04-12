@@ -16,23 +16,23 @@
 int main(int argc, char *argv[]) {
   Report *report = reportCreate();
 
-  // Sort the given files, and validate them
-  FileList *files = sortFiles(report, (size_t)argc, argv);
-  if (reportState(report) == RPT_ERR) {
-    reportDisplay(report);
-
-    fileListDestroy(files);
-    reportDestroy(report);
-    return EXIT_FAILURE;
-  }
-
   // Read the given options, and validate them
   Options *options = parseArgs(report, (size_t)argc, argv);
   if (reportState(report) == RPT_ERR) {
     reportDisplay(report);
 
     optionsDestroy(options);
+    reportDestroy(report);
+    return EXIT_FAILURE;
+  }
+
+  // Sort the given files, and validate them
+  FileList *files = sortFiles(report, (size_t)argc, argv);
+  if (reportState(report) == RPT_ERR) {
+    reportDisplay(report);
+
     fileListDestroy(files);
+    optionsDestroy(options);
     reportDestroy(report);
     return EXIT_FAILURE;
   }
@@ -61,8 +61,8 @@ int main(int argc, char *argv[]) {
 
   // cleanup
   moduleInfoTableDestroy(moduleInfo);
-  optionsDestroy(options);
   fileListDestroy(files);
+  optionsDestroy(options);
   reportDestroy(report);
 
   return EXIT_SUCCESS;
