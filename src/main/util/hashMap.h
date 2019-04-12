@@ -8,6 +8,13 @@
 #define TLC_UTIL_HASHMAP_H_
 
 #include <stddef.h>
+#include <stdint.h>
+
+// uses the djb2 hash function, xor variant, to hash a string
+uint64_t djb2(char const *);
+
+// uses the djb2 hash function, addition variant, to hash a string
+uint64_t djb2add(char const *);
 
 // A hash table between a module name and that module's ast
 typedef struct {

@@ -5,10 +5,29 @@
 // Implementation of module-node maps
 
 #include "util/hashMap.h"
-#include "util/hash.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+uint64_t djb2(char const *s) {
+  uint64_t hash = 5381;
+  while (*s != '\0') {
+    hash *= 33;
+    hash ^= (uint64_t)*s;
+    s++;
+  }
+  return hash;
+}
+
+uint64_t djb2add(char const *s) {
+  uint64_t hash = 5381;
+  while (*s != '\0') {
+    hash *= 33;
+    hash += (uint64_t)*s;
+    s++;
+  }
+  return hash;
+}
 
 HashMap *hashMapCreate(void) {
   HashMap *map = malloc(sizeof(HashMap));
