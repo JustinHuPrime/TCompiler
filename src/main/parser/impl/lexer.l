@@ -1,8 +1,14 @@
 %option reentrant
 %option bison-bridge bison-locations
-%option warn noyywrap
+%option warn never-interactive case-sensitive noyywrap
 %option prefix="ast"
 %{
+/*
+Copyright 2019 Justin Hu
+
+This file is part of the T Language Compiler.
+*/
+
 #include "parser/impl/parser.tab.h"
 
 #include <string.h>

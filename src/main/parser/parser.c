@@ -14,15 +14,19 @@ int const PARSE_EPARSE = 2;
 int const PARSE_ESCAN = 3;
 
 int parse(char const *filename, Node **ast) {
-  yyscan_t scanner;
-  astlex_init(&scanner);
-
   FILE *inFile = fopen(filename, "r");
   if (inFile == NULL) return PARSE_EIO;
+
+  yyscan_t scanner;
+  astlex_init(&scanner);
   astset_in(inFile, scanner);
 
   *ast = NULL;
-  if (astparse(scanner, ast) == 1) return PARSE_EPARSE;
+  if (astparse(scanner, ast) == 1) {
+    astlex_destroy(scanner);
+    fclose(inFile);
+    return PARSE_EPARSE;
+  }
 
   fclose(inFile);
   astlex_destroy(scanner);

@@ -17,7 +17,7 @@ void asterror(ASTLTYPE *, void *, Node**, const char *);
 }
 
 %code provides {
-  #define YY_DECL                             \
+  #define YY_DECL\
     int astlex (ASTSTYPE *astlval, ASTLTYPE *astlloc, void *scanner)
   YY_DECL;
   #undef YY_DECL
