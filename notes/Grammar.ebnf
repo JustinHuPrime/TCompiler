@@ -18,15 +18,21 @@ import = "using", scoped_identifier, ";" ;
 declaration = function_declaration
             | variable_declaration
             | struct_declaration
+            | struct_forward_declaration
             | union_declaration
+            | union_forward_declaration
             | enum_declaration
+            | enum_forward_declaration
             | typedef_declaration
             ;
 function_declaration = type, identifier, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")", ";" ;
 variable_declaration = type, identifier, { ",", identifier }, ";" ;
 struct_declaration = "struct", identifier, "{", { variable_declaration }+, "}", ";" ;
+struct_forward_declaration = "struct", identifier, ";" ;
 union_declaration = "union", identifier, "{", { variable_declaration }+, "}", ";" ;
+union_forward_declaration = "struct", identifier, ";" ;
 enum_declaration = "enum", identifier, "{", { identifier }+, "}", ";", ;
+enum_forward_declaration = "struct", identifier, ";" ;
 typedef_declaration = "typedef", type, identifier, ";" ;
 
 function = type, identifier, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")", compound_statement ;

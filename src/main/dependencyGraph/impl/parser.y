@@ -62,9 +62,7 @@ void dgerror(DGLTYPE *, void *, ModuleInfo *, const char *);
 
 %start module
 %%
-module: module_name imports body
-        {  }
-      ;
+module: module_name imports body ;
 module_name: KWD_MODULE T_ID P_SEMI
              { info->moduleName = $T_ID; }
            ;
@@ -77,7 +75,8 @@ import: KWD_USING T_ID P_SEMI
         { $$ = $T_ID; }
       ;
 
-body: { YYACCEPT; }
+body: { YYACCEPT; } ;
+
 %%
 void dgerror(YYLTYPE *location, void *scanner, ModuleInfo *info, const char* msg) {
   fprintf(stderr, "%s\n", msg);

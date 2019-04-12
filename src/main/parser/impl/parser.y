@@ -75,9 +75,10 @@ void asterror(ASTLTYPE *, void *, Node**, const char *);
 // internal nodes
 %type <ast>
       module_name import body_part function declaration function_declaration
-      variable_declaration struct_declaration union_declaration
-      enum_declaration typedef_declaration type compound_statement statement
-      opt_id maybe_else expression if_statement while_statement
+      variable_declaration struct_declaration struct_forward_declaration
+      union_declaration union_forward_declaration enum_declaration
+      enum_forward_declaration typedef_declaration type compound_statement
+      statement opt_id maybe_else expression if_statement while_statement
       do_while_statement for_init for_statement switch_body switch_statement
       switch_case_body switch_default_body break_statement continue_statement
       opt_expression return_statement variable_declaration_statement
@@ -135,8 +136,11 @@ body_part: variable_declaration_statement
 declaration: function_declaration
            | variable_declaration
            | struct_declaration
+           | struct_forward_declaration
            | union_declaration
+           | union_forward_declaration
            | enum_declaration
+           | enum_forward_declaration
            | typedef_declaration
            ;
 function_declaration: type T_ID P_LPAREN function_arg_list P_RPAREN P_SEMI
@@ -171,6 +175,9 @@ struct_declaration_chain: variable_declaration
                           { $$ = $1;
                             nodeListInsert($$, $variable_declaration); }
                         ;
+struct_forward_declaration: KWD_STRUCT T_ID P_SEMI
+                            { $$ = structForwardDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
+                          ;
 union_declaration: KWD_UNION T_ID P_LBRACE union_declaration_chain P_RBRACE P_SEMI
                     { $$ = unionDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $union_declaration_chain); }
                   ;
@@ -181,6 +188,9 @@ union_declaration_chain: variable_declaration
                          { $$ = $1;
                             nodeListInsert($$, $variable_declaration); }
                         ;
+union_forward_declaration: KWD_UNION T_ID P_SEMI
+                            { $$ = unionForwardDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
+                          ;
 enum_declaration: KWD_ENUM T_ID P_LBRACE enum_declaration_chain opt_comma P_RBRACE P_SEMI
                   { $$ = enumDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $enum_declaration_chain); }
                 ;
@@ -194,6 +204,9 @@ enum_declaration_chain: T_ID
 opt_comma:
          | P_COMMA
          ;
+enum_forward_declaration: KWD_ENUM T_ID P_SEMI
+                            { $$ = enumForwardDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
+                          ;
 typedef_declaration: KWD_TYPEDEF type T_ID 
                      { $$ = typedefNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
                    ;

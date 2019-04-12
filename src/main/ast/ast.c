@@ -134,6 +134,12 @@ Node *structDeclNodeCreate(size_t line, size_t character, Node *id,
   node->data.structDecl.decls = decls;
   return node;
 }
+Node *structForwardDeclNodeCreate(size_t line, size_t character, Node *id) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_STRUCTFORWARDDECL;
+  node->data.structForwardDecl.id = id;
+  return node;
+}
 Node *unionDeclNodeCreate(size_t line, size_t character, Node *id,
                           NodeList *opts) {
   Node *node = nodeCreate(line, character);
@@ -142,12 +148,24 @@ Node *unionDeclNodeCreate(size_t line, size_t character, Node *id,
   node->data.unionDecl.opts = opts;
   return node;
 }
+Node *unionForwardDeclNodeCreate(size_t line, size_t character, Node *id) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_UNIONFORWARDDECL;
+  node->data.unionForwardDecl.id = id;
+  return node;
+}
 Node *enumDeclNodeCreate(size_t line, size_t character, Node *id,
                          NodeList *elements) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_ENUMDECL;
   node->data.enumDecl.id = id;
   node->data.enumDecl.elements = elements;
+  return node;
+}
+Node *enumForwardDeclNodeCreate(size_t line, size_t character, Node *id) {
+  Node *node = nodeCreate(line, character);
+  node->type = TYPE_ENUMFORWARDDECL;
+  node->data.enumForwardDecl.id = id;
   return node;
 }
 Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *id) {
@@ -855,14 +873,26 @@ void nodeDestroy(Node *node) {
       nodeListDestroy(node->data.structDecl.decls);
       break;
     }
+    case TYPE_STRUCTFORWARDDECL: {
+      nodeDestroy(node->data.structForwardDecl.id);
+      break;
+    }
     case TYPE_UNIONDECL: {
       nodeDestroy(node->data.unionDecl.id);
       nodeListDestroy(node->data.unionDecl.opts);
       break;
     }
+    case TYPE_UNIONFORWARDDECL: {
+      nodeDestroy(node->data.unionForwardDecl.id);
+      break;
+    }
     case TYPE_ENUMDECL: {
       nodeDestroy(node->data.enumDecl.id);
       nodeListDestroy(node->data.enumDecl.elements);
+      break;
+    }
+    case TYPE_ENUMFORWARDDECL: {
+      nodeDestroy(node->data.enumForwardDecl.id);
       break;
     }
     case TYPE_TYPEDEFDECL: {

@@ -72,6 +72,12 @@ void printNodeStructure(Node const *node) {
       printf(")");
       break;
     }
+    case TYPE_STRUCTFORWARDDECL: {
+      printf("STRUCTFORWARDDECL(");
+      printNodeStructure(node->data.structForwardDecl.id);
+      printf(")");
+      break;
+    }
     case TYPE_UNIONDECL: {
       printf("UNIONDECL(");
       printNodeStructure(node->data.unionDecl.id);
@@ -82,6 +88,12 @@ void printNodeStructure(Node const *node) {
       printf(")");
       break;
     }
+    case TYPE_UNIONFORWARDDECL: {
+      printf("UNIONFORWARDDECL(");
+      printNodeStructure(node->data.unionForwardDecl.id);
+      printf(")");
+      break;
+    }
     case TYPE_ENUMDECL: {
       printf("ENUMDECL(");
       printNodeStructure(node->data.enumDecl.id);
@@ -89,6 +101,12 @@ void printNodeStructure(Node const *node) {
         printf(" ");
         printNodeStructure(node->data.enumDecl.elements->elements[idx]);
       }
+      printf(")");
+      break;
+    }
+    case TYPE_ENUMFORWARDDECL: {
+      printf("ENUMFORWARDDECL(");
+      printNodeStructure(node->data.enumForwardDecl.id);
       printf(")");
       break;
     }
@@ -768,6 +786,12 @@ void printNode(Node const *node) {
       printf("};\n");
       break;
     }
+    case TYPE_STRUCTFORWARDDECL: {
+      printf("struct ");
+      printNode(node->data.structForwardDecl.id);
+      printf(";\n");
+      break;
+    }
     case TYPE_UNIONDECL: {
       printf("union ");
       printNode(node->data.unionDecl.id);
@@ -779,6 +803,12 @@ void printNode(Node const *node) {
       printf("};\n");
       break;
     }
+    case TYPE_UNIONFORWARDDECL: {
+      printf("union ");
+      printNode(node->data.unionForwardDecl.id);
+      printf(";\n");
+      break;
+    }
     case TYPE_ENUMDECL: {
       printf("enum ");
       printNode(node->data.enumDecl.id);
@@ -788,6 +818,12 @@ void printNode(Node const *node) {
         printf(",\n");
       }
       printf("};\n");
+      break;
+    }
+    case TYPE_ENUMFORWARDDECL: {
+      printf("enum ");
+      printNode(node->data.enumForwardDecl.id);
+      printf(";\n");
       break;
     }
     case TYPE_TYPEDEFDECL: {

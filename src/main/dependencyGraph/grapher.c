@@ -39,7 +39,8 @@ void moduleInfoDestroy(ModuleInfo *info) {
   free(info);
 }
 
-ModuleInfoTable *moduleInfoTableCreate(Report *report, FileList *files) {
+ModuleInfoTable *moduleInfoTableCreate(Report *report, Options *options,
+                                       FileList *files) {
   ModuleInfoTable *table = hashMapCreate();
 
   // create table

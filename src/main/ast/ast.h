@@ -54,8 +54,11 @@ typedef enum {
   TYPE_FUNDECL,
   TYPE_VARDECL,
   TYPE_STRUCTDECL,
+  TYPE_STRUCTFORWARDDECL,
   TYPE_UNIONDECL,
+  TYPE_UNIONFORWARDDECL,
   TYPE_ENUMDECL,
+  TYPE_ENUMFORWARDDECL,
   TYPE_TYPEDEFDECL,
   TYPE_FUNCTION,
   TYPE_COMPOUNDSTMT,
@@ -223,12 +226,21 @@ typedef struct Node {
     } structDecl;
     struct {
       struct Node *id;
+    } structForwardDecl;
+    struct {
+      struct Node *id;
       NodeList *opts;
     } unionDecl;
     struct {
       struct Node *id;
+    } unionForwardDecl;
+    struct {
+      struct Node *id;
       NodeList *elements;
     } enumDecl;
+    struct {
+      struct Node *id;
+    } enumForwardDecl;
     struct {
       struct Node *type;
       struct Node *id;
@@ -424,10 +436,14 @@ Node *varDeclNodeCreate(size_t line, size_t character, Node *varType,
                         NodeList *ids);
 Node *structDeclNodeCreate(size_t line, size_t character, Node *structId,
                            NodeList *elements);
+Node *structForwardDeclNodeCreate(size_t line, size_t character,
+                                  Node *structId);
 Node *unionDeclNodeCreate(size_t line, size_t character, Node *unionId,
                           NodeList *opts);
+Node *unionForwardDeclNodeCreate(size_t line, size_t character, Node *unionId);
 Node *enumDeclNodeCreate(size_t line, size_t character, Node *enumId,
                          NodeList *elements);
+Node *enumForwardDeclNodeCreate(size_t line, size_t character, Node *enumId);
 Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *newId);
 Node *functionNodeCreate(size_t line, size_t character, Node *returnType,
                          Node *functionId, NodePairList *args, Node *body);
