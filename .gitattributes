@@ -10,4 +10,4 @@ src/main/dependencyGraph/impl/*.yy.h linguist-generated
 src/main/dependencyGraph/impl/*.tab.c linguist-generated
 src/main/dependencyGraph/impl/*.tab.h linguist-generated
 
-src/**.h linguist-language=C
+src/main/util/errorReport.h linguist-language=C
