@@ -6,6 +6,8 @@
 
 #include "util/fileList.h"
 
+#include "util/format.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,11 +37,13 @@ FileList *sortFiles(Report *report, Options *options, size_t argc,
           break;
         }
       }
-      if (duplicated) {
-        size_t bufferSize = 25 + length;
-        char *buffer = malloc(bufferSize);
-        snprintf(buffer, bufferSize, "%s: error: duplicated file", argv[idx]);
-        reportError(report, buffer);
+      if (duplicated && getOpt(options, OPT_WARN_DUPLICATE_FILE)) {
+        if (getOpt(options, OPT_WARN_DUPLICATE_FILE_ERROR)) {
+          reportError(report, format("%s: error: duplicated file", argv[idx]));
+        } else {
+          reportWarning(report,
+                        format("%s: warning: duplicated file", argv[idx]));
+        }
       } else {
         list->codes =
             realloc(list->codes, ++list->numCode * sizeof(char const *));
@@ -55,21 +59,12 @@ FileList *sortFiles(Report *report, Options *options, size_t argc,
           break;
         }
       }
-      if (duplicated) {
-        if (getOpt(options, OPT_WARN_DUPLICATE_FILE)) {
-          if (getOpt(options, OPT_WARN_DUPLICATE_FILE_ERROR)) {
-            size_t bufferSize = 25 + length;
-            char *buffer = malloc(bufferSize);
-            snprintf(buffer, bufferSize, "%s: error: duplicated file",
-                     argv[idx]);
-            reportError(report, buffer);
-          } else {
-            size_t bufferSize = 27 + length;
-            char *buffer = malloc(bufferSize);
-            snprintf(buffer, bufferSize, "%s: warning: duplicated file",
-                     argv[idx]);
-            reportWarning(report, buffer);
-          }
+      if (duplicated && getOpt(options, OPT_WARN_DUPLICATE_FILE)) {
+        if (getOpt(options, OPT_WARN_DUPLICATE_FILE_ERROR)) {
+          reportError(report, format("%s: error: duplicated file", argv[idx]));
+        } else {
+          reportWarning(report,
+                        format("%s: warning: duplicated file", argv[idx]));
         }
       } else {
         list->decls =
@@ -79,24 +74,18 @@ FileList *sortFiles(Report *report, Options *options, size_t argc,
     } else {
       if (getOpt(options, OPT_WARN_UNRECOGNIZED_FILE)) {
         if (getOpt(options, OPT_WARN_UNRECOGNIZED_FILE_ERROR)) {
-          size_t bufferSize = 31 + length;
-          char *buffer = malloc(bufferSize);
-          snprintf(buffer, bufferSize, "%s: error: unrecogized extension",
-                   argv[idx]);
-          reportError(report, buffer);
+          reportError(report,
+                      format("%s: error: unrecogized extension", argv[idx]));
         } else {
-          size_t bufferSize = 33 + length;
-          char *buffer = malloc(bufferSize);
-          snprintf(buffer, bufferSize, "%s: warning: unrecogized extension",
-                   argv[idx]);
-          reportWarning(report, buffer);
+          reportWarning(
+              report, format("%s: warning: unrecogized extension", argv[idx]));
         }
       }
     }
   }
 
   if (list->codes == 0)
-    reportError(report, strcpy(malloc(27), "tlc: error: no input files"));
+    reportError(report, format("tlc: error: no input code files"));
 
   return list;
 }

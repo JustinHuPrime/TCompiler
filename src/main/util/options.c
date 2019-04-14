@@ -6,6 +6,8 @@
 
 #include "util/options.h"
 
+#include "util/format.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,12 +67,8 @@ Options *parseArgs(Report *report, size_t argc, char **argv) {
       setOpt(options, OPT_WARN_UNRECOGNIZED_FILE, false);
       setOpt(options, OPT_WARN_UNRECOGNIZED_FILE_ERROR, false);
     } else {
-      size_t bufferSize = 37 + strlen(argv[idx]);
-      char *buffer = malloc(bufferSize);
-      snprintf(buffer, bufferSize, "tlc: error: option '%s' not recognized",
-               argv[idx]);
-
-      reportError(report, buffer);
+      reportError(report,
+                  format("tlc: error: option '%s' not recognized", argv[idx]));
     }
   }
 
