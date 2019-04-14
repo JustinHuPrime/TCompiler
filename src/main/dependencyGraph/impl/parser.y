@@ -64,12 +64,14 @@ void dgerror(DGLTYPE *, void *, ModuleInfo *, const char *);
 %%
 module: module_name imports body ;
 module_name: KWD_MODULE T_ID P_SEMI
-             { info->moduleName = $T_ID; }
+             { info->moduleName = $T_ID;
+               info->moduleLine = (size_t)@T_ID.first_line;
+               info->moduleColumn = (size_t)@T_ID.first_column; }
            ;
 
 imports:
        | imports import
-         { moduleInfoAddDependency(info, $import); }
+         { moduleInfoAddDependency(info, $import, (size_t)@import.first_line, (size_t)@import.first_column); }
        ;
 import: KWD_USING T_ID P_SEMI
         { $$ = $T_ID; }

@@ -14,17 +14,22 @@
 
 // holds the module name and its dependencies
 typedef struct {
-  char *moduleName;
+  char *moduleName;  // used to hack ownership
+  size_t moduleLine, moduleColumn;
+  char const *fileName;
   bool isCode;
   size_t numDependencies;
   size_t capacityDependencies;
   char **dependencyNames;
+  size_t *dependencyLines;
+  size_t *dependencyColumns;
 } ModuleInfo;
 
 // ctor
-ModuleInfo *moduleInfoCreate(bool isCode);
+ModuleInfo *moduleInfoCreate(bool isCode, char const *fileName);
 // add
-void moduleInfoAddDependency(ModuleInfo *, char *);
+void moduleInfoAddDependency(ModuleInfo *, char *name, size_t line,
+                             size_t column);
 // dtor
 void moduleInfoDestroy(ModuleInfo *);
 

@@ -37,21 +37,20 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  // Generate dependency graph
+  // Generate and check dependency graph
   ModuleInfoTable *moduleInfo = moduleInfoTableCreate(report, options, files);
 
   // lex+parse phase
-  // ModuleNodeTablePair *asts = parseFiles(report, files);
+  // NodeList *asts = parseFiles(report, files);
 
   // check that decls are decls and codes are codes
-  // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *
+  // Report *, NodeList * -> Report *, NodeList *
 
   // symbol table building + type check phase
-  // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *,
-  // SymbolTable *
+  // Report *, NodeList * -> Report *, NodeList *, SymbolTable *
 
   // translation into IR
-  // Report *, ModuleNodeTablePair *, SymbolTable * -> Report *, IRList *
+  // Report *, NodeList *, SymbolTable * -> Report *, IRList *
 
   // IR level optimizations
   // IRList * -> IRList *
