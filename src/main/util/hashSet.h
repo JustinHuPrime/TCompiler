@@ -34,4 +34,8 @@ int hashSetAdd(HashSet *, char *element, bool freeString);
 // if freeStrings is true, then the elements are free'd.
 void hashSetDestroy(HashSet *, bool freeStrings);
 
+// alternate names for easier semantics
+typedef HashSet NonOwningHashSet;
+typedef HashSet OwningHashSet;
+
 #endif  // TLC_UTIL_HASHSET_H_

@@ -8,29 +8,39 @@
 #define TLC_PARSER_PARSER_H_
 
 #include "ast/ast.h"
-#include "parser/moduleNodeTable.h"
+#include "dependencyGraph/grapher.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
+#include "util/hashMap.h"
+#include "util/options.h"
 
-// these includes must be in this order
-// clang-format off
-#include "parser/impl/parser.tab.h"
-#include "parser/impl/lex.yy.h"
-// clang-format on
+// hashMap between module name and ast node
+// specialization of a generic
+typedef HashMap ModuleNodeTable;
+// ctor
+ModuleNodeTable *moduleNodeTableCreate(void);
+// get
+// returns the node, or NULL if the key is not in the table
+Node *moduleNodeTableGet(ModuleNodeTable *, char const *key);
+// put - note that key is not owned by the table, but the node is
+// returns: HT_OK if the insertion was successful
+//          HT_EEXISTS if the key exists
+int moduleNodeTablePut(ModuleNodeTable *, char const *key, Node *data);
+// dtor
+void moduleNodeTableDestroy(ModuleNodeTable *);
 
-#include <stdbool.h>
-#include <stdio.h>
+// a pair of tables for decl modules and code modules - POD object
+typedef struct {
+  ModuleNodeTable *decls;
+  ModuleNodeTable *codes;
+} ModuleNodeTablePair;
 
-extern int const PARSE_OK;
-extern int const PARSE_EIO;
-extern int const PARSE_EPARSE;
+// ctor
+ModuleNodeTablePair *moduleNodeTablePairCreate(void);
+// dtor
+void moduleNodeTablePairDestroy(ModuleNodeTablePair *);
 
-// Parses the file at the given name into an abstract syntax tree.
-// Returns: PARSE_OK if successful
-//          PARSE_EIO if file couldn't be opened
-//          PARSE_EPARSE if file has bad syntax
-int parse(char const *filename, Node **astOut);
-
-ModuleNodeTablePair *parseFiles(Report *report, FileList *files);
+ModuleNodeTablePair *parseFiles(Report *report, Options *options,
+                                FileList *files, ModuleInfoTable *infoTable);
 
 #endif  // TLC_PARSER_PARSER_H_

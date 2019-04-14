@@ -9,11 +9,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void asterror(ASTLTYPE *, void *, Node**, const char *);
+void asterror(ASTLTYPE *, void *, Node**, Environment *, const char *);
 }
 
 %code requires {
 #include "ast/ast.h"
+#include "parser/parseTables.h"
 }
 
 %code provides {
@@ -30,7 +31,7 @@ void asterror(ASTLTYPE *, void *, Node**, const char *);
 %locations
 
 %lex-param { void *scanner }
-%parse-param { void *scanner } { Node **ast }
+%parse-param { void *scanner } { Node **ast } { Environment *env }
 
 %union {
   int tokenID;
@@ -166,7 +167,8 @@ variable_declaration_chain: T_ID
                               nodeListInsert($$, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
                           ;
 struct_declaration: KWD_STRUCT T_ID P_LBRACE struct_declaration_chain P_RBRACE P_SEMI
-                    { $$ = structDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $struct_declaration_chain); }
+                    { $$ = structDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $struct_declaration_chain);
+                      hashSetAdd(env->typenames, $T_ID); }
                   ;
 struct_declaration_chain: variable_declaration
                           { $$ = nodeListCreate();
@@ -176,10 +178,12 @@ struct_declaration_chain: variable_declaration
                             nodeListInsert($$, $variable_declaration); }
                         ;
 struct_forward_declaration: KWD_STRUCT T_ID P_SEMI
-                            { $$ = structForwardDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
+                            { $$ = structForwardDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID));
+                              hashSetAdd(env->typenames, $T_ID); }
                           ;
 union_declaration: KWD_UNION T_ID P_LBRACE union_declaration_chain P_RBRACE P_SEMI
-                    { $$ = unionDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $union_declaration_chain); }
+                    { $$ = unionDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $union_declaration_chain);
+                      hashSetAdd(env->typenames, $T_ID); }
                   ;
 union_declaration_chain: variable_declaration
                          { $$ = nodeListCreate();
@@ -189,10 +193,12 @@ union_declaration_chain: variable_declaration
                             nodeListInsert($$, $variable_declaration); }
                         ;
 union_forward_declaration: KWD_UNION T_ID P_SEMI
-                            { $$ = unionForwardDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
+                            { $$ = unionForwardDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID));
+                              hashSetAdd(env->typenames, $T_ID); }
                           ;
 enum_declaration: KWD_ENUM T_ID P_LBRACE enum_declaration_chain opt_comma P_RBRACE P_SEMI
-                  { $$ = enumDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $enum_declaration_chain); }
+                  { $$ = enumDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $enum_declaration_chain);
+                    hashSetAdd(env->typenames, $T_ID); }
                 ;
 enum_declaration_chain: T_ID
                         { $$ = nodeListCreate();
@@ -205,14 +211,17 @@ opt_comma:
          | P_COMMA
          ;
 enum_forward_declaration: KWD_ENUM T_ID P_SEMI
-                            { $$ = enumForwardDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
+                            { $$ = enumForwardDeclNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID));
+                              hashSetAdd(env->typenames, $T_ID); }
                           ;
 typedef_declaration: KWD_TYPEDEF type T_ID 
-                     { $$ = typedefNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID)); }
+                     { $$ = typedefNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID));
+                       hashSetAdd(env->typenames, $T_ID); }
                    ;
 
 function: type T_ID P_LPAREN function_arg_list P_RPAREN compound_statement
-          { $$ = functionNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $function_arg_list, $compound_statement); }
+          { $$ = functionNodeCreate((size_t)@$.first_line, (size_t)@$.first_column, $type, idNodeCreate((size_t)@T_ID.first_line, (size_t)@T_ID.first_column, $T_ID), $function_arg_list, $compound_statement);
+            hashSetAdd(env->overrideStack[env->overrideStackSize - 1], $T_ID); }
         ;
 function_arg_list: { $$ = nodePairListCreate(); }
                  | function_arg_list_nonempty
@@ -573,6 +582,6 @@ scoped_type_identifier: T_SCOPED_TYPE_ID
                       | T_TYPE_ID
                       ;
 %%
-void asterror(YYLTYPE *location, void *scanner, Node** ast, const char* msg) {
+void asterror(YYLTYPE *location, void *scanner, Node** ast, Environment *env, const char* msg) {
   fprintf(stderr, "%s\n", msg);
 }

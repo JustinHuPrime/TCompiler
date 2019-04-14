@@ -5,7 +5,6 @@
 // The primary driver for the TLC.
 
 #include "dependencyGraph/grapher.h"
-#include "parser/moduleNodeTable.h"
 #include "parser/parser.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
@@ -39,18 +38,28 @@ int main(int argc, char *argv[]) {
 
   // Generate and check dependency graph
   ModuleInfoTable *moduleInfo = moduleInfoTableCreate(report, options, files);
+  if (reportState(report) == RPT_ERR) {
+    reportDisplay(report);
+
+    moduleInfoTableDestroy(moduleInfo);
+    fileListDestroy(files);
+    optionsDestroy(options);
+    reportDestroy(report);
+    return EXIT_FAILURE;
+  }
 
   // lex+parse phase
-  // NodeList *asts = parseFiles(report, files);
+  ModuleNodeTablePair *asts = parseFiles(report, options, files, moduleInfo);
 
   // check that decls are decls and codes are codes
-  // Report *, NodeList * -> Report *, NodeList *
+  // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *
 
   // symbol table building + type check phase
-  // Report *, NodeList * -> Report *, NodeList *, SymbolTable *
+  // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *,
+  // SymbolTable *
 
   // translation into IR
-  // Report *, NodeList *, SymbolTable * -> Report *, IRList *
+  // Report *, ModuleNodeTablePair *, SymbolTable * -> Report *, IRList *
 
   // IR level optimizations
   // IRList * -> IRList *
@@ -62,9 +71,10 @@ int main(int argc, char *argv[]) {
   // SEPList * OR X86List * -> SEPList * OR X86List *
 
   // write-out
-  // SEPList * OR X86List * -> (void)
+  // SEPList * OR X86List *, FileList * -> (void)
 
   // cleanup
+  moduleNodeTablePairDestroy(asts);
   moduleInfoTableDestroy(moduleInfo);
   fileListDestroy(files);
   optionsDestroy(options);

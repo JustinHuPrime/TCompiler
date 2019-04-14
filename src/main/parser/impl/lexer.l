@@ -10,10 +10,9 @@ This file is part of the T Language Compiler.
 */
 
 #include "parser/impl/parser.tab.h"
+#include "parser/parseTables.h"
 
 #include <string.h>
-
-bool isType(char const *);
 %}
 %%
  /*
@@ -115,9 +114,9 @@ const    { return KWD_CONST; }
 "||="  { return P_LORASSIGN; }
 
 [a-zA-Z_][a-zA-Z0-9_]*                           { yylval->tokenString = strcpy(malloc((size_t)yyleng + 1), yytext);
-                                                   return isType(yylval->tokenString) ? T_TYPE_ID : T_ID; } // check the symbol table to determine what type this is
+                                                   return environmentIsTypePlain(yyextra, yylval->tokenString) ? T_TYPE_ID : T_ID; } // check the symbol table to determine what type this is
 [a-zA-Z_][a-zA-Z0-9_]*(::[a-zA-Z_][a-zA-Z0-9_]*) { yylval->tokenString = strcpy(malloc((size_t)yyleng + 1), yytext);
-                                                   return isType(yylval->tokenString) ? T_SCOPED_TYPE_ID : T_SCOPED_ID; }
+                                                   return environmentIsTypeScoped(yyextra, yylval->tokenString) ? T_SCOPED_TYPE_ID : T_SCOPED_ID; }
 
 [+-]?(0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|[1-9][0-9]*|0)                                                                                      { yylval->tokenString = strcpy(malloc((size_t)yyleng + 1), yytext);
                                                                                                                                            return L_INTLITERAL; }
@@ -135,5 +134,3 @@ const    { return KWD_CONST; }
 . { yylval->invalidChar = yytext[0];
     return E_INVALIDCHAR; }
 %%
-
-bool isType(char const *id) { return false; }
