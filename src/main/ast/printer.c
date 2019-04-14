@@ -9,6 +9,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static double punToDouble(uint64_t bits) {
+  union {
+    uint64_t i;
+    double d;
+  } u;
+  u.i = bits;
+  return u.d;
+}
+static double punToFloatAsDouble(uint32_t bits) {
+  union {
+    uint32_t i;
+    float f;
+  } u;
+  u.i = bits;
+  return u.f;
+}
 void printNodeStructure(Node const *node) {
   if (node == NULL) return;  // base case
 
@@ -567,12 +583,12 @@ void printNodeStructure(Node const *node) {
         }
         case CTYPE_FLOAT: {
           printf("CONST(%e)",
-                 (double)*(float const *)&node->data.constExp.value.floatBits);
+                 punToFloatAsDouble(node->data.constExp.value.floatBits));
           break;
         }
         case CTYPE_DOUBLE: {
           printf("CONST(%e)",
-                 *(double const *)&node->data.constExp.value.doubleBits);
+                 punToDouble(node->data.constExp.value.doubleBits));
           break;
         }
         case CTYPE_STRING: {
@@ -1295,12 +1311,11 @@ void printNode(Node const *node) {
           break;
         }
         case CTYPE_FLOAT: {
-          printf("%e",
-                 (double)*(float const *)&node->data.constExp.value.floatBits);
+          printf("%e", punToFloatAsDouble(node->data.constExp.value.floatBits));
           break;
         }
         case CTYPE_DOUBLE: {
-          printf("%e", *(double const *)&node->data.constExp.value.doubleBits);
+          printf("%e", punToDouble(node->data.constExp.value.doubleBits));
           break;
         }
         case CTYPE_STRING: {

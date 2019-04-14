@@ -1,6 +1,6 @@
 %option reentrant
 %option bison-bridge bison-locations
-%option warn never-interactive case-sensitive noyywrap
+%option warn never-interactive case-sensitive noyywrap noinput nounput
 %option prefix="dg"
 %{
 /*

@@ -6,4 +6,4 @@
 
 #include "util/functional.h"
 
-void nullDtor(void *ignored) {}
+void nullDtor(void *ignored) { (void)ignored; }

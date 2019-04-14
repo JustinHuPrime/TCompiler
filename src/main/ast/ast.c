@@ -777,13 +777,13 @@ Node *castExpNodeCreate(size_t line, size_t character, Node *toWhat,
 Node *sizeofTypeExpNodeCreate(size_t line, size_t character, Node *target) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_SIZEOFTYPEEXP;
-  node->data.sizeofTypeExp.target;
+  node->data.sizeofTypeExp.target = target;
   return node;
 }
 Node *sizeofExpExpNodeCreate(size_t line, size_t character, Node *target) {
   Node *node = nodeCreate(line, character);
   node->type = TYPE_SIZEOFEXPEXP;
-  node->data.sizeofExpExp.target;
+  node->data.sizeofExpExp.target = target;
   return node;
 }
 Node *keywordTypeNodeCreate(size_t line, size_t character, TypeKeyword type) {
@@ -834,9 +834,6 @@ Node *idNodeCreate(size_t line, size_t character, char *id) {
 }
 
 // Destructor
-static void freeIfNotNull(void *ptr) {
-  if (ptr != NULL) free(ptr);
-}
 void nodeDestroy(Node *node) {
   if (node == NULL)
     return;  // base case: might be asked internally to free NULL.
