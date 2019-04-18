@@ -36,20 +36,20 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  // Generate and check dependency graph
-  ModuleInfoTable *moduleInfo = moduleInfoTableCreate(report, options, files);
-  if (reportState(report) == RPT_ERR) {
-    reportDisplay(report);
+  // // Generate and check dependency graph
+  // ModuleInfoTable *moduleInfo = moduleInfoTableCreate(report, options,
+  // files); if (reportState(report) == RPT_ERR) {
+  //   reportDisplay(report);
 
-    moduleInfoTableDestroy(moduleInfo);
-    fileListDestroy(files);
-    optionsDestroy(options);
-    reportDestroy(report);
-    return EXIT_FAILURE;
-  }
+  //   moduleInfoTableDestroy(moduleInfo);
+  //   fileListDestroy(files);
+  //   optionsDestroy(options);
+  //   reportDestroy(report);
+  //   return EXIT_FAILURE;
+  // }
 
-  // lex+parse phase
-  ModuleNodeTablePair *asts = parseFiles(report, options, files, moduleInfo);
+  // // lex+parse phase
+  // ModuleNodeTablePair *asts = parseFiles(report, options, files, moduleInfo);
 
   // check that decls are decls and codes are codes
   // Report *, ModuleNodeTablePair * -> Report *, ModuleNodeTablePair *
@@ -74,8 +74,8 @@ int main(int argc, char *argv[]) {
   // SEPList * OR X86List *, FileList * -> (void)
 
   // cleanup
-  moduleNodeTablePairDestroy(asts);
-  moduleInfoTableDestroy(moduleInfo);
+  // moduleNodeTablePairDestroy(asts);
+  // moduleInfoTableDestroy(moduleInfo);
   fileListDestroy(files);
   optionsDestroy(options);
   reportDestroy(report);

@@ -69,4 +69,7 @@ escaped_character = "\n" | "\r" | "\t" | "\0" | "\\" | "\x", hex_digit, hex_digi
 escaped_utf32_character = "\u", hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit ;
 escaped_quote = "\'" ;
 escaped_double_quote = '\"' ;
-newline = ? ASCII character '\n' ?, [ ? ASCII characters '\r' ? ] ;
+newline = ? ASCII character '\n' ?
+        | ? ASCII character '\r' ?
+        | ? ASCII character '\n\r' ?
+        ;

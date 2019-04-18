@@ -1,13 +1,5 @@
 standard/** linguist-documentation
 docs/** linguist-documentation
-
-src/main/parser/impl/*.yy.c linguist-generated
-src/main/parser/impl/*.yy.h linguist-generated
-src/main/parser/impl/*.tab.c linguist-generated
-src/main/parser/impl/*.tab.h linguist-generated
-src/main/dependencyGraph/impl/*.yy.c linguist-generated
-src/main/dependencyGraph/impl/*.yy.h linguist-generated
-src/main/dependencyGraph/impl/*.tab.c linguist-generated
-src/main/dependencyGraph/impl/*.tab.h linguist-generated
+notes/** linguist-documentation
 
 src/main/util/errorReport.h linguist-language=C
