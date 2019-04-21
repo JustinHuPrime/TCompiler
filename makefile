@@ -54,7 +54,7 @@ WARNINGS := -pedantic -pedantic-errors -Wall -Wextra -Wdouble-promotion\
 -Wstack-protector
 
 # compiler options
-OPTIONS := -std=c18 -m64 -D_POSIX_C_SOURCE=201803L -I$(SRCDIR) $(WARNINGS)
+OPTIONS := -std=c18 -m64 -D_POSIX_C_SOURCE=201904L -I$(SRCDIR) $(WARNINGS)
 DEBUGOPTIONS := -Og -ggdb -Wno-unused
 RELEASEOPTIONS := -O3 -D NDEBUG -Wunused
 TOPTIONS := -I$(TSRCDIR)

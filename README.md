@@ -20,8 +20,8 @@ This repo is the source code for the T Language Compiler, `tlc`.
 
 All warning options have three forms, a `-Werror` form, a `-W...` form, and a `-Wno-...` form. These forms instruct the compiler to either produce an error if this particular event is encountered (stopping compilation), produce a warning, or ignore the issue.
 
-* `duplciate-file`: duplciated files given. Defaults to error. If ignored, later files have no effect.
+* `duplciate-file`: duplciated files given. Defaults to error. If not an error, later files have no effect.
 
-* `duplicate-import`: duplicated imports in a module. Defaults to ignore. If ignored, later imports have no effect.
+* `duplicate-import`: duplicated imports in a module. Defaults to ignore. If not an error, later imports have no effect.
 
-* `unrecognized-file`: unrecognized file extensions. Default to error.
+* `unrecognized-file`: unrecognized file extensions. Default to error. If not an error, unrecognized files are skipped.

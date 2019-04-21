@@ -10,7 +10,9 @@
 int main(void) {
   TestStatus *status = testStatusCreate();
 
-  printf("\x1B[91mWarning! Five test suites disabled!\n\x1B[m\n");
+  printf(
+      "\x1B[91mWarning! Five test suites disabled!\nWarning! Insufficient test "
+      "suites written!\n\x1B[m\n");
 
   constExpParseIntTest(status);
   // constExpParseFloatTest(status);
