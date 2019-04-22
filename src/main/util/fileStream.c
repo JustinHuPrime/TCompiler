@@ -11,7 +11,7 @@
 
 size_t const FS_BUFFER_SIZE = 4096;
 
-FileStream *fileOpen(char const *fileName) {
+FileStream *fsOpen(char const *fileName) {
   // try to open the file
   int fd = open(fileName, O_RDONLY | O_CLOEXEC);
   if (fd == -1) return NULL;
@@ -28,7 +28,7 @@ FileStream *fileOpen(char const *fileName) {
   ssize_t nbytes = read(fs->fd, fs->buffer, FS_BUFFER_SIZE);
   if (nbytes == -1) {
     // error - free and return error
-    fileClose(fs);
+    fsClose(fs);
     return NULL;
   } else if (nbytes == 0) {
     // check for eof
@@ -44,7 +44,7 @@ FileStream *fileOpen(char const *fileName) {
 char const FS_OK = -1;
 char const FS_EOF = -2;
 char const FS_ERR = -3;
-char fileGet(FileStream *fs) {
+char fsGet(FileStream *fs) {
   if (fs->eof) {
     // check for eof
     return FS_EOF;
@@ -67,7 +67,7 @@ char fileGet(FileStream *fs) {
   }
 }
 
-int fileUnget(FileStream *fs) {
+int fsUnget(FileStream *fs) {
   fs->eof = false;  // can't be at eof when attempting to back up.
                     // if file was empty, then lseek(2) would error
 
@@ -98,7 +98,7 @@ int fileUnget(FileStream *fs) {
   }
 }
 
-void fileClose(FileStream *fs) {
+void fsClose(FileStream *fs) {
   close(fs->fd);
   free(fs->buffer);
   free(fs);

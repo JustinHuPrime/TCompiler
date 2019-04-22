@@ -21,7 +21,7 @@ typedef struct {
 } FileStream;
 
 // opens a file. returns NULL if failed
-FileStream *fileOpen(char const *fileName);
+FileStream *fsOpen(char const *fileName);
 
 extern char const FS_OK;
 extern char const FS_EOF;
@@ -32,14 +32,14 @@ extern char const FS_ERR;
 // FS_ERR and FS_EOF are guarenteed not to infringe on ASCII text.
 // returning FS_ERR indicates the stream may be in an inconsistent state, and
 // can only be safely closed.
-char fileGet(FileStream *);
+char fsGet(FileStream *);
 // backs up a character.
 // returns FS_ERR if there is an error, i.e. backing up before start of file
 // returning FS_ERR indicates the stream may be in an inconsistent state, and
 // can only be safely closed.
-int fileUnget(FileStream *);
+int fsUnget(FileStream *);
 
 // closes a file. silently fails if unsuccessful; no recovery is possible
-void fileClose(FileStream *);
+void fsClose(FileStream *);
 
 #endif  // TLC_UTIL_FILESTREAM_H_

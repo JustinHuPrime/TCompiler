@@ -10,21 +10,6 @@
 int main(void) {
   TestStatus *status = testStatusCreate();
 
-  printf(
-      "\x1B[91mWarning! Five test suites disabled!\nWarning! Insufficient test "
-      "suites written!\n\x1B[m\n");
-
-  constExpParseIntTest(status);
-  // constExpParseFloatTest(status);
-  // constExpParseStringTest(status);
-  constExpParseCharTest(status);
-  // constExpParseWStringTest(status);
-  constExpParseWCharTest(status);
-  nodeListTest(status);
-  nodeListPairTest(status);
-  // symbolTableTest(status);
-  // symbolTableTableTest(status);
-
   testStatusDisplay(status);
 
   int retVal = testStatusStatus(status);

@@ -18,7 +18,7 @@ This repo is the source code for the T Language Compiler, `tlc`.
 
 #### Warnings
 
-All warning options have three forms, a `-Werror` form, a `-W...` form, and a `-Wno-...` form. These forms instruct the compiler to either produce an error if this particular event is encountered (stopping compilation), produce a warning, or ignore the issue.
+All warning options have three forms, a `-Werror-` form, a `-W...` form, and a `-Wno-...` form. These forms instruct the compiler to either produce an error if this particular event is encountered (stopping compilation), produce a warning, or ignore the issue. So, for example, `-Werror-foo` makes `foo` into an error, `-Wfoo` makes `foo` into a warning, and `-Wno-foo` ignores `foo`.
 
 * `duplciate-file`: duplciated files given. Defaults to error. If not an error, later files have no effect.
 
