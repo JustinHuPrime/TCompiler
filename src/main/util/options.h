@@ -27,7 +27,7 @@ typedef enum {
 typedef uint64_t Options;
 
 // ctor
-Options *parseArgs(Report *report, size_t argc, char **argv);
+Options *parseOptions(Report *report, size_t argc, char const *const *argv);
 
 // gets the nth option
 bool getOpt(Options *, OptionIndex);

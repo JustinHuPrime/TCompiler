@@ -13,8 +13,8 @@
 #include <string.h>
 
 // ctor
-FileList *sortFiles(Report *report, Options *options, size_t argc,
-                    char **argv) {
+FileList *parseFiles(Report *report, Options *options, size_t argc,
+                     char const *const *argv) {
   FileList *list = malloc(sizeof(FileList));
 
   list->numDecl = 0;
@@ -91,7 +91,7 @@ FileList *sortFiles(Report *report, Options *options, size_t argc,
 }
 // dtor
 void fileListDestroy(FileList *list) {
-  free(list->decls);
-  free(list->codes);
+  if (list->decls != NULL) free(list->decls);
+  if (list->codes != NULL) free(list->codes);
   free(list);
 }

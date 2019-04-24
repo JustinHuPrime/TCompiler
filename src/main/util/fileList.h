@@ -23,7 +23,8 @@ typedef struct {
 } FileList;
 
 // ctor
-FileList *sortFiles(Report *report, Options *options, size_t argc, char **argv);
+FileList *parseFiles(Report *report, Options *options, size_t argc,
+                     char const *const *argv);
 // dtor
 void fileListDestroy(FileList *);
 

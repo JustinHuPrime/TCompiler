@@ -9,16 +9,14 @@
 
 #include "engine.h"
 
-// // in ast/constExpParseTest.c
-// void constExpParseIntTest(TestStatus *);
-// void constExpParseFloatTest(TestStatus *);
-// void constExpParseStringTest(TestStatus *);
-// void constExpParseCharTest(TestStatus *);
-// void constExpParseWStringTest(TestStatus *);
-// void constExpParseWCharTest(TestStatus *);
+// in ast/astNodeList.c
+void astNodeListTest(TestStatus *);
+void astNodeListPairTest(TestStatus *);
 
-// // in ast/nodeListTest.c
-// void nodeListTest(TestStatus *);
-// void nodeListPairTest(TestStatus *);
+// in util/errorReport.c
+void errorReportTest(TestStatus *);
+
+// in util/fileList.c
+void fileListTest(TestStatus *);
 
 #endif  // TLC_TEST_AST_CONSTEXPPARSETEST_H_

@@ -22,7 +22,7 @@ static void setOpt(Options *options, OptionIndex optionIndex, bool value) {
     options[idx / 64] &= ~(0x1ul << idx % 64);
   }
 }
-Options *parseArgs(Report *report, size_t argc, char **argv) {
+Options *parseOptions(Report *report, size_t argc, char const *const *argv) {
   Options *options = calloc((1 + (NUM_OPTS - 1) / 64), sizeof(uint64_t));
 
   // set initial state (default is false)
@@ -35,9 +35,9 @@ Options *parseArgs(Report *report, size_t argc, char **argv) {
   for (size_t idx = 1; idx < argc; idx++) {
     if (argv[idx][0] != '-') {  // not an option
       continue;
-    } else if (strcmp(argv[idx], "--arch=x86") == 0) {
+    } else if (strcmp(argv[idx], "-Ax86") == 0) {
       setOpt(options, OPT_ARCH_X86, true);
-    } else if (strcmp(argv[idx], "--arch=sep") == 0) {
+    } else if (strcmp(argv[idx], "-Asep") == 0) {
       setOpt(options, OPT_ARCH_SEP, true);
     } else if (strcmp(argv[idx], "-Werror-duplicate-file")) {
       setOpt(options, OPT_WARN_UNRECOGNIZED_FILE, true);

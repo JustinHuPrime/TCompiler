@@ -12,9 +12,9 @@ This repo is the source code for the T Language Compiler, `tlc`.
 
 #### Architecture
 
-* `--arch=x86`: sets the architecture to target to x86_64. Conflicts with `--arch=sep`.
+* `-Ax86`: sets the architecture to target to x86_64. Conflicts with `-Asep`.
 
-* `--arch=sep`: sets the architecture to target to sep. Conflicts with `--arch=x86`.
+* `-Asep`: sets the architecture to target to sep. Conflicts with `-Ax86`.
 
 #### Warnings
 

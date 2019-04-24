@@ -14,7 +14,8 @@ int main(int argc, char *argv[]) {
   Report *report = reportCreate();
 
   // Read the given options, and validate them
-  Options *options = parseArgs(report, (size_t)argc, argv);
+  Options *options =
+      parseOptions(report, (size_t)argc, (char const *const *)argv);
   if (reportState(report) == RPT_ERR) {
     reportDisplay(report);
 
@@ -24,7 +25,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Sort the given files, and validate them
-  FileList *files = sortFiles(report, options, (size_t)argc, argv);
+  FileList *files =
+      parseFiles(report, options, (size_t)argc, (char const *const *)argv);
   if (reportState(report) == RPT_ERR) {
     reportDisplay(report);
 
