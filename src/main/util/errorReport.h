@@ -7,12 +7,12 @@
 #ifndef TLC_UTIL_ERRORREPORT_H_
 #define TLC_UTIL_ERRORREPORT_H_
 
+#include "util/vector.h"
+
 #include <stddef.h>
 
 typedef struct {
-  size_t messagesSize;
-  size_t messagesCapacity;
-  char **messages;
+  Vector *messages;
   size_t errors;
   size_t warnings;
 } Report;

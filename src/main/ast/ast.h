@@ -7,18 +7,16 @@
 #ifndef TLC_AST_AST_H_
 #define TLC_AST_AST_H_
 
+#include "util/vector.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 struct Node;
 
-// A list of nodes, vector-style
-typedef struct {
-  size_t size;
-  size_t capacity;
-  struct Node **elements;
-} NodeList;
+// specialization of vector
+typedef Vector NodeList;
 
 // constructor
 NodeList *nodeListCreate(void);

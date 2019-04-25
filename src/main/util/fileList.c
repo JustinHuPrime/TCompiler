@@ -7,6 +7,7 @@
 #include "util/fileList.h"
 
 #include "util/format.h"
+#include "util/functional.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,10 +18,8 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
                      char const *const *argv) {
   FileList *list = malloc(sizeof(FileList));
 
-  list->numDecl = 0;
-  list->decls = NULL;
-  list->numCode = 0;
-  list->codes = NULL;
+  list->decls = vectorCreate();
+  list->codes = vectorCreate();
 
   for (size_t idx = 1; idx < argc; idx++) {
     // skip - this is an option
@@ -31,8 +30,8 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
         argv[idx][length - 2] == 't' && argv[idx][length - 1] == 'c') {
       // this is a code file
       bool duplicated = false;
-      for (size_t cidx = 0; cidx < list->numCode; cidx++) {
-        if (strcmp(list->codes[cidx], argv[idx]) == 0) {
+      for (size_t cidx = 0; cidx < list->codes->size; cidx++) {
+        if (strcmp(list->codes->elements[cidx], argv[idx]) == 0) {
           duplicated = true;
           break;
         }
@@ -45,16 +44,17 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
                         format("%s: warning: duplicated file", argv[idx]));
         }
       } else {
-        list->codes =
-            realloc(list->codes, ++list->numCode * sizeof(char const *));
-        list->codes[list->numCode - 1] = argv[idx];
+#pragma GCC diagnostic push  // generic code demands an unsafe cast
+#pragma GCC diagnostic ignored "-Wcast-qual"
+        vectorInsert(list->codes, (char *)argv[idx]);
+#pragma GCC diagnostic pop
       }
     } else if (length > 3 && argv[idx][length - 3] == '.' &&
                argv[idx][length - 2] == 't' && argv[idx][length - 1] == 'd') {
       // this is a decl file
       bool duplicated = false;
-      for (size_t cidx = 0; cidx < list->numDecl; cidx++) {
-        if (strcmp(list->decls[cidx], argv[idx]) == 0) {
+      for (size_t cidx = 0; cidx < list->decls->size; cidx++) {
+        if (strcmp(list->decls->elements[cidx], argv[idx]) == 0) {
           duplicated = true;
           break;
         }
@@ -67,9 +67,10 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
                         format("%s: warning: duplicated file", argv[idx]));
         }
       } else {
-        list->decls =
-            realloc(list->decls, ++list->numDecl * sizeof(char const *));
-        list->decls[list->numDecl - 1] = argv[idx];
+#pragma GCC diagnostic push  // generic code demands an unsafe cast
+#pragma GCC diagnostic ignored "-Wcast-qual"
+        vectorInsert(list->decls, (char *)argv[idx]);
+#pragma GCC diagnostic pop
       }
     } else {
       if (getOpt(options, OPT_WARN_UNRECOGNIZED_FILE)) {
@@ -91,7 +92,7 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
 }
 // dtor
 void fileListDestroy(FileList *list) {
-  if (list->decls != NULL) free(list->decls);
-  if (list->codes != NULL) free(list->codes);
+  vectorDestroy(list->decls, nullDtor);
+  vectorDestroy(list->codes, nullDtor);
   free(list);
 }

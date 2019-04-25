@@ -23,19 +23,19 @@ void fileListTest(TestStatus *status) {
   fileList = parseFiles(report, options, 1, NULL);
   test(status,
        "[util] [errorReport] [fileList] empty list produces no code files",
-       fileList->numCode == 0);
+       fileList->codes->size == 0);
   test(status,
        "[util] [errorReport] [fileList] empty list produces no decl files",
-       fileList->numDecl == 0);
+       fileList->decls->size == 0);
   fileListDestroy(fileList);
 
   fileList = parseFiles(report, options, 3, good);
   test(status,
        "[util] [errorReport] [fileList] code file is parsed as code file",
-       fileList->codes[0] == good[1]);
+       fileList->codes->elements[0] == good[1]);
   test(status,
        "[util] [errorReport] [fileList] decl file is parsed as decl file",
-       fileList->decls[0] == good[2]);
+       fileList->decls->elements[0] == good[2]);
   fileListDestroy(fileList);
 
   fileList = parseFiles(report, options, 3, badExt);
@@ -43,7 +43,7 @@ void fileListTest(TestStatus *status) {
        reportState(report) == RPT_ERR);
   test(status,
        "[util] [errorReport] [fileList] further files are processed correctly",
-       fileList->codes[0] == badExt[2]);
+       fileList->codes->elements[0] == badExt[2]);
   fileListDestroy(fileList);
 
   fileList = parseFiles(report, options, 3, badDup);
@@ -51,7 +51,7 @@ void fileListTest(TestStatus *status) {
        reportState(report) == RPT_ERR);
   test(status,
        "[util] [errorReport] [fileList] first file is processed correctly",
-       fileList->codes[0] == badDup[1]);
+       fileList->codes->elements[0] == badDup[1]);
   fileListDestroy(fileList);
 
   optionsDestroy(options);

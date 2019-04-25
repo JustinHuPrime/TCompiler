@@ -13,28 +13,12 @@
 #include <stdio.h>
 
 // NodeList
-NodeList *nodeListCreate(void) {
-  NodeList *list = malloc(sizeof(NodeList));
-  list->size = 0;
-  list->capacity = 1;
-  list->elements = malloc(sizeof(Node *));
-  return list;
-}
+NodeList *nodeListCreate(void) { return vectorCreate(); }
 
-void nodeListInsert(NodeList *list, Node *node) {
-  if (list->size == list->capacity) {
-    list->capacity *= 2;
-    list->elements = realloc(list->elements, list->capacity * sizeof(Node *));
-  }
-  list->elements[list->size++] = node;
-}
+void nodeListInsert(NodeList *list, Node *node) { vectorInsert(list, node); }
 
 void nodeListDestroy(NodeList *list) {
-  for (size_t idx = 0; idx < list->size; idx++) {
-    nodeDestroy(list->elements[idx]);
-  }
-  free(list->elements);
-  free(list);
+  vectorDestroy(list, (void (*)(void *))nodeDestroy);
 }
 
 // NodePairList

@@ -11,15 +11,13 @@
 #include "ast/ast.h"
 #include "util/errorReport.h"
 #include "util/options.h"
+#include "util/vector.h"
 
 #include <stddef.h>
 
 typedef struct {
-  size_t numDecl;
-  char const **decls;
-
-  size_t numCode;
-  char const **codes;
+  Vector *decls;
+  Vector *codes;
 } FileList;
 
 // ctor
