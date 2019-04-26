@@ -21,36 +21,30 @@ void fileListTest(TestStatus *status) {
 
   // ctor
   fileList = parseFiles(report, options, 1, NULL);
-  test(status,
-       "[util] [errorReport] [fileList] empty list produces no code files",
+  test(status, "[util] [fileList] [ctor] empty list produces no code files",
        fileList->codes->size == 0);
-  test(status,
-       "[util] [errorReport] [fileList] empty list produces no decl files",
+  test(status, "[util] [fileList] [ctor] empty list produces no decl files",
        fileList->decls->size == 0);
   fileListDestroy(fileList);
 
   fileList = parseFiles(report, options, 3, good);
-  test(status,
-       "[util] [errorReport] [fileList] code file is parsed as code file",
+  test(status, "[util] [fileList] [ctor] code file is parsed as code file",
        fileList->codes->elements[0] == good[1]);
-  test(status,
-       "[util] [errorReport] [fileList] decl file is parsed as decl file",
+  test(status, "[util] [fileList] [ctor] decl file is parsed as decl file",
        fileList->decls->elements[0] == good[2]);
   fileListDestroy(fileList);
 
   fileList = parseFiles(report, options, 3, badExt);
-  test(status, "[util] [errorReport] [fileList] badExt is caught",
+  test(status, "[util] [fileList] [ctor] badExt is caught",
        reportState(report) == RPT_ERR);
-  test(status,
-       "[util] [errorReport] [fileList] further files are processed correctly",
+  test(status, "[util] [fileList] [ctor] further files are processed correctly",
        fileList->codes->elements[0] == badExt[2]);
   fileListDestroy(fileList);
 
   fileList = parseFiles(report, options, 3, badDup);
-  test(status, "[util] [errorReport] [fileList] duplicate is caught",
+  test(status, "[util] [fileList] [ctor] duplicate is caught",
        reportState(report) == RPT_ERR);
-  test(status,
-       "[util] [errorReport] [fileList] first file is processed correctly",
+  test(status, "[util] [fileList] [ctor] first file is processed correctly",
        fileList->codes->elements[0] == badDup[1]);
   fileListDestroy(fileList);
 
