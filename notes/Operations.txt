@@ -24,8 +24,8 @@ a - b
 
 5 (shift):
 a << b
-a >> b
-a >>> b
+a >> b // arithmetic, like Java
+a >>> b // logical, like Java
 
 6 (spaceship):
 a <=> b

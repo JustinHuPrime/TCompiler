@@ -35,7 +35,7 @@ enum_declaration = "enum", identifier, "{", { identifier }+, "}", ";", ;
 enum_forward_declaration = "struct", identifier, ";" ;
 typedef_declaration = "typedef", type, identifier, ";" ;
 
-function = type, identifier, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")", compound_statement ;
+function = type, identifier, "(", [ type, [ identifier, [ "=", literal ] ] ], { ",", type, [ identifier, [ "=", literal ] ] } ], ")", compound_statement ;
 
 statement = compound_statement
           | if_statement
@@ -61,7 +61,7 @@ break_statement = "break", ";" ;
 continue_statement = "continue", ";" ;
 return_statement = "return", [ expression ], ";" ;
 variable_declaration_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
-asm_statement = "asm", cstring_constant ;
+asm_statement = "asm", string_constant ;
 expression = assignment_expression
            | expression, ",", assignment_expression
            ;
@@ -139,15 +139,7 @@ postfix_expression = primary_expression
                    | postfix_expression, "--"
                    ;
 primary_expression = scoped_identifier
-                   | int_constant
-                   | float_constant
-                   | cstring_constant
-                   | character_constant
-                   | wcstring_constant
-                   | wcharacter_constant
-                   | "true"
-                   | "false"
-                   | aggregate_initializer
+                   | literal
                    | "cast", "[", type, "]", "(", expression, ")"
                    | "sizeof", "(", ( expression | type ), ")"
                    | "(", expression, ")"
@@ -157,9 +149,9 @@ aggregate_initializer: "<", literal_list, ">" ;
 literal_list = [ literal, { ",", literal } ] ;
 literal = int_constant
         | float_constant
-        | cstring_constant
+        | string_constant
         | character_constant
-        | wcstring_constant
+        | wstring_constant
         | wcharacter_constant
         | "true"
         | "false"
@@ -169,8 +161,10 @@ literal = int_constant
 type = "void"
      | "ubyte"
      | "byte"
+     | "char"
      | "uint"
      | "int"
+     | "wchar"
      | "ulong"
      | "long"
      | "float"
@@ -189,7 +183,7 @@ scoped_type_identifier = ? Any scoped identifier that names a type ? ;
 identifier = ? Anything starting with an underscore or an alphabetical character, and containing only alphanumeric characters or underscores ? ;
 int_constant = ? Any integer constant that fits in a long, possibly including a sign ? ;
 float_constant = ? Any floating point constant that fits in a double, possibly including a sign ? ;
-cstring_constant = ? Any string literal constant ? ;
+string_constant = ? Any string literal constant ? ;
 character_constant = ? Any character literal constant ? ;
-wcstring_constant = ? Any wide string literal constant ? ;
+wstring_constant = ? Any wide string literal constant ? ;
 wcharacter_constant= ? Any wide character literal constant ? ;

@@ -19,15 +19,15 @@ whitespace = " "
 keyword = "module" | "using" | "struct" | "union" | "enum" | "typedef" | "if"
         | "else" | "while" | "do" | "for" | "switch" | "case" | "default"
         | "break" | "continue" | "return" | "asm" | "true" | "false" | "cast"
-        | "sizeof" | "void" | "ubyte" | "byte" | "uint" | "int" | "ulong"
-        | "long" | "float" | "double" | "bool" | "const"
+        | "sizeof" | "void" | "ubyte" | "byte" | "char" | "uint" | "int"
+        | "wchar" | "ulong" | "long" | "float" | "double" | "bool" | "const"
         ;
 punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "." | "->" | "++"
             | "--" | "*" | "&" | "+" | "-" | "!" | "~" | "/" | "%" | "<<"
             | ">>" | ">>>" | "<=>" | "<" | ">" | "<=" | ">=" | "==" | "!="
             | "|" | "^" | "&&" | "||" | "?" | ":" | "=" | "*=" | "/=" | "%="
             | "+=" | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|=" | "&&="
-            | "||=" | "::"
+            | "||="
             ;
 identifier = ( alphabetic_character | "_" ), { alphabetic_character | digit_character | "_" } ;
 scoped_identifier = identifier { "::", identifier } ;
