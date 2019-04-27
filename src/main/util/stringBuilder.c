@@ -34,6 +34,8 @@ char *stringBuilderData(StringBuilder *sb) {
   return string;
 }
 
+void stringBuilderClear(StringBuilder *sb) { sb->size = 0; }
+
 void stringBuilderDestroy(StringBuilder *sb) {
   free(sb->string);
   free(sb);

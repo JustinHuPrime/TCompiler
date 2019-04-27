@@ -23,6 +23,8 @@ void stringBuilderPush(StringBuilder *, char);
 void stringBuilderPop(StringBuilder *);
 // produces a new null terminated c-string that copies current data
 char *stringBuilderData(StringBuilder *);
+// clears the current string
+void stringBuilderClear(StringBuilder *);
 // dtor; also deletes the current string
 void stringBuilderDestroy(StringBuilder *);
 
