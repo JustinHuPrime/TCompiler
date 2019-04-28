@@ -1,7 +1,4 @@
 /tlc
 /tlc-test
-*.tc
-*.td
-parser.output
 /bin/
 /dependencies/

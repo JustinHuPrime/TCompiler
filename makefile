@@ -83,7 +83,7 @@ clean:
 	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) $(EXENAME) $(TEXENAME)
 
 
-$(EXENAME): $(OBJS) $(GENERATEDOBJS)
+$(EXENAME): $(OBJS)
 	@echo "Linking $@"
 	@$(CC) -o $(EXENAME) $(OPTIONS) $(OBJS) $(LIBS)
 
@@ -99,9 +99,9 @@ $(DEPS): $$(patsubst $(DEPDIR)/%.dep,$(SRCDIR)/%.c,$$@) | $$(dir $$@)
 	 rm -f $@.$$$$
 
 
-$(TEXENAME): $(TOBJS) $(OBJS) $(GENERATEDOBJS)
+$(TEXENAME): $(TOBJS) $(OBJS)
 	@echo "Linking $@"
-	@$(CC) -o $(TEXENAME) $(OPTIONS) $(TOPTIONS) $(filter-out %main.o,$(OBJS)) $(GENERATEDOBJS) $(TOBJS) $(LIBS)
+	@$(CC) -o $(TEXENAME) $(OPTIONS) $(TOPTIONS) $(filter-out %main.o,$(OBJS)) $(TOBJS) $(LIBS)
 
 $(TOBJS): $$(patsubst $(TOBJDIR)/%.o,$(TSRCDIR)/%.c,$$@) $$(patsubst $(TOBJDIR)/%.o,$(TDEPDIR)/%.dep,$$@) | $$(dir $$@)
 	@echo "Compiling $@"
