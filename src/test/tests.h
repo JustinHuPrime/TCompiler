@@ -19,7 +19,7 @@ void errorReportTest(TestStatus *);
 // in util/fileList.c
 void fileListTest(TestStatus *);
 
-// in util/fileStream.c
-void fileStreamTest(TestStatus *);
+// in util/file.c
+void fileTest(TestStatus *);
 
 #endif  // TLC_TEST_AST_CONSTEXPPARSETEST_H_

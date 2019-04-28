@@ -15,7 +15,7 @@ int main(void) {
 
   errorReportTest(status);
   fileListTest(status);
-  fileStreamTest(status);
+  fileTest(status);
 
   testStatusDisplay(status);
 

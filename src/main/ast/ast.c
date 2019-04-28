@@ -473,12 +473,12 @@ Node *constBinaryIntExpNodeCreate(size_t line, size_t character,
   size_t acc = 0;
   bool overflow = false;
 
-  for (char *str = constantString + 2 + (sign == S_UNSIGNED ? 0 : 1);
-       *str != '\0'; str++) {
+  for (constantString += 2 + (sign == S_UNSIGNED ? 0 : 1);
+       *constantString != '\0'; constantString++) {
     size_t oldAcc = acc;
 
     acc *= 2;
-    acc += (uint64_t)(*str - '0');
+    acc += (uint64_t)(*constantString - '0');
 
     if (acc < oldAcc) {  // overflowed!
       overflow = true;
@@ -496,12 +496,12 @@ Node *constOctalIntExpNodeCreate(size_t line, size_t character,
   size_t acc = 0;
   bool overflow = false;
 
-  for (char *str = constantString + 1 + (sign == S_UNSIGNED ? 0 : 1);
-       *str != '\0'; str++) {
+  for (constantString += 1 + (sign == S_UNSIGNED ? 0 : 1);
+       *constantString != '\0'; constantString++) {
     size_t oldAcc = acc;
 
     acc *= 8;
-    acc += (uint64_t)(*str - '0');
+    acc += (uint64_t)(*constantString - '0');
 
     if (acc < oldAcc) {  // overflowed!
       overflow = true;
@@ -519,12 +519,12 @@ Node *constDecimalIntExpNodeCreate(size_t line, size_t character,
   size_t acc = 0;
   bool overflow = false;
 
-  for (char *str = constantString + 2 + (sign == S_UNSIGNED ? 0 : 1);
-       *str != '\0'; str++) {
+  for (constantString += 2 + (sign == S_UNSIGNED ? 0 : 1);
+       *constantString != '\0'; constantString++) {
     size_t oldAcc = acc;
 
     acc *= 10;
-    acc += (uint64_t)(*str - '0');
+    acc += (uint64_t)(*constantString - '0');
 
     if (acc < oldAcc) {  // overflowed!
       overflow = true;
@@ -542,12 +542,12 @@ Node *constHexadecimalIntExpNodeCreate(size_t line, size_t character,
   size_t acc = 0;
   bool overflow = false;
 
-  for (char *str = constantString + 2 + (sign == S_UNSIGNED ? 0 : 1);
-       *str != '\0'; str++) {
+  for (constantString += 2 + (sign == S_UNSIGNED ? 0 : 1);
+       *constantString != '\0'; constantString++) {
     size_t oldAcc = acc;
 
     acc *= 16;
-    acc += charToHex(*str);
+    acc += charToHex(*constantString);
 
     if (acc < oldAcc) {  // overflowed!
       overflow = true;
