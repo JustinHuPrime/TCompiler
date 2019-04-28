@@ -481,8 +481,14 @@ Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *basePtr,
 Node *fnCallExpNodeCreate(size_t line, size_t character, Node *functionId,
                           NodeList *args);
 Node *idExpNodeCreate(size_t line, size_t character, char *idString);
-Node *constIntExpNodeCreate(size_t line, size_t character,
-                            char *constantString);
+Node *constBinaryIntExpNodeCreate(size_t line, size_t character,
+                                  char *constantString);
+Node *constOctalIntExpNodeCreate(size_t line, size_t character,
+                                 char *constantString);
+Node *constDecimalIntExpNodeCreate(size_t line, size_t character,
+                                   char *constantString);
+Node *constHexadecimalIntExpNodeCreate(size_t line, size_t character,
+                                       char *constantString);
 Node *constFloatExpNodeCreate(size_t line, size_t character,
                               char *constantString);
 Node *constCharExpNodeCreate(size_t line, size_t character,

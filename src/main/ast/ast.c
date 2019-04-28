@@ -380,6 +380,11 @@ Node *idExpNodeCreate(size_t line, size_t character, char *id) {
 }
 
 // Constant parsing
+typedef enum {
+  S_POSITIVE,
+  S_NEGATIVE,
+  S_UNSIGNED,
+} Sign;
 static uint8_t charToHex(char c) {
   if (isdigit(c)) {
     return (uint8_t)(c - '0');
@@ -394,212 +399,62 @@ static Node *constExpNodeCreate(size_t line, size_t character) {
   node->type = NT_CONSTEXP;
   return node;
 }
-Node *constIntExpNodeCreate(size_t line, size_t character,
-                            char *constantString) {
-  Node *node = constExpNodeCreate(line, character);
-
-  enum {
-    START,
-    SEEN_SIGN,
-    SEEN_ZERO,
-    IS_ZERO,
-    IS_BINARY,
-    IS_OCTAL,
-    IS_DECIMAL,
-    IS_HEX,
-  } state = START;  // this uses a DFA to parse the int
-  size_t length = strlen(constantString);
-
-  enum {
-    POSITIVE,
-    NEGATIVE,
-    UNSIGNED,
-  } sign = UNSIGNED;
-  bool overflow = false;
-
-  uint64_t acc = 0;
-
-  for (size_t idx = 0; idx <= length; idx++) {
-    char current = constantString[idx];
-    switch (state) {
-      case START: {
-        switch (current) {
-          case '-': {
-            sign = NEGATIVE;
-            state = SEEN_SIGN;
-            break;
-          }
-          case '+': {
-            sign = POSITIVE;
-            state = SEEN_SIGN;
-            break;
-          }
-          case '0': {
-            state = SEEN_ZERO;
-            break;
-          }
-          default: {
-            state = IS_DECIMAL;  // must be [0-9] based on lex
-            idx--;               // back up, keep going
-            break;
-          }
-        }
-        break;
-      }
-      case SEEN_SIGN: {
-        switch (current) {
-          case '0': {
-            state = SEEN_ZERO;
-            break;
-          }
-          default: {
-            state = IS_DECIMAL;  // must be [0-9] based on lex
-            idx--;               // back up, keep going
-            break;
-          }
-        }
-        break;
-      }
-      case SEEN_ZERO: {
-        switch (current) {
-          case '\0': {
-            state = IS_ZERO;
-            idx--;  // back up, keep going
-            break;
-          }
-          case 'x': {
-            state = IS_HEX;
-            break;
-          }
-          case 'b': {
-            state = IS_BINARY;
-            break;
-          }
-          default: {
-            state = IS_OCTAL;  // must be [0-7] based on lex
-            idx--;             // back up, keep going
-            break;
-          }
-        }
-        break;
-      }
-      case IS_ZERO: {
-        acc = 0;
-        idx = length;  // be done
-        break;
-      }
-      case IS_BINARY: {
-        for (; idx < length; idx++) {
-          size_t oldAcc = acc;
-
-          acc *= 2;
-          acc += (uint64_t)(constantString[idx] - '0');
-
-          if (acc < oldAcc) {  // overflowed!
-            overflow = true;
-            break;
-          }
-        }
-
-        idx = length;  // be done
-        break;
-      }
-      case IS_OCTAL: {
-        for (; idx < length; idx++) {
-          size_t oldAcc = acc;
-
-          acc *= 8;
-          acc += (uint64_t)(constantString[idx] - '0');
-
-          if (acc < oldAcc) {  // overflowed!
-            overflow = true;
-            break;
-          }
-        }
-
-        idx = length;  // be done
-        break;
-      }
-      case IS_DECIMAL: {
-        for (; idx < length; idx++) {
-          size_t oldAcc = acc;
-
-          acc *= 10;
-          acc += (uint64_t)(constantString[idx] - '0');
-
-          if (acc < oldAcc) {  // overflowed!
-            overflow = true;
-            break;
-          }
-        }
-
-        idx = length;  // be done
-        break;
-      }
-      case IS_HEX: {
-        for (; idx < length; idx++) {
-          current = constantString[idx];
-          size_t oldAcc = acc;
-
-          acc *= 16;
-          acc += charToHex(current);
-
-          if (acc < oldAcc) {  // overflowed!
-            overflow = true;
-            break;
-          }
-        }
-
-        idx = length;  // be done
-        break;
-      }
-    }
+static Sign constIntExpGetSign(char *constantString) {
+  switch (constantString[0]) {
+    case '+':
+      return S_POSITIVE;
+    case '-':
+      return S_NEGATIVE;
+    default:
+      return S_UNSIGNED;
   }
-
+}
+static Node *constIntExpSetValue(Node *node, Sign sign, bool overflow,
+                                 size_t value) {
   if (overflow) {
     node->data.constExp.type = CT_RANGE_ERROR;
   } else {
     switch (sign) {
-      case UNSIGNED: {
-        if (acc <= UBYTE_MAX) {
+      case S_UNSIGNED: {
+        if (value <= UBYTE_MAX) {
           node->data.constExp.type = CT_UBYTE;
-          node->data.constExp.value.ubyteVal = (uint8_t)acc;
-        } else if (acc <= UINT_MAX) {
+          node->data.constExp.value.ubyteVal = (uint8_t)value;
+        } else if (value <= UINT_MAX) {
           node->data.constExp.type = CT_UINT;
-          node->data.constExp.value.uintVal = (uint32_t)acc;
-        } else if (acc <= ULONG_MAX) {
+          node->data.constExp.value.uintVal = (uint32_t)value;
+        } else if (value <= ULONG_MAX) {
           node->data.constExp.type = CT_ULONG;
-          node->data.constExp.value.ulongVal = acc;
+          node->data.constExp.value.ulongVal = value;
         } else {
           node->data.constExp.type = CT_RANGE_ERROR;
         }
         break;
       }
-      case POSITIVE: {
-        if (acc <= BYTE_MAX) {
+      case S_POSITIVE: {
+        if (value <= BYTE_MAX) {
           node->data.constExp.type = CT_BYTE;
-          node->data.constExp.value.byteVal = (int8_t)acc;
-        } else if (acc <= INT_MAX) {
+          node->data.constExp.value.byteVal = (int8_t)value;
+        } else if (value <= INT_MAX) {
           node->data.constExp.type = CT_INT;
-          node->data.constExp.value.intVal = (int32_t)acc;
-        } else if (acc <= LONG_MAX) {
+          node->data.constExp.value.intVal = (int32_t)value;
+        } else if (value <= LONG_MAX) {
           node->data.constExp.type = CT_LONG;
-          node->data.constExp.value.longVal = (int64_t)acc;
+          node->data.constExp.value.longVal = (int64_t)value;
         } else {
           node->data.constExp.type = CT_RANGE_ERROR;
         }
         break;
       }
-      case NEGATIVE: {
-        if (acc <= BYTE_MIN) {
+      case S_NEGATIVE: {
+        if (value <= BYTE_MIN) {
           node->data.constExp.type = CT_BYTE;
-          node->data.constExp.value.byteVal = (int8_t)-acc;
-        } else if (acc <= INT_MIN) {
+          node->data.constExp.value.byteVal = (int8_t)-value;
+        } else if (value <= INT_MIN) {
           node->data.constExp.type = CT_INT;
-          node->data.constExp.value.intVal = (int32_t)-acc;
-        } else if (acc <= LONG_MIN) {
+          node->data.constExp.value.intVal = (int32_t)-value;
+        } else if (value <= LONG_MIN) {
           node->data.constExp.type = CT_LONG;
-          node->data.constExp.value.longVal = (int64_t)-acc;
+          node->data.constExp.value.longVal = (int64_t)-value;
         } else {
           node->data.constExp.type = CT_RANGE_ERROR;
         }
@@ -610,9 +465,102 @@ Node *constIntExpNodeCreate(size_t line, size_t character,
 
   return node;
 }
+Node *constBinaryIntExpNodeCreate(size_t line, size_t character,
+                                  char *constantString) {
+  Node *node = constExpNodeCreate(line, character);
+  Sign sign = constIntExpGetSign(constantString);
+
+  size_t acc = 0;
+  bool overflow = false;
+
+  for (char *str = constantString + 2 + (sign == S_UNSIGNED ? 0 : 1);
+       *str != '\0'; str++) {
+    size_t oldAcc = acc;
+
+    acc *= 2;
+    acc += (uint64_t)(*str - '0');
+
+    if (acc < oldAcc) {  // overflowed!
+      overflow = true;
+      break;
+    }
+  }
+
+  return constIntExpSetValue(node, sign, overflow, acc);
+}
+Node *constOctalIntExpNodeCreate(size_t line, size_t character,
+                                 char *constantString) {
+  Node *node = constExpNodeCreate(line, character);
+  Sign sign = constIntExpGetSign(constantString);
+
+  size_t acc = 0;
+  bool overflow = false;
+
+  for (char *str = constantString + 1 + (sign == S_UNSIGNED ? 0 : 1);
+       *str != '\0'; str++) {
+    size_t oldAcc = acc;
+
+    acc *= 8;
+    acc += (uint64_t)(*str - '0');
+
+    if (acc < oldAcc) {  // overflowed!
+      overflow = true;
+      break;
+    }
+  }
+
+  return constIntExpSetValue(node, sign, overflow, acc);
+}
+Node *constDecimalIntExpNodeCreate(size_t line, size_t character,
+                                   char *constantString) {
+  Node *node = constExpNodeCreate(line, character);
+  Sign sign = constIntExpGetSign(constantString);
+
+  size_t acc = 0;
+  bool overflow = false;
+
+  for (char *str = constantString + 2 + (sign == S_UNSIGNED ? 0 : 1);
+       *str != '\0'; str++) {
+    size_t oldAcc = acc;
+
+    acc *= 10;
+    acc += (uint64_t)(*str - '0');
+
+    if (acc < oldAcc) {  // overflowed!
+      overflow = true;
+      break;
+    }
+  }
+
+  return constIntExpSetValue(node, sign, overflow, acc);
+}
+Node *constHexadecimalIntExpNodeCreate(size_t line, size_t character,
+                                       char *constantString) {
+  Node *node = constExpNodeCreate(line, character);
+  Sign sign = constIntExpGetSign(constantString);
+
+  size_t acc = 0;
+  bool overflow = false;
+
+  for (char *str = constantString + 2 + (sign == S_UNSIGNED ? 0 : 1);
+       *str != '\0'; str++) {
+    size_t oldAcc = acc;
+
+    acc *= 16;
+    acc += charToHex(*str);
+
+    if (acc < oldAcc) {  // overflowed!
+      overflow = true;
+      break;
+    }
+  }
+
+  return constIntExpSetValue(node, sign, overflow, acc);
+}
 Node *constFloatExpNodeCreate(size_t line, size_t character,
                               char *constantString) {
   Node *node = constExpNodeCreate(line, character);
+  Sign sign = constIntExpGetSign(constantString);
 
   // TODO: write
 
