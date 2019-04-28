@@ -660,6 +660,10 @@ void printNodeStructure(Node const *node) {
           printf("KEYWORDTYPE(ubyte)");
           break;
         }
+        case TK_CHAR: {
+          printf("KEYWORDTYPE(char)");
+          break;
+        }
         case TK_BYTE: {
           printf("KEYWORDTYPE(byte)");
           break;
@@ -670,6 +674,10 @@ void printNodeStructure(Node const *node) {
         }
         case TK_INT: {
           printf("KEYWORDTYPE(int)");
+          break;
+        }
+        case TK_WCHAR: {
+          printf("KEYWORDTYPE(wchar)");
           break;
         }
         case TK_ULONG: {
@@ -1391,12 +1399,20 @@ void printNode(Node const *node) {
           printf("byte");
           break;
         }
+        case TK_CHAR: {
+          printf("char");
+          break;
+        }
         case TK_UINT: {
           printf("uint");
           break;
         }
         case TK_INT: {
           printf("int");
+          break;
+        }
+        case TK_WCHAR: {
+          printf("wchar");
           break;
         }
         case TK_ULONG: {
