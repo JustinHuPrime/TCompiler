@@ -489,19 +489,90 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
         break;
       }
       case LS_AND_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_BITANDASSIGN;
+          }
+          case '&': {
+            state = LS_LAND_OP;
+            info->character++;
+            break;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_AMPERSAND;
+          }
+        }
         break;
       }
       case LS_OR_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_BITORASSIGN;
+          }
+          case '|': {
+            state = LS_LOR_OP;
+            info->character++;
+            break;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_PIPE;
+          }
+        }
         break;
       }
       case LS_LT_OP: {
-        switch (c) {}
+        switch (c) {
+          case '<': {
+            state = LS_LSHIFT_OP;
+            info->character++;
+            break;
+          }
+          case '=': {
+            state = LS_LTEQ_OP;
+            info->character++;
+            break;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LANGLE;
+          }
+        }
         break;
       }
       case LS_GT_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_GTEQ;
+          }
+          case '>': {
+            state = LS_ARSHIFT_OP;
+            info->character++;
+            break;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_RANGLE;
+          }
+        }
         break;
       }
       case LS_CHARS: {
@@ -541,27 +612,110 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
         break;
       }
       case LS_LAND_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LANDASSIGN;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LAND;
+          }
+        }
         break;
       }
       case LS_LOR_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LORASSIGN;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LOR;
+          }
+        }
         break;
       }
       case LS_LTEQ_OP: {
-        switch (c) {}
+        switch (c) {
+          case '>': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_SPACESHIP;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LTEQ;
+          }
+        }
         break;
       }
       case LS_LSHIFT_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LSHIFTASSIGN;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LSHIFT;
+          }
+        }
         break;
       }
       case LS_ARSHIFT_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_ARSHIFTASSIGN;
+          }
+          case '>': {
+            state = LS_LRSHIFT_OP;
+            info->character++;
+            break;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_ARSHIFT;
+          }
+        }
         break;
       }
       case LS_LRSHIFT_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LRSHIFTASSIGN;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LRSHIFT;
+          }
+        }
         break;
       }
       case LS_CHAR_SINGLE: {
