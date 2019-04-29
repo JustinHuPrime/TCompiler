@@ -9,10 +9,6 @@
 
 #include "engine.h"
 
-// in ast/astNodeList.c
-// void astNodeListTest(TestStatus *);
-// void astNodeListPairTest(TestStatus *);
-
 // in util/errorReport.c
 void errorReportTest(TestStatus *);
 

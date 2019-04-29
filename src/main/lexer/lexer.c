@@ -6,6 +6,7 @@
 
 #include "lexer/lexer.h"
 
+#include "util/format.h"
 #include "util/stringBuilder.h"
 
 #include <stdlib.h>
@@ -52,6 +53,7 @@ void lexerInfoDestroy(LexerInfo *li) {
 typedef enum {
   // main states
   LS_START,
+  LS_SEEN_CR,
   LS_COMMENT_OR_DIVIDE,
   LS_LNOT_OP,
   LS_MOD_OP,
@@ -64,7 +66,6 @@ typedef enum {
   LS_GT_OP,
   LS_CHARS,
   LS_STRINGS,
-  LS_NUMBER_ADD_OR_SUB,
   LS_ZERO,
   LS_DECIMAL_NUM,
   LS_WORD,
@@ -113,13 +114,28 @@ typedef enum {
   LS_STRING_WHEX_DIGIT_5,
   LS_STRING_WHEX_DIGIT_6,
   LS_MAYBE_WSTRING,
+  LS_STRING_WIDE,
+  LS_STRING_WIDE_ESCAPED,
+  LS_STRING_WIDE_HEX_DIGIT_1,
+  LS_STRING_WIDE_HEX_DIGIT_2,
+  LS_STRING_WIDE_WHEX_DIGIT_1,
+  LS_STRING_WIDE_WHEX_DIGIT_2,
+  LS_STRING_WIDE_WHEX_DIGIT_3,
+  LS_STRING_WIDE_WHEX_DIGIT_4,
+  LS_STRING_WIDE_WHEX_DIGIT_5,
+  LS_STRING_WIDE_WHEX_DIGIT_6,
+  LS_STRING_WIDE_END,
 
   // NUMBER_ADD_OR_SUB states
   LS_BINARY_NUM,
   LS_OCTAL_NUM,
   LS_HEX_NUM,
   LS_FLOAT,
+  LS_ADD,
+  LS_SUB,
 
+  // WORD states
+  LS_WORD_COLON,
 } LexerState;
 
 static bool isWhitespace(char c) {
@@ -133,45 +149,343 @@ static bool isAlnumOrUnderscore(char c) {
   return isAlphaOrUnderscore(c) || isDigit(c);
 }
 
-TokenType lex(LexerInfo *info, TokenInfo *tokenInfo) {
+TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
   LexerState state = LS_START;
   StringBuilder *buffer = stringBuilderCreate();
-  bool expectWide = false;
-  size_t line = info->line;
+  size_t line = info->line;  // start of token line/character; next char read
   size_t character = info->character;
+  // note that tokenInfo stores the character one past the end of the last token
+  // tokens won't ever end on whitespace except at the end of a file.
 
-  // implemented as augmented DFA
+  // implemented as a DFA
   while (true) {
     // look at a character
     char c = fGet(info->file);
+    if (c == F_ERR) {
+      tokenInfo->line = line;
+      tokenInfo->character = character;
+      return TT_ERR;
+      break;
+    }
 
     switch (state) {
       case LS_START: {
-        switch (c) {}
+        switch (c) {
+          case -2: {  // F_EOF
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_EOF;
+          }
+          case ' ':
+          case '\t': {
+            info->character++;
+            character++;
+            break;
+          }
+          case '\n': {
+            info->line++;
+            info->character = 1;
+            line++;
+            character = 1;
+            break;
+          }
+          case '\r': {
+            state = LS_SEEN_CR;
+            info->line++;
+            info->character = 1;
+            line++;
+            character = 1;
+            break;
+          }
+          case '/': {
+            state = LS_COMMENT_OR_DIVIDE;
+            info->character++;  // might be a divide token
+            break;
+          }
+          case '\'': {
+            state = LS_CHARS;
+            info->character++;
+            break;
+          }
+          case '"': {
+            state = LS_STRINGS;
+            info->character++;
+            break;
+          }
+          case '0': {
+            state = LS_ZERO;
+            info->character++;
+            break;
+          }
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9': {
+            state = LS_DECIMAL_NUM;
+            info->character++;
+            break;
+          }
+          case '-': {
+            state = LS_SUB;
+            info->character++;
+            break;
+          }
+          case '+': {
+            state = LS_ADD;
+            info->character++;
+            break;
+          }
+          case '(': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LPAREN;
+          }
+          case ')': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_RPAREN;
+          }
+          case '.': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_COMMA;
+          }
+          case ',': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_DOT;
+          }
+          case ';': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_SEMI;
+          }
+          case '?': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_QUESTION;
+          }
+          case '[': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LSQUARE;
+          }
+          case ']': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_RSQUARE;
+          }
+          case '{': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_LBRACE;
+          }
+          case '}': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_RBRACE;
+          }
+          case '~': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_TILDE;
+          }
+          case ':': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_COLON;
+          }
+          case '!': {
+            state = LS_LNOT_OP;
+            info->character++;
+            break;
+          }
+          case '%': {
+            state = LS_MOD_OP;
+            info->character++;
+            break;
+          }
+          case '*': {
+            state = LS_MUL_OP;
+            info->character++;
+            break;
+          }
+          case '=': {
+            state = LS_ASSIGN_OP;
+            info->character++;
+            break;
+          }
+          case '^': {
+            state = LS_XOR_OP;
+            info->character++;
+            break;
+          }
+          case '&': {
+            state = LS_LAND_OP;
+            info->character++;
+            break;
+          }
+          case '|': {
+            state = LS_LOR_OP;
+            info->character++;
+            break;
+          }
+          default: {
+            if (isAlphaOrUnderscore(c)) {
+              state = LS_WORD;
+              info->character++;
+              break;
+            } else {
+              info->character++;
+              tokenInfo->line = line;
+              tokenInfo->character = character;
+              tokenInfo->data.invalidChar = c;
+              return TT_INVALID;
+            }
+          }
+        }
+        break;
+      }
+      case LS_SEEN_CR: {
+        switch (c) {
+          case '\n': {
+            state = LS_START;
+            break;
+          }
+          default: {
+            state = LS_START;
+            fUnget(info->file);
+          }
+        }
         break;
       }
       case LS_COMMENT_OR_DIVIDE: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_DIVASSIGN;
+          }
+          case '*': {
+            state = LS_BLOCK_COMMENT;
+            info->character++;
+            break;
+          }
+          case '/': {
+            state = LS_LINE_COMMENT;
+            info->character++;
+            break;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_SLASH;
+          }
+        }
         break;
       }
       case LS_LNOT_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_NEQ;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_BANG;
+          }
+        }
         break;
       }
       case LS_MOD_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_MODASSIGN;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_PERCENT;
+          }
+        }
         break;
       }
       case LS_MUL_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_STAR;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_MULASSIGN;
+          }
+        }
         break;
       }
       case LS_ASSIGN_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_ASSIGN;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_EQ;
+          }
+        }
         break;
       }
       case LS_XOR_OP: {
-        switch (c) {}
+        switch (c) {
+          case '=': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_CARET;
+          }
+          default: {
+            fUnget(info->file);
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            return TT_BITXORASSIGN;
+          }
+        }
         break;
       }
       case LS_AND_OP: {
@@ -195,10 +509,6 @@ TokenType lex(LexerInfo *info, TokenInfo *tokenInfo) {
         break;
       }
       case LS_STRINGS: {
-        switch (c) {}
-        break;
-      }
-      case LS_NUMBER_ADD_OR_SUB: {
         switch (c) {}
         break;
       }
@@ -338,6 +648,50 @@ TokenType lex(LexerInfo *info, TokenInfo *tokenInfo) {
         switch (c) {}
         break;
       }
+      case LS_STRING_WIDE: {
+        switch (c) {}
+        break;
+      }
+      case LS_STRING_WIDE_ESCAPED: {
+        switch (c) {}
+        break;
+      }
+      case LS_STRING_WIDE_HEX_DIGIT_1: {
+        switch (c) {}
+        break;
+      }
+      case LS_STRING_WIDE_HEX_DIGIT_2: {
+        switch (c) {}
+        break;
+      }
+      case LS_STRING_WIDE_WHEX_DIGIT_1: {
+        switch (c) {}
+        break;
+      }
+      case LS_STRING_WIDE_WHEX_DIGIT_2: {
+        switch (c) {}
+        break;
+      }
+      case LS_STRING_WIDE_WHEX_DIGIT_3: {
+        switch (c) {}
+        break;
+      }
+      case LS_STRING_WIDE_WHEX_DIGIT_4: {
+        switch (c) {}
+        break;
+      }
+      case LS_STRING_WIDE_WHEX_DIGIT_5: {
+        switch (c) {}
+        break;
+      }
+      case LS_STRING_WIDE_WHEX_DIGIT_6: {
+        switch (c) {}
+        break;
+      }
+      case LS_STRING_WIDE_END: {
+        switch (c) {}
+        break;
+      }
       case LS_BINARY_NUM: {
         switch (c) {}
         break;
@@ -351,6 +705,18 @@ TokenType lex(LexerInfo *info, TokenInfo *tokenInfo) {
         break;
       }
       case LS_FLOAT: {
+        switch (c) {}
+        break;
+      }
+      case LS_ADD: {
+        switch (c) {}
+        break;
+      }
+      case LS_SUB: {
+        switch (c) {}
+        break;
+      }
+      case LS_WORD_COLON: {
         switch (c) {}
         break;
       }

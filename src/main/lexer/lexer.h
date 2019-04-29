@@ -7,12 +7,14 @@
 #ifndef TLC_LEXER_LEXER_H_
 #define TLC_LEXER_LEXER_H_
 
+#include "util/errorReport.h"
 #include "util/file.h"
 #include "util/hashSet.h"
 
 typedef enum {
   // special conditions
   TT_INVALID,
+  TT_ERR,
   TT_EOF,
 
   // keywords
@@ -148,6 +150,6 @@ void lexerInfoDestroy(LexerInfo *);
 // puts auxiliary information into tokenInfo.
 // note that the parser is responsible for figuring out the exact value of a
 // literal
-TokenType lex(LexerInfo *info, TokenInfo *tokenInfo);
+TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo);
 
 #endif  // TLC_LEXER_LEXER_H_

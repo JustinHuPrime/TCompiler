@@ -10,9 +10,6 @@
 int main(void) {
   TestStatus *status = testStatusCreate();
 
-  // astNodeListTest(status);
-  // astNodeListPairTest(status);
-
   errorReportTest(status);
   fileListTest(status);
   fileTest(status);
