@@ -102,6 +102,10 @@ typedef enum {
   LS_CHAR_WHEX_DIGIT_5,
   LS_CHAR_WHEX_DIGIT_6,
   LS_MAYBE_WCHAR,
+  LS_CHAR_ERROR_MUNCH,
+  LS_CHAR_ERROR_MAYBE_WCHAR,
+  LS_CHAR_BAD_ESCAPE,
+  LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR,
 
   // STRINGS states
   LS_STRING_ESCAPED,
@@ -151,7 +155,7 @@ static bool isAlnumOrUnderscore(char c) {
 
 TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
   LexerState state = LS_START;
-  StringBuilder *buffer = stringBuilderCreate();
+  StringBuilder *buffer = NULL;  // set when a stringbuilder is actually needed
   size_t line = info->line;  // start of token line/character; next char read
   size_t character = info->character;
   // note that tokenInfo stores the character one past the end of the last token
@@ -205,16 +209,19 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
           case '\'': {
             state = LS_CHARS;
             info->character++;
+            buffer = stringBuilderCreate();
             break;
           }
           case '"': {
             state = LS_STRINGS;
             info->character++;
+            buffer = stringBuilderCreate();
             break;
           }
           case '0': {
             state = LS_ZERO;
             info->character++;
+            buffer = stringBuilderCreate();
             break;
           }
           case '1':
@@ -228,16 +235,19 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
           case '9': {
             state = LS_DECIMAL_NUM;
             info->character++;
+            buffer = stringBuilderCreate();
             break;
           }
           case '-': {
             state = LS_SUB;
             info->character++;
+            buffer = stringBuilderCreate();
             break;
           }
           case '+': {
             state = LS_ADD;
             info->character++;
+            buffer = stringBuilderCreate();
             break;
           }
           case '(': {
@@ -351,6 +361,7 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
             if (isAlphaOrUnderscore(c)) {
               state = LS_WORD;
               info->character++;
+              buffer = stringBuilderCreate();
               break;
             } else {
               info->character++;
@@ -370,8 +381,9 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
             break;
           }
           default: {
-            state = LS_START;
             fUnget(info->file);
+            state = LS_START;
+            break;
           }
         }
         break;
@@ -576,7 +588,27 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
         break;
       }
       case LS_CHARS: {
-        switch (c) {}
+        switch (c) {
+          case '\'': {
+            info->character++;
+            tokenInfo->line = line;
+            tokenInfo->character = character;
+            stringBuilderDestroy(buffer);
+            return TT_EMPTY_SQUOTE;
+          }
+          case '\\': {
+            state = LS_CHAR_ESCAPED;
+            info->character++;
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_SINGLE;
+            info->character++;
+            stringBuilderPush(buffer, c);
+            break;
+          }
+        }
         break;
       }
       case LS_STRINGS: {
@@ -719,15 +751,79 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
         break;
       }
       case LS_CHAR_SINGLE: {
-        switch (c) {}
+        switch (c) {
+          case '\'': {
+            state = LS_MAYBE_WCHAR;
+            info->character++;
+            break;
+          }
+          default: {
+            state = LS_CHAR_ERROR_MUNCH;
+            info->character++;
+            stringBuilderDestroy(buffer);
+            break;
+          }
+        }
         break;
       }
       case LS_CHAR_ESCAPED: {
-        switch (c) {}
+        switch (c) {
+          case 'u': {
+            state = LS_CHAR_HEX_DIGIT_1;
+            info->character++;
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case 'x': {
+            state = LS_CHAR_WHEX_DIGIT_1;
+            info->character++;
+            break;
+          }
+          case 'n':
+          case 'r':
+          case 't':
+          case '0':
+          case '\\':
+          case '\'': {
+            state = LS_CHAR_SINGLE;
+            info->character++;
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+            info->character++;
+            break;
+          }
+        }
         break;
       }
       case LS_CHAR_HEX_DIGIT_1: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state
+          }
+        }
         break;
       }
       case LS_CHAR_HEX_DIGIT_2: {
@@ -759,6 +855,22 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
         break;
       }
       case LS_MAYBE_WCHAR: {
+        switch (c) {}
+        break;
+      }
+      case LS_CHAR_ERROR_MUNCH: {
+        switch (c) {}
+        break;
+      }
+      case LS_CHAR_ERROR_MAYBE_WCHAR: {
+        switch (c) {}
+        break;
+      }
+      case LS_CHAR_BAD_ESCAPE: {
+        switch (c) {}
+        break;
+      }
+      case LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR: {
         switch (c) {}
         break;
       }

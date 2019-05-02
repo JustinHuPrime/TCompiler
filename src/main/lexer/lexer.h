@@ -12,10 +12,14 @@
 #include "util/hashSet.h"
 
 typedef enum {
-  // special conditions
-  TT_INVALID,
+  // special conditions (file conditions)
   TT_ERR,
   TT_EOF,
+
+  // errors
+  TT_INVALID,
+  TT_EMPTY_SQUOTE,
+  TT_INVALID_ESCAPE,
 
   // keywords
   TT_MODULE,
