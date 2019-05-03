@@ -13,6 +13,12 @@ int main(void) {
   errorReportTest(status);
   fileListTest(status);
   fileTest(status);
+  formatTest(status);
+  hashTest(status);
+  hashMapTest(status);
+  hashSetTest(status);
+  stringBuilderTest(status);
+  vectorTest(status);
 
   testStatusDisplay(status);
 

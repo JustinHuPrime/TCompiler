@@ -72,4 +72,5 @@ void fileTest(TestStatus *status) {
        "[util] [fileStream] [buffer boundary] unget to before buffer "
        "boundary produces correct offset",
        fGet(f) == '\n');
+  fClose(f);
 }

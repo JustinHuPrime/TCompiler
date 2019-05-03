@@ -23,7 +23,7 @@ HashSet *hashSetCreate(void);
 bool hashSetContains(HashSet *, char const *element);
 
 extern int const HS_OK;
-extern int const HS_EXISTS;
+extern int const HS_EEXISTS;
 // put
 // frees the string if it isn't put in to the set if freeString is true.
 // returns: HS_OK if the element did not already exist

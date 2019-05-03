@@ -40,7 +40,7 @@ bool hashSetContains(HashSet *set, char const *element) {
 }
 
 int const HS_OK = 0;
-int const HS_EXISTS = 1;
+int const HS_EEXISTS = 1;
 int hashSetAdd(HashSet *set, char *element, bool freeString) {
   uint64_t hash = djb2(element);
   hash %= set->size;
@@ -58,7 +58,7 @@ int hashSetAdd(HashSet *set, char *element, bool freeString) {
       } else if (strcmp(set->elements[idx], element) ==
                  0) {  // already in there
         if (freeString) free(element);
-        return HS_EXISTS;
+        return HS_EEXISTS;
       }
     }
     size_t oldSize = set->size;
@@ -75,7 +75,7 @@ int hashSetAdd(HashSet *set, char *element, bool freeString) {
     return hashSetAdd(set, element, freeString);  // element isn't in set
   } else {                                        // already in there
     if (freeString) free(element);
-    return HS_EXISTS;
+    return HS_EEXISTS;
   }
 }
 
