@@ -31,7 +31,7 @@ void reportWarning(Report *report, char *message) {
   report->warnings++;
 }
 
-void reportDisplay(Report *report) {
+void reportDisplay(Report const *report) {
   for (size_t idx = 0; idx < report->messages->size; idx++)
     fprintf(stderr, "%s\n", (char *)report->messages->elements[idx]);
 }
@@ -39,7 +39,7 @@ void reportDisplay(Report *report) {
 int const RPT_OK = 0;
 int const RPT_ERR = -1;
 int const RPT_WARN = -2;
-int reportState(Report *report) {
+int reportState(Report const *report) {
   if (report->errors != 0) {
     return RPT_ERR;
   } else if (report->warnings != 0) {

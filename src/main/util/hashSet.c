@@ -17,7 +17,7 @@ HashSet *hashSetCreate(void) {
   return set;
 }
 
-bool hashSetContains(HashSet *set, char const *element) {
+bool hashSetContains(HashSet const *set, char const *element) {
   uint64_t hash = djb2(element);
   hash %= set->size;
 

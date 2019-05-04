@@ -28,7 +28,7 @@ void reportError(Report *, char *message);
 void reportWarning(Report *, char *message);
 
 // displays all errors and warnings to stderr
-void reportDisplay(Report *);
+void reportDisplay(Report const *);
 
 extern int const RPT_OK;
 extern int const RPT_ERR;
@@ -36,7 +36,7 @@ extern int const RPT_WARN;
 // returns: RPT_OK if no errors and no warnings,
 //          RPT_ERR if any errors exist,
 //          RPT_WARN if any warnings exist.
-int reportState(Report *);
+int reportState(Report const *);
 
 // destructor
 void reportDestroy(Report *);

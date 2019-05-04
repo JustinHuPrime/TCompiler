@@ -30,7 +30,7 @@ typedef uint64_t Options;
 Options *parseOptions(Report *report, size_t argc, char const *const *argv);
 
 // gets the nth option
-bool getOpt(Options *, OptionIndex);
+bool getOpt(Options const *, OptionIndex);
 
 // dtor
 void optionsDestroy(Options *);

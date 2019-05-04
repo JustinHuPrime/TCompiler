@@ -83,7 +83,7 @@ Options *parseOptions(Report *report, size_t argc, char const *const *argv) {
   return options;
 }
 
-bool getOpt(Options *options, OptionIndex optionIndex) {
+bool getOpt(Options const *options, OptionIndex optionIndex) {
   size_t idx = (size_t)optionIndex;
   return ((options[idx / 64] >> idx % 64) & 0x1ul) == 0x1ul ? true : false;
 }

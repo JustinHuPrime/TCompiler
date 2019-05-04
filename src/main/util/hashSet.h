@@ -20,7 +20,7 @@ typedef struct {
 HashSet *hashSetCreate(void);
 
 // contains
-bool hashSetContains(HashSet *, char const *element);
+bool hashSetContains(HashSet const *, char const *element);
 
 extern int const HS_OK;
 extern int const HS_EEXISTS;

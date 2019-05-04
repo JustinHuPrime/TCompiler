@@ -22,7 +22,7 @@ void stringBuilderPush(StringBuilder *, char);
 // deletes a character from the end of the string
 void stringBuilderPop(StringBuilder *);
 // produces a new null terminated c-string that copies current data
-char *stringBuilderData(StringBuilder *);
+char *stringBuilderData(StringBuilder const *);
 // clears the current string
 void stringBuilderClear(StringBuilder *);
 // dtor; also deletes the current string

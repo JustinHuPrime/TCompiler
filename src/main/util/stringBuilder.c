@@ -27,7 +27,7 @@ void stringBuilderPush(StringBuilder *sb, char c) {
 
 void stringBuilderPop(StringBuilder *sb) { sb->size--; }
 
-char *stringBuilderData(StringBuilder *sb) {
+char *stringBuilderData(StringBuilder const *sb) {
   char *string = malloc((sb->size + 1) * sizeof(char));
   memcpy(string, sb->string, sb->size);
   string[sb->size] = '\0';
