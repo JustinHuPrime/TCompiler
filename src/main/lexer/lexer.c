@@ -7,6 +7,7 @@
 #include "lexer/lexer.h"
 
 #include "util/format.h"
+#include "util/functional.h"
 #include "util/stringBuilder.h"
 
 #include <stdlib.h>
@@ -18,22 +19,34 @@ char const *const KEYWORDS[] = {
     "sizeof", "void",     "ubyte",  "byte",  "char",   "uint",    "int",
     "wchar",  "ulong",    "long",   "float", "double", "bool",    "const",
 };
+TokenType const KEYWORD_TOKENS[] = {
+    TT_MODULE, TT_USING,   TT_STRUCT, TT_UNION,    TT_ENUM,   TT_TYPEDEF,
+    TT_IF,     TT_ELSE,    TT_WHILE,  TT_DO,       TT_FOR,    TT_SWITCH,
+    TT_CASE,   TT_DEFAULT, TT_BREAK,  TT_CONTINUE, TT_RETURN, TT_ASM,
+    TT_TRUE,   TT_FALSE,   TT_CAST,   TT_SIZEOF,   TT_VOID,   TT_UBYTE,
+    TT_BYTE,   TT_CHAR,    TT_UINT,   TT_INT,      TT_WCHAR,  TT_ULONG,
+    TT_LONG,   TT_FLOAT,   TT_DOUBLE, TT_BOOL,     TT_CONST,
+};
 size_t const NUM_KEYWORDS = 35;
 
-HashSet *keywordSetCreate(void) {
-  HashSet *hs = hashSetCreate();
+KeywordMap *keywordMapCreate(void) {
+  KeywordMap *map = hashMapCreate();
   for (size_t idx = 0; idx < NUM_KEYWORDS; idx++) {
     // must turn cast-qual off; this is a generic
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-    hashSetAdd(hs, (char *)KEYWORDS[idx], false);
+    hashMapPut(map, (char *)KEYWORDS[idx], (TokenType *)&KEYWORD_TOKENS[idx],
+               nullDtor);
 #pragma GCC diagnostic pop
   }
-  return hs;
+  return map;
 }
-void keywordSetDestroy(HashSet *hs) { hashSetDestroy(hs, false); }
+TokenType const *keywordMapGet(KeywordMap const *map, char const *key) {
+  return hashMapGet(map, key);
+}
+void keywordMapDestroy(HashMap *map) { hashMapDestroy(map, nullDtor); }
 
-LexerInfo *lexerInfoCreate(char const *fileName, HashSet const *keywords) {
+LexerInfo *lexerInfoCreate(char const *fileName, HashMap const *keywords) {
   File *f = fOpen(fileName);
   if (f == NULL) return NULL;
 
@@ -403,6 +416,7 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           }
           default: {
             fUnget(lexerInfo->file);
+
             state = LS_START;
 
             lexerInfo->character = 0;
@@ -2495,7 +2509,10 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           lexerInfo->character--;
 
           tokenInfo->data.string = stringBuilderData(buffer);
-          return TT_ID;
+          stringBuilderDestroy(buffer);
+          TokenType const *keyword =
+              keywordMapGet(lexerInfo->keywords, tokenInfo->data.string);
+          return keyword != NULL ? *keyword : TT_ID;
         }
         break;
       }  // LS_WORD
@@ -2515,7 +2532,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             stringBuilderPop(buffer);
             tokenInfo->data.string = stringBuilderData(buffer);
             stringBuilderDestroy(buffer);
-            return TT_ID;
+            TokenType const *keyword =
+                keywordMapGet(lexerInfo->keywords, tokenInfo->data.string);
+            return keyword != NULL ? *keyword : TT_ID;
           }
         }
         break;

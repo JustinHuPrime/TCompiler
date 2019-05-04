@@ -18,7 +18,7 @@ HashMap *hashMapCreate(void) {
   return map;
 }
 
-void *hashMapGet(HashMap *map, char const *key) {
+void *hashMapGet(HashMap const *map, char const *key) {
   uint64_t hash = djb2(key);
   hash %= map->size;
 

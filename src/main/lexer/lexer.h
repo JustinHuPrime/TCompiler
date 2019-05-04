@@ -9,7 +9,7 @@
 
 #include "util/errorReport.h"
 #include "util/file.h"
-#include "util/hashSet.h"
+#include "util/hashMap.h"
 
 typedef enum {
   // special conditions (file conditions)
@@ -50,8 +50,10 @@ typedef enum {
   TT_VOID,
   TT_UBYTE,
   TT_BYTE,
+  TT_CHAR,
   TT_UINT,
   TT_INT,
+  TT_WCHAR,
   TT_ULONG,
   TT_LONG,
   TT_FLOAT,
@@ -141,14 +143,18 @@ typedef struct {
   size_t line;
   size_t character;
   File *file;
-  HashSet const *keywords;
+  HashMap const *keywords;
 } LexerInfo;
 
-HashSet *keywordSetCreate(void);
-void keywordSetDestroy(HashSet *);
+// specialization of hashmap
+typedef HashMap KeywordMap;
+
+KeywordMap *keywordMapCreate(void);
+TokenType const *keywordMapGet(KeywordMap const *, char const *);
+void keywordMapDestroy(KeywordMap *);
 
 // creates and initializes the lexer info
-LexerInfo *lexerInfoCreate(char const *fileName, HashSet const *keywords);
+LexerInfo *lexerInfoCreate(char const *fileName, HashMap const *keywords);
 // dtor - note that keywords is not owned by the LexerInfo
 void lexerInfoDestroy(LexerInfo *);
 

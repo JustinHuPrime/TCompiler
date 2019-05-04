@@ -21,7 +21,7 @@ HashMap *hashMapCreate(void);
 
 // get
 // returns the node, or NULL if the key is not in the table
-void *hashMapGet(HashMap *, char const *key);
+void *hashMapGet(HashMap const *, char const *key);
 
 extern int const HM_OK;
 extern int const HM_EEXISTS;
