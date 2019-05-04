@@ -17,9 +17,12 @@ typedef enum {
   TT_EOF,
 
   // errors
-  TT_INVALID,
-  TT_EMPTY_SQUOTE,
+  TT_INVALID,  // invalid character seen (e.g. $)
+
+  TT_EMPTY_SQUOTE,  // char errors
   TT_INVALID_ESCAPE,
+  TT_NOT_WIDE,
+  TT_MULTICHAR_CHAR,
 
   // keywords
   TT_MODULE,

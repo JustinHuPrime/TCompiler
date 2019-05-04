@@ -50,177 +50,187 @@ void lexerInfoDestroy(LexerInfo *li) {
   free(li);
 }
 
-typedef enum {
-  // main states
-  LS_START,
-  LS_SEEN_CR,
-  LS_COMMENT_OR_DIVIDE,
-  LS_LNOT_OP,
-  LS_MOD_OP,
-  LS_MUL_OP,
-  LS_ASSIGN_OP,
-  LS_XOR_OP,
-  LS_AND_OP,
-  LS_OR_OP,
-  LS_LT_OP,
-  LS_GT_OP,
-  LS_CHARS,
-  LS_STRINGS,
-  LS_ZERO,
-  LS_DECIMAL_NUM,
-  LS_WORD,
-
-  // COMMENT_OR_DIVIDE states
-  LS_LINE_COMMENT,
-  LS_BLOCK_COMMENT,
-  LS_LINE_COMMENT_MAYBE_ENDED,
-  LS_BLOCK_COMMENT_MAYBE_ENDED,
-
-  // AND_OP states
-  LS_LAND_OP,
-
-  // OR_OP states
-  LS_LOR_OP,
-
-  // LT_OP states
-  LS_LTEQ_OP,
-  LS_LSHIFT_OP,
-
-  // GT_OP states
-  LS_ARSHIFT_OP,
-  LS_LRSHIFT_OP,
-
-  // CHARS states
-  LS_CHAR_SINGLE,
-  LS_CHAR_ESCAPED,
-  LS_CHAR_HEX_DIGIT_1,
-  LS_CHAR_HEX_DIGIT_2,
-  LS_CHAR_WHEX_DIGIT_1,
-  LS_CHAR_WHEX_DIGIT_2,
-  LS_CHAR_WHEX_DIGIT_3,
-  LS_CHAR_WHEX_DIGIT_4,
-  LS_CHAR_WHEX_DIGIT_5,
-  LS_CHAR_WHEX_DIGIT_6,
-  LS_MAYBE_WCHAR,
-  LS_CHAR_ERROR_MUNCH,
-  LS_CHAR_ERROR_MAYBE_WCHAR,
-  LS_CHAR_BAD_ESCAPE,
-  LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR,
-
-  // STRINGS states
-  LS_STRING_ESCAPED,
-  LS_STRING_HEX_DIGIT_1,
-  LS_STRING_HEX_DIGIT_2,
-  LS_STRING_WHEX_DIGIT_1,
-  LS_STRING_WHEX_DIGIT_2,
-  LS_STRING_WHEX_DIGIT_3,
-  LS_STRING_WHEX_DIGIT_4,
-  LS_STRING_WHEX_DIGIT_5,
-  LS_STRING_WHEX_DIGIT_6,
-  LS_MAYBE_WSTRING,
-  LS_STRING_WIDE,
-  LS_STRING_WIDE_ESCAPED,
-  LS_STRING_WIDE_HEX_DIGIT_1,
-  LS_STRING_WIDE_HEX_DIGIT_2,
-  LS_STRING_WIDE_WHEX_DIGIT_1,
-  LS_STRING_WIDE_WHEX_DIGIT_2,
-  LS_STRING_WIDE_WHEX_DIGIT_3,
-  LS_STRING_WIDE_WHEX_DIGIT_4,
-  LS_STRING_WIDE_WHEX_DIGIT_5,
-  LS_STRING_WIDE_WHEX_DIGIT_6,
-  LS_STRING_WIDE_END,
-
-  // NUMBER_ADD_OR_SUB states
-  LS_BINARY_NUM,
-  LS_OCTAL_NUM,
-  LS_HEX_NUM,
-  LS_FLOAT,
-  LS_ADD,
-  LS_SUB,
-
-  // WORD states
-  LS_WORD_COLON,
-} LexerState;
-
-static bool isWhitespace(char c) {
-  return c == ' ' || c == '\t' || c == '\r' || c == '\n';
-}
 static bool isAlphaOrUnderscore(char c) {
   return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'A') || c == '_';
 }
-static bool isDigit(char c) { return '0' <= c && c <= '9'; }
 static bool isAlnumOrUnderscore(char c) {
-  return isAlphaOrUnderscore(c) || isDigit(c);
+  return isAlphaOrUnderscore(c) || ('0' <= c && c <= '9');
 }
 
-TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
-  LexerState state = LS_START;
+TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
+  enum {
+    // start states
+    LS_START,
+    LS_SEEN_CR,
+
+    // punctuation/operator states
+    LS_COMMENT_OR_DIVIDE,
+    LS_LNOT_OP,
+    LS_MOD_OP,
+    LS_MUL_OP,
+    LS_ASSIGN_OP,
+    LS_XOR_OP,
+    LS_AND_OP,
+    LS_OR_OP,
+    LS_LT_OP,
+    LS_GT_OP,
+    LS_LAND_OP,
+    LS_LOR_OP,
+    LS_LTEQ_OP,
+    LS_LSHIFT_OP,
+    LS_ARSHIFT_OP,
+    LS_LRSHIFT_OP,
+    LS_ADD,
+    LS_SUB,
+
+    // comment states
+    LS_LINE_COMMENT,
+    LS_BLOCK_COMMENT,
+    LS_LINE_COMMENT_MAYBE_ENDED,
+    LS_BLOCK_COMMENT_MAYBE_ENDED,
+
+    // char states
+    LS_CHARS,
+    LS_CHAR_SINGLE,
+    LS_CHAR_ESCAPED,
+    LS_CHAR_HEX_DIGIT_1,
+    LS_CHAR_HEX_DIGIT_2,
+    LS_CHAR_WHEX_DIGIT_1,
+    LS_CHAR_WHEX_DIGIT_2,
+    LS_CHAR_WHEX_DIGIT_3,
+    LS_CHAR_WHEX_DIGIT_4,
+    LS_CHAR_WHEX_DIGIT_5,
+    LS_CHAR_WHEX_DIGIT_6,
+    LS_CHAR_WHEX_DIGIT_7,
+    LS_CHAR_WHEX_DIGIT_8,
+    LS_MAYBE_WCHAR,
+    LS_EXPECT_WCHAR,
+    LS_IS_WCHAR,
+    LS_CHAR_ERROR_MUNCH,
+    LS_CHAR_ERROR_MAYBE_WCHAR,
+    LS_CHAR_BAD_ESCAPE,
+    LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR,
+
+    // string states
+    LS_STRING,
+    LS_STRING_ESCAPED,
+    LS_STRING_HEX_DIGIT_1,
+    LS_STRING_HEX_DIGIT_2,
+    LS_STRING_WHEX_DIGIT_1,
+    LS_STRING_WHEX_DIGIT_2,
+    LS_STRING_WHEX_DIGIT_3,
+    LS_STRING_WHEX_DIGIT_4,
+    LS_STRING_WHEX_DIGIT_5,
+    LS_STRING_WHEX_DIGIT_6,
+    LS_STRING_WHEX_DIGIT_7,
+    LS_STRING_WHEX_DIGIT_8,
+    LS_MAYBE_WSTRING,
+    LS_STRING_WIDE,
+    LS_STRING_WIDE_ESCAPED,
+    LS_STRING_WIDE_HEX_DIGIT_1,
+    LS_STRING_WIDE_HEX_DIGIT_2,
+    LS_STRING_WIDE_WHEX_DIGIT_1,
+    LS_STRING_WIDE_WHEX_DIGIT_2,
+    LS_STRING_WIDE_WHEX_DIGIT_3,
+    LS_STRING_WIDE_WHEX_DIGIT_4,
+    LS_STRING_WIDE_WHEX_DIGIT_5,
+    LS_STRING_WIDE_WHEX_DIGIT_6,
+    LS_STRING_WIDE_WHEX_DIGIT_7,
+    LS_STRING_WIDE_WHEX_DIGIT_8,
+    LS_STRING_WIDE_END,
+    LS_STRING_BAD_ESCAPE,
+    LS_STRING_BAD_ESCAPE_MAYBE_WCHAR,
+
+    // number states
+    LS_ZERO,
+    LS_DECIMAL_NUM,
+    LS_BINARY_NUM,
+    LS_OCTAL_NUM,
+    LS_HEX_NUM,
+    LS_FLOAT,
+
+    // word states
+    LS_WORD,
+    LS_WORD_COLON,
+    LS_SCOPED_WORD,
+    LS_SCOPED_WORD_COLON,
+  } state = LS_START;
+
   StringBuilder *buffer = NULL;  // set when a stringbuilder is actually needed
-  size_t line = info->line;  // start of token line/character; next char read
-  size_t character = info->character;
-  // note that tokenInfo stores the character one past the end of the last token
-  // tokens won't ever end on whitespace except at the end of a file.
+
+  // lexerInfo holds the position of the character just read
 
   // implemented as a DFA
   while (true) {
     // look at a character
-    char c = fGet(info->file);
+    char c = fGet(lexerInfo->file);
     if (c == F_ERR) {
-      tokenInfo->line = line;
-      tokenInfo->character = character;
+      // cleanup, and produce error
+      tokenInfo->line = lexerInfo->line;
+      tokenInfo->character = lexerInfo->character;
+      if (buffer != NULL) stringBuilderDestroy(buffer);
+
       return TT_ERR;
-      break;
     }
 
+    // default action - newlines handled specially
+    lexerInfo->character++;
+
     switch (state) {
+      // all states must handle all character possibilities
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wswitch-default"
+      // start
       case LS_START: {
         switch (c) {
-          case -2: {  // F_EOF
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+          case -2: {  // F_EOFtokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_EOF;
           }
           case ' ':
           case '\t': {
-            info->character++;
-            character++;
             break;
           }
           case '\n': {
-            info->line++;
-            info->character = 1;
-            line++;
-            character = 1;
+            lexerInfo->line++;
+            lexerInfo->character = 0;
             break;
           }
           case '\r': {
             state = LS_SEEN_CR;
-            info->line++;
-            info->character = 1;
-            line++;
-            character = 1;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
             break;
           }
           case '/': {
             state = LS_COMMENT_OR_DIVIDE;
-            info->character++;  // might be a divide token
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             break;
           }
           case '\'': {
             state = LS_CHARS;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             buffer = stringBuilderCreate();
             break;
           }
           case '"': {
-            state = LS_STRINGS;
-            info->character++;
+            state = LS_STRING;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             buffer = stringBuilderCreate();
             break;
           }
           case '0': {
             state = LS_ZERO;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             buffer = stringBuilderCreate();
             break;
           }
@@ -234,549 +244,615 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
           case '8':
           case '9': {
             state = LS_DECIMAL_NUM;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             buffer = stringBuilderCreate();
             break;
           }
           case '-': {
             state = LS_SUB;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             buffer = stringBuilderCreate();
             break;
           }
           case '+': {
             state = LS_ADD;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             buffer = stringBuilderCreate();
             break;
           }
           case '(': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_LPAREN;
           }
           case ')': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_RPAREN;
           }
           case '.': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_COMMA;
           }
           case ',': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_DOT;
           }
           case ';': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_SEMI;
           }
           case '?': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_QUESTION;
           }
           case '[': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_LSQUARE;
           }
           case ']': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_RSQUARE;
           }
           case '{': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_LBRACE;
           }
           case '}': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_RBRACE;
           }
           case '~': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_TILDE;
           }
           case ':': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             return TT_COLON;
           }
           case '!': {
             state = LS_LNOT_OP;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             break;
           }
           case '%': {
             state = LS_MOD_OP;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             break;
           }
           case '*': {
             state = LS_MUL_OP;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             break;
           }
           case '=': {
             state = LS_ASSIGN_OP;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             break;
           }
           case '^': {
             state = LS_XOR_OP;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             break;
           }
           case '&': {
             state = LS_LAND_OP;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             break;
           }
           case '|': {
             state = LS_LOR_OP;
-            info->character++;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
             break;
           }
           default: {
             if (isAlphaOrUnderscore(c)) {
               state = LS_WORD;
-              info->character++;
+
+              tokenInfo->line = lexerInfo->line;
+              tokenInfo->character = lexerInfo->character;
               buffer = stringBuilderCreate();
               break;
             } else {
-              info->character++;
-              tokenInfo->line = line;
-              tokenInfo->character = character;
+              tokenInfo->line = lexerInfo->line;
+              tokenInfo->character = lexerInfo->character;
               tokenInfo->data.invalidChar = c;
               return TT_INVALID;
             }
           }
         }
         break;
-      }
+      }  // LS_START
       case LS_SEEN_CR: {
         switch (c) {
           case '\n': {
             state = LS_START;
+
+            lexerInfo->character = 0;
             break;
           }
           default: {
-            fUnget(info->file);
+            fUnget(lexerInfo->file);
             state = LS_START;
+
+            lexerInfo->character = 0;
             break;
           }
         }
         break;
-      }
+      }  // LS_SEEN_CR
+
+      // punctuation/operators
       case LS_COMMENT_OR_DIVIDE: {
         switch (c) {
           case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
             return TT_DIVASSIGN;
           }
           case '*': {
             state = LS_BLOCK_COMMENT;
-            info->character++;
             break;
           }
           case '/': {
             state = LS_LINE_COMMENT;
-            info->character++;
             break;
           }
           default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+
             return TT_SLASH;
           }
         }
         break;
-      }
+      }  // LS_COMMENT_OR_DIVIDE
       case LS_LNOT_OP: {
         switch (c) {
           case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
             return TT_NEQ;
           }
           default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
             return TT_BANG;
           }
         }
         break;
-      }
+      }  // LS_LNOT_OP
       case LS_MOD_OP: {
         switch (c) {
           case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
             return TT_MODASSIGN;
           }
           default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
             return TT_PERCENT;
           }
         }
         break;
-      }
+      }  // LS_MOD_OP
       case LS_MUL_OP: {
         switch (c) {
           case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_STAR;
+            return TT_MULASSIGN;
           }
           default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_MULASSIGN;
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_STAR;
           }
         }
         break;
-      }
+      }  // LS_MUL_OP
       case LS_ASSIGN_OP: {
         switch (c) {
           case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_ASSIGN;
+            return TT_EQ;
           }
           default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_EQ;
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_ASSIGN;
           }
         }
         break;
-      }
+      }  // LS_ASSIGN_OP
       case LS_XOR_OP: {
         switch (c) {
           case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_CARET;
+            return TT_BITXORASSIGN;
           }
           default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_BITXORASSIGN;
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_CARET;
           }
         }
         break;
-      }
+      }  // LS_XOR_OP
       case LS_AND_OP: {
         switch (c) {
           case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
             return TT_BITANDASSIGN;
           }
           case '&': {
             state = LS_LAND_OP;
-            info->character++;
             break;
           }
           default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
             return TT_AMPERSAND;
           }
         }
         break;
-      }
+      }  // LS_AND_OP
       case LS_OR_OP: {
         switch (c) {
           case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
             return TT_BITORASSIGN;
           }
           case '|': {
             state = LS_LOR_OP;
-            info->character++;
             break;
           }
           default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
             return TT_PIPE;
           }
         }
         break;
-      }
+      }  // LS_OR_OP
       case LS_LT_OP: {
         switch (c) {
           case '<': {
             state = LS_LSHIFT_OP;
-            info->character++;
             break;
           }
           case '=': {
             state = LS_LTEQ_OP;
-            info->character++;
             break;
           }
           default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
             return TT_LANGLE;
           }
         }
         break;
-      }
+      }  // LS_LT_OP
       case LS_GT_OP: {
         switch (c) {
           case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
             return TT_GTEQ;
           }
           case '>': {
             state = LS_ARSHIFT_OP;
-            info->character++;
             break;
           }
           default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
             return TT_RANGLE;
           }
         }
         break;
-      }
+      }  // LS_GT_OP
+      case LS_LAND_OP: {
+        switch (c) {
+          case '=': {
+            return TT_LANDASSIGN;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_LAND;
+          }
+        }
+        break;
+      }  // LS_LAND_OP
+      case LS_LOR_OP: {
+        switch (c) {
+          case '=': {
+            return TT_LORASSIGN;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_LOR;
+          }
+        }
+        break;
+      }  // LS_LOR_OP
+      case LS_LTEQ_OP: {
+        switch (c) {
+          case '>': {
+            return TT_SPACESHIP;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_LTEQ;
+          }
+        }
+        break;
+      }  // LS_LTEQ_OP
+      case LS_LSHIFT_OP: {
+        switch (c) {
+          case '=': {
+            return TT_LSHIFTASSIGN;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_LSHIFT;
+          }
+        }
+        break;
+      }  // LS_LSHIFT_OP
+      case LS_ARSHIFT_OP: {
+        switch (c) {
+          case '=': {
+            return TT_ARSHIFTASSIGN;
+          }
+          case '>': {
+            state = LS_LRSHIFT_OP;
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_ARSHIFT;
+          }
+        }
+        break;
+      }  // LS_ARSHIFT_OP
+      case LS_LRSHIFT_OP: {
+        switch (c) {
+          case '=': {
+            return TT_LRSHIFTASSIGN;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_LRSHIFT;
+          }
+        }
+        break;
+      }  // LS_LRSHIFT_OP
+      case LS_ADD: {
+        switch (c) {
+          case '+': {
+            stringBuilderDestroy(buffer);
+            return TT_PLUSPLUS;
+          }
+          case '=': {
+            stringBuilderDestroy(buffer);
+            return TT_ADDASSIGN;
+          }
+          case '0': {
+            state = LS_ZERO;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9': {
+            state = LS_DECIMAL_NUM;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+
+            stringBuilderDestroy(buffer);
+            return TT_PLUS;
+          }
+        }
+        break;
+      }  // LS_ADD
+      case LS_SUB: {
+        switch (c) {
+          case '-': {
+            stringBuilderDestroy(buffer);
+            return TT_MINUSMINUS;
+          }
+          case '=': {
+            stringBuilderDestroy(buffer);
+            return TT_SUBASSIGN;
+          }
+          case '>': {
+            stringBuilderDestroy(buffer);
+            return TT_ARROW;
+          }
+          case '0': {
+            state = LS_ZERO;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9': {
+            state = LS_DECIMAL_NUM;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            break;
+          }
+        }
+        break;
+      }  // LS_SUB
+
+      // comment states
+      case LS_LINE_COMMENT: {
+        switch (c) {
+          case '\n': {
+            state = LS_START;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\r': {
+            state = LS_LINE_COMMENT_MAYBE_ENDED;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          default: { break; }
+        }
+        break;
+      }  // LS_LINE_COMMENT
+      case LS_BLOCK_COMMENT: {
+        switch (c) {
+          case '*': {
+            state = LS_BLOCK_COMMENT_MAYBE_ENDED;
+            break;
+          }
+          default: { break; }
+        }
+        break;
+      }  // LS_BLOCK_COMMENT
+      case LS_LINE_COMMENT_MAYBE_ENDED: {
+        switch (c) {
+          case '\n': {
+            state = LS_START;
+
+            lexerInfo->character = 0;
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+
+            state = LS_START;
+
+            lexerInfo->character = 0;
+            break;
+          }
+        }
+        break;
+      }  // LS_LINE_COMMENT_MAYBE_ENDED
+      case LS_BLOCK_COMMENT_MAYBE_ENDED: {
+        switch (c) {
+          case '/': {
+            state = LS_START;
+            break;
+          }
+          default: {
+            state = LS_BLOCK_COMMENT;
+            break;
+          }
+        }
+        break;
+      }  // LS_BLOCK_COMMENT_MAYBE_ENDED
+
+      // char states
       case LS_CHARS: {
         switch (c) {
           case '\'': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
             stringBuilderDestroy(buffer);
+            buffer = NULL;
             return TT_EMPTY_SQUOTE;
           }
           case '\\': {
             state = LS_CHAR_ESCAPED;
-            info->character++;
+
             stringBuilderPush(buffer, c);
             break;
           }
           default: {
             state = LS_CHAR_SINGLE;
-            info->character++;
+
             stringBuilderPush(buffer, c);
             break;
           }
         }
         break;
-      }
-      case LS_STRINGS: {
-        switch (c) {}
-        break;
-      }
-      case LS_ZERO: {
-        switch (c) {}
-        break;
-      }
-      case LS_DECIMAL_NUM: {
-        switch (c) {}
-        break;
-      }
-      case LS_WORD: {
-        switch (c) {}
-        break;
-      }
-      case LS_LINE_COMMENT: {
-        switch (c) {}
-        break;
-      }
-      case LS_BLOCK_COMMENT: {
-        switch (c) {}
-        break;
-      }
-      case LS_LINE_COMMENT_MAYBE_ENDED: {
-        switch (c) {}
-        break;
-      }
-      case LS_BLOCK_COMMENT_MAYBE_ENDED: {
-        switch (c) {}
-        break;
-      }
-      case LS_LAND_OP: {
-        switch (c) {
-          case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_LANDASSIGN;
-          }
-          default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_LAND;
-          }
-        }
-        break;
-      }
-      case LS_LOR_OP: {
-        switch (c) {
-          case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_LORASSIGN;
-          }
-          default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_LOR;
-          }
-        }
-        break;
-      }
-      case LS_LTEQ_OP: {
-        switch (c) {
-          case '>': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_SPACESHIP;
-          }
-          default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_LTEQ;
-          }
-        }
-        break;
-      }
-      case LS_LSHIFT_OP: {
-        switch (c) {
-          case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_LSHIFTASSIGN;
-          }
-          default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_LSHIFT;
-          }
-        }
-        break;
-      }
-      case LS_ARSHIFT_OP: {
-        switch (c) {
-          case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_ARSHIFTASSIGN;
-          }
-          case '>': {
-            state = LS_LRSHIFT_OP;
-            info->character++;
-            break;
-          }
-          default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_ARSHIFT;
-          }
-        }
-        break;
-      }
-      case LS_LRSHIFT_OP: {
-        switch (c) {
-          case '=': {
-            info->character++;
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_LRSHIFTASSIGN;
-          }
-          default: {
-            fUnget(info->file);
-            tokenInfo->line = line;
-            tokenInfo->character = character;
-            return TT_LRSHIFT;
-          }
-        }
-        break;
-      }
+      }  // LS_CHARS
       case LS_CHAR_SINGLE: {
         switch (c) {
           case '\'': {
             state = LS_MAYBE_WCHAR;
-            info->character++;
+
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
             break;
           }
           default: {
             state = LS_CHAR_ERROR_MUNCH;
-            info->character++;
+
             stringBuilderDestroy(buffer);
+            buffer = NULL;
             break;
           }
         }
         break;
-      }
+      }  // LS_CHAR_SINGLE
       case LS_CHAR_ESCAPED: {
         switch (c) {
           case 'u': {
-            state = LS_CHAR_HEX_DIGIT_1;
-            info->character++;
+            state = LS_CHAR_WHEX_DIGIT_1;
+
             stringBuilderPush(buffer, c);
             break;
           }
           case 'x': {
-            state = LS_CHAR_WHEX_DIGIT_1;
-            info->character++;
+            state = LS_CHAR_HEX_DIGIT_1;
+
+            stringBuilderPush(buffer, c);
             break;
           }
           case 'n':
@@ -786,17 +862,20 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
           case '\\':
           case '\'': {
             state = LS_CHAR_SINGLE;
-            info->character++;
+
+            stringBuilderPush(buffer, c);
             break;
           }
           default: {
             state = LS_CHAR_BAD_ESCAPE;
-            info->character++;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
             break;
           }
         }
         break;
-      }
+      }  // LS_CHAR_ESCAPED
       case LS_CHAR_HEX_DIGIT_1: {
         switch (c) {
           case '0':
@@ -821,171 +900,1664 @@ TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo) {
           case 'E':
           case 'f':
           case 'F': {
-            state
+            state = LS_CHAR_HEX_DIGIT_2;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
           }
         }
         break;
-      }
+      }  // LS_CHAR_HEX_DIGIT_1
       case LS_CHAR_HEX_DIGIT_2: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_CHAR_SINGLE;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_CHAR_HEX_DIGIT_2
       case LS_CHAR_WHEX_DIGIT_1: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_CHAR_WHEX_DIGIT_2;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_CHAR_WHEX_DIGIT_1
       case LS_CHAR_WHEX_DIGIT_2: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_CHAR_WHEX_DIGIT_3;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_CHAR_WHEX_DIGIT_2
       case LS_CHAR_WHEX_DIGIT_3: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_CHAR_WHEX_DIGIT_4;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_CHAR_WHEX_DIGIT_3
       case LS_CHAR_WHEX_DIGIT_4: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_CHAR_WHEX_DIGIT_5;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_CHAR_WHEX_DIGIT_4
       case LS_CHAR_WHEX_DIGIT_5: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_CHAR_WHEX_DIGIT_6;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_CHAR_WHEX_DIGIT_5
       case LS_CHAR_WHEX_DIGIT_6: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_CHAR_WHEX_DIGIT_7;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_CHAR_WHEX_DIGIT_6
+      case LS_CHAR_WHEX_DIGIT_7: {
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_CHAR_WHEX_DIGIT_8;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
+        break;
+      }  // LS_CHAR_WHEX_DIGIT_7
+      case LS_CHAR_WHEX_DIGIT_8: {
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_EXPECT_WCHAR;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
+        break;
+      }  // LS_CHAR_WHEX_DIGIT_8
       case LS_MAYBE_WCHAR: {
-        switch (c) {}
+        switch (c) {
+          case 'w': {
+            return TT_LITERALWCHAR;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_LITERALCHAR;
+          }
+        }
         break;
-      }
+      }  // LS_CHAR_MAYBE_WCHAR
+      case LS_EXPECT_WCHAR: {
+        switch (c) {
+          case '\'': {
+            state = LS_IS_WCHAR;
+
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+          default: {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
+        break;
+      }  // LS_EXPECT_WCHAR
+      case LS_IS_WCHAR: {
+        switch (c) {
+          case 'w': {
+            return TT_LITERALWCHAR;
+          }
+          default: {
+            free(tokenInfo->data.string);
+            return TT_NOT_WIDE;
+          }
+        }
+        break;
+      }  // LS_IS_WCHAR
       case LS_CHAR_ERROR_MUNCH: {
-        switch (c) {}
+        switch (c) {
+          case '\'': {
+            state = LS_CHAR_ERROR_MAYBE_WCHAR;
+            break;
+          }
+          default: { break; }
+        }
         break;
-      }
+      }  // LS_CHAR_ERROR_MUNCH
       case LS_CHAR_ERROR_MAYBE_WCHAR: {
-        switch (c) {}
+        switch (c) {
+          case 'w': {
+            return TT_MULTICHAR_CHAR;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_MULTICHAR_CHAR;
+          }
+        }
         break;
-      }
+      }  // LS_CHAR_ERROR_MAYBE_WCHAR
       case LS_CHAR_BAD_ESCAPE: {
-        switch (c) {}
+        switch (c) {
+          case '\'': {
+            state = LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR;
+            break;
+          }
+          default: { break; }
+        }
         break;
-      }
+      }  // LS_CHAR_BAD_ESCAPE
       case LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR: {
-        switch (c) {}
+        switch (c) {
+          case 'w': {
+            return TT_INVALID_ESCAPE;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_INVALID_ESCAPE;
+          }
+        }
         break;
-      }
+      }  // LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR
+
+      // string states
+      case LS_STRING: {
+        switch (c) {
+          case '\\': {
+            state = LS_STRING_ESCAPED;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case '"': {
+            state = LS_MAYBE_WSTRING;
+
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+          default: {
+            stringBuilderPush(buffer, c);
+            break;
+          }
+        }
+        break;
+      }  // LS_STRING
       case LS_STRING_ESCAPED: {
-        switch (c) {}
+        switch (c) {
+          case 'n':
+          case 'r':
+          case 't':
+          case '0':
+          case '\\':
+          case '"': {
+            state = LS_STRING;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case 'x': {
+            state = LS_STRING_HEX_DIGIT_1;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case 'u': {
+            state = LS_STRING_WHEX_DIGIT_1;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_ESCAPED
       case LS_STRING_HEX_DIGIT_1: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_HEX_DIGIT_2;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_HEX_DIGIT_1
       case LS_STRING_HEX_DIGIT_2: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_HEX_DIGIT_2
       case LS_STRING_WHEX_DIGIT_1: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WHEX_DIGIT_2;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WHEX_DIGIT_1
       case LS_STRING_WHEX_DIGIT_2: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WHEX_DIGIT_3;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WHEX_DIGIT_2
       case LS_STRING_WHEX_DIGIT_3: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WHEX_DIGIT_4;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WHEX_DIGIT_4
       case LS_STRING_WHEX_DIGIT_4: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WHEX_DIGIT_5;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WHEX_DIGIT_4
       case LS_STRING_WHEX_DIGIT_5: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WHEX_DIGIT_6;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WHEX_DIGIT_5
       case LS_STRING_WHEX_DIGIT_6: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WHEX_DIGIT_7;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WHEX_DIGIT_6
+      case LS_STRING_WHEX_DIGIT_7: {
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WHEX_DIGIT_8;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
+        break;
+      }  // LS_STRING_WHEX_DIGIT_7
+      case LS_STRING_WHEX_DIGIT_8: {
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
+        break;
+      }  // LS_STRING_WHEX_DIGIT_8
       case LS_MAYBE_WSTRING: {
-        switch (c) {}
+        switch (c) {
+          case 'w': {
+            return TT_LITERALWSTRING;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_LITERALSTRING;
+          }
+        }
         break;
-      }
+      }  // LS_MAYBE_WSTRING
       case LS_STRING_WIDE: {
-        switch (c) {}
+        switch (c) {
+          case '\\': {
+            state = LS_STRING_WIDE_ESCAPED;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case '"': {
+            state = LS_STRING_WIDE_END;
+
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+          default: {
+            stringBuilderPush(buffer, c);
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WIDE
       case LS_STRING_WIDE_ESCAPED: {
-        switch (c) {}
+        switch (c) {
+          case 'n':
+          case 'r':
+          case 't':
+          case '0':
+          case '\\':
+          case '"': {
+            state = LS_STRING_WIDE;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case 'x': {
+            state = LS_STRING_WIDE_HEX_DIGIT_1;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case 'u': {
+            state = LS_STRING_WIDE_WHEX_DIGIT_1;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WIDE_ESCAPED
       case LS_STRING_WIDE_HEX_DIGIT_1: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE_HEX_DIGIT_2;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WIDE_HEX_DIGIT_1
       case LS_STRING_WIDE_HEX_DIGIT_2: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WIDE_HEX_DIGIT_2
       case LS_STRING_WIDE_WHEX_DIGIT_1: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE_WHEX_DIGIT_2;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WIDE_WHEX_DIGIT_1
       case LS_STRING_WIDE_WHEX_DIGIT_2: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE_WHEX_DIGIT_3;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WIDE_WHEX_DIGIT_2
       case LS_STRING_WIDE_WHEX_DIGIT_3: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE_WHEX_DIGIT_4;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WIDE_WHEX_DIGIT_3
       case LS_STRING_WIDE_WHEX_DIGIT_4: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE_WHEX_DIGIT_5;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WIDE_WHEX_DIGIT_4
       case LS_STRING_WIDE_WHEX_DIGIT_5: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE_WHEX_DIGIT_6;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WIDE_WHEX_DIGIT_5
       case LS_STRING_WIDE_WHEX_DIGIT_6: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE_WHEX_DIGIT_7;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
-      case LS_STRING_WIDE_END: {
-        switch (c) {}
+      }  // LS_STRING_WIDE_WHEX_DIGIT_6
+      case LS_STRING_WIDE_WHEX_DIGIT_7: {
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE_WHEX_DIGIT_8;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
         break;
-      }
+      }  // LS_STRING_WIDE_WHEX_DIGIT_7
+      case LS_STRING_WIDE_WHEX_DIGIT_8: {
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            state = LS_STRING_WIDE;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            state = LS_STRING_BAD_ESCAPE;
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+            break;
+          }
+        }
+        break;
+      }  // LS_STRING_WIDE_WHEX_DIGIT_8
+
+      // number states
+      case LS_ZERO: {
+        switch (c) {
+          case 'b': {
+            state = LS_BINARY_NUM;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case 'x': {
+            state = LS_HEX_NUM;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7': {
+            state = LS_OCTAL_NUM;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            return TT_LITERALINT_0;
+          }
+        }
+        break;
+      }  // LS_ZERO
+      case LS_DECIMAL_NUM: {
+        switch (c) {
+          case '.': {
+            state = LS_FLOAT;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9': {
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            return TT_LITERALINT_D;
+          }
+        }
+        break;
+      }  // LS_DECIMAL_NUM
       case LS_BINARY_NUM: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1': {
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            return TT_LITERALINT_B;
+          }
+        }
         break;
-      }
+      }  // LS_BINARY_NUM
       case LS_OCTAL_NUM: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7': {
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            return TT_LITERALINT_O;
+          }
+        }
         break;
-      }
+      }  // LS_BINARY_NUM
       case LS_HEX_NUM: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'a':
+          case 'A':
+          case 'b':
+          case 'B':
+          case 'c':
+          case 'C':
+          case 'd':
+          case 'D':
+          case 'e':
+          case 'E':
+          case 'f':
+          case 'F': {
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            return TT_LITERALINT_H;
+          }
+        }
         break;
-      }
+      }  // LS_HEX_NUM
       case LS_FLOAT: {
-        switch (c) {}
+        switch (c) {
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9': {
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            return TT_LITERALFLOAT;
+          }
+        }
         break;
-      }
-      case LS_ADD: {
-        switch (c) {}
+      }  // LS_FLOAT
+      case LS_STRING_WIDE_END: {
+        switch (c) {
+          case 'w': {
+            return TT_LITERALWSTRING;
+          }
+          default: {
+            free(tokenInfo->data.string);
+            return TT_NOT_WIDE;
+          }
+        }
         break;
-      }
-      case LS_SUB: {
-        switch (c) {}
+      }  // LS_STRING_WIDE_END
+      case LS_STRING_BAD_ESCAPE: {
+        switch (c) {
+          case '"': {
+            state = LS_STRING_BAD_ESCAPE_MAYBE_WCHAR;
+            break;
+          }
+          default: { break; }
+        }
         break;
-      }
+      }  // LS_STRING_BAD_ESCAPE
+      case LS_STRING_BAD_ESCAPE_MAYBE_WCHAR: {
+        switch (c) {
+          case 'w': {
+            return TT_INVALID_ESCAPE;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_INVALID_ESCAPE;
+          }
+        }
+        break;
+      }  // LS_STRING_BAD_ESCAPE_MAYBE_WCHAR
+
+      // word states
+      case LS_WORD: {
+        if (isAlnumOrUnderscore(c)) {
+          stringBuilderPush(buffer, c);
+        } else if (c == ':') {
+          state = LS_WORD_COLON;
+
+          stringBuilderPush(buffer, c);
+        } else {
+          fUnget(lexerInfo->file);
+          lexerInfo->character--;
+
+          tokenInfo->data.string = stringBuilderData(buffer);
+          return TT_ID;
+        }
+        break;
+      }  // LS_WORD
       case LS_WORD_COLON: {
-        switch (c) {}
+        switch (c) {
+          case ':': {
+            state = LS_SCOPED_WORD;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            fUnget(lexerInfo->file);
+            lexerInfo->character -= 2;
+
+            stringBuilderPop(buffer);
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            return TT_ID;
+          }
+        }
         break;
-      }
+      }  // LS_WORD_COLON
+      case LS_SCOPED_WORD: {
+        if (isAlnumOrUnderscore(c)) {
+          stringBuilderPush(buffer, c);
+        } else if (c == ':') {
+          state = LS_SCOPED_WORD_COLON;
+
+          stringBuilderPush(buffer, c);
+        } else {
+          fUnget(lexerInfo->file);
+          lexerInfo->character--;
+
+          tokenInfo->data.string = stringBuilderData(buffer);
+          return TT_SCOPED_ID;
+        }
+        break;
+      }  // LS_SCOPED_WORD
+      case LS_SCOPED_WORD_COLON: {
+        switch (c) {
+          case ':': {
+            state = LS_SCOPED_WORD;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            fUnget(lexerInfo->file);
+            lexerInfo->character -= 2;
+
+            stringBuilderPop(buffer);
+            tokenInfo->data.string = stringBuilderData(buffer);
+            stringBuilderDestroy(buffer);
+            return TT_SCOPED_ID;
+          }
+        }
+        break;
+      }  // LS_SCOPED_WORD_COLON
+#pragma GCC diagnostic pop
     }
   }
 }
