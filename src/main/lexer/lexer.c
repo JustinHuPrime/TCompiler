@@ -11,6 +11,7 @@
 #include "util/stringBuilder.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 char const *const KEYWORDS[] = {
     "module", "using",    "struct", "union", "enum",   "typedef", "if",
@@ -181,12 +182,19 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       // cleanup, and produce error
       tokenInfo->line = lexerInfo->line;
       tokenInfo->character = lexerInfo->character;
+
+      reportError(
+          report,
+          format("%s:%zd:%zd: error: could not read next character; "
+                 "filesystem error?",
+                 lexerInfo->file, lexerInfo->line, lexerInfo->character));
+
       if (buffer != NULL) stringBuilderDestroy(buffer);
 
       return TT_ERR;
     }
 
-    // default action - newlines handled specially
+    // default action - newlines and pushback handled specially
     lexerInfo->character++;
 
     switch (state) {
@@ -196,7 +204,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       // start
       case LS_START: {
         switch (c) {
-          case -2: {  // F_EOFtokenInfo->line = lexerInfo->line;
+          case -2: {  // F_EOF
+            tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
             return TT_EOF;
           }
@@ -751,6 +760,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       // comment states
       case LS_LINE_COMMENT: {
         switch (c) {
+          case -2: {  // F_EOF
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
+            return TT_EOF;
+          }
           case '\n': {
             state = LS_START;
 
@@ -771,6 +785,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_LINE_COMMENT
       case LS_BLOCK_COMMENT: {
         switch (c) {
+          case -2: {  // F_EOF
+            reportError(report, format("%s:%zd:%zd: error: unterminated block "
+                                       "comment at end of file",
+                                       lexerInfo->fileName, tokenInfo->line,
+                                       tokenInfo->character));
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
+            return TT_EOF;
+          }
           case '*': {
             state = LS_BLOCK_COMMENT_MAYBE_ENDED;
             break;
@@ -800,6 +823,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_LINE_COMMENT_MAYBE_ENDED
       case LS_BLOCK_COMMENT_MAYBE_ENDED: {
         switch (c) {
+          case -2: {  // F_EOF
+            reportError(report, format("%s:%zd:%zd: error: unterminated block "
+                                       "comment at end of file",
+                                       lexerInfo->fileName, tokenInfo->line,
+                                       tokenInfo->character));
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
+            return TT_EOF;
+          }
           case '/': {
             state = LS_START;
             break;
@@ -815,9 +847,23 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       // char states
       case LS_CHARS: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '\'': {
             stringBuilderDestroy(buffer);
-            buffer = NULL;
+
+            reportError(report,
+                        format("%s:%zd:%zd: error: empty character literal",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 1));
             return TT_EMPTY_SQUOTE;
           }
           case '\\': {
@@ -837,6 +883,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHARS
       case LS_CHAR_SINGLE: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '\'': {
             state = LS_MAYBE_WCHAR;
 
@@ -848,6 +904,13 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_ERROR_MUNCH;
 
+            reportError(
+                report,
+                format(
+                    "%s:%zd:%zd: error: multiple characters in single quotes",
+                    lexerInfo->fileName, lexerInfo->line,
+                    lexerInfo->character - buffer->size));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -857,6 +920,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_SINGLE
       case LS_CHAR_ESCAPED: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case 'u': {
             state = LS_CHAR_WHEX_DIGIT_1;
 
@@ -883,6 +956,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 1));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -892,6 +970,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_ESCAPED
       case LS_CHAR_HEX_DIGIT_1: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -922,6 +1010,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 2));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -931,6 +1024,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_HEX_DIGIT_1
       case LS_CHAR_HEX_DIGIT_2: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -961,6 +1064,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 3));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -970,6 +1078,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_HEX_DIGIT_2
       case LS_CHAR_WHEX_DIGIT_1: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1000,6 +1118,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 2));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1009,6 +1132,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_WHEX_DIGIT_1
       case LS_CHAR_WHEX_DIGIT_2: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1039,6 +1172,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 3));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1048,6 +1186,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_WHEX_DIGIT_2
       case LS_CHAR_WHEX_DIGIT_3: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1078,6 +1226,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 4));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1087,6 +1240,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_WHEX_DIGIT_3
       case LS_CHAR_WHEX_DIGIT_4: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1117,6 +1280,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 5));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1126,6 +1294,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_WHEX_DIGIT_4
       case LS_CHAR_WHEX_DIGIT_5: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1156,6 +1334,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 6));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1165,6 +1348,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_WHEX_DIGIT_5
       case LS_CHAR_WHEX_DIGIT_6: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1195,6 +1388,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 7));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1204,6 +1402,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_WHEX_DIGIT_6
       case LS_CHAR_WHEX_DIGIT_7: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1234,6 +1442,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 8));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1243,6 +1456,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_WHEX_DIGIT_7
       case LS_CHAR_WHEX_DIGIT_8: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1273,6 +1496,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 9));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1295,6 +1523,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_MAYBE_WCHAR
       case LS_EXPECT_WCHAR: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '\'': {
             state = LS_IS_WCHAR;
 
@@ -1304,7 +1542,7 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             break;
           }
           default: {
-            state = LS_CHAR_BAD_ESCAPE;
+            state = LS_CHAR_ERROR_MUNCH;
 
             stringBuilderDestroy(buffer);
             buffer = NULL;
@@ -1319,6 +1557,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             return TT_LITERALWCHAR;
           }
           default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+
+            reportError(report, format("%s:%zd:%zd: error: expected wide "
+                                       "character, but no specifier found",
+                                       lexerInfo->fileName, lexerInfo->line,
+                                       lexerInfo->character -
+                                           strlen(tokenInfo->data.string) - 1));
+
             free(tokenInfo->data.string);
             return TT_NOT_WIDE;
           }
@@ -1327,6 +1574,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_IS_WCHAR
       case LS_CHAR_ERROR_MUNCH: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '\'': {
             state = LS_CHAR_ERROR_MAYBE_WCHAR;
             break;
@@ -1350,6 +1607,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_CHAR_ERROR_MAYBE_WCHAR
       case LS_CHAR_BAD_ESCAPE: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated character literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '\'': {
             state = LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR;
             break;
@@ -1375,6 +1642,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       // string states
       case LS_STRING: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '\\': {
             state = LS_STRING_ESCAPED;
 
@@ -1398,6 +1675,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING
       case LS_STRING_ESCAPED: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case 'n':
           case 'r':
           case 't':
@@ -1433,6 +1720,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_ESCAPED
       case LS_STRING_HEX_DIGIT_1: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1463,6 +1760,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 2));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1472,6 +1774,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_HEX_DIGIT_1
       case LS_STRING_HEX_DIGIT_2: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1502,6 +1814,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 3));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1511,6 +1828,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_HEX_DIGIT_2
       case LS_STRING_WHEX_DIGIT_1: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1541,6 +1868,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 2));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1550,6 +1882,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WHEX_DIGIT_1
       case LS_STRING_WHEX_DIGIT_2: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1580,6 +1922,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 3));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1589,6 +1936,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WHEX_DIGIT_2
       case LS_STRING_WHEX_DIGIT_3: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1619,6 +1976,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 4));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1628,6 +1990,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WHEX_DIGIT_4
       case LS_STRING_WHEX_DIGIT_4: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1658,6 +2030,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 5));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1667,6 +2044,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WHEX_DIGIT_4
       case LS_STRING_WHEX_DIGIT_5: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1697,6 +2084,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 6));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1706,6 +2098,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WHEX_DIGIT_5
       case LS_STRING_WHEX_DIGIT_6: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1736,6 +2138,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 7));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1745,6 +2152,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WHEX_DIGIT_6
       case LS_STRING_WHEX_DIGIT_7: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1775,6 +2192,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 8));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1784,6 +2206,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WHEX_DIGIT_7
       case LS_STRING_WHEX_DIGIT_8: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1813,6 +2245,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           }
           default: {
             state = LS_STRING_BAD_ESCAPE;
+
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 9));
 
             stringBuilderDestroy(buffer);
             buffer = NULL;
@@ -1859,6 +2296,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE
       case LS_STRING_WIDE_ESCAPED: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case 'n':
           case 'r':
           case 't':
@@ -1885,6 +2332,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 1));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1894,6 +2346,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE_ESCAPED
       case LS_STRING_WIDE_HEX_DIGIT_1: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1924,6 +2386,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 2));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1933,6 +2400,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE_HEX_DIGIT_1
       case LS_STRING_WIDE_HEX_DIGIT_2: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -1963,6 +2440,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 3));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -1972,6 +2454,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE_HEX_DIGIT_2
       case LS_STRING_WIDE_WHEX_DIGIT_1: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -2002,6 +2494,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 2));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -2011,6 +2508,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE_WHEX_DIGIT_1
       case LS_STRING_WIDE_WHEX_DIGIT_2: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -2041,6 +2548,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 3));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -2050,6 +2562,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE_WHEX_DIGIT_2
       case LS_STRING_WIDE_WHEX_DIGIT_3: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -2080,6 +2602,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 4));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -2089,6 +2616,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE_WHEX_DIGIT_3
       case LS_STRING_WIDE_WHEX_DIGIT_4: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -2119,6 +2656,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 5));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -2128,6 +2670,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE_WHEX_DIGIT_4
       case LS_STRING_WIDE_WHEX_DIGIT_5: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -2158,6 +2710,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 6));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -2167,6 +2724,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE_WHEX_DIGIT_5
       case LS_STRING_WIDE_WHEX_DIGIT_6: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -2197,6 +2764,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 7));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -2206,6 +2778,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE_WHEX_DIGIT_6
       case LS_STRING_WIDE_WHEX_DIGIT_7: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -2236,6 +2818,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 8));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -2245,6 +2832,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       }  // LS_STRING_WIDE_WHEX_DIGIT_7
       case LS_STRING_WIDE_WHEX_DIGIT_8: {
         switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
           case '0':
           case '1':
           case '2':
@@ -2275,6 +2872,11 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
+            reportError(report,
+                        format("%s:%zd:%zd: error: invalid escape sequence",
+                               lexerInfo->fileName, lexerInfo->line,
+                               lexerInfo->character - 9));
+
             stringBuilderDestroy(buffer);
             buffer = NULL;
             break;
@@ -2282,6 +2884,60 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_STRING_WIDE_WHEX_DIGIT_8
+      case LS_STRING_WIDE_END: {
+        switch (c) {
+          case 'w': {
+            return TT_LITERALWSTRING;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+
+            reportError(report, format("%s:%zd:%zd: error: expected wide "
+                                       "string, but no specifier found",
+                                       lexerInfo->fileName, lexerInfo->line,
+                                       lexerInfo->character -
+                                           strlen(tokenInfo->data.string) - 1));
+
+            free(tokenInfo->data.string);
+            return TT_NOT_WIDE;
+          }
+        }
+        break;
+      }  // LS_STRING_WIDE_END
+      case LS_STRING_BAD_ESCAPE: {
+        switch (c) {
+          case -2: {  // F_EOF
+            stringBuilderDestroy(buffer);
+
+            reportError(
+                report,
+                format("%s:%zd:%zd: error: unterminated string literal",
+                       lexerInfo->file, tokenInfo->line, tokenInfo->character));
+
+            return TT_EOF;
+          }
+          case '"': {
+            state = LS_STRING_BAD_ESCAPE_MAYBE_WCHAR;
+            break;
+          }
+          default: { break; }
+        }
+        break;
+      }  // LS_STRING_BAD_ESCAPE
+      case LS_STRING_BAD_ESCAPE_MAYBE_WCHAR: {
+        switch (c) {
+          case 'w': {
+            return TT_INVALID_ESCAPE;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character--;
+            return TT_INVALID_ESCAPE;
+          }
+        }
+        break;
+      }  // LS_STRING_BAD_ESCAPE_MAYBE_WCHAR
 
       // number states
       case LS_ZERO: {
@@ -2460,41 +3116,6 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_FLOAT
-      case LS_STRING_WIDE_END: {
-        switch (c) {
-          case 'w': {
-            return TT_LITERALWSTRING;
-          }
-          default: {
-            free(tokenInfo->data.string);
-            return TT_NOT_WIDE;
-          }
-        }
-        break;
-      }  // LS_STRING_WIDE_END
-      case LS_STRING_BAD_ESCAPE: {
-        switch (c) {
-          case '"': {
-            state = LS_STRING_BAD_ESCAPE_MAYBE_WCHAR;
-            break;
-          }
-          default: { break; }
-        }
-        break;
-      }  // LS_STRING_BAD_ESCAPE
-      case LS_STRING_BAD_ESCAPE_MAYBE_WCHAR: {
-        switch (c) {
-          case 'w': {
-            return TT_INVALID_ESCAPE;
-          }
-          default: {
-            fUnget(lexerInfo->file);
-            lexerInfo->character--;
-            return TT_INVALID_ESCAPE;
-          }
-        }
-        break;
-      }  // LS_STRING_BAD_ESCAPE_MAYBE_WCHAR
 
       // word states
       case LS_WORD: {

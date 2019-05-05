@@ -17,12 +17,11 @@ typedef enum {
   TT_EOF,
 
   // errors
-  TT_INVALID,  // invalid character seen (e.g. $)
-
-  TT_EMPTY_SQUOTE,  // char errors
-  TT_INVALID_ESCAPE,
-  TT_NOT_WIDE,
-  TT_MULTICHAR_CHAR,
+  TT_INVALID,         // invalid character seen (e.g. $)
+  TT_EMPTY_SQUOTE,    // empty char ('')
+  TT_INVALID_ESCAPE,  // bad escape (\$)
+  TT_NOT_WIDE,        // expected wchar/wstring, got char/string
+  TT_MULTICHAR_CHAR,  // multiple chars in char ('ab')
 
   // keywords
   TT_MODULE,
@@ -144,6 +143,7 @@ typedef struct {
   size_t character;
   File *file;
   HashMap const *keywords;
+  char const *fileName;
 } LexerInfo;
 
 // specialization of hashmap
