@@ -34,14 +34,14 @@ void testStatusDisplay(TestStatus *status) {
   if (status->numPassed == status->numTests) {
     printf(
         "\x1B[1;32m============================================================"
-        "====================\n\nAll %zd tests "
+        "====================\n\nAll %zu tests "
         "passed!\n\n==========================================================="
         "=====================\n\x1B[m",
         status->numTests);
   } else {
     printf(
         "\x1B[1;91m============================================================"
-        "====================\n\n%zd out of %zd tests passed.\n%zd tests "
+        "====================\n\n%zu out of %zu tests passed.\n%zu tests "
         "failed.\n\n",
         status->numPassed, status->numTests,
         status->numTests - status->numPassed);

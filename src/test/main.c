@@ -10,6 +10,8 @@
 int main(void) {
   TestStatus *status = testStatusCreate();
 
+  keywordMapTest(status);
+  lexerTest(status);
   errorReportTest(status);
   fileListTest(status);
   fileTest(status);

@@ -9,6 +9,10 @@
 
 #include "engine.h"
 
+// in lexer/lexer.c
+void keywordMapTest(TestStatus *);
+void lexerTest(TestStatus *);
+
 // in util/errorReport.c
 void errorReportTest(TestStatus *);
 

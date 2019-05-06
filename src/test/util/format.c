@@ -12,7 +12,7 @@
 #include <string.h>
 
 void formatTest(TestStatus *status) {
-  char *str = format("%zd:%zd", (size_t)1, (size_t)2);
+  char *str = format("%zu:%zu", (size_t)1, (size_t)2);
   test(status, "[util] [format] format produces printf'ed string",
        strcmp(str, "1:2") == 0);
   free(str);

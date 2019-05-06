@@ -44,8 +44,7 @@ int const HM_OK = 0;
 int const HM_EEXISTS = 1;
 int hashMapPut(HashMap *map, char const *key, void *data,
                void (*dtor)(void *)) {
-  uint64_t hash = djb2(key);
-  hash %= map->size;
+  uint64_t hash = djb2(key) % map->size;
 
   if (map->keys[hash] == NULL) {
     map->keys[hash] = key;
@@ -56,8 +55,8 @@ int hashMapPut(HashMap *map, char const *key, void *data,
     for (size_t idx = (hash + hash2) % map->size; idx != hash;
          idx = (idx + hash2) % map->size) {
       if (map->keys[idx] == NULL) {  // empty spot
-        map->keys[hash] = key;
-        map->values[hash] = data;
+        map->keys[idx] = key;
+        map->values[idx] = data;
         return HM_OK;
       } else if (strcmp(map->keys[idx], key) == 0) {  // already in there
         dtor(data);
