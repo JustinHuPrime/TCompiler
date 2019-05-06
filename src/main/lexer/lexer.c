@@ -56,6 +56,7 @@ LexerInfo *lexerInfoCreate(char const *fileName, HashMap const *keywords) {
   li->character = 0;
   li->file = f;
   li->keywords = keywords;
+  li->fileName = fileName;
 
   return li;
 }
@@ -831,6 +832,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
+
+            stringBuilderDestroy(buffer);
             return TT_MINUS;
           }
         }
@@ -1864,6 +1867,7 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           lexerInfo->character--;
 
           tokenInfo->data.string = stringBuilderData(buffer);
+          stringBuilderDestroy(buffer);
           return TT_SCOPED_ID;
         }
         break;

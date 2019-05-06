@@ -773,6 +773,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.character == 102);
   test(status, "[lexer] [lex] comprehensive file token 87 is 'scoped::id'",
        strcmp("scoped::id", tokenInfo.data.string) == 0);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status, "[lexer] [lex] comprehensive file token 88 is literal zero",
@@ -781,6 +782,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 11);
   test(status, "[lexer] [lex] comprehensive file token 88 is at char 1",
        tokenInfo.character == 1);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status, "[lexer] [lex] comprehensive file token 89 is literal binary",
@@ -789,6 +791,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 12);
   test(status, "[lexer] [lex] comprehensive file token 89 is at char 1",
        tokenInfo.character == 1);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status, "[lexer] [lex] comprehensive file token 90 is literal octal",
@@ -797,6 +800,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 13);
   test(status, "[lexer] [lex] comprehensive file token 90 is at char 1",
        tokenInfo.character == 1);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status, "[lexer] [lex] comprehensive file token 91 is literal decimal",
@@ -805,6 +809,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 14);
   test(status, "[lexer] [lex] comprehensive file token 91 is at char 1",
        tokenInfo.character == 1);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status,
@@ -814,6 +819,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 15);
   test(status, "[lexer] [lex] comprehensive file token 92 is at char 1",
        tokenInfo.character == 1);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status,
@@ -823,6 +829,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 16);
   test(status, "[lexer] [lex] comprehensive file token 93 is at char 1",
        tokenInfo.character == 1);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status, "[lexer] [lex] comprehensive file token 94 is literal string",
@@ -831,6 +838,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 17);
   test(status, "[lexer] [lex] comprehensive file token 94 is at char 1",
        tokenInfo.character == 1);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status, "[lexer] [lex] comprehensive file token 95 is literal char",
@@ -839,6 +847,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 18);
   test(status, "[lexer] [lex] comprehensive file token 95 is at char 1",
        tokenInfo.character == 1);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status, "[lexer] [lex] comprehensive file token 96 is literal wstring",
@@ -847,6 +856,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 19);
   test(status, "[lexer] [lex] comprehensive file token 96 is at char 1",
        tokenInfo.character == 1);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status, "[lexer] [lex] comprehensive file token 97 is literal wchar",
@@ -855,6 +865,7 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 20);
   test(status, "[lexer] [lex] comprehensive file token 97 is at char 1",
        tokenInfo.character == 1);
+  free(tokenInfo.data.string);
 
   tokenType = lex(report, info, &tokenInfo);
   test(status, "[lexer] [lex] comprehensive file token 98 is eof",
@@ -868,9 +879,19 @@ void lexerTest(TestStatus *status) {
 
   info = lexerInfoCreate("testFiles/lexerTestCorner.tc", keywords);
 
-  // TODO: write tests for corner case
-
   tokenType = lex(report, info, &tokenInfo);
+  test(status, "[lexer] [lex] id before colon is plain id", tokenType == TT_ID);
+  free(tokenInfo.data.string);
+  tokenType = lex(report, info, &tokenInfo);
+  tokenType = lex(report, info, &tokenInfo);
+  test(status, "[lexer] [lex] invalid characters are caught",
+       tokenType == TT_INVALID);
+  tokenType = lex(report, info, &tokenInfo);
+  test(status, "[lexer] [lex] bad escape in string is caught",
+       tokenType == TT_INVALID_ESCAPE);
+  tokenType = lex(report, info, &tokenInfo);
+  test(status, "[lexer] [lex] bad escape in char is caught",
+       tokenType == TT_INVALID_ESCAPE);
 
   lexerInfoDestroy(info);
 
