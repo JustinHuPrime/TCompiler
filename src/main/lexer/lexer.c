@@ -1758,6 +1758,7 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           stringBuilderDestroy(buffer);
           TokenType const *keyword =
               keywordMapGet(lexerInfo->keywords, tokenInfo->data.string);
+          if (keyword != NULL) free(tokenInfo->data.string);
           return keyword != NULL ? *keyword : TT_ID;
         }
         break;
@@ -1780,6 +1781,7 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             stringBuilderDestroy(buffer);
             TokenType const *keyword =
                 keywordMapGet(lexerInfo->keywords, tokenInfo->data.string);
+            if (keyword != NULL) free(tokenInfo->data.string);
             return keyword != NULL ? *keyword : TT_ID;
           }
         }

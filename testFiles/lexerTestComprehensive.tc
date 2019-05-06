@@ -1,0 +1,20 @@
+// line comment
+module using struct union enum typedef
+if else while do for switch case default
+break continue return asm true false cast
+sizeof void ubyte byte char uint int wchar
+ulong long float double bool const /* block
+comment
+multiline */
+;,()[]{}.
+->++--*&+-!~/%<<>>>>><=><><=>===!=|^&&||?:=/=%=+=-=<<=>>>=>>=&=^=|=&&=||=id/*comment as space*/scoped::id
+0
+0b101
+0135
+123
+0xfF1
+3.1415
+"string"
+'c'
+"wstring"w
+'c'w
