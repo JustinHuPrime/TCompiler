@@ -95,6 +95,7 @@ typedef enum {
   LS_BLOCK_COMMENT,
   LS_LINE_COMMENT_MAYBE_ENDED,
   LS_BLOCK_COMMENT_MAYBE_ENDED,
+  LS_BLOCK_COMMENT_SEEN_CR,
 
   // char states
   LS_CHARS,
@@ -365,12 +366,12 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           case '.': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_COMMA;
+            return TT_DOT;
           }
           case ',': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_DOT;
+            return TT_COMMA;
           }
           case ';': {
             tokenInfo->line = lexerInfo->line;
@@ -448,14 +449,28 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             break;
           }
           case '&': {
-            state = LS_LAND_OP;
+            state = LS_AND_OP;
 
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
             break;
           }
           case '|': {
-            state = LS_LOR_OP;
+            state = LS_OR_OP;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
+            break;
+          }
+          case '<': {
+            state = LS_LT_OP;
+
+            tokenInfo->line = lexerInfo->line;
+            tokenInfo->character = lexerInfo->character;
+            break;
+          }
+          case '>': {
+            state = LS_GT_OP;
 
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
@@ -816,7 +831,7 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            break;
+            return TT_MINUS;
           }
         }
         break;
@@ -858,6 +873,20 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
             return TT_EOF;
+          }
+          case '\n': {
+            state = LS_BLOCK_COMMENT;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\r': {
+            state = LS_BLOCK_COMMENT_SEEN_CR;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
           }
           case '*': {
             state = LS_BLOCK_COMMENT_MAYBE_ENDED;
@@ -901,6 +930,20 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             state = LS_START;
             break;
           }
+          case '\n': {
+            state = LS_BLOCK_COMMENT;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\r': {
+            state = LS_BLOCK_COMMENT_SEEN_CR;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
           default: {
             state = LS_BLOCK_COMMENT;
             break;
@@ -908,6 +951,28 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_BLOCK_COMMENT_MAYBE_ENDED
+      case LS_BLOCK_COMMENT_SEEN_CR: {
+        switch (c) {
+          case '\n': {
+            state = LS_BLOCK_COMMENT;
+            break;
+          }
+          case '\r': {
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '*': {
+            state = LS_BLOCK_COMMENT_MAYBE_ENDED;
+            break;
+          }
+          default: {
+            state = LS_BLOCK_COMMENT;
+            break;
+          }
+        }
+        break;
+      }  // LS_BLOCK_COMMENT_SEEN_CR
 
       // char states
       case LS_CHARS: {
