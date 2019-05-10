@@ -21,9 +21,12 @@ typedef struct {
 } FileList;
 
 // ctor
-FileList *parseFiles(Report *report, Options *options, size_t argc,
-                     char const *const *argv);
+FileList *fileListCreate(void);
 // dtor
 void fileListDestroy(FileList *);
+
+// parser
+FileList *parseFiles(Report *report, Options *options, size_t argc,
+                     char const *const *argv);
 
 #endif  // TLC_UTIL_FILELIST_H_

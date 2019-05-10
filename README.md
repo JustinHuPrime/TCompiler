@@ -10,15 +10,17 @@ This repo is the source code for the T Language Compiler, `tlc`.
 
 ### Options
 
+Note that if a later option conflicts with an earlier option, the later option will apply to all files, even those before the eariler option.
+
 #### Architecture
 
-* `-Ax86`: sets the architecture to target to x86_64. Conflicts with `-Asep`.
+* `-arch=x86`: sets the architecture to target to x86_64. Default.
 
-* `-Asep`: sets the architecture to target to sep. Conflicts with `-Ax86`.
+* `-arch=sep`: sets the architecture to target to sep.
 
 #### Warnings
 
-All warning options have three forms, a `-Werror-` form, a `-W...` form, and a `-Wno-...` form. These forms instruct the compiler to either produce an error if this particular event is encountered (stopping compilation), produce a warning, or ignore the issue. So, for example, `-Werror-foo` makes `foo` into an error, `-Wfoo` makes `foo` into a warning, and `-Wno-foo` ignores `foo`.
+All warning options have three forms, a `-W...=error` form, a `-W...=warn` form, and a `-W...=ignore` form. These forms instruct the compiler to either produce an error if this particular event is encountered (stopping compilation), produce a warning, or ignore the issue. So, for example, `-Wfoo=error` makes `foo` into an error, `-Wfoo=warn` makes `foo` into a warning, and `-Wfoo=ignore` ignores `foo`.
 
 * `duplciate-file`: duplciated files given. Defaults to error. If not an error, later files have no effect.
 

@@ -13,13 +13,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-// ctor
-FileList *parseFiles(Report *report, Options *options, size_t argc,
-                     char const *const *argv) {
+FileList *fileListCreate(void) {
   FileList *list = malloc(sizeof(FileList));
-
   list->decls = vectorCreate();
   list->codes = vectorCreate();
+  return list;
+}
+void fileListDestroy(FileList *list) {
+  vectorDestroy(list->decls, nullDtor);
+  vectorDestroy(list->codes, nullDtor);
+  free(list);
+}
+FileList *parseFiles(Report *report, Options *options, size_t argc,
+                     char const *const *argv) {
+  FileList *list = fileListCreate();
 
   for (size_t idx = 1; idx < argc; idx++) {
     // skip - this is an option
@@ -36,12 +43,20 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
           break;
         }
       }
-      if (duplicated && getOpt(options, OPT_WARN_DUPLICATE_FILE)) {
-        if (getOpt(options, OPT_WARN_DUPLICATE_FILE_ERROR)) {
-          reportError(report, format("%s: error: duplicated file", argv[idx]));
-        } else {
-          reportWarning(report,
-                        format("%s: warning: duplicated file", argv[idx]));
+      if (duplicated) {
+        switch (optionsGet(options, optionWDuplicateFile)) {
+          case O_WT_ERROR: {
+            reportError(report,
+                        format("%s: error: duplicated file", argv[idx]));
+            break;
+          }
+          case O_WT_WARN: {
+            reportWarning(report,
+                          format("%s: warning: duplicated file", argv[idx]));
+          }
+          case O_WT_IGNORE: {
+            break;
+          }
         }
       } else {
 #pragma GCC diagnostic push  // generic code demands an unsafe cast
@@ -59,12 +74,20 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
           break;
         }
       }
-      if (duplicated && getOpt(options, OPT_WARN_DUPLICATE_FILE)) {
-        if (getOpt(options, OPT_WARN_DUPLICATE_FILE_ERROR)) {
-          reportError(report, format("%s: error: duplicated file", argv[idx]));
-        } else {
-          reportWarning(report,
-                        format("%s: warning: duplicated file", argv[idx]));
+      if (duplicated) {
+        switch (optionsGet(options, optionWDuplicateFile)) {
+          case O_WT_ERROR: {
+            reportError(report,
+                        format("%s: error: duplicated file", argv[idx]));
+            break;
+          }
+          case O_WT_WARN: {
+            reportWarning(report,
+                          format("%s: warning: duplicated file", argv[idx]));
+          }
+          case O_WT_IGNORE: {
+            break;
+          }
         }
       } else {
 #pragma GCC diagnostic push  // generic code demands an unsafe cast
@@ -73,13 +96,18 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
 #pragma GCC diagnostic pop
       }
     } else {
-      if (getOpt(options, OPT_WARN_UNRECOGNIZED_FILE)) {
-        if (getOpt(options, OPT_WARN_UNRECOGNIZED_FILE_ERROR)) {
+      switch (optionsGet(options, optionWUnrecognizedFile)) {
+        case O_WT_ERROR: {
           reportError(report,
                       format("%s: error: unrecogized extension", argv[idx]));
-        } else {
+          break;
+        }
+        case O_WT_WARN: {
           reportWarning(
               report, format("%s: warning: unrecogized extension", argv[idx]));
+        }
+        case O_WT_IGNORE: {
+          break;
         }
       }
     }
@@ -89,10 +117,4 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
     reportError(report, format("tlc: error: no input code files"));
 
   return list;
-}
-// dtor
-void fileListDestroy(FileList *list) {
-  vectorDestroy(list->decls, nullDtor);
-  vectorDestroy(list->codes, nullDtor);
-  free(list);
 }

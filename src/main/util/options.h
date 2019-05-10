@@ -9,30 +9,40 @@
 
 #include "util/errorReport.h"
 
-#include <stdbool.h>
+#include "util/hashMap.h"
+
 #include <stdint.h>
 
-extern size_t const NUM_OPTS;
-typedef enum {
-  OPT_ARCH_X86,
-  OPT_ARCH_SEP,
-  OPT_WARN_DUPLICATE_FILE,
-  OPT_WARN_DUPLICATE_FILE_ERROR,
-  OPT_WARN_DUPLICATE_IMPORT,
-  OPT_WARN_DUPLICATE_IMPORT_ERROR,
-  OPT_WARN_UNRECOGNIZED_FILE,
-  OPT_WARN_UNRECOGNIZED_FILE_ERROR,
-} OptionIndex;
-
-typedef uint64_t Options;
+// a hashmap between a string and an intptr_t
+typedef HashMap Options;
 
 // ctor
-Options *parseOptions(Report *report, size_t argc, char const *const *argv);
-
-// gets the nth option
-bool getOpt(Options const *, OptionIndex);
-
+Options *optionsCreate(void);
+// gets the option with the given key
+// key must be valid, or zero will be returned
+intptr_t optionsGet(Options const *, char const *);
+// sets the option with the given key to the given value
+// key should be valid
+void optionsSet(Options *, char const *, intptr_t);
 // dtor
 void optionsDestroy(Options *);
+
+typedef enum {
+  O_AT_X86 = 1,
+  O_AT_SEP,
+} OptionsArchType;
+extern char const *optionArch;
+
+typedef enum {
+  O_WT_ERROR = 1,
+  O_WT_WARN,
+  O_WT_IGNORE,
+} OptionsWarningType;
+extern char const *optionWDuplicateFile;
+extern char const *optionWDuplicateImport;
+extern char const *optionWUnrecognizedFile;
+
+// parser
+Options *parseOptions(Report *report, size_t argc, char const *const *argv);
 
 #endif  // TLC_UTIL_OPTIONS_H_

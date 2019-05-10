@@ -8,7 +8,6 @@
 
 #include "tests.h"
 #include "util/functional.h"
-#include "util/hash.h"
 
 void hashMapTest(TestStatus *status) {
   HashMap *map = hashMapCreate();
