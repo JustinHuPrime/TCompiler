@@ -29,7 +29,11 @@ extern int const HM_EEXISTS;
 // takes a dtor function to use on the data if it could not insert the data
 // returns: HM_OK if the insertion was successful
 //          HM_EEXISTS if the key exists
-int hashMapPut(HashMap *, char const *key, void *data, void (*dtor)(void *));
+int hashMapPut(HashMap *, char const *key, void *value, void (*dtor)(void *));
+
+// set - sets a key in the table, if it doesn't exist, adds it.
+// always succeeds
+void hashMapSet(HashMap *, char const *key, void *value);
 
 // dtor
 // takes a dtor function to free each void pointer

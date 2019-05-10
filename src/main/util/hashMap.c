@@ -63,7 +63,7 @@ int hashMapPut(HashMap *map, char const *key, void *data,
         return HM_EEXISTS;
       }
     }
-    size_t oldSize = map->size;
+    size_t oldSize = map->size;  // unavoidable collision
     char const **oldKeys = map->keys;
     void **oldValues = map->values;
     map->size *= 2;
@@ -71,7 +71,8 @@ int hashMapPut(HashMap *map, char const *key, void *data,
     map->values = malloc(map->size * sizeof(void *));  // resize the map
     for (size_t idx = 0; idx < oldSize; idx++) {
       if (oldKeys[idx] != NULL) {
-        hashMapPut(map, oldKeys[idx], oldValues[idx], dtor);
+        // can set, since we know the elemnt doesn't exist
+        hashMapSet(map, oldKeys[idx], oldValues[idx]);
       }
     }
     free(oldKeys);
@@ -80,6 +81,47 @@ int hashMapPut(HashMap *map, char const *key, void *data,
   } else {                                    // already in there
     dtor(data);
     return HM_EEXISTS;
+  }
+}
+
+void hashMapSet(HashMap *map, char const *key, void *data) {
+  uint64_t hash = djb2(key) % map->size;
+
+  if (map->keys[hash] == NULL) {
+    map->keys[hash] = key;
+    map->values[hash] = data;
+    return;                                        // empty spot
+  } else if (strcmp(map->keys[hash], key) != 0) {  // collision
+    uint64_t hash2 = djb2add(key) + 1;
+    for (size_t idx = (hash + hash2) % map->size; idx != hash;
+         idx = (idx + hash2) % map->size) {
+      if (map->keys[idx] == NULL) {  // empty spot
+        map->keys[idx] = key;
+        map->values[idx] = data;
+        return;
+      } else if (strcmp(map->keys[idx], key) == 0) {  // already in there
+        map->values[idx] = data;
+        return;
+      }
+    }
+    size_t oldSize = map->size;  // unavoidable collision
+    char const **oldKeys = map->keys;
+    void **oldValues = map->values;
+    map->size *= 2;
+    map->keys = calloc(map->size, sizeof(char const *));
+    map->values = malloc(map->size * sizeof(void *));  // resize the map
+    for (size_t idx = 0; idx < oldSize; idx++) {
+      if (oldKeys[idx] != NULL) {
+        hashMapSet(map, oldKeys[idx], oldValues[idx]);
+      }
+    }
+    free(oldKeys);
+    free(oldValues);
+    hashMapSet(map, key, data);  // recurse
+    return;
+  } else {  // already in there
+    map->values[hash] = data;
+    return;
   }
 }
 

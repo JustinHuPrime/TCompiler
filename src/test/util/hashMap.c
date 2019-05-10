@@ -8,6 +8,7 @@
 
 #include "tests.h"
 #include "util/functional.h"
+#include "util/hash.h"
 
 void hashMapTest(TestStatus *status) {
   HashMap *map = hashMapCreate();
@@ -68,6 +69,47 @@ void hashMapTest(TestStatus *status) {
        "[util] [hashMap] [hashMapGet] get returns correct value for "
        "nonexistant key",
        hashMapGet(map, "c") == NULL);
+
+  hashMapSet(map, b, (void *)3);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set doesn't update size if there is no "
+       "collision",
+       map->size == 2);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set keeps key in appropriate slot",
+       map->keys[1] == b);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set changes value in appropriate slot",
+       map->values[1] == (void *)3);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set keeps old key in appropriate slot",
+       map->keys[0] == a);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set keeps old value in appropriate slot",
+       map->values[0] == (void *)1);
+
+  char const *c = "c";
+  hashMapSet(map, c, (void *)4);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set updates size if there is a collision",
+       map->size == 4);
+  test(status, "[util] [hashMap] [hashMapSet] set adds key in appropriate slot",
+       map->keys[2] == c);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set adds value in appropriate slot",
+       map->values[2] == (void *)4);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set keeps old key in appropriate slot",
+       map->keys[3] == b);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set keeps old value in appropriate slot",
+       map->values[3] == (void *)3);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set keeps old key in appropriate slot",
+       map->keys[0] == a);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set keeps old value in appropriate slot",
+       map->values[0] == (void *)1);
 
   hashMapDestroy(map, nullDtor);
 }
