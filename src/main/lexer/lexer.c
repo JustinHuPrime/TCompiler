@@ -490,6 +490,10 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
               tokenInfo->line = lexerInfo->line;
               tokenInfo->character = lexerInfo->character;
               tokenInfo->data.invalidChar = c;
+
+              reportError(report, format("%s:%zu:%zu: error: unexpected '%c'",
+                                         lexerInfo->fileName, lexerInfo->line,
+                                         lexerInfo->character, c));
               return TT_INVALID;
             }
           }

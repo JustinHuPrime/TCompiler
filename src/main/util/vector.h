@@ -9,7 +9,7 @@
 
 #include <stddef.h>
 
-// vector to one element, in java generic style
+// vector, in java generic style
 typedef struct {
   size_t size;
   size_t capacity;
