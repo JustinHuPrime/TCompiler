@@ -38,6 +38,7 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
+  // debug stop for lex
   if (optionsGet(options, optionDebugDump) == O_DD_LEX) {
     Report *dumpReport = reportCreate();
     lexDump(dumpReport, files);

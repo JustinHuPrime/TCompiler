@@ -4,3 +4,4 @@ notes/** linguist-documentation
 
 src/main/util/errorReport.h linguist-language=C
 src/main/util/vector.h linguist-language=C
+src/main/lexer/lexDump.h linguist-language=C
