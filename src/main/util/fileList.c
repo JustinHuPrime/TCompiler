@@ -113,7 +113,7 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
     }
   }
 
-  if (list->codes == 0)
+  if (list->codes->size == 0)
     reportError(report, format("tlc: error: no input code files"));
 
   return list;

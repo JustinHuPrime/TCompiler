@@ -25,6 +25,8 @@ void fileListTest(TestStatus *status) {
        fileList->codes->size == 0);
   test(status, "[util] [fileList] [ctor] empty list produces no decl files",
        fileList->decls->size == 0);
+  test(status, "[util] [fileList] [ctor] no code files is caught",
+       reportState(report) == RPT_ERR);
   fileListDestroy(fileList);
 
   fileList = parseFiles(report, options, 3, good);

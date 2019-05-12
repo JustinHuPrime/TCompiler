@@ -4,10 +4,12 @@
 
 // Compiles code modules into assembly files, guided by decl modules
 
+#include "lexer/lexDump.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
@@ -34,6 +36,13 @@ int main(int argc, char *argv[]) {
     optionsDestroy(options);
     reportDestroy(report);
     return EXIT_FAILURE;
+  }
+
+  if (optionsGet(options, optionDebugDump) == O_DD_LEX) {
+    Report *dumpReport = reportCreate();
+    lexDump(dumpReport, files);
+    reportDisplay(dumpReport);
+    reportDestroy(dumpReport);
   }
 
   // clean up

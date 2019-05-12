@@ -42,6 +42,13 @@ extern char const *optionWDuplicateFile;
 extern char const *optionWDuplicateImport;
 extern char const *optionWUnrecognizedFile;
 
+typedef enum {
+  O_DD_NONE = 1,
+  O_DD_LEX,
+  O_DD_PARSE,
+} DebugDumpMode;
+extern char const *optionDebugDump;
+
 // parser
 Options *parseOptions(Report *report, size_t argc, char const *const *argv);
 

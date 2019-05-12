@@ -14,9 +14,9 @@ Note that if a later option conflicts with an earlier option, the later option w
 
 #### Architecture
 
-* `-arch=x86`: sets the architecture to target to x86_64. Default.
+* `--arch=x86`: sets the architecture to target to x86_64. Default.
 
-* `-arch=sep`: sets the architecture to target to sep.
+* `--arch=sep`: sets the architecture to target to sep.
 
 #### Warnings
 
@@ -27,3 +27,13 @@ All warning options have three forms, a `-W...=error` form, a `-W...=warn` form,
 * `duplicate-import`: duplicated imports in a module. Defaults to ignore. If not an error, later imports have no effect.
 
 * `unrecognized-file`: unrecognized file extensions. Default to error. If not an error, unrecognized files are skipped.
+
+#### Debug Options
+
+The option `--debug-dump` can be set to 3 values:
+
+* `--debug-dump=none`: default, turns off the data dump
+
+* `--debug-dump=lex`: dumps the results of the 'lex' phase
+
+* `--debug-dump=parse`: dumps the results of the parse phase
