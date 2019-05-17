@@ -24,21 +24,22 @@
 
 HashSet *hashSetCreate(void) {
   HashSet *set = malloc(sizeof(HashSet));
-  set->size = 1;
+  set->capacity = 1;
+  set->size = 0;
   set->elements = calloc(1, sizeof(char *));
   return set;
 }
 
 bool hashSetContains(HashSet const *set, char const *element) {
   uint64_t hash = djb2(element);
-  hash %= set->size;
+  hash %= set->capacity;
 
   if (set->elements[hash] == NULL) {
     return false;                                          // not found
   } else if (strcmp(set->elements[hash], element) != 0) {  // collision
     uint64_t hash2 = djb2add(element) + 1;
-    for (size_t idx = (hash + hash2) % set->size; idx != hash;
-         idx = (idx + hash2) % set->size) {
+    for (size_t idx = (hash + hash2) % set->capacity; idx != hash;
+         idx = (idx + hash2) % set->capacity) {
       if (set->elements[idx] == NULL) {
         return false;
       } else if (strcmp(set->elements[idx], element) == 0) {  // found it!
@@ -55,17 +56,19 @@ int const HS_OK = 0;
 int const HS_EEXISTS = 1;
 int hashSetAdd(HashSet *set, char *element, bool freeString) {
   uint64_t hash = djb2(element);
-  hash %= set->size;
+  hash %= set->capacity;
 
   if (set->elements[hash] == NULL) {
     set->elements[hash] = element;
+    set->size++;
     return HS_OK;                                          // empty spot
   } else if (strcmp(set->elements[hash], element) != 0) {  // collision
     uint64_t hash2 = djb2add(element) + 1;
-    for (size_t idx = (hash + hash2) % set->size; idx != hash;
-         idx = (idx + hash2) % set->size) {
+    for (size_t idx = (hash + hash2) % set->capacity; idx != hash;
+         idx = (idx + hash2) % set->capacity) {
       if (set->elements[idx] == NULL) {  // empty spot
         set->elements[hash] = element;
+        set->size++;
         return HS_OK;
       } else if (strcmp(set->elements[idx], element) ==
                  0) {  // already in there
@@ -73,11 +76,12 @@ int hashSetAdd(HashSet *set, char *element, bool freeString) {
         return HS_EEXISTS;
       }
     }
-    size_t oldSize = set->size;
+    size_t oldCap = set->capacity;
     char **oldElements = set->elements;
-    set->size *= 2;
-    set->elements = calloc(set->size, sizeof(char const *));
-    for (size_t idx = 0; idx < oldSize; idx++) {
+    set->capacity *= 2;
+    set->elements = calloc(set->capacity, sizeof(char const *));
+    set->size = 0;
+    for (size_t idx = 0; idx < oldCap; idx++) {
       if (oldElements[idx] != NULL) {
         // can't possibly fail, and better to leak than to crash
         hashSetAdd(set, oldElements[idx], false);

@@ -122,14 +122,14 @@ void hashMapSet(HashMap *map, char const *key, void *data) {
         return;
       }
     }
-    size_t oldSize = map->capacity;  // unavoidable collision
+    size_t oldCap = map->capacity;  // unavoidable collision
     char const **oldKeys = map->keys;
     void **oldValues = map->values;
     map->capacity *= 2;
     map->keys = calloc(map->capacity, sizeof(char const *));
     map->values = malloc(map->capacity * sizeof(void *));  // resize the map
     map->size = 0;
-    for (size_t idx = 0; idx < oldSize; idx++) {
+    for (size_t idx = 0; idx < oldCap; idx++) {
       if (oldKeys[idx] != NULL) {
         hashMapSet(map, oldKeys[idx], oldValues[idx]);
       }

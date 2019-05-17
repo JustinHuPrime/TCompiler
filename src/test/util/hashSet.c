@@ -26,7 +26,9 @@
 void hashSetTest(TestStatus *status) {
   HashSet *set = hashSetCreate();
   test(status, "[util] [hashSet] [ctor] ctor produces set with capacity one",
-       set->size == 1);
+       set->capacity == 1);
+  test(status, "[util] [hashSet] [ctor] ctor produces set with size zero",
+       set->size == 0);
   test(status,
        "[util] [hashSet] [ctor] ctor produces set with non-null array of "
        "elements",
@@ -37,9 +39,13 @@ void hashSetTest(TestStatus *status) {
   char *a = strcpy(malloc(2), "a");
   hashSetAdd(set, a, true);
   test(status,
-       "[util] [hashSet] [hashSetAdd] put does not update size if there is no "
-       "collision",
-       set->size == 1);
+       "[util] [hashSet] [hashSetAdd] put does not update capacity if there is "
+       "no collision",
+       set->capacity == 1);
+  test(
+      status,
+      "[util] [hashSet] [hashSetAdd] put does adds one to size if it put it in",
+      set->size == 1);
   test(status,
        "[util] [hashSet] [hashSetAdd] put inserts element into only slot",
        set->elements[0] == a);
@@ -47,9 +53,13 @@ void hashSetTest(TestStatus *status) {
   char *b = strcpy(malloc(2), "b");
   hashSetAdd(set, b, true);
   test(status,
-       "[util] [hashSet] [hashSetAdd] put does updates size if there is a "
+       "[util] [hashSet] [hashSetAdd] put does update capacity if there is a "
        "collision",
        set->size == 2);
+  test(
+      status,
+      "[util] [hashSet] [hashSetAdd] put does adds one to size if it put it in",
+      set->size == 2);
   test(
       status,
       "[util] [hashSet] [hashSetAdd] put inserts element into appropriate slot",

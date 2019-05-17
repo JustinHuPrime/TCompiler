@@ -24,6 +24,7 @@
 
 // A hash set of strings
 typedef struct {
+  size_t capacity;
   size_t size;
   char **elements;
 } HashSet;
