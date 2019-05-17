@@ -24,7 +24,9 @@
 void hashMapTest(TestStatus *status) {
   HashMap *map = hashMapCreate();
   test(status, "[util] [hashMap] [ctor] ctor produces map with capacity one",
-       map->size == 1);
+       map->capacity == 1);
+  test(status, "[util] [hashMap] [ctor] ctor produces map with size zero",
+       map->size == 0);
   test(
       status,
       "[util] [hashMap] [ctor] ctor produces map with non-null array of values",
@@ -38,8 +40,10 @@ void hashMapTest(TestStatus *status) {
   char const *a = "a";
   hashMapPut(map, a, (void *)1, nullDtor);
   test(status,
-       "[util] [hashMap] [hashMapPut] put does not update size if there is no "
-       "collision",
+       "[util] [hashMap] [hashMapPut] put does not update capacity if there is "
+       "no collision",
+       map->capacity == 1);
+  test(status, "[util] [hashMap] [hashMapPut] put updates size properly",
        map->size == 1);
   test(status, "[util] [hashMap] [hashMapPut] put inserts key into only slot",
        map->keys[0] == a);
@@ -49,8 +53,10 @@ void hashMapTest(TestStatus *status) {
   char const *b = "b";
   hashMapPut(map, b, (void *)2, nullDtor);
   test(status,
-       "[util] [hashMap] [hashMapPut] put updates size if there is a "
+       "[util] [hashMap] [hashMapPut] put updates capacity if there is a "
        "collision",
+       map->capacity == 2);
+  test(status, "[util] [hashMap] [hashMapPut] put updates size properly",
        map->size == 2);
   test(status,
        "[util] [hashMap] [hashMapPut] put inserts key into appropriate slot",
@@ -70,10 +76,13 @@ void hashMapTest(TestStatus *status) {
        "[util] [hashMap] [hashMapPut] put produces error if trying to add with "
        "existing key",
        retVal == HM_EEXISTS);
+  test(status, "[util] [hashMap] [hashMapPut] bad put doesn't change capacity",
+       map->size == 2);
+  test(status, "[util] [hashMap] [hashMapPut] bad put doesn't change size",
+       map->size == 2);
 
   test(status,
-       "[util] [hashMap] [hashMapGet] get returns correct value for "
-       "existing "
+       "[util] [hashMap] [hashMapGet] get returns correct value for existing "
        "key",
        hashMapGet(map, "a") == (void *)1);
   test(status,
@@ -83,8 +92,11 @@ void hashMapTest(TestStatus *status) {
 
   hashMapSet(map, b, (void *)3);
   test(status,
-       "[util] [hashMap] [hashMapSet] set doesn't update size if there is no "
-       "collision",
+       "[util] [hashMap] [hashMapSet] set doesn't update capacity if there is "
+       "no collision",
+       map->capacity == 2);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set doesn't update size if key exists",
        map->size == 2);
   test(status,
        "[util] [hashMap] [hashMapSet] set keeps key in appropriate slot",
@@ -102,8 +114,12 @@ void hashMapTest(TestStatus *status) {
   char const *c = "c";
   hashMapSet(map, c, (void *)4);
   test(status,
-       "[util] [hashMap] [hashMapSet] set updates size if there is a collision",
-       map->size == 4);
+       "[util] [hashMap] [hashMapSet] set updates capacity if there is a "
+       "collision",
+       map->capacity == 4);
+  test(status,
+       "[util] [hashMap] [hashMapSet] set updates size if key doesn't exist",
+       map->size == 3);
   test(status, "[util] [hashMap] [hashMapSet] set adds key in appropriate slot",
        map->keys[2] == c);
   test(status,

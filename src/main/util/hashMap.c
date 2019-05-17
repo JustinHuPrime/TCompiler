@@ -24,7 +24,8 @@
 
 HashMap *hashMapCreate(void) {
   HashMap *map = malloc(sizeof(HashMap));
-  map->size = 1;
+  map->size = 0;
+  map->capacity = 1;
   map->keys = calloc(1, sizeof(char const *));
   map->values = malloc(sizeof(void *));
   return map;
@@ -32,14 +33,14 @@ HashMap *hashMapCreate(void) {
 
 void *hashMapGet(HashMap const *map, char const *key) {
   uint64_t hash = djb2(key);
-  hash %= map->size;
+  hash %= map->capacity;
 
   if (map->keys[hash] == NULL) {
     return NULL;                                   // not found
   } else if (strcmp(map->keys[hash], key) != 0) {  // collision
     uint64_t hash2 = djb2add(key) + 1;
-    for (size_t idx = (hash + hash2) % map->size; idx != hash;
-         idx = (idx + hash2) % map->size) {
+    for (size_t idx = (hash + hash2) % map->capacity; idx != hash;
+         idx = (idx + hash2) % map->capacity) {
       if (map->keys[idx] == NULL) {
         return NULL;
       } else if (strcmp(map->keys[idx], key) == 0) {  // found it!
@@ -56,31 +57,34 @@ int const HM_OK = 0;
 int const HM_EEXISTS = 1;
 int hashMapPut(HashMap *map, char const *key, void *data,
                void (*dtor)(void *)) {
-  uint64_t hash = djb2(key) % map->size;
+  uint64_t hash = djb2(key) % map->capacity;
 
   if (map->keys[hash] == NULL) {
     map->keys[hash] = key;
     map->values[hash] = data;
+    map->size++;
     return HM_OK;                                  // empty spot
   } else if (strcmp(map->keys[hash], key) != 0) {  // collision
     uint64_t hash2 = djb2add(key) + 1;
-    for (size_t idx = (hash + hash2) % map->size; idx != hash;
-         idx = (idx + hash2) % map->size) {
+    for (size_t idx = (hash + hash2) % map->capacity; idx != hash;
+         idx = (idx + hash2) % map->capacity) {
       if (map->keys[idx] == NULL) {  // empty spot
         map->keys[idx] = key;
         map->values[idx] = data;
+        map->size++;
         return HM_OK;
       } else if (strcmp(map->keys[idx], key) == 0) {  // already in there
         dtor(data);
         return HM_EEXISTS;
       }
     }
-    size_t oldSize = map->size;  // unavoidable collision
+    size_t oldSize = map->capacity;  // unavoidable collision
     char const **oldKeys = map->keys;
     void **oldValues = map->values;
-    map->size *= 2;
-    map->keys = calloc(map->size, sizeof(char const *));
-    map->values = malloc(map->size * sizeof(void *));  // resize the map
+    map->capacity *= 2;
+    map->keys = calloc(map->capacity, sizeof(char const *));
+    map->values = malloc(map->capacity * sizeof(void *));  // resize the map
+    map->size = 0;
     for (size_t idx = 0; idx < oldSize; idx++) {
       if (oldKeys[idx] != NULL) {
         // can set, since we know the elemnt doesn't exist
@@ -97,31 +101,34 @@ int hashMapPut(HashMap *map, char const *key, void *data,
 }
 
 void hashMapSet(HashMap *map, char const *key, void *data) {
-  uint64_t hash = djb2(key) % map->size;
+  uint64_t hash = djb2(key) % map->capacity;
 
   if (map->keys[hash] == NULL) {
     map->keys[hash] = key;
     map->values[hash] = data;
+    map->size++;
     return;                                        // empty spot
   } else if (strcmp(map->keys[hash], key) != 0) {  // collision
     uint64_t hash2 = djb2add(key) + 1;
-    for (size_t idx = (hash + hash2) % map->size; idx != hash;
-         idx = (idx + hash2) % map->size) {
+    for (size_t idx = (hash + hash2) % map->capacity; idx != hash;
+         idx = (idx + hash2) % map->capacity) {
       if (map->keys[idx] == NULL) {  // empty spot
         map->keys[idx] = key;
         map->values[idx] = data;
+        map->size++;
         return;
       } else if (strcmp(map->keys[idx], key) == 0) {  // already in there
         map->values[idx] = data;
         return;
       }
     }
-    size_t oldSize = map->size;  // unavoidable collision
+    size_t oldSize = map->capacity;  // unavoidable collision
     char const **oldKeys = map->keys;
     void **oldValues = map->values;
-    map->size *= 2;
-    map->keys = calloc(map->size, sizeof(char const *));
-    map->values = malloc(map->size * sizeof(void *));  // resize the map
+    map->capacity *= 2;
+    map->keys = calloc(map->capacity, sizeof(char const *));
+    map->values = malloc(map->capacity * sizeof(void *));  // resize the map
+    map->size = 0;
     for (size_t idx = 0; idx < oldSize; idx++) {
       if (oldKeys[idx] != NULL) {
         hashMapSet(map, oldKeys[idx], oldValues[idx]);
@@ -138,7 +145,7 @@ void hashMapSet(HashMap *map, char const *key, void *data) {
 }
 
 void hashMapDestroy(HashMap *map, void (*dtor)(void *)) {
-  for (size_t idx = 0; idx < map->size; idx++) {
+  for (size_t idx = 0; idx < map->capacity; idx++) {
     if (map->keys[idx] != NULL) {
       dtor(map->values[idx]);
     }

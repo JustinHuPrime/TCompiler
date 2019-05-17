@@ -24,6 +24,7 @@
 // A hash table between a string and a value pointer
 typedef struct {
   size_t size;
+  size_t capacity;
   char const **keys;
   void **values;
 } HashMap;
