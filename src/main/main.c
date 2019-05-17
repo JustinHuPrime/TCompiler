@@ -17,6 +17,7 @@
 // Compiles code modules into assembly files, guided by decl modules
 
 #include "lexer/lexDump.h"
+#include "parser/parser.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
@@ -57,6 +58,9 @@ int main(int argc, char *argv[]) {
     reportDisplay(dumpReport);
     reportDestroy(dumpReport);
   }
+
+  // Parse the files
+  // SOME_TYPE parsed = parse(report, options, files);
 
   // clean up
   fileListDestroy(files);
