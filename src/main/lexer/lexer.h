@@ -140,6 +140,7 @@ typedef enum {
   TT_LITERALWSTRING,
   TT_LITERALWCHAR,
 } TokenType;
+char const *tokenToName(TokenType);
 
 typedef struct {
   size_t line;
@@ -149,6 +150,7 @@ typedef struct {
     char invalidChar;
   } data;
 } TokenInfo;
+void tokenInfoCleanup(TokenType, TokenInfo *);
 
 typedef struct {
   size_t line;

@@ -25,6 +25,28 @@
 #include <stdlib.h>
 #include <string.h>
 
+char const *tokenToName(TokenType tt) {
+  switch (tt) {
+    case TT_ERR:
+      return "a read error";
+    case TT_INVALID:
+      return "an unexpected character";
+    case TT_EMPTY_SQUOTE:
+      return "empty single quotes";
+    case TT_INVALID_ESCAPE:
+      return "invalid escape sequence";
+  }
+}
+void tokenInfoCleanup(TokenType tt, TokenInfo *info) {
+  if (tt == TT_LITERALCHAR || tt == TT_LITERALWCHAR || tt == TT_LITERALSTRING ||
+      tt == TT_LITERALWSTRING || tt == TT_LITERALINT_0 ||
+      tt == TT_LITERALINT_B || tt == TT_LITERALINT_O || tt == TT_LITERALINT_D ||
+      tt == TT_LITERALINT_H || tt == TT_LITERALFLOAT || tt == TT_ID ||
+      tt == TT_SCOPED_ID) {
+    free(info->data.string);
+  }
+}
+
 static char const *const KEYWORDS[] = {
     "module", "using",    "struct", "union", "enum",   "typedef", "if",
     "else",   "while",    "do",     "for",   "switch", "case",    "default",

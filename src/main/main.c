@@ -59,10 +59,11 @@ int main(int argc, char *argv[]) {
     reportDestroy(dumpReport);
   }
 
-  // Parse the files
-  // SOME_TYPE parsed = parse(report, options, files);
+  // parse the files
+  ModuleAstMapPair *asts = parse(report, options, files);
 
   // clean up
+  moduleAstMapPairDestroy(asts);
   fileListDestroy(files);
   optionsDestroy(options);
   reportDestroy(report);

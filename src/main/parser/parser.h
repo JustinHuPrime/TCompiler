@@ -24,9 +24,22 @@
 #include "util/hashMap.h"
 #include "util/options.h"
 
-typedef void SOME_TYPE;
+// specialization of a generic
+typedef HashMap ModuleAstMap;
+ModuleAstMap *moduleAstMapCreate(void);
+Node *moduleAstMapGet(ModuleAstMap const *, char const *key);
+int moduleAstMapPut(ModuleAstMap *, char const *key, Node *value);
+void moduleAstMapDestroy(ModuleAstMap *);
+
+// pod struct holding two ModuleAstMaps
+typedef struct {
+  ModuleAstMap *decls;
+  ModuleAstMap *codes;
+} ModuleAstMapPair;
+ModuleAstMapPair *moduleAstMapPairCreate(void);
+void moduleAstMapPairDestroy(ModuleAstMapPair *);
 
 // parses the files, producing SOME_TYPE
-SOME_TYPE parse(Report *, Options *, FileList *);
+ModuleAstMapPair *parse(Report *, Options *, FileList *);
 
 #endif  // TLC_PARSER_PARSER_H_
