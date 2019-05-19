@@ -8,7 +8,7 @@ Further, note that as an extension to EBNF, the EBNF tokens described by the EBN
 Shall mean the EBNF tokens described by the EBNF
 inner, ",", "{", inner, "}"
 *)
-program = { declaration_module }, { code_module }+ ;
+program = { declaration_module }+, { code_module }+ ;
 declaration_module = module_name, { import }, { declaration } ;
 code_module = module_name, { import }, { function | variable_declaration_statement | declaration } ;
 
@@ -139,13 +139,14 @@ postfix_expression = primary_expression
                    | postfix_expression, "--"
                    ;
 primary_expression = scoped_identifier
+                   | identifier
                    | literal
                    | "cast", "[", type, "]", "(", expression, ")"
                    | "sizeof", "(", ( expression | type ), ")"
                    | "(", expression, ")"
                    ;
 argument_list = [ assignment_expression, { ",", assignment_expression } ] ;
-aggregate_initializer: "<", literal_list, ">" ;
+aggregate_initializer = "<", literal_list, ">" ;
 literal_list = [ literal, { ",", literal } ] ;
 literal = int_constant
         | float_constant
@@ -156,6 +157,7 @@ literal = int_constant
         | "true"
         | "false"
         | aggregate_initializer
+        | type, ".", identifier
         ;
 
 type = "void"

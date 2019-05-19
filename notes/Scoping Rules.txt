@@ -1,0 +1,8 @@
+Every module has a module name.
+The code module is an implementation of the decl module with the same name.
+Decl files have unique module names, code files have unique module names.
+
+All things have a fully qualified name. This is <module_name>::<thing_name>.
+A fully qualified name is unambiguous within the current set of imported modules.
+Can also use an unqualified name. (<thing_name>). First, look in current module for that thing.
+Then, look through all imported modules, and get the only one that names it. If multiple, issue diagnostic.
