@@ -19,8 +19,11 @@
 #ifndef TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 #define TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 
+#include "lexer/lexer.h"
+#include "util/errorReport.h"
 #include "util/hashMap.h"
 #include "util/stack.h"
+#include "util/ternary.h"
 #include "util/vector.h"
 
 // information for a symbol in some module
@@ -35,31 +38,65 @@ typedef struct {
       void *type;  // TODO: figure this out later
     } var;
     struct {
-      void *info;  // TODO: figure this out later
+      enum {
+        TK_STRUCT,
+        TK_UNION,
+        TK_ENUM,
+        TK_TYPEDEF,
+      } typeKind;
+      void *type;  // TODO: figure this out later
+      union {
+        struct {
+          void *type;  // TODO: figure this out later
+        } structType;
+        struct {
+          void *type;  // TODO: figure this out later
+        } unionType;
+        struct {
+          void *type;  // TODO: figure this out later
+        } enumType;
+        struct {
+          void *type;  // TODO: figure this out later
+        } typedefType;
+      } data;
     } type;
     struct {
       void *type;  // TODO: figure this out later
     } function;
+    struct {
+      void *parentEnum;  // TODO: figure this out later
+    } enumField;
   } data;
 } SymbolInfo;
 SymbolInfo *symbolInfoCreate(void);
 void symbolInfoDestroy(SymbolInfo *);
 
 // symbol table for a module
-// specialsiation of a generic
+// specialsization of a generic
 typedef HashMap SymbolTable;
 SymbolTable *symbolTableCreate(void);
 SymbolInfo *symbolTableGet(SymbolTable const *, char const *key);
 int symbolTablePut(SymbolTable *, char const *key, SymbolInfo *value);
 void symbolTableDestroy(SymbolTable *);
 
+// map b/w module name and symbol table
+// specialization of a generic
+typedef HashMap ModuleTableMap;
+ModuleTableMap *moduleTableMapCreate(void);
+SymbolTable *moduleTableMapGet(ModuleTableMap const *, char const *key);
+int moduleTableMapPut(ModuleTableMap *, char const *key, SymbolTable *value);
+void moduleTableMapDestroy(ModuleTableMap *);
+
 typedef struct {
-  Vector *imports;  // vector of symbol tables
+  ModuleTableMap *imports;  // vector of symbol tables
   SymbolTable *currentModule;
+  char const *currentModuleName;
   Stack *scopes;  // stack of symbol tables
 } Environment;
-Environment *environmentCreate(SymbolTable *currentModule);
-SymbolInfo *environmentLookup(Environment const *, char const *);
+Environment *environmentCreate(SymbolTable *currentModule,
+                               char const *currentModuleName);
+TernaryValue environmentIsType(Environment const *, Report *report,
+                               TokenInfo const *token, char const *fileName);
 void environmentDestroy(Environment *);
 
 #endif  // TLC_SYMBOLTABLE_SYMBOLTABLE_H_

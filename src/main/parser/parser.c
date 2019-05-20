@@ -171,18 +171,20 @@ ModuleAstMapPair *parse(Report *report, Options *options, FileList *files) {
   ModuleLexerInfoMap *miMap = moduleLexerInfoMapCreate();
   ModuleNodeMap *mnMap = moduleNodeMapCreate();
 
-  // for each decl file, read the module line, and add an entry to a module-file
-  // hashMap
-  ModuleFileMap *mfMap = moduleFileMapCreate();
+  // for each decl file, read the module line, and add an entry to a
+  // module-lexerinfo hashMap
+  ModuleFileMap *mfMap = moduleFileMapCreate();  // TODO: this isn't used.
   for (size_t idx = 0; idx < files->decls->size; idx++) {
     LexerInfo *li = lexerInfoCreate(files->decls->elements[idx], kwMap);
     moduleLexerInfoMapPut(miMap, files->decls->elements[idx], li);
     Node *module = parseModule(report, li);
     if (module == NULL) {  // didn't find it, file can't be parsed.
       // something...
+      // TODO: error handling
     } else if (moduleFileMapPut(mfMap, module->data.module.id->data.id.id,
                                 files->decls->elements[idx]) == HM_EEXISTS) {
       // duplicate
+      // TODO: error handling
       nodeDestroy(module);
     } else {
       // good
@@ -204,12 +206,17 @@ ModuleAstMapPair *parse(Report *report, Options *options, FileList *files) {
           moduleAstMapGet(parseResult->decls, miMap->keys[idx]) == NULL) {
         parseFile(report, options, stalled, miMap->values[idx],
                   moduleNodeMapGet(mnMap, miMap->keys[idx]));
+        // TODO: also needs parseResult->decls, and map b/w module and exported
+        // types
       }
     }
 
     hashSetDestroy(stalled, false);
   }
   moduleLexerInfoMapDestroy(miMap);
+  moduleNodeMapDestroy(mnMap);
+
+  // TODO: parse the codes files
 
   keywordMapDestroy(kwMap);
 

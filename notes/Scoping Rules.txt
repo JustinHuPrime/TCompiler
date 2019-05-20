@@ -6,3 +6,4 @@ All things have a fully qualified name. This is <module_name>::<thing_name>.
 A fully qualified name is unambiguous within the current set of imported modules.
 Can also use an unqualified name. (<thing_name>). First, look in current module for that thing.
 Then, look through all imported modules, and get the only one that names it. If multiple, issue diagnostic.
+If the scoped thing's module doesn't exist, check if the scoped thing's module is actually an enum.
