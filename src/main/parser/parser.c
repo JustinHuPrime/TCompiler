@@ -70,11 +70,15 @@ static void moduleNodeMapDestroy(ModuleNodeMap *map) {
 }
 
 ModuleAstMap *moduleAstMapCreate(void) { return hashMapCreate(); }
+void moduleAstMapInit(ModuleAstMap *map) { hashMapInit(map); }
 Node *moduleAstMapGet(ModuleAstMap const *map, char const *key) {
   return hashMapGet(map, key);
 }
 int moduleAstMapPut(ModuleAstMap *map, char const *key, Node *value) {
   return hashMapPut(map, key, value, (void (*)(void *))nodeDestroy);
+}
+void moduleAstMapUninit(ModuleAstMap *map) {
+  hashMapUninit(map, (void (*)(void *))nodeDestroy);
 }
 void moduleAstMapDestroy(ModuleAstMap *map) {
   hashMapDestroy(map, (void (*)(void *))nodeDestroy);
@@ -82,13 +86,13 @@ void moduleAstMapDestroy(ModuleAstMap *map) {
 
 ModuleAstMapPair *moduleAstMapPairCreate(void) {
   ModuleAstMapPair *pair = malloc(sizeof(ModuleAstMapPair));
-  pair->decls = moduleAstMapCreate();
-  pair->codes = moduleAstMapCreate();
+  moduleAstMapInit(&pair->decls);
+  moduleAstMapInit(&pair->codes);
   return pair;
 }
 void moduleAstMapPairDestroy(ModuleAstMapPair *pair) {
-  moduleAstMapDestroy(pair->decls);
-  moduleAstMapDestroy(pair->codes);
+  moduleAstMapUninit(&pair->decls);
+  moduleAstMapUninit(&pair->codes);
   free(pair);
 }
 
@@ -174,15 +178,15 @@ ModuleAstMapPair *parse(Report *report, Options *options, FileList *files) {
   // for each decl file, read the module line, and add an entry to a
   // module-lexerinfo hashMap
   ModuleFileMap *mfMap = moduleFileMapCreate();  // TODO: this isn't used.
-  for (size_t idx = 0; idx < files->decls->size; idx++) {
-    LexerInfo *li = lexerInfoCreate(files->decls->elements[idx], kwMap);
-    moduleLexerInfoMapPut(miMap, files->decls->elements[idx], li);
+  for (size_t idx = 0; idx < files->decls.size; idx++) {
+    LexerInfo *li = lexerInfoCreate(files->decls.elements[idx], kwMap);
+    moduleLexerInfoMapPut(miMap, files->decls.elements[idx], li);
     Node *module = parseModule(report, li);
     if (module == NULL) {  // didn't find it, file can't be parsed.
       // something...
       // TODO: error handling
     } else if (moduleFileMapPut(mfMap, module->data.module.id->data.id.id,
-                                files->decls->elements[idx]) == HM_EEXISTS) {
+                                files->decls.elements[idx]) == HM_EEXISTS) {
       // duplicate
       // TODO: error handling
       nodeDestroy(module);
@@ -196,14 +200,14 @@ ModuleAstMapPair *parse(Report *report, Options *options, FileList *files) {
   // parse all decl files in order
   ModuleAstMapPair *parseResult = moduleAstMapPairCreate();
 
-  while (parseResult->decls->size < miMap->size) {
+  while (parseResult->decls.size < miMap->size) {
     HashSet *stalled = hashSetCreate();
 
     // select one to parse
     for (size_t idx = 0; idx < miMap->capacity; idx++) {
       // if this is a module, and it hasn't been parsed
       if (mfMap->keys[idx] != NULL &&
-          moduleAstMapGet(parseResult->decls, miMap->keys[idx]) == NULL) {
+          moduleAstMapGet(&parseResult->decls, miMap->keys[idx]) == NULL) {
         parseFile(report, options, stalled, miMap->values[idx],
                   moduleNodeMapGet(mnMap, miMap->keys[idx]));
         // TODO: also needs parseResult->decls, and map b/w module and exported

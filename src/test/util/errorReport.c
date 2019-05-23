@@ -31,7 +31,7 @@ void errorReportTest(TestStatus *status) {
   test(
       status,
       "[util] [errorReport] [constructor] error report created has no messages",
-      report->messages->size == 0);
+      report->messages.size == 0);
   test(status,
        "[util] [errorReport] [constructor] error report created has no errors",
        report->errors == 0);
@@ -45,10 +45,10 @@ void errorReportTest(TestStatus *status) {
   reportMessage(report, message);
   test(status,
        "[util] [errorReport] [reportMessage] adding a message adds to the size",
-       report->messages->size == 1);
+       report->messages.size == 1);
   test(status,
        "[util] [errorReport] [reportMessage] message is added to messages",
-       report->messages->elements[0] == message);
+       report->messages.elements[0] == message);
   test(status,
        "[util] [errorReport] [reportMessage] adding a message does not add an "
        "error",
@@ -63,9 +63,9 @@ void errorReportTest(TestStatus *status) {
   reportError(report, message);
   test(status,
        "[util] [errorReport] [reportError] adding an error adds to the size",
-       report->messages->size == 2);
+       report->messages.size == 2);
   test(status, "[util] [errorReport] [reportError] error is added to messages",
-       report->messages->elements[1] == message);
+       report->messages.elements[1] == message);
   test(status,
        "[util] [errorReport] [reportError] adding an error adds an "
        "error",
@@ -80,10 +80,10 @@ void errorReportTest(TestStatus *status) {
   reportWarning(report, message);
   test(status,
        "[util] [errorReport] [reportWarning] adding a warning adds to the size",
-       report->messages->size == 3);
+       report->messages.size == 3);
   test(status,
        "[util] [errorReport] [reportWarning] warning is added to messages",
-       report->messages->elements[2] == message);
+       report->messages.elements[2] == message);
   test(status,
        "[util] [errorReport] [reportWarning] adding an warning does not add an "
        "error",

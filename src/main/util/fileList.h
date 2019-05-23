@@ -29,8 +29,8 @@
 
 // vector of char const *
 typedef struct {
-  Vector *decls;
-  Vector *codes;
+  Vector decls;
+  Vector codes;
 } FileList;
 
 // ctor

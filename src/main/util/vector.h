@@ -30,10 +30,14 @@ typedef struct {
 
 // ctor
 Vector *vectorCreate(void);
+// in place ctor
+void vectorInit(Vector *);
 // insert
 void vectorInsert(Vector *, void *);
-// dtor
+// in place dtor
 // takes in a destructor function to apply to the elements
-void vectorDestroy(Vector *, void (*)(void *));
+void vectorUninit(Vector *, void (*dtor)(void *));
+// dtor
+void vectorDestroy(Vector *, void (*dtor)(void *));
 
 #endif  // TLC_UTIL_VECTOR_H_

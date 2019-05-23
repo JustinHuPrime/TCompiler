@@ -24,11 +24,14 @@
 
 HashMap *hashMapCreate(void) {
   HashMap *map = malloc(sizeof(HashMap));
+  hashMapInit(map);
+  return map;
+}
+void hashMapInit(HashMap *map) {
   map->size = 0;
   map->capacity = 1;
   map->keys = calloc(1, sizeof(char const *));
   map->values = malloc(sizeof(void *));
-  return map;
 }
 
 void *hashMapGet(HashMap const *map, char const *key) {
@@ -144,7 +147,7 @@ void hashMapSet(HashMap *map, char const *key, void *data) {
   }
 }
 
-void hashMapDestroy(HashMap *map, void (*dtor)(void *)) {
+void hashMapUninit(HashMap *map, void (*dtor)(void *)) {
   for (size_t idx = 0; idx < map->capacity; idx++) {
     if (map->keys[idx] != NULL) {
       dtor(map->values[idx]);
@@ -152,5 +155,8 @@ void hashMapDestroy(HashMap *map, void (*dtor)(void *)) {
   }
   free(map->keys);
   free(map->values);
+}
+void hashMapDestroy(HashMap *map, void (*dtor)(void *)) {
+  hashMapUninit(map, dtor);
   free(map);
 }

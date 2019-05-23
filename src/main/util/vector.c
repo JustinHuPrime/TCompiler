@@ -22,10 +22,13 @@
 
 Vector *vectorCreate(void) {
   Vector *vector = malloc(sizeof(Vector));
+  vectorInit(vector);
+  return vector;
+}
+void vectorInit(Vector *vector) {
   vector->size = 0;
   vector->capacity = 1;
   vector->elements = malloc(sizeof(void *));
-  return vector;
 }
 void vectorInsert(Vector *vector, void *element) {
   if (vector->size == vector->capacity) {
@@ -35,8 +38,11 @@ void vectorInsert(Vector *vector, void *element) {
   }
   vector->elements[vector->size++] = element;
 }
-void vectorDestroy(Vector *vector, void (*dtor)(void *)) {
+void vectorUninit(Vector *vector, void (*dtor)(void *)) {
   for (size_t idx = 0; idx < vector->size; idx++) dtor(vector->elements[idx]);
   free(vector->elements);
+}
+void vectorDestroy(Vector *vector, void (*dtor)(void *)) {
+  vectorUninit(vector, dtor);
   free(vector);
 }

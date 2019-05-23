@@ -2495,9 +2495,9 @@ static void lexDumpOne(Report *report, KeywordMap *keywords,
 
 void lexDump(Report *report, FileList *files) {
   KeywordMap *keywords = keywordMapCreate();
-  for (size_t idx = 0; idx < files->decls->size; idx++)
-    lexDumpOne(report, keywords, files->decls->elements[idx]);
-  for (size_t idx = 0; idx < files->codes->size; idx++)
-    lexDumpOne(report, keywords, files->codes->elements[idx]);
+  for (size_t idx = 0; idx < files->decls.size; idx++)
+    lexDumpOne(report, keywords, files->decls.elements[idx]);
+  for (size_t idx = 0; idx < files->codes.size; idx++)
+    lexDumpOne(report, keywords, files->codes.elements[idx]);
   keywordMapDestroy(keywords);
 }

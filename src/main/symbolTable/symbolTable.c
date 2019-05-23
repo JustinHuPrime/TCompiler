@@ -68,7 +68,7 @@ Environment *environmentCreate(SymbolTable *currentModule,
   env->currentModule = currentModule;
   env->currentModuleName = currentModuleName;
   env->imports = moduleTableMapCreate();
-  env->scopes = stackCreate();
+  stackInit(&env->scopes);
   return env;
 }
 TernaryValue environmentIsType(Environment const *env, Report *report,
@@ -112,9 +112,9 @@ TernaryValue environmentIsType(Environment const *env, Report *report,
                        token->line, token->character, token->data.string));
     return INDETERMINATE;
   } else {
-    for (size_t idx = env->scopes->size; idx-- > 0;) {
+    for (size_t idx = env->scopes.size; idx-- > 0;) {
       SymbolInfo *info =
-          symbolTableGet(env->scopes->elements[idx], token->data.string);
+          symbolTableGet(env->scopes.elements[idx], token->data.string);
       if (info != NULL) return info->kind == SK_TYPE ? YES : NO;
     }
     SymbolInfo *info = symbolTableGet(env->currentModule, token->data.string);
@@ -155,6 +155,6 @@ TernaryValue environmentIsType(Environment const *env, Report *report,
 void environmentDestroy(Environment *env) {
   symbolTableDestroy(env->currentModule);
   moduleTableMapDestroy(env->imports);
-  stackDestroy(env->scopes, (void (*)(void *))symbolTableDestroy);
+  stackUninit(&env->scopes, (void (*)(void *))symbolTableDestroy);
   free(env);
 }

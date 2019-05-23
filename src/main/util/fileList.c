@@ -27,13 +27,13 @@
 
 FileList *fileListCreate(void) {
   FileList *list = malloc(sizeof(FileList));
-  list->decls = vectorCreate();
-  list->codes = vectorCreate();
+  vectorInit(&list->decls);
+  vectorInit(&list->codes);
   return list;
 }
 void fileListDestroy(FileList *list) {
-  vectorDestroy(list->decls, nullDtor);
-  vectorDestroy(list->codes, nullDtor);
+  vectorUninit(&list->decls, nullDtor);
+  vectorUninit(&list->codes, nullDtor);
   free(list);
 }
 FileList *parseFiles(Report *report, Options *options, size_t argc,
@@ -49,8 +49,8 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
         argv[idx][length - 2] == 't' && argv[idx][length - 1] == 'c') {
       // this is a code file
       bool duplicated = false;
-      for (size_t cidx = 0; cidx < list->codes->size; cidx++) {
-        if (strcmp(list->codes->elements[cidx], argv[idx]) == 0) {
+      for (size_t cidx = 0; cidx < list->codes.size; cidx++) {
+        if (strcmp(list->codes.elements[cidx], argv[idx]) == 0) {
           duplicated = true;
           break;
         }
@@ -73,15 +73,15 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
       } else {
 #pragma GCC diagnostic push  // generic code demands an unsafe cast
 #pragma GCC diagnostic ignored "-Wcast-qual"
-        vectorInsert(list->codes, (char *)argv[idx]);
+        vectorInsert(&list->codes, (char *)argv[idx]);
 #pragma GCC diagnostic pop
       }
     } else if (length > 3 && argv[idx][length - 3] == '.' &&
                argv[idx][length - 2] == 't' && argv[idx][length - 1] == 'd') {
       // this is a decl file
       bool duplicated = false;
-      for (size_t cidx = 0; cidx < list->decls->size; cidx++) {
-        if (strcmp(list->decls->elements[cidx], argv[idx]) == 0) {
+      for (size_t cidx = 0; cidx < list->decls.size; cidx++) {
+        if (strcmp(list->decls.elements[cidx], argv[idx]) == 0) {
           duplicated = true;
           break;
         }
@@ -104,7 +104,7 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
       } else {
 #pragma GCC diagnostic push  // generic code demands an unsafe cast
 #pragma GCC diagnostic ignored "-Wcast-qual"
-        vectorInsert(list->decls, (char *)argv[idx]);
+        vectorInsert(&list->decls, (char *)argv[idx]);
 #pragma GCC diagnostic pop
       }
     } else {
@@ -125,7 +125,7 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
     }
   }
 
-  if (list->codes->size == 0)
+  if (list->codes.size == 0)
     reportError(report, format("tlc: error: no input code files"));
 
   return list;

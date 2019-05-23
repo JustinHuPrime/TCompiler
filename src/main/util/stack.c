@@ -21,7 +21,9 @@
 #include <stdlib.h>
 
 Stack *stackCreate(void) { return vectorCreate(); }
+void stackInit(Stack *s) { vectorInit(s); }
 void stackPush(Stack *s, void *element) { vectorInsert(s, element); }
 void *stackPeek(Stack const *s) { return s->elements[s->size - 1]; }
 void *stackPop(Stack *s) { return s->elements[--s->size]; }
+void stackUninit(Stack *s, void (*dtor)(void *)) { vectorUninit(s, dtor); }
 void stackDestroy(Stack *s, void (*dtor)(void *)) { vectorDestroy(s, dtor); }

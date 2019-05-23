@@ -25,13 +25,17 @@
 typedef Vector Stack;
 // ctor
 Stack *stackCreate(void);
+// in place ctor
+void stackInit(Stack *);
 // adds an element onto the top of the stack
 void stackPush(Stack *, void *);
 // returns a non-owning pointer to the top of the stack, does not change stack
 void *stackPeek(Stack const *);
 // returns an owning pointer to the top of the stack, removes element from stack
 void *stackPop(Stack *);
+// in place dtor
+void stackUninit(Stack *, void (*dtor)(void *));
 // dtor
-void stackDestroy(Stack *, void (*)(void *));
+void stackDestroy(Stack *, void (*dtor)(void *));
 
 #endif  // TLC_UTIL_STACK_H_

@@ -24,7 +24,7 @@
 #include <stddef.h>
 
 typedef struct {
-  Vector *messages;
+  Vector messages;
   size_t errors;
   size_t warnings;
 } Report;

@@ -31,6 +31,8 @@ typedef struct {
 
 // ctor
 HashMap *hashMapCreate(void);
+// in-place ctor
+void hashMapInit(HashMap *);
 
 // get
 // returns the node, or NULL if the key is not in the table
@@ -50,6 +52,9 @@ void hashMapSet(HashMap *, char const *key, void *value);
 
 // dtor
 // takes a dtor function to free each void pointer
+// in place dtor
+void hashMapUninit(HashMap *, void (*dtor)(void *));
+// regular dtor
 void hashMapDestroy(HashMap *, void (*dtor)(void *));
 
 #endif  // TLC_UTIL_HASHMAP_H_

@@ -27,14 +27,16 @@
 // specialization of a generic
 typedef HashMap ModuleAstMap;
 ModuleAstMap *moduleAstMapCreate(void);
+void moduleAstMapInit(ModuleAstMap *);
 Node *moduleAstMapGet(ModuleAstMap const *, char const *key);
 int moduleAstMapPut(ModuleAstMap *, char const *key, Node *value);
+void moduleAstMapUninit(ModuleAstMap *);
 void moduleAstMapDestroy(ModuleAstMap *);
 
 // pod struct holding two ModuleAstMaps
 typedef struct {
-  ModuleAstMap *decls;
-  ModuleAstMap *codes;
+  ModuleAstMap decls;
+  ModuleAstMap codes;
 } ModuleAstMapPair;
 ModuleAstMapPair *moduleAstMapPairCreate(void);
 void moduleAstMapPairDestroy(ModuleAstMapPair *);

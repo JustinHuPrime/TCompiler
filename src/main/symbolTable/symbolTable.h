@@ -88,10 +88,10 @@ int moduleTableMapPut(ModuleTableMap *, char const *key, SymbolTable *value);
 void moduleTableMapDestroy(ModuleTableMap *);
 
 typedef struct {
-  ModuleTableMap *imports;  // vector of symbol tables
+  ModuleTableMap *imports;  // map of symbol tables
   SymbolTable *currentModule;
   char const *currentModuleName;
-  Stack *scopes;  // stack of symbol tables
+  Stack scopes;  // stack of symbol tables
 } Environment;
 Environment *environmentCreate(SymbolTable *currentModule,
                                char const *currentModuleName);
