@@ -16,7 +16,7 @@
 
 // Compiles code modules into assembly files, guided by decl modules
 
-#include "lexer/lexDump.h"
+#include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"

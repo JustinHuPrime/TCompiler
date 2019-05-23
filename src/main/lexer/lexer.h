@@ -21,6 +21,7 @@
 
 #include "util/errorReport.h"
 #include "util/file.h"
+#include "util/fileList.h"
 #include "util/hashMap.h"
 
 typedef enum {
@@ -178,5 +179,8 @@ void lexerInfoDestroy(LexerInfo *);
 // note that the parser is responsible for figuring out the exact value of a
 // literal
 TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo);
+
+// dumps the tokens from all files to stdout
+void lexDump(Report *report, FileList *files);
 
 #endif  // TLC_LEXER_LEXER_H_
