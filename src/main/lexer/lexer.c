@@ -18,9 +18,9 @@
 
 #include "lexer/lexer.h"
 
+#include "util/container/stringBuilder.h"
 #include "util/format.h"
 #include "util/functional.h"
-#include "util/stringBuilder.h"
 
 #include <stdlib.h>
 #include <string.h>

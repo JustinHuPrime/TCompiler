@@ -19,9 +19,9 @@
 #include "parser/parser.h"
 
 #include "lexer/lexer.h"
+#include "util/container/hashSet.h"
 #include "util/format.h"
 #include "util/functional.h"
-#include "util/hashSet.h"
 
 #include <stdlib.h>
 

@@ -16,7 +16,7 @@
 
 // Implementation of vector of pointers, in java generic style
 
-#include "util/vector.h"
+#include "util/container/vector.h"
 
 #include <stdlib.h>
 

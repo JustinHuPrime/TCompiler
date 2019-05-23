@@ -16,7 +16,7 @@
 
 // tests for vector
 
-#include "util/vector.h"
+#include "util/container/vector.h"
 
 #include "tests.h"
 #include "util/functional.h"

@@ -16,8 +16,8 @@
 
 // A set of strings
 
-#ifndef TLC_UTIL_HASHSET_H_
-#define TLC_UTIL_HASHSET_H_
+#ifndef TLC_UTIL_CONTAINER_HASHSET_H_
+#define TLC_UTIL_CONTAINER_HASHSET_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -51,4 +51,4 @@ void hashSetDestroy(HashSet *, bool freeStrings);
 typedef HashSet NonOwningHashSet;
 typedef HashSet OwningHashSet;
 
-#endif  // TLC_UTIL_HASHSET_H_
+#endif  // TLC_UTIL_CONTAINER_HASHSET_H_

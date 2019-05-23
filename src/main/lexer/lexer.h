@@ -19,10 +19,10 @@
 #ifndef TLC_LEXER_LEXER_H_
 #define TLC_LEXER_LEXER_H_
 
+#include "util/container/hashMap.h"
 #include "util/errorReport.h"
 #include "util/file.h"
 #include "util/fileList.h"
-#include "util/hashMap.h"
 
 typedef enum {
   // special conditions (file conditions)

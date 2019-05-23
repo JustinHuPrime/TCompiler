@@ -16,7 +16,7 @@
 
 // Implementation of the string builder
 
-#include "util/stringBuilder.h"
+#include "util/container/stringBuilder.h"
 
 #include <stdlib.h>
 #include <string.h>

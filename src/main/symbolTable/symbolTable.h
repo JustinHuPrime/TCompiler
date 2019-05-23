@@ -20,11 +20,11 @@
 #define TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 
 #include "lexer/lexer.h"
+#include "util/container/hashMap.h"
+#include "util/container/stack.h"
+#include "util/container/vector.h"
 #include "util/errorReport.h"
-#include "util/hashMap.h"
-#include "util/stack.h"
 #include "util/ternary.h"
-#include "util/vector.h"
 
 // information for a symbol in some module
 typedef struct {

@@ -14,30 +14,30 @@
 //
 // This file is part of the T Language Compiler.
 
-// A buffer for a string
+// A vector of pointers, in java generic style
 
-#ifndef TLC_UTIL_STRINGBUILDER_H_
-#define TLC_UTIL_STRINGBUILDER_H_
+#ifndef TLC_UTIL_CONTAINER_VECTOR_H_
+#define TLC_UTIL_CONTAINER_VECTOR_H_
 
 #include <stddef.h>
 
+// vector, in java generic style
 typedef struct {
   size_t size;
   size_t capacity;
-  char *string;
-} StringBuilder;
+  void **elements;
+} Vector;
 
 // ctor
-StringBuilder *stringBuilderCreate(void);
-// adds a character to the end of the string
-void stringBuilderPush(StringBuilder *, char);
-// deletes a character from the end of the string
-void stringBuilderPop(StringBuilder *);
-// produces a new null terminated c-string that copies current data
-char *stringBuilderData(StringBuilder const *);
-// clears the current string
-void stringBuilderClear(StringBuilder *);
-// dtor; also deletes the current string
-void stringBuilderDestroy(StringBuilder *);
+Vector *vectorCreate(void);
+// in place ctor
+void vectorInit(Vector *);
+// insert
+void vectorInsert(Vector *, void *);
+// in place dtor
+// takes in a destructor function to apply to the elements
+void vectorUninit(Vector *, void (*dtor)(void *));
+// dtor
+void vectorDestroy(Vector *, void (*dtor)(void *));
 
-#endif  // TLC_UTIL_STRINGBUILDER_H_
+#endif  // TLC_UTIL_CONTAINER_VECTOR_H_

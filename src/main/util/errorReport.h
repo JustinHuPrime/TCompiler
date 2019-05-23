@@ -19,7 +19,7 @@
 #ifndef TLC_UTIL_ERRORREPORT_H_
 #define TLC_UTIL_ERRORREPORT_H_
 
-#include "util/vector.h"
+#include "util/container/vector.h"
 
 #include <stddef.h>
 

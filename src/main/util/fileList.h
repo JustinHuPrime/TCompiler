@@ -21,9 +21,9 @@
 #define TLC_UTIL_FILELIST_H_
 
 #include "ast/ast.h"
+#include "util/container/vector.h"
 #include "util/errorReport.h"
 #include "util/options.h"
-#include "util/vector.h"
 
 #include <stddef.h>
 

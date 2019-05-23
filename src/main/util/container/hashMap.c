@@ -16,7 +16,7 @@
 
 // Implementation of generic hash map
 
-#include "util/hashMap.h"
+#include "util/container/hashMap.h"
 #include "util/hash.h"
 
 #include <stdlib.h>

@@ -18,8 +18,8 @@
 
 #include "symbolTable/symbolTable.h"
 
+#include "parser/nameUtils.h"
 #include "util/format.h"
-#include "util/nameUtils.h"
 
 #include <stdlib.h>
 #include <string.h>

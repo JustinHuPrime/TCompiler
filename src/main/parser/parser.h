@@ -19,9 +19,9 @@
 #ifndef TLC_PARSER_PARSER_H_
 #define TLC_PARSER_PARSER_H_
 
+#include "util/container/hashMap.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
-#include "util/hashMap.h"
 #include "util/options.h"
 
 // specialization of a generic

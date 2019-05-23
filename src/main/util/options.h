@@ -21,7 +21,7 @@
 
 #include "util/errorReport.h"
 
-#include "util/hashMap.h"
+#include "util/container/hashMap.h"
 
 #include <stdint.h>
 

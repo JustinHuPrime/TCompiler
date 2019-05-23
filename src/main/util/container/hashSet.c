@@ -16,7 +16,7 @@
 
 // Implementation of generic hash set
 
-#include "util/hashSet.h"
+#include "util/container/hashSet.h"
 #include "util/hash.h"
 
 #include <stdlib.h>

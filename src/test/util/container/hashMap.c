@@ -16,7 +16,7 @@
 
 // Tests for hashmap
 
-#include "util/hashMap.h"
+#include "util/container/hashMap.h"
 
 #include "tests.h"
 #include "util/functional.h"

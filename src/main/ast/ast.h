@@ -19,7 +19,7 @@
 #ifndef TLC_AST_AST_H_
 #define TLC_AST_AST_H_
 
-#include "util/vector.h"
+#include "util/container/vector.h"
 
 #include <stdbool.h>
 #include <stddef.h>

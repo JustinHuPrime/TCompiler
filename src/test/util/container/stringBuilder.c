@@ -16,7 +16,7 @@
 
 // Tests for format
 
-#include "util/stringBuilder.h"
+#include "util/container/stringBuilder.h"
 
 #include "tests.h"
 

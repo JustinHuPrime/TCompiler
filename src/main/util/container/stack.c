@@ -14,17 +14,16 @@
 //
 // This file is part of the T Language Compiler.
 
-// Utilities for names, scoped or otherwise
+// Implementation of the stack
 
-#ifndef TLC_UTIL_NAME_UTILS_H_
-#define TLC_UTIL_NAME_UTILS_H_
+#include "util/container/stack.h"
 
-#include <stdbool.h>
+#include <stdlib.h>
 
-// produces whether or not the name has a colon (if it has one, it has to be
-// scoped)
-bool isScoped(char const *);
-// splits a name into the module and the short name (must be scoped)
-void splitName(char const *fullName, char **module, char **shortName);
-
-#endif  // TLC_UTIL_NAME_UTILS_H_
+Stack *stackCreate(void) { return vectorCreate(); }
+void stackInit(Stack *s) { vectorInit(s); }
+void stackPush(Stack *s, void *element) { vectorInsert(s, element); }
+void *stackPeek(Stack const *s) { return s->elements[s->size - 1]; }
+void *stackPop(Stack *s) { return s->elements[--s->size]; }
+void stackUninit(Stack *s, void (*dtor)(void *)) { vectorUninit(s, dtor); }
+void stackDestroy(Stack *s, void (*dtor)(void *)) { vectorDestroy(s, dtor); }

@@ -16,9 +16,9 @@
 
 // Implementation of name utilities
 
-#include "util/nameUtils.h"
+#include "parser/nameUtils.h"
 
-#include "util/stringBuilder.h"
+#include "util/container/stringBuilder.h"
 
 #include <stddef.h>
 #include <stdlib.h>

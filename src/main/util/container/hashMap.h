@@ -16,8 +16,8 @@
 
 // An java-style generic hash map between char const *keys and void *values
 
-#ifndef TLC_UTIL_HASHMAP_H_
-#define TLC_UTIL_HASHMAP_H_
+#ifndef TLC_UTIL_CONTAINER_HASHMAP_H_
+#define TLC_UTIL_CONTAINER_HASHMAP_H_
 
 #include <stddef.h>
 
@@ -57,4 +57,4 @@ void hashMapUninit(HashMap *, void (*dtor)(void *));
 // regular dtor
 void hashMapDestroy(HashMap *, void (*dtor)(void *));
 
-#endif  // TLC_UTIL_HASHMAP_H_
+#endif  // TLC_UTIL_CONTAINER_HASHMAP_H_

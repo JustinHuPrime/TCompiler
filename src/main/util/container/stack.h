@@ -16,10 +16,10 @@
 
 // A stack of pointers, java generic style
 
-#ifndef TLC_UTIL_STACK_H_
-#define TLC_UTIL_STACK_H_
+#ifndef TLC_UTIL_CONTAINER_STACK_H_
+#define TLC_UTIL_CONTAINER_STACK_H_
 
-#include "util/vector.h"
+#include "util/container/vector.h"
 
 // specialization of a vector, with additional functions
 typedef Vector Stack;
@@ -38,4 +38,4 @@ void stackUninit(Stack *, void (*dtor)(void *));
 // dtor
 void stackDestroy(Stack *, void (*dtor)(void *));
 
-#endif  // TLC_UTIL_STACK_H_
+#endif  // TLC_UTIL_CONTAINER_STACK_H_

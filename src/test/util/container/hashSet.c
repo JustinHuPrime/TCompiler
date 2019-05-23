@@ -16,7 +16,7 @@
 
 // Tests for hashset
 
-#include "util/hashSet.h"
+#include "util/container/hashSet.h"
 
 #include "tests.h"
 
