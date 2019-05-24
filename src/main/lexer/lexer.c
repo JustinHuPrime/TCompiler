@@ -29,15 +29,213 @@ char const *tokenToName(TokenType tt) {
   switch (tt) {
     case TT_ERR:
       return "a read error";
+    case TT_EOF:
+      return "the end of the file";
     case TT_INVALID:
       return "an unexpected character";
     case TT_EMPTY_SQUOTE:
-      return "empty single quotes";
+      return "an empty character literal";
     case TT_INVALID_ESCAPE:
-      return "invalid escape sequence";
+      return "a character or string literal containing an invalid escape "
+             "sequence";
+    case TT_NOT_WIDE:
+      return "an ill-formed character or string literal";
+    case TT_MULTICHAR_CHAR:
+      return "a character literal with multiple characters";
+    case TT_MODULE:
+      return "the keyword 'module'";
+    case TT_USING:
+      return "the keyword 'using'";
+    case TT_STRUCT:
+      return "the keyword 'struct'";
+    case TT_UNION:
+      return "the keyword 'union'";
+    case TT_ENUM:
+      return "the keyword 'enum'";
+    case TT_TYPEDEF:
+      return "the keyword 'typedef'";
+    case TT_IF:
+      return "the keyword 'if'";
+    case TT_ELSE:
+      return "the keyword 'else'";
+    case TT_WHILE:
+      return "the keyword 'while'";
+    case TT_DO:
+      return "the keyword 'do'";
+    case TT_FOR:
+      return "the keyword 'for'";
+    case TT_SWITCH:
+      return "the keyword 'switch'";
+    case TT_CASE:
+      return "the keyword 'case'";
+    case TT_DEFAULT:
+      return "the keyword 'default'";
+    case TT_BREAK:
+      return "the keyword 'break'";
+    case TT_CONTINUE:
+      return "the keyword 'continue'";
+    case TT_RETURN:
+      return "the keyword 'return'";
+    case TT_ASM:
+      return "the keyword 'asm'";
+    case TT_TRUE:
+      return "the keyword 'true'";
+    case TT_FALSE:
+      return "the keyword 'false'";
+    case TT_CAST:
+      return "the keyword 'cast'";
+    case TT_SIZEOF:
+      return "the keyword 'sizeof'";
+    case TT_VOID:
+      return "the keyword 'void'";
+    case TT_UBYTE:
+      return "the keyword 'ubyte'";
+    case TT_BYTE:
+      return "the keyword 'byte'";
+    case TT_CHAR:
+      return "the keyword 'char'";
+    case TT_UINT:
+      return "the keyword 'uint'";
+    case TT_INT:
+      return "the keyword 'int'";
+    case TT_WCHAR:
+      return "the keyword 'wchar'";
+    case TT_ULONG:
+      return "the keyword 'ulong'";
+    case TT_LONG:
+      return "the keyword 'long'";
+    case TT_FLOAT:
+      return "the keyword 'float'";
+    case TT_DOUBLE:
+      return "the keyword 'double'";
+    case TT_BOOL:
+      return "the keyword 'bool'";
+    case TT_CONST:
+      return "the keyword 'const'";
+    case TT_SEMI:
+      return "a semicolon";
+    case TT_COMMA:
+      return "a comma";
+    case TT_LPAREN:
+      return "a left parenthesis";
+    case TT_RPAREN:
+      return "a right parenthesis";
+    case TT_LSQUARE:
+      return "a left square bracket";
+    case TT_RSQUARE:
+      return "a right square bracket";
+    case TT_LBRACE:
+      return "a left brace";
+    case TT_RBRACE:
+      return "a right brace";
+    case TT_DOT:
+      return "a period";
+    case TT_ARROW:
+      return "a structure dereference operator";
+    case TT_PLUSPLUS:
+      return "an increment operator";
+    case TT_MINUSMINUS:
+      return "a decrement operator";
+    case TT_STAR:
+      return "an asterisk";
+    case TT_AMPERSAND:
+      return "an ampersand";
+    case TT_PLUS:
+      return "a plus sign";
+    case TT_MINUS:
+      return "a minus sign";
+    case TT_BANG:
+      return "an exclaimation mark";
+    case TT_TILDE:
+      return "a tilde";
+    case TT_SLASH:
+      return "a slash";
+    case TT_PERCENT:
+      return "a percent sign";
+    case TT_LSHIFT:
+      return "a left shift operator";
+    case TT_LRSHIFT:
+      return "a logical right shift operator";
+    case TT_ARSHIFT:
+      return "an arithmetic right shift operator";
+    case TT_SPACESHIP:
+      return "a three way comparison operator";
+    case TT_LANGLE:
+      return "a left angle bracket";
+    case TT_RANGLE:
+      return "a right angle bracket";
+    case TT_LTEQ:
+      return "a less-than-or-equal-to operator";
+    case TT_GTEQ:
+      return "a greater-than-or-equal-to operator";
+    case TT_EQ:
+      return "an equal-to operator";
+    case TT_NEQ:
+      return "a not-equal-to operator";
+    case TT_PIPE:
+      return "a pipe";
+    case TT_CARET:
+      return "a caret";
+    case TT_LAND:
+      return "a logical and operator";
+    case TT_LOR:
+      return "a logical or operator";
+    case TT_QUESTION:
+      return "a question mark";
+    case TT_COLON:
+      return "a colon";
+    case TT_ASSIGN:
+      return "an equal sign";
+    case TT_MULASSIGN:
+      return "a compound multiplication assignment operator";
+    case TT_DIVASSIGN:
+      return "a compound division assignment operator";
+    case TT_MODASSIGN:
+      return "a compound modulo assignment operator";
+    case TT_ADDASSIGN:
+      return "a compound addition assignment operator";
+    case TT_SUBASSIGN:
+      return "a compound subtraction assignment operator";
+    case TT_LSHIFTASSIGN:
+      return "a compound left shift assignment operator";
+    case TT_LRSHIFTASSIGN:
+      return "a compound logical right shift assignment operator";
+    case TT_ARSHIFTASSIGN:
+      return "a compound arithmetic right shift assignment operator";
+    case TT_BITANDASSIGN:
+      return "a compound bitwise-and assignment operator";
+    case TT_BITXORASSIGN:
+      return "a compound bitwise-exclusive-or assignment operator";
+    case TT_BITORASSIGN:
+      return "a compound bitwise-or assignment operator";
+    case TT_LANDASSIGN:
+      return "a compound logical-and assignment operator";
+    case TT_LORASSIGN:
+      return "a compound logical-or assignment operator";
+    case TT_ID:
+      return "an unscoped identifier";
+    case TT_SCOPED_ID:
+      return "a scoped identifier";
+    case TT_LITERALINT_0:
+    case TT_LITERALINT_B:
+    case TT_LITERALINT_O:
+    case TT_LITERALINT_D:
+    case TT_LITERALINT_H:
+      return "an integer literal";
+    case TT_LITERALFLOAT:
+      return "a floating-point literal";
+    case TT_LITERALSTRING:
+      return "a string literal";
+    case TT_LITERALCHAR:
+      return "a character literal";
+    case TT_LITERALWSTRING:
+      return "a wide string literal";
+    case TT_LITERALWCHAR:
+      return "a wide character literal";
   }
+  abort();  // not a TokenType; type safety violated
 }
-void tokenInfoCleanup(TokenType tt, TokenInfo *info) {
+void tokenInfoUninit(TokenType tt, TokenInfo *info) {
   if (tt == TT_LITERALCHAR || tt == TT_LITERALWCHAR || tt == TT_LITERALSTRING ||
       tt == TT_LITERALWSTRING || tt == TT_LITERALINT_0 ||
       tt == TT_LITERALINT_B || tt == TT_LITERALINT_O || tt == TT_LITERALINT_D ||
@@ -283,11 +481,10 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       tokenInfo->line = lexerInfo->line;
       tokenInfo->character = lexerInfo->character;
 
-      reportError(
-          report,
-          format("%s:%zu:%zu: error: could not read next character; "
-                 "filesystem error?",
-                 lexerInfo->fileName, lexerInfo->line, lexerInfo->character));
+      reportError(report, format("%s:%zu:%zu: error: could not read next "
+                                 "character; potential filesystem error",
+                                 lexerInfo->fileName, lexerInfo->line,
+                                 lexerInfo->character));
 
       if (buffer != NULL) stringBuilderDestroy(buffer);
 
@@ -2492,6 +2689,8 @@ static void lexDumpOne(Report *report, KeywordMap *keywords,
     }
   } while (type != TT_EOF && type != TT_ERR);
 }
+
+bool lexerError(TokenType tt) { return tt <= TT_MULTICHAR_CHAR; }
 
 void lexDump(Report *report, FileList *files) {
   KeywordMap *keywords = keywordMapCreate();

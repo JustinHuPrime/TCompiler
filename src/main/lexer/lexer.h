@@ -151,7 +151,7 @@ typedef struct {
     char invalidChar;
   } data;
 } TokenInfo;
-void tokenInfoCleanup(TokenType, TokenInfo *);
+void tokenInfoUninit(TokenType, TokenInfo *);
 
 typedef struct {
   size_t line;
@@ -179,6 +179,9 @@ void lexerInfoDestroy(LexerInfo *);
 // note that the parser is responsible for figuring out the exact value of a
 // literal
 TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo);
+
+// produce true if token type is an error result handled by the lexer
+bool lexerError(TokenType);
 
 // dumps the tokens from all files to stdout
 void lexDump(Report *report, FileList *files);

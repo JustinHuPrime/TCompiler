@@ -101,7 +101,7 @@ static Node *parseAnyId(Report *report, LexerInfo *li) {
   TokenType type;
   type = lex(report, li, &info);
   if (type != TT_ID && type != TT_SCOPED_ID) {
-    tokenInfoCleanup(type, &info);
+    tokenInfoUninit(type, &info);
     reportError(
         report,
         format("%s:%zu:%zu: error: expected an identifier, but found %s",
@@ -116,7 +116,7 @@ static Node *parseUnscopedId(Report *report, LexerInfo *li) {
   TokenType type;
   type = lex(report, li, &info);
   if (type != TT_ID) {
-    tokenInfoCleanup(type, &info);
+    tokenInfoUninit(type, &info);
     reportError(
         report,
         format(
@@ -134,17 +134,8 @@ static Node *parseModule(Report *report, LexerInfo *li) {
 
   type = lex(report, li, &info);
   if (type != TT_MODULE) {
-    tokenInfoCleanup(type, &info);
-    // FIXME: is the lexer writing the error reports for lexer-detectable
-    // errors?
-    if (type == TT_ERR) {
-      reportError(report, format("%s:%zu:%zu: error: file could not be read",
-                                 li->fileName, info.line, info.character));
-    } else if (type == TT_INVALID) {
-      reportError(report,
-                  format("%s:%zu:%zu: error: unexpected '%c'", li->fileName,
-                         info.line, info.character, info.data.invalidChar));
-    } else {
+    tokenInfoUninit(type, &info);
+    if (!lexerError(type)) {
       reportError(
           report,
           format("%s:%zu:%zu: error: expected first thing in "
@@ -155,7 +146,7 @@ static Node *parseModule(Report *report, LexerInfo *li) {
   } else {
     Node *idNode = parseAnyId(report, li);
     if (idNode == NULL) {
-      tokenInfoCleanup(type, &info);
+      tokenInfoUninit(type, &info);
       return NULL;
     } else {
       return moduleNodeCreate(info.line, info.character, idNode);
@@ -177,36 +168,38 @@ ModuleAstMapPair *parse(Report *report, Options *options, FileList *files) {
 
   // for each decl file, read the module line, and add an entry to a
   // module-lexerinfo hashMap
-  ModuleFileMap *mfMap = moduleFileMapCreate();  // TODO: this isn't used.
   for (size_t idx = 0; idx < files->decls.size; idx++) {
     LexerInfo *li = lexerInfoCreate(files->decls.elements[idx], kwMap);
-    moduleLexerInfoMapPut(miMap, files->decls.elements[idx], li);
     Node *module = parseModule(report, li);
     if (module == NULL) {  // didn't find it, file can't be parsed.
-      // something...
-      // TODO: error handling
-    } else if (moduleFileMapPut(mfMap, module->data.module.id->data.id.id,
-                                files->decls.elements[idx]) == HM_EEXISTS) {
-      // duplicate
-      // TODO: error handling
+      reportError(report, format("%s: error: no module declaration found",
+                                 (char const *)files->decls.elements[idx]));
+    } else if (moduleNodeMapPut(mnMap, module->data.module.id->data.id.id,
+                                module) == HM_EEXISTS) {
+      reportError(
+          report,
+          format(
+              "%s: error: module '%s' has already been declared (in file %s)",
+              (char const *)files->decls.elements[idx],
+              module->data.module.id->data.id.id,
+              moduleLexerInfoMapGet(miMap, module->data.module.id->data.id.id)
+                  ->fileName));
       nodeDestroy(module);
     } else {
-      // good
-      moduleNodeMapPut(mnMap, module->data.module.id->data.id.id, module);
+      moduleLexerInfoMapPut(miMap, module->data.module.id->data.id.id, li);
     }
   }
-  moduleFileMapDestroy(mfMap);
 
-  // parse all decl files in order
   ModuleAstMapPair *parseResult = moduleAstMapPairCreate();
 
+  // parse all decl files in order
   while (parseResult->decls.size < miMap->size) {
     HashSet *stalled = hashSetCreate();
 
     // select one to parse
     for (size_t idx = 0; idx < miMap->capacity; idx++) {
       // if this is a module, and it hasn't been parsed
-      if (mfMap->keys[idx] != NULL &&
+      if (miMap->keys[idx] != NULL &&
           moduleAstMapGet(&parseResult->decls, miMap->keys[idx]) == NULL) {
         parseFile(report, options, stalled, miMap->values[idx],
                   moduleNodeMapGet(mnMap, miMap->keys[idx]));

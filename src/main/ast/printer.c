@@ -1129,7 +1129,7 @@ void printNode(Node const *node) {
           break;
         }
         case BO_ARRAYACCESS:
-          abort();
+          abort();  // already dealt with, so can't come here again.
       }
       printNode(node->data.binopExp.rhs);
       printf(")");
