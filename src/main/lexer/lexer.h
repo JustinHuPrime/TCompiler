@@ -24,6 +24,7 @@
 #include "util/file.h"
 #include "util/fileList.h"
 
+// the type of a token
 typedef enum {
   // special conditions (file conditions)
   TT_ERR,
@@ -143,7 +144,9 @@ typedef enum {
 } TokenType;
 char const *tokenToName(TokenType);
 
+// pod object, stores the result of a lex
 typedef struct {
+  TokenType type;
   size_t line;
   size_t character;
   union {
@@ -151,7 +154,10 @@ typedef struct {
     char invalidChar;
   } data;
 } TokenInfo;
-void tokenInfoUninit(TokenType, TokenInfo *);
+// produce true if token type is an error result handled by the lexer
+bool tokenInfoIsLexerError(TokenInfo *);
+// dtor
+void tokenInfoUninit(TokenInfo *);
 
 typedef struct {
   size_t line;
@@ -159,7 +165,14 @@ typedef struct {
   File *file;
   HashMap const *keywords;
   char const *fileName;
+  TokenInfo previous;
+  bool pushedBack;
 } LexerInfo;
+
+// creates and initializes the lexer info
+LexerInfo *lexerInfoCreate(char const *fileName, HashMap const *keywords);
+// dtor - note that keywords is not owned by the LexerInfo
+void lexerInfoDestroy(LexerInfo *);
 
 // specialization of hashmap
 typedef HashMap KeywordMap;
@@ -170,20 +183,13 @@ TokenType const *keywordMapGet(KeywordMap const *, char const *);
 void keywordMapUninit(KeywordMap *);
 void keywordMapDestroy(KeywordMap *);
 
-// creates and initializes the lexer info
-LexerInfo *lexerInfoCreate(char const *fileName, HashMap const *keywords);
-// dtor - note that keywords is not owned by the LexerInfo
-void lexerInfoDestroy(LexerInfo *);
-
 // takes the lexer info and reads one token from it, discarding preceeding
 // whitespace recursively.
-// puts auxiliary information into tokenInfo.
 // note that the parser is responsible for figuring out the exact value of a
 // literal
-TokenType lex(Report *report, LexerInfo *info, TokenInfo *tokenInfo);
-
-// produce true if token type is an error result handled by the lexer
-bool lexerError(TokenType);
+void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *info);
+// pushes a token back into the lexer info
+void unLex(LexerInfo *info, TokenInfo *tokenInfo);
 
 // dumps the tokens from all files to stdout
 void lexDump(Report *report, FileList *files);

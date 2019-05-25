@@ -235,12 +235,17 @@ char const *tokenToName(TokenType tt) {
   }
   abort();  // not a TokenType; type safety violated
 }
-void tokenInfoUninit(TokenType tt, TokenInfo *info) {
-  if (tt == TT_LITERALCHAR || tt == TT_LITERALWCHAR || tt == TT_LITERALSTRING ||
-      tt == TT_LITERALWSTRING || tt == TT_LITERALINT_0 ||
-      tt == TT_LITERALINT_B || tt == TT_LITERALINT_O || tt == TT_LITERALINT_D ||
-      tt == TT_LITERALINT_H || tt == TT_LITERALFLOAT || tt == TT_ID ||
-      tt == TT_SCOPED_ID) {
+
+bool tokenInfoIsLexerError(TokenInfo *info) {
+  return info->type != TT_EOF && info->type <= TT_MULTICHAR_CHAR;
+}
+void tokenInfoUninit(TokenInfo *info) {
+  if (info->type == TT_LITERALCHAR || info->type == TT_LITERALWCHAR ||
+      info->type == TT_LITERALSTRING || info->type == TT_LITERALWSTRING ||
+      info->type == TT_LITERALINT_0 || info->type == TT_LITERALINT_B ||
+      info->type == TT_LITERALINT_O || info->type == TT_LITERALINT_D ||
+      info->type == TT_LITERALINT_H || info->type == TT_LITERALFLOAT ||
+      info->type == TT_ID || info->type == TT_SCOPED_ID) {
     free(info->data.string);
   }
 }
@@ -469,12 +474,15 @@ static LexerState hexDigitAction(Report *report, char c, StringBuilder *buffer,
   }
 }
 
-TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
+void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
+  if (lexerInfo->pushedBack) {
+    memcpy(tokenInfo, &lexerInfo->previous, sizeof(TokenInfo));
+    lexerInfo->pushedBack = false;
+    return;
+  }
+
   LexerState state = LS_START;
-
   StringBuilder *buffer = NULL;  // set when a stringbuilder is actually needed
-
-  // lexerInfo holds the position of the character just read
 
   // implemented as a DFA
   while (true) {
@@ -484,6 +492,7 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       // cleanup, and produce error
       tokenInfo->line = lexerInfo->line;
       tokenInfo->character = lexerInfo->character;
+      tokenInfo->type = TT_ERR;
 
       reportError(report, format("%s:%zu:%zu: error: could not read next "
                                  "character; potential filesystem error",
@@ -492,7 +501,7 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
 
       if (buffer != NULL) stringBuilderDestroy(buffer);
 
-      return TT_ERR;
+      return;
     }
 
     // default action - newlines and pushback handled specially
@@ -502,13 +511,14 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       // all states must handle all character possibilities
 #pragma GCC diagnostic push
 #pragma GCC diagnostic warning "-Wswitch-default"
-      // start
+        // start
       case LS_START: {
         switch (c) {
           case -2: {  // F_EOF
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case ' ':
           case '\t': {
@@ -592,62 +602,74 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           case '(': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_LPAREN;
+            tokenInfo->type = TT_LPAREN;
+            return;
           }
           case ')': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_RPAREN;
+            tokenInfo->type = TT_RPAREN;
+            return;
           }
           case '.': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_DOT;
+            tokenInfo->type = TT_DOT;
+            return;
           }
           case ',': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_COMMA;
+            tokenInfo->type = TT_COMMA;
+            return;
           }
           case ';': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_SEMI;
+            tokenInfo->type = TT_SEMI;
+            return;
           }
           case '?': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_QUESTION;
+            tokenInfo->type = TT_QUESTION;
+            return;
           }
           case '[': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_LSQUARE;
+            tokenInfo->type = TT_LSQUARE;
+            return;
           }
           case ']': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_RSQUARE;
+            tokenInfo->type = TT_RSQUARE;
+            return;
           }
           case '{': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_LBRACE;
+            tokenInfo->type = TT_LBRACE;
+            return;
           }
           case '}': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_RBRACE;
+            tokenInfo->type = TT_RBRACE;
+            return;
           }
           case '~': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_TILDE;
+            tokenInfo->type = TT_TILDE;
+            return;
           }
           case ':': {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_COLON;
+            tokenInfo->type = TT_COLON;
+            return;
           }
           case '!': {
             state = LS_LNOT_OP;
@@ -724,12 +746,13 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             } else {
               tokenInfo->line = lexerInfo->line;
               tokenInfo->character = lexerInfo->character;
+              tokenInfo->type = TT_INVALID;
               tokenInfo->data.invalidChar = c;
 
               reportError(report, format("%s:%zu:%zu: error: unexpected '%c'",
                                          lexerInfo->fileName, lexerInfo->line,
                                          lexerInfo->character, c));
-              return TT_INVALID;
+              return;
             }
           }
         }
@@ -745,10 +768,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           }
           default: {
             fUnget(lexerInfo->file);
+            lexerInfo->character = 0;
 
             state = LS_START;
-
-            lexerInfo->character = 0;
             break;
           }
         }
@@ -759,7 +781,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_COMMENT_OR_DIVIDE: {
         switch (c) {
           case '=': {
-            return TT_DIVASSIGN;
+            tokenInfo->type = TT_DIVASSIGN;
+            return;
           }
           case '*': {
             state = LS_BLOCK_COMMENT;
@@ -773,7 +796,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
 
-            return TT_SLASH;
+            tokenInfo->type = TT_SLASH;
+            return;
           }
         }
         break;
@@ -781,12 +805,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_LNOT_OP: {
         switch (c) {
           case '=': {
-            return TT_NEQ;
+            tokenInfo->type = TT_NEQ;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_BANG;
+
+            tokenInfo->type = TT_BANG;
+            return;
           }
         }
         break;
@@ -794,12 +821,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_MOD_OP: {
         switch (c) {
           case '=': {
-            return TT_MODASSIGN;
+            tokenInfo->type = TT_MODASSIGN;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_PERCENT;
+
+            tokenInfo->type = TT_PERCENT;
+            return;
           }
         }
         break;
@@ -807,12 +837,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_MUL_OP: {
         switch (c) {
           case '=': {
-            return TT_MULASSIGN;
+            tokenInfo->type = TT_MULASSIGN;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_STAR;
+
+            tokenInfo->type = TT_STAR;
+            return;
           }
         }
         break;
@@ -820,12 +853,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_ASSIGN_OP: {
         switch (c) {
           case '=': {
-            return TT_EQ;
+            tokenInfo->type = TT_EQ;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_ASSIGN;
+
+            tokenInfo->type = TT_ASSIGN;
+            return;
           }
         }
         break;
@@ -833,12 +869,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_XOR_OP: {
         switch (c) {
           case '=': {
-            return TT_BITXORASSIGN;
+            tokenInfo->type = TT_BITXORASSIGN;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_CARET;
+
+            tokenInfo->type = TT_CARET;
+            return;
           }
         }
         break;
@@ -846,7 +885,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_AND_OP: {
         switch (c) {
           case '=': {
-            return TT_BITANDASSIGN;
+            tokenInfo->type = TT_BITANDASSIGN;
+            return;
           }
           case '&': {
             state = LS_LAND_OP;
@@ -855,7 +895,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_AMPERSAND;
+
+            tokenInfo->type = TT_AMPERSAND;
+            return;
           }
         }
         break;
@@ -863,7 +905,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_OR_OP: {
         switch (c) {
           case '=': {
-            return TT_BITORASSIGN;
+            tokenInfo->type = TT_BITORASSIGN;
+            return;
           }
           case '|': {
             state = LS_LOR_OP;
@@ -872,7 +915,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_PIPE;
+
+            tokenInfo->type = TT_PIPE;
+            return;
           }
         }
         break;
@@ -890,7 +935,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_LANGLE;
+
+            tokenInfo->type = TT_LANGLE;
+            return;
           }
         }
         break;
@@ -898,7 +945,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_GT_OP: {
         switch (c) {
           case '=': {
-            return TT_GTEQ;
+            tokenInfo->type = TT_GTEQ;
+            return;
           }
           case '>': {
             state = LS_ARSHIFT_OP;
@@ -907,7 +955,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_RANGLE;
+
+            tokenInfo->type = TT_RANGLE;
+            return;
           }
         }
         break;
@@ -915,12 +965,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_LAND_OP: {
         switch (c) {
           case '=': {
-            return TT_LANDASSIGN;
+            tokenInfo->type = TT_LANDASSIGN;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_LAND;
+
+            tokenInfo->type = TT_LAND;
+            return;
           }
         }
         break;
@@ -928,12 +981,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_LOR_OP: {
         switch (c) {
           case '=': {
-            return TT_LORASSIGN;
+            tokenInfo->type = TT_LORASSIGN;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_LOR;
+
+            tokenInfo->type = TT_LOR;
+            return;
           }
         }
         break;
@@ -941,12 +997,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_LTEQ_OP: {
         switch (c) {
           case '>': {
-            return TT_SPACESHIP;
+            tokenInfo->type = TT_SPACESHIP;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_LTEQ;
+
+            tokenInfo->type = TT_LTEQ;
+            return;
           }
         }
         break;
@@ -954,12 +1013,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_LSHIFT_OP: {
         switch (c) {
           case '=': {
-            return TT_LSHIFTASSIGN;
+            tokenInfo->type = TT_LSHIFTASSIGN;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_LSHIFT;
+
+            tokenInfo->type = TT_LSHIFT;
+            return;
           }
         }
         break;
@@ -967,7 +1029,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_ARSHIFT_OP: {
         switch (c) {
           case '=': {
-            return TT_ARSHIFTASSIGN;
+            tokenInfo->type = TT_ARSHIFTASSIGN;
+            return;
           }
           case '>': {
             state = LS_LRSHIFT_OP;
@@ -976,7 +1039,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_ARSHIFT;
+
+            tokenInfo->type = TT_ARSHIFT;
+            return;
           }
         }
         break;
@@ -984,12 +1049,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_LRSHIFT_OP: {
         switch (c) {
           case '=': {
-            return TT_LRSHIFTASSIGN;
+            tokenInfo->type = TT_LRSHIFTASSIGN;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_LRSHIFT;
+
+            tokenInfo->type = TT_LRSHIFT;
+            return;
           }
         }
         break;
@@ -998,11 +1066,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
         switch (c) {
           case '+': {
             stringBuilderDestroy(buffer);
-            return TT_PLUSPLUS;
+
+            tokenInfo->type = TT_PLUSPLUS;
+            return;
           }
           case '=': {
             stringBuilderDestroy(buffer);
-            return TT_ADDASSIGN;
+
+            tokenInfo->type = TT_ADDASSIGN;
+            return;
           }
           case '0': {
             state = LS_ZERO;
@@ -1029,7 +1101,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             lexerInfo->character--;
 
             stringBuilderDestroy(buffer);
-            return TT_PLUS;
+
+            tokenInfo->type = TT_PLUS;
+            return;
           }
         }
         break;
@@ -1038,15 +1112,21 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
         switch (c) {
           case '-': {
             stringBuilderDestroy(buffer);
-            return TT_MINUSMINUS;
+
+            tokenInfo->type = TT_MINUSMINUS;
+            return;
           }
           case '=': {
             stringBuilderDestroy(buffer);
-            return TT_SUBASSIGN;
+
+            tokenInfo->type = TT_SUBASSIGN;
+            return;
           }
           case '>': {
             stringBuilderDestroy(buffer);
-            return TT_ARROW;
+
+            tokenInfo->type = TT_ARROW;
+            return;
           }
           case '0': {
             state = LS_ZERO;
@@ -1073,7 +1153,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             lexerInfo->character--;
 
             stringBuilderDestroy(buffer);
-            return TT_MINUS;
+
+            tokenInfo->type = TT_MINUS;
+            return;
           }
         }
         break;
@@ -1085,7 +1167,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           case -2: {  // F_EOF
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case '\n': {
             state = LS_START;
@@ -1114,7 +1197,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                                        tokenInfo->character));
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case '\n': {
             state = LS_BLOCK_COMMENT;
@@ -1166,7 +1250,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                                        tokenInfo->character));
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case '/': {
             state = LS_START;
@@ -1228,7 +1313,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                        lexerInfo->fileName, tokenInfo->line,
                        tokenInfo->character));
 
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case '\'': {
             stringBuilderDestroy(buffer);
@@ -1237,7 +1323,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                         format("%s:%zu:%zu: error: empty character literal",
                                lexerInfo->fileName, lexerInfo->line,
                                lexerInfo->character - 1));
-            return TT_EMPTY_SQUOTE;
+
+            tokenInfo->type = TT_EMPTY_SQUOTE;
+            return;
           }
           case '\\': {
             state = LS_CHAR_ESCAPED;
@@ -1265,7 +1353,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                        lexerInfo->fileName, tokenInfo->line,
                        tokenInfo->character));
 
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case '\'': {
             state = LS_MAYBE_WCHAR;
@@ -1303,7 +1392,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                        lexerInfo->fileName, tokenInfo->line,
                        tokenInfo->character));
 
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case 'u': {
             state = LS_CHAR_WHEX_DIGIT_1;
@@ -1404,12 +1494,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_MAYBE_WCHAR: {
         switch (c) {
           case 'w': {
-            return TT_LITERALWCHAR;
+            tokenInfo->type = TT_LITERALWCHAR;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_LITERALCHAR;
+
+            tokenInfo->type = TT_LITERALCHAR;
+            return;
           }
         }
         break;
@@ -1425,7 +1518,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                        lexerInfo->fileName, tokenInfo->line,
                        tokenInfo->character));
 
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case '\'': {
             state = LS_IS_WCHAR;
@@ -1448,7 +1542,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_IS_WCHAR: {
         switch (c) {
           case 'w': {
-            return TT_LITERALWCHAR;
+            tokenInfo->type = TT_LITERALWCHAR;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
@@ -1461,7 +1556,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                                            strlen(tokenInfo->data.string) - 1));
 
             free(tokenInfo->data.string);
-            return TT_NOT_WIDE;
+            tokenInfo->type = TT_NOT_WIDE;
+            return;
           }
         }
         break;
@@ -1477,7 +1573,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                        lexerInfo->fileName, tokenInfo->line,
                        tokenInfo->character));
 
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case '\'': {
             state = LS_CHAR_ERROR_MAYBE_WCHAR;
@@ -1490,12 +1587,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_CHAR_ERROR_MAYBE_WCHAR: {
         switch (c) {
           case 'w': {
-            return TT_MULTICHAR_CHAR;
+            tokenInfo->type = TT_MULTICHAR_CHAR;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_MULTICHAR_CHAR;
+
+            tokenInfo->type = TT_MULTICHAR_CHAR;
+            return;
           }
         }
         break;
@@ -1511,7 +1611,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                        lexerInfo->fileName, tokenInfo->line,
                        tokenInfo->character));
 
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case '\'': {
             state = LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR;
@@ -1524,12 +1625,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR: {
         switch (c) {
           case 'w': {
-            return TT_INVALID_ESCAPE;
+            tokenInfo->type = TT_INVALID_ESCAPE;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_INVALID_ESCAPE;
+
+            tokenInfo->type = TT_INVALID_ESCAPE;
+            return;
           }
         }
         break;
@@ -1546,7 +1650,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                                lexerInfo->fileName, tokenInfo->line,
                                tokenInfo->character));
 
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case '\\': {
             state = LS_STRING_ESCAPED;
@@ -1579,7 +1684,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                                lexerInfo->fileName, tokenInfo->line,
                                tokenInfo->character));
 
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case 'n':
           case 'r':
@@ -1675,12 +1781,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_MAYBE_WSTRING: {
         switch (c) {
           case 'w': {
-            return TT_LITERALWSTRING;
+            tokenInfo->type = TT_LITERALWSTRING;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_LITERALSTRING;
+
+            tokenInfo->type = TT_LITERALSTRING;
+            return;
           }
         }
         break;
@@ -1718,7 +1827,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                                lexerInfo->fileName, tokenInfo->line,
                                tokenInfo->character));
 
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case 'n':
           case 'r':
@@ -1819,7 +1929,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_STRING_WIDE_END: {
         switch (c) {
           case 'w': {
-            return TT_LITERALWSTRING;
+            tokenInfo->type = TT_LITERALWSTRING;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
@@ -1832,7 +1943,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                                            strlen(tokenInfo->data.string) - 1));
 
             free(tokenInfo->data.string);
-            return TT_NOT_WIDE;
+
+            tokenInfo->type = TT_NOT_WIDE;
+            return;
           }
         }
         break;
@@ -1847,7 +1960,8 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
                                lexerInfo->fileName, tokenInfo->line,
                                tokenInfo->character));
 
-            return TT_EOF;
+            tokenInfo->type = TT_EOF;
+            return;
           }
           case '"': {
             state = LS_STRING_BAD_ESCAPE_MAYBE_WCHAR;
@@ -1860,12 +1974,15 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
       case LS_STRING_BAD_ESCAPE_MAYBE_WCHAR: {
         switch (c) {
           case 'w': {
-            return TT_INVALID_ESCAPE;
+            tokenInfo->type = TT_INVALID_ESCAPE;
+            return;
           }
           default: {
             fUnget(lexerInfo->file);
             lexerInfo->character--;
-            return TT_INVALID_ESCAPE;
+
+            tokenInfo->type = TT_INVALID_ESCAPE;
+            return;
           }
         }
         break;
@@ -1905,7 +2022,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
 
             tokenInfo->data.string = stringBuilderData(buffer);
             stringBuilderDestroy(buffer);
-            return TT_LITERALINT_0;
+
+            tokenInfo->type = TT_LITERALINT_0;
+            return;
           }
         }
         break;
@@ -1937,7 +2056,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
 
             tokenInfo->data.string = stringBuilderData(buffer);
             stringBuilderDestroy(buffer);
-            return TT_LITERALINT_D;
+
+            tokenInfo->type = TT_LITERALINT_D;
+            return;
           }
         }
         break;
@@ -1955,7 +2076,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
 
             tokenInfo->data.string = stringBuilderData(buffer);
             stringBuilderDestroy(buffer);
-            return TT_LITERALINT_B;
+
+            tokenInfo->type = TT_LITERALINT_B;
+            return;
           }
         }
         break;
@@ -1979,7 +2102,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
 
             tokenInfo->data.string = stringBuilderData(buffer);
             stringBuilderDestroy(buffer);
-            return TT_LITERALINT_O;
+
+            tokenInfo->type = TT_LITERALINT_O;
+            return;
           }
         }
         break;
@@ -2017,7 +2142,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
 
             tokenInfo->data.string = stringBuilderData(buffer);
             stringBuilderDestroy(buffer);
-            return TT_LITERALINT_H;
+
+            tokenInfo->type = TT_LITERALINT_H;
+            return;
           }
         }
         break;
@@ -2043,7 +2170,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
 
             tokenInfo->data.string = stringBuilderData(buffer);
             stringBuilderDestroy(buffer);
-            return TT_LITERALFLOAT;
+
+            tokenInfo->type = TT_LITERALFLOAT;
+            return;
           }
         }
         break;
@@ -2066,7 +2195,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
           TokenType const *keyword =
               keywordMapGet(lexerInfo->keywords, tokenInfo->data.string);
           if (keyword != NULL) free(tokenInfo->data.string);
-          return keyword != NULL ? *keyword : TT_ID;
+
+          tokenInfo->type = keyword != NULL ? *keyword : TT_ID;
+          return;
         }
         break;
       }  // LS_WORD
@@ -2089,7 +2220,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             TokenType const *keyword =
                 keywordMapGet(lexerInfo->keywords, tokenInfo->data.string);
             if (keyword != NULL) free(tokenInfo->data.string);
-            return keyword != NULL ? *keyword : TT_ID;
+
+            tokenInfo->type = keyword != NULL ? *keyword : TT_ID;
+            return;
           }
         }
         break;
@@ -2107,7 +2240,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
 
           tokenInfo->data.string = stringBuilderData(buffer);
           stringBuilderDestroy(buffer);
-          return TT_SCOPED_ID;
+
+          tokenInfo->type = TT_SCOPED_ID;
+          return;
         }
         break;
       }  // LS_SCOPED_WORD
@@ -2127,7 +2262,9 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
             stringBuilderPop(buffer);
             tokenInfo->data.string = stringBuilderData(buffer);
             stringBuilderDestroy(buffer);
-            return TT_SCOPED_ID;
+
+            tokenInfo->type = TT_SCOPED_ID;
+            return;
           }
         }
         break;
@@ -2139,11 +2276,16 @@ TokenType lex(Report *report, LexerInfo *lexerInfo, TokenInfo *tokenInfo) {
         fUnget(lexerInfo->file);
         lexerInfo->character--;
 
-        return TT_EOF;
+        tokenInfo->type = TT_EOF;
+        return;
       }
 #pragma GCC diagnostic pop
     }
   }
+}
+void unLex(LexerInfo *info, TokenInfo *tokenInfo) {
+  memcpy(&info->previous, tokenInfo, sizeof(TokenInfo));
+  info->pushedBack = true;
 }
 
 static void lexDumpOne(Report *report, KeywordMap *keywords,
@@ -2153,8 +2295,8 @@ static void lexDumpOne(Report *report, KeywordMap *keywords,
   printf("%s:\n", filename);
   do {
     TokenInfo tokenInfo;
-    type = lex(report, info, &tokenInfo);
-    switch (type) {
+    lex(&tokenInfo, report, info);
+    switch (tokenInfo.type) {
       // errors
       case TT_ERR: {
         printf("%s:%zu:%zu: ERR\n", filename, tokenInfo.line,
@@ -2693,8 +2835,6 @@ static void lexDumpOne(Report *report, KeywordMap *keywords,
     }
   } while (type != TT_EOF && type != TT_ERR);
 }
-
-bool lexerError(TokenType tt) { return tt <= TT_MULTICHAR_CHAR; }
 
 void lexDump(Report *report, FileList *files) {
   KeywordMap *keywords = keywordMapCreate();

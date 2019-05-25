@@ -44,124 +44,124 @@ void nodePrintStructure(Node const *node) {
   switch (node->type) {
     case NT_PROGRAM: {
       printf("PROGRAM(");
-      printNodeStructure(node->data.program.module);
+      nodePrintStructure(node->data.program.module);
       for (size_t idx = 0; idx < node->data.program.imports->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.program.imports->elements[idx]);
+        nodePrintStructure(node->data.program.imports->elements[idx]);
       }
       for (size_t idx = 0; idx < node->data.program.bodies->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.program.bodies->elements[idx]);
+        nodePrintStructure(node->data.program.bodies->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_MODULE: {
       printf("MODULE(");
-      printNodeStructure(node->data.module.id);
+      nodePrintStructure(node->data.module.id);
       printf(")");
       break;
     }
     case NT_IMPORT: {
       printf("IMPORT(");
-      printNodeStructure(node->data.import.id);
+      nodePrintStructure(node->data.import.id);
       printf(")");
       break;
     }
     case NT_FUNDECL: {
       printf("FUNDECL(");
-      printNodeStructure(node->data.funDecl.returnType);
+      nodePrintStructure(node->data.funDecl.returnType);
       printf(" ");
-      printNodeStructure(node->data.funDecl.id);
+      nodePrintStructure(node->data.funDecl.id);
       for (size_t idx = 0; idx < node->data.funDecl.paramTypes->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.funDecl.paramTypes->elements[idx]);
+        nodePrintStructure(node->data.funDecl.paramTypes->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_VARDECL: {
       printf("VARDECL(");
-      printNodeStructure(node->data.varDecl.type);
+      nodePrintStructure(node->data.varDecl.type);
       for (size_t idx = 0; idx < node->data.varDecl.ids->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.varDecl.ids->elements[idx]);
+        nodePrintStructure(node->data.varDecl.ids->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_STRUCTDECL: {
       printf("STRUCTDECL(");
-      printNodeStructure(node->data.structDecl.id);
+      nodePrintStructure(node->data.structDecl.id);
       for (size_t idx = 0; idx < node->data.structDecl.decls->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.structDecl.decls->elements[idx]);
+        nodePrintStructure(node->data.structDecl.decls->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_STRUCTFORWARDDECL: {
       printf("STRUCTFORWARDDECL(");
-      printNodeStructure(node->data.structForwardDecl.id);
+      nodePrintStructure(node->data.structForwardDecl.id);
       printf(")");
       break;
     }
     case NT_UNIONDECL: {
       printf("UNIONDECL(");
-      printNodeStructure(node->data.unionDecl.id);
+      nodePrintStructure(node->data.unionDecl.id);
       for (size_t idx = 0; idx < node->data.unionDecl.opts->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.unionDecl.opts->elements[idx]);
+        nodePrintStructure(node->data.unionDecl.opts->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_UNIONFORWARDDECL: {
       printf("UNIONFORWARDDECL(");
-      printNodeStructure(node->data.unionForwardDecl.id);
+      nodePrintStructure(node->data.unionForwardDecl.id);
       printf(")");
       break;
     }
     case NT_ENUMDECL: {
       printf("ENUMDECL(");
-      printNodeStructure(node->data.enumDecl.id);
+      nodePrintStructure(node->data.enumDecl.id);
       for (size_t idx = 0; idx < node->data.enumDecl.elements->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.enumDecl.elements->elements[idx]);
+        nodePrintStructure(node->data.enumDecl.elements->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_ENUMFORWARDDECL: {
       printf("ENUMFORWARDDECL(");
-      printNodeStructure(node->data.enumForwardDecl.id);
+      nodePrintStructure(node->data.enumForwardDecl.id);
       printf(")");
       break;
     }
     case NT_TYPEDEFDECL: {
       printf("TYPEDEFDECL(");
-      printNodeStructure(node->data.typedefDecl.type);
+      nodePrintStructure(node->data.typedefDecl.type);
       printf(" ");
-      printNodeStructure(node->data.typedefDecl.id);
+      nodePrintStructure(node->data.typedefDecl.id);
       printf(")");
       break;
     }
     case NT_FUNCTION: {
       printf("FUNCTION(");
-      printNodeStructure(node->data.function.returnType);
+      nodePrintStructure(node->data.function.returnType);
       printf(" ");
-      printNodeStructure(node->data.function.id);
+      nodePrintStructure(node->data.function.id);
       for (size_t idx = 0; idx < node->data.function.formals->size; idx++) {
         printf(" FORMAL(");
-        printNodeStructure(node->data.function.formals->firstElements[idx]);
+        nodePrintStructure(node->data.function.formals->firstElements[idx]);
         if (node->data.function.formals->secondElements[idx] != NULL) {
           printf(" ");
-          printNodeStructure(node->data.function.formals->secondElements[idx]);
+          nodePrintStructure(node->data.function.formals->secondElements[idx]);
         }
         printf(")");
       }
       printf(" ");
-      printNodeStructure(node->data.function.body);
+      nodePrintStructure(node->data.function.body);
       printf(")");
       break;
     }
@@ -170,73 +170,73 @@ void nodePrintStructure(Node const *node) {
       for (size_t idx = 0; idx < node->data.compoundStmt.statements->size;
            idx++) {
         if (idx != 0) printf(" ");
-        printNodeStructure(node->data.compoundStmt.statements->elements[idx]);
+        nodePrintStructure(node->data.compoundStmt.statements->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_IFSTMT: {
       printf("IFSTMT(");
-      printNodeStructure(node->data.ifStmt.condition);
+      nodePrintStructure(node->data.ifStmt.condition);
       printf(" ");
-      printNodeStructure(node->data.ifStmt.thenStmt);
+      nodePrintStructure(node->data.ifStmt.thenStmt);
       if (node->data.ifStmt.elseStmt != NULL) {
         printf(" ");
-        printNodeStructure(node->data.ifStmt.elseStmt);
+        nodePrintStructure(node->data.ifStmt.elseStmt);
       }
       printf(")");
       break;
     }
     case NT_WHILESTMT: {
       printf("WHILESTMT(");
-      printNodeStructure(node->data.whileStmt.condition);
+      nodePrintStructure(node->data.whileStmt.condition);
       printf(" ");
-      printNodeStructure(node->data.whileStmt.body);
+      nodePrintStructure(node->data.whileStmt.body);
       printf(")");
       break;
     }
     case NT_DOWHILESTMT: {
       printf("DOWHILESTMT(");
-      printNodeStructure(node->data.doWhileStmt.body);
+      nodePrintStructure(node->data.doWhileStmt.body);
       printf(" ");
-      printNodeStructure(node->data.doWhileStmt.condition);
+      nodePrintStructure(node->data.doWhileStmt.condition);
       printf(")");
       break;
     }
     case NT_FORSTMT: {
       printf("FORSTMT(");
-      printNodeStructure(node->data.forStmt.initialize);
+      nodePrintStructure(node->data.forStmt.initialize);
       printf(" ");
-      printNodeStructure(node->data.forStmt.condition);
+      nodePrintStructure(node->data.forStmt.condition);
       printf(" ");
-      printNodeStructure(node->data.forStmt.update);
+      nodePrintStructure(node->data.forStmt.update);
       printf(" ");
-      printNodeStructure(node->data.forStmt.body);
+      nodePrintStructure(node->data.forStmt.body);
       printf(")");
       break;
     }
     case NT_SWITCHSTMT: {
       printf("SWITCHSTMT(");
-      printNodeStructure(node->data.switchStmt.onWhat);
+      nodePrintStructure(node->data.switchStmt.onWhat);
       printf(" ");
       for (size_t idx = 0; idx < node->data.switchStmt.cases->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.switchStmt.cases->elements[idx]);
+        nodePrintStructure(node->data.switchStmt.cases->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_NUMCASE: {
       printf("NUMCASE(");
-      printNodeStructure(node->data.numCase.constVal);
+      nodePrintStructure(node->data.numCase.constVal);
       printf(" ");
-      printNodeStructure(node->data.numCase.body);
+      nodePrintStructure(node->data.numCase.body);
       printf(")");
       break;
     }
     case NT_DEFAULTCASE: {
       printf("DEFAULTCASE(");
-      printNodeStructure(node->data.defaultCase.body);
+      nodePrintStructure(node->data.defaultCase.body);
       printf(")");
       break;
     }
@@ -252,23 +252,23 @@ void nodePrintStructure(Node const *node) {
       printf("RETURNSTMT");
       if (node->data.returnStmt.value != NULL) {
         printf("(");
-        printNodeStructure(node->data.returnStmt.value);
+        nodePrintStructure(node->data.returnStmt.value);
         printf(")");
       }
       break;
     }
     case NT_VARDECLSTMT: {
       printf("VARDECLSTMT(");
-      printNodeStructure(node->data.varDeclStmt.type);
+      nodePrintStructure(node->data.varDeclStmt.type);
       printf(" ");
       for (size_t idx = 0; idx < node->data.varDeclStmt.idValuePairs->size;
            idx++) {
         printf(" DECL(");
-        printNodeStructure(
+        nodePrintStructure(
             node->data.varDeclStmt.idValuePairs->firstElements[idx]);
         if (node->data.varDeclStmt.idValuePairs->secondElements[idx] != NULL) {
           printf(" ");
-          printNodeStructure(
+          nodePrintStructure(
               node->data.varDeclStmt.idValuePairs->secondElements[idx]);
         }
         printf(")");
@@ -278,13 +278,13 @@ void nodePrintStructure(Node const *node) {
     }
     case NT_ASMSTMT: {
       printf("ASMSTMT(");
-      printNodeStructure(node->data.asmStmt.assembly);
+      nodePrintStructure(node->data.asmStmt.assembly);
       printf(")");
       break;
     }
     case NT_EXPRESSIONSTMT: {
       printf("EXPRESSIONSTMT(");
-      printNodeStructure(node->data.expressionStmt.expression);
+      nodePrintStructure(node->data.expressionStmt.expression);
       printf(")");
       break;
     }
@@ -294,9 +294,9 @@ void nodePrintStructure(Node const *node) {
     }
     case NT_SEQEXP: {
       printf("SEQEXP(");
-      printNodeStructure(node->data.seqExp.first);
+      nodePrintStructure(node->data.seqExp.first);
       printf(" ");
-      printNodeStructure(node->data.seqExp.second);
+      nodePrintStructure(node->data.seqExp.second);
       printf(")");
       break;
     }
@@ -405,9 +405,9 @@ void nodePrintStructure(Node const *node) {
         }
       }
       printf(" ");
-      printNodeStructure(node->data.binopExp.lhs);
+      nodePrintStructure(node->data.binopExp.lhs);
       printf(" ");
-      printNodeStructure(node->data.binopExp.rhs);
+      nodePrintStructure(node->data.binopExp.rhs);
       printf(")");
       break;
     }
@@ -456,7 +456,7 @@ void nodePrintStructure(Node const *node) {
         }
       }
       printf(" ");
-      printNodeStructure(node->data.unOpExp.target);
+      nodePrintStructure(node->data.unOpExp.target);
       printf(")");
       break;
     }
@@ -489,76 +489,76 @@ void nodePrintStructure(Node const *node) {
         }
       }
       printf(" ");
-      printNodeStructure(node->data.compOpExp.lhs);
+      nodePrintStructure(node->data.compOpExp.lhs);
       printf(" ");
-      printNodeStructure(node->data.compOpExp.rhs);
+      nodePrintStructure(node->data.compOpExp.rhs);
       printf(")");
       break;
     }
     case NT_LANDASSIGNEXP: {
       printf("LANDASSIGNEXP(");
-      printNodeStructure(node->data.landAssignExp.lhs);
+      nodePrintStructure(node->data.landAssignExp.lhs);
       printf(" ");
-      printNodeStructure(node->data.landAssignExp.rhs);
+      nodePrintStructure(node->data.landAssignExp.rhs);
       printf(")");
       break;
     }
     case NT_LORASSIGNEXP: {
       printf("LORASSIGNEXP(");
-      printNodeStructure(node->data.lorAssignExp.lhs);
+      nodePrintStructure(node->data.lorAssignExp.lhs);
       printf(" ");
-      printNodeStructure(node->data.lorAssignExp.rhs);
+      nodePrintStructure(node->data.lorAssignExp.rhs);
       printf(")");
       break;
     }
     case NT_TERNARYEXP: {
       printf("TERNARYEXP(");
-      printNodeStructure(node->data.ternaryExp.condition);
+      nodePrintStructure(node->data.ternaryExp.condition);
       printf(" ");
-      printNodeStructure(node->data.ternaryExp.thenExp);
+      nodePrintStructure(node->data.ternaryExp.thenExp);
       printf(" ");
-      printNodeStructure(node->data.ternaryExp.elseExp);
+      nodePrintStructure(node->data.ternaryExp.elseExp);
       printf(")");
       break;
     }
     case NT_LANDEXP: {
       printf("LANDEXP(");
-      printNodeStructure(node->data.landExp.lhs);
+      nodePrintStructure(node->data.landExp.lhs);
       printf(" ");
-      printNodeStructure(node->data.landExp.rhs);
+      nodePrintStructure(node->data.landExp.rhs);
       printf(")");
       break;
     }
     case NT_LOREXP: {
       printf("LOREXP(");
-      printNodeStructure(node->data.lorExp.lhs);
+      nodePrintStructure(node->data.lorExp.lhs);
       printf(" ");
-      printNodeStructure(node->data.lorExp.rhs);
+      nodePrintStructure(node->data.lorExp.rhs);
       printf(")");
       break;
     }
     case NT_STRUCTACCESSEXP: {
       printf("STRUCTACCESSEXP(");
-      printNodeStructure(node->data.structAccessExp.base);
+      nodePrintStructure(node->data.structAccessExp.base);
       printf(" ");
-      printNodeStructure(node->data.structAccessExp.element);
+      nodePrintStructure(node->data.structAccessExp.element);
       printf(")");
       break;
     }
     case NT_STRUCTPTRACCESSEXP: {
       printf("STRUCTPTRACCESSEXP(");
-      printNodeStructure(node->data.structPtrAccessExp.base);
+      nodePrintStructure(node->data.structPtrAccessExp.base);
       printf(" ");
-      printNodeStructure(node->data.structPtrAccessExp.element);
+      nodePrintStructure(node->data.structPtrAccessExp.element);
       printf(")");
       break;
     }
     case NT_FNCALLEXP: {
       printf("FNCALLEXP(");
-      printNodeStructure(node->data.fnCallExp.who);
+      nodePrintStructure(node->data.fnCallExp.who);
       for (size_t idx = 0; idx < node->data.fnCallExp.args->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.fnCallExp.args->elements[idx]);
+        nodePrintStructure(node->data.fnCallExp.args->elements[idx]);
       }
       printf(")");
       break;
@@ -637,28 +637,28 @@ void nodePrintStructure(Node const *node) {
       for (size_t idx = 0; idx < node->data.aggregateInitExp.elements->size;
            idx++) {
         if (idx != 0) printf(" ");
-        printNodeStructure(node->data.aggregateInitExp.elements->elements[idx]);
+        nodePrintStructure(node->data.aggregateInitExp.elements->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_CASTEXP: {
       printf("CASTEXP(");
-      printNodeStructure(node->data.castExp.toWhat);
+      nodePrintStructure(node->data.castExp.toWhat);
       printf(" ");
-      printNodeStructure(node->data.castExp.target);
+      nodePrintStructure(node->data.castExp.target);
       printf(")");
       break;
     }
     case NT_SIZEOFTYPEEXP: {
       printf("SIZEOFTYPEEXP(");
-      printNodeStructure(node->data.sizeofTypeExp.target);
+      nodePrintStructure(node->data.sizeofTypeExp.target);
       printf(")");
       break;
     }
     case NT_SIZEOFEXPEXP: {
       printf("SIZEOFEXPEXP(");
-      printNodeStructure(node->data.sizeofExpExp.target);
+      nodePrintStructure(node->data.sizeofExpExp.target);
       printf(")");
       break;
     }
@@ -721,30 +721,30 @@ void nodePrintStructure(Node const *node) {
     }
     case NT_CONSTTYPE: {
       printf("CONSTTYPE(");
-      printNodeStructure(node->data.constType.target);
+      nodePrintStructure(node->data.constType.target);
       printf(")");
       break;
     }
     case NT_ARRAYTYPE: {
       printf("ARRAYTYPE(");
-      printNodeStructure(node->data.arrayType.element);
+      nodePrintStructure(node->data.arrayType.element);
       printf(" ");
-      printNodeStructure(node->data.arrayType.size);
+      nodePrintStructure(node->data.arrayType.size);
       printf(")");
       break;
     }
     case NT_PTRTYPE: {
       printf("PTRTYPE(");
-      printNodeStructure(node->data.ptrType.target);
+      nodePrintStructure(node->data.ptrType.target);
       printf(")");
       break;
     }
     case NT_FNPTRTYPE: {
       printf("FNPTRTYPE(");
-      printNodeStructure(node->data.fnPtrType.returnType);
+      nodePrintStructure(node->data.fnPtrType.returnType);
       for (size_t idx = 0; idx < node->data.fnPtrType.argTypes->size; idx++) {
         printf(" ");
-        printNodeStructure(node->data.fnPtrType.argTypes->elements[idx]);
+        nodePrintStructure(node->data.fnPtrType.argTypes->elements[idx]);
       }
       printf(")");
       break;
@@ -762,36 +762,36 @@ void nodePrint(Node const *node) {
   // recursively, polymorphically print
   switch (node->type) {
     case NT_PROGRAM: {
-      printNode(node->data.program.module);
+      nodePrint(node->data.program.module);
       printf("\n");
       for (size_t idx = 0; idx < node->data.program.imports->size; idx++) {
-        printNode(node->data.program.imports->elements[idx]);
+        nodePrint(node->data.program.imports->elements[idx]);
       }
       if (node->data.program.imports->size != 0) printf("\n");
       for (size_t idx = 0; idx < node->data.program.bodies->size; idx++) {
-        printNode(node->data.program.bodies->elements[idx]);
+        nodePrint(node->data.program.bodies->elements[idx]);
       }
       break;
     }
     case NT_MODULE: {
       printf("module ");
-      printNode(node->data.module.id);
+      nodePrint(node->data.module.id);
       printf(";\n");
       break;
     }
     case NT_IMPORT: {
       printf("using ");
-      printNode(node->data.import.id);
+      nodePrint(node->data.import.id);
       printf(";\n");
       break;
     }
     case NT_FUNDECL: {
-      printNode(node->data.funDecl.returnType);
+      nodePrint(node->data.funDecl.returnType);
       printf(" ");
-      printNode(node->data.funDecl.id);
+      nodePrint(node->data.funDecl.id);
       printf("(");
       for (size_t idx = 0; idx < node->data.funDecl.paramTypes->size; idx++) {
-        printNode(node->data.funDecl.paramTypes->elements[idx]);
+        nodePrint(node->data.funDecl.paramTypes->elements[idx]);
         if (idx != node->data.funDecl.paramTypes->size - 1) {
           printf(", ");
         }
@@ -800,10 +800,10 @@ void nodePrint(Node const *node) {
       break;
     }
     case NT_VARDECL: {
-      printNode(node->data.varDecl.type);
+      nodePrint(node->data.varDecl.type);
       printf(" ");
       for (size_t idx = 0; idx < node->data.varDecl.ids->size; idx++) {
-        printNode(node->data.varDecl.ids->elements[idx]);
+        nodePrint(node->data.varDecl.ids->elements[idx]);
         if (idx != node->data.varDecl.ids->size - 1) {
           printf(", ");
         }
@@ -813,10 +813,10 @@ void nodePrint(Node const *node) {
     }
     case NT_STRUCTDECL: {
       printf("struct ");
-      printNode(node->data.structDecl.id);
+      nodePrint(node->data.structDecl.id);
       printf(" {\n");
       for (size_t idx = 0; idx < node->data.structDecl.decls->size; idx++) {
-        printNode(node->data.structDecl.decls->elements[idx]);
+        nodePrint(node->data.structDecl.decls->elements[idx]);
         printf("\n");
       }
       printf("};\n");
@@ -824,16 +824,16 @@ void nodePrint(Node const *node) {
     }
     case NT_STRUCTFORWARDDECL: {
       printf("struct ");
-      printNode(node->data.structForwardDecl.id);
+      nodePrint(node->data.structForwardDecl.id);
       printf(";\n");
       break;
     }
     case NT_UNIONDECL: {
       printf("union ");
-      printNode(node->data.unionDecl.id);
+      nodePrint(node->data.unionDecl.id);
       printf(" {\n");
       for (size_t idx = 0; idx < node->data.unionDecl.opts->size; idx++) {
-        printNode(node->data.unionDecl.opts->elements[idx]);
+        nodePrint(node->data.unionDecl.opts->elements[idx]);
         printf("\n");
       }
       printf("};\n");
@@ -841,16 +841,16 @@ void nodePrint(Node const *node) {
     }
     case NT_UNIONFORWARDDECL: {
       printf("union ");
-      printNode(node->data.unionForwardDecl.id);
+      nodePrint(node->data.unionForwardDecl.id);
       printf(";\n");
       break;
     }
     case NT_ENUMDECL: {
       printf("enum ");
-      printNode(node->data.enumDecl.id);
+      nodePrint(node->data.enumDecl.id);
       printf(" {\n");
       for (size_t idx = 0; idx < node->data.enumDecl.elements->size; idx++) {
-        printNode(node->data.enumDecl.elements->elements[idx]);
+        nodePrint(node->data.enumDecl.elements->elements[idx]);
         printf(",\n");
       }
       printf("};\n");
@@ -858,35 +858,35 @@ void nodePrint(Node const *node) {
     }
     case NT_ENUMFORWARDDECL: {
       printf("enum ");
-      printNode(node->data.enumForwardDecl.id);
+      nodePrint(node->data.enumForwardDecl.id);
       printf(";\n");
       break;
     }
     case NT_TYPEDEFDECL: {
       printf("typedef ");
-      printNode(node->data.typedefDecl.type);
+      nodePrint(node->data.typedefDecl.type);
       printf(" ");
-      printNode(node->data.typedefDecl.id);
+      nodePrint(node->data.typedefDecl.id);
       printf(";");
       break;
     }
     case NT_FUNCTION: {
-      printNode(node->data.function.returnType);
+      nodePrint(node->data.function.returnType);
       printf(" ");
-      printNode(node->data.function.id);
+      nodePrint(node->data.function.id);
       printf("(");
       for (size_t idx = 0; idx < node->data.function.formals->size; idx++) {
-        printNode(node->data.function.formals->firstElements[idx]);
+        nodePrint(node->data.function.formals->firstElements[idx]);
         if (node->data.function.formals->secondElements[idx] != NULL) {
           printf(" ");
-          printNode(node->data.function.formals->secondElements[idx]);
+          nodePrint(node->data.function.formals->secondElements[idx]);
         }
         if (idx != node->data.function.formals->size - 1) {
           printf(", ");
         }
       }
       printf(") ");
-      printNode(node->data.function.body);
+      nodePrint(node->data.function.body);
       printf("\n");
       break;
     }
@@ -894,72 +894,72 @@ void nodePrint(Node const *node) {
       printf("{\n");
       for (size_t idx = 0; idx < node->data.compoundStmt.statements->size;
            idx++) {
-        printNode(node->data.compoundStmt.statements->elements[idx]);
+        nodePrint(node->data.compoundStmt.statements->elements[idx]);
       }
       printf("}");
       break;
     }
     case NT_IFSTMT: {
       printf("if (");
-      printNode(node->data.ifStmt.condition);
+      nodePrint(node->data.ifStmt.condition);
       printf(") ");
-      printNode(node->data.ifStmt.thenStmt);
+      nodePrint(node->data.ifStmt.thenStmt);
       if (node->data.ifStmt.elseStmt != NULL) {
         printf("else ");
-        printNode(node->data.ifStmt.elseStmt);
+        nodePrint(node->data.ifStmt.elseStmt);
       }
       printf("\n");
       break;
     }
     case NT_WHILESTMT: {
       printf("while (");
-      printNode(node->data.whileStmt.condition);
+      nodePrint(node->data.whileStmt.condition);
       printf(") ");
-      printNode(node->data.whileStmt.body);
+      nodePrint(node->data.whileStmt.body);
       printf("\n");
       break;
     }
     case NT_DOWHILESTMT: {
       printf("do ");
-      printNode(node->data.doWhileStmt.body);
+      nodePrint(node->data.doWhileStmt.body);
       printf("\nwhile (");
-      printNode(node->data.doWhileStmt.condition);
+      nodePrint(node->data.doWhileStmt.condition);
       printf(")\n");
       break;
     }
     case NT_FORSTMT: {
       printf("for (");
-      printNode(node->data.forStmt.initialize);
+      nodePrint(node->data.forStmt.initialize);
       printf(" ");
-      printNode(node->data.forStmt.condition);
+      nodePrint(node->data.forStmt.condition);
       printf("; ");
-      printNode(node->data.forStmt.update);
+      nodePrint(node->data.forStmt.update);
       printf(") ");
-      printNode(node->data.forStmt.body);
+      nodePrint(node->data.forStmt.body);
       printf("\n");
       break;
     }
     case NT_SWITCHSTMT: {
       printf("switch (");
-      printNode(node->data.switchStmt.onWhat);
+      nodePrint(node->data.switchStmt.onWhat);
       printf(") {\n");
       for (size_t idx = 0; idx < node->data.switchStmt.cases->size; idx++) {
-        printNode(node->data.switchStmt.cases->elements[idx]);
+        nodePrint(node->data.switchStmt.cases->elements[idx]);
       }
       printf("}\n");
       break;
     }
     case NT_NUMCASE: {
       printf("case ");
-      printNode(node->data.numCase.constVal);
+      nodePrint(node->data.numCase.constVal);
       printf(": ");
-      printNode(node->data.numCase.body);
+      nodePrint(node->data.numCase.body);
       printf("\n");
       break;
     }
     case NT_DEFAULTCASE: {
       printf("default: ");
-      printNode(node->data.defaultCase.body);
+      nodePrint(node->data.defaultCase.body);
       printf("\n");
       break;
     }
@@ -975,20 +975,20 @@ void nodePrint(Node const *node) {
       printf("return");
       if (node->data.returnStmt.value != NULL) {
         printf(" ");
-        printNode(node->data.returnStmt.value);
+        nodePrint(node->data.returnStmt.value);
       }
       printf(";");
       break;
     }
     case NT_VARDECLSTMT: {
-      printNode(node->data.varDeclStmt.type);
+      nodePrint(node->data.varDeclStmt.type);
       printf(" ");
       for (size_t idx = 0; idx < node->data.varDeclStmt.idValuePairs->size;
            idx++) {
-        printNode(node->data.varDeclStmt.idValuePairs->firstElements[idx]);
+        nodePrint(node->data.varDeclStmt.idValuePairs->firstElements[idx]);
         if (node->data.varDeclStmt.idValuePairs->secondElements[idx] != NULL) {
           printf(" = ");
-          printNode(node->data.varDeclStmt.idValuePairs->secondElements[idx]);
+          nodePrint(node->data.varDeclStmt.idValuePairs->secondElements[idx]);
         }
         if (idx != node->data.varDeclStmt.idValuePairs->size - 1) {
           printf(", ");
@@ -999,12 +999,12 @@ void nodePrint(Node const *node) {
     }
     case NT_ASMSTMT: {
       printf("asm ");
-      printNode(node->data.asmStmt.assembly);
+      nodePrint(node->data.asmStmt.assembly);
       printf(";\n");
       break;
     }
     case NT_EXPRESSIONSTMT: {
-      printNode(node->data.expressionStmt.expression);
+      nodePrint(node->data.expressionStmt.expression);
       printf(";\n");
       break;
     }
@@ -1014,23 +1014,23 @@ void nodePrint(Node const *node) {
     }
     case NT_SEQEXP: {
       printf("(");
-      printNode(node->data.seqExp.first);
+      nodePrint(node->data.seqExp.first);
       printf(", ");
-      printNode(node->data.seqExp.second);
+      nodePrint(node->data.seqExp.second);
       printf(")");
       break;
     }
     case NT_BINOPEXP: {
       if (node->data.binopExp.op == BO_ARRAYACCESS) {
         printf("(");
-        printNode(node->data.binopExp.lhs);
+        nodePrint(node->data.binopExp.lhs);
         printf("[");
-        printNode(node->data.binopExp.rhs);
+        nodePrint(node->data.binopExp.rhs);
         printf("])");
         break;
       }
       printf("(");
-      printNode(node->data.binopExp.lhs);
+      nodePrint(node->data.binopExp.lhs);
       switch (node->data.binopExp.op) {
         case BO_ASSIGN: {
           printf(" = ");
@@ -1131,7 +1131,7 @@ void nodePrint(Node const *node) {
         case BO_ARRAYACCESS:
           abort();  // already dealt with, so can't come here again.
       }
-      printNode(node->data.binopExp.rhs);
+      nodePrint(node->data.binopExp.rhs);
       printf(")");
       break;
     }
@@ -1174,7 +1174,7 @@ void nodePrint(Node const *node) {
         case UO_POSTDEC:
           break;
       }
-      printNode(node->data.unOpExp.target);
+      nodePrint(node->data.unOpExp.target);
       switch (node->data.unOpExp.op) {
         case UO_POSTINC: {
           printf("++");
@@ -1198,7 +1198,7 @@ void nodePrint(Node const *node) {
     }
     case NT_COMPOPEXP: {
       printf("(");
-      printNode(node->data.compOpExp.lhs);
+      nodePrint(node->data.compOpExp.lhs);
       switch (node->data.compOpExp.op) {
         case CO_EQ: {
           printf(" == ");
@@ -1225,74 +1225,74 @@ void nodePrint(Node const *node) {
           break;
         }
       }
-      printNode(node->data.compOpExp.rhs);
+      nodePrint(node->data.compOpExp.rhs);
       printf(")");
       break;
     }
     case NT_LANDASSIGNEXP: {
       printf("(");
-      printNode(node->data.landAssignExp.lhs);
+      nodePrint(node->data.landAssignExp.lhs);
       printf(" &&= ");
-      printNode(node->data.landAssignExp.rhs);
+      nodePrint(node->data.landAssignExp.rhs);
       printf(")");
       break;
     }
     case NT_LORASSIGNEXP: {
       printf("(");
-      printNode(node->data.lorAssignExp.lhs);
+      nodePrint(node->data.lorAssignExp.lhs);
       printf(" ||= ");
-      printNode(node->data.lorAssignExp.rhs);
+      nodePrint(node->data.lorAssignExp.rhs);
       printf(")");
       break;
     }
     case NT_TERNARYEXP: {
       printf("(");
-      printNode(node->data.ternaryExp.condition);
+      nodePrint(node->data.ternaryExp.condition);
       printf(" ? ");
-      printNode(node->data.ternaryExp.thenExp);
+      nodePrint(node->data.ternaryExp.thenExp);
       printf(" : ");
-      printNode(node->data.ternaryExp.elseExp);
+      nodePrint(node->data.ternaryExp.elseExp);
       printf(")");
       break;
     }
     case NT_LANDEXP: {
       printf("(");
-      printNode(node->data.landExp.lhs);
+      nodePrint(node->data.landExp.lhs);
       printf(" && ");
-      printNode(node->data.landExp.rhs);
+      nodePrint(node->data.landExp.rhs);
       printf(")");
       break;
     }
     case NT_LOREXP: {
       printf("(");
-      printNode(node->data.lorExp.lhs);
+      nodePrint(node->data.lorExp.lhs);
       printf(" || ");
-      printNode(node->data.lorExp.rhs);
+      nodePrint(node->data.lorExp.rhs);
       printf(")");
       break;
     }
     case NT_STRUCTACCESSEXP: {
       printf("(");
-      printNode(node->data.structAccessExp.base);
+      nodePrint(node->data.structAccessExp.base);
       printf(".");
-      printNode(node->data.structAccessExp.element);
+      nodePrint(node->data.structAccessExp.element);
       printf(")");
       break;
     }
     case NT_STRUCTPTRACCESSEXP: {
       printf("(");
-      printNode(node->data.structPtrAccessExp.base);
+      nodePrint(node->data.structPtrAccessExp.base);
       printf("->");
-      printNode(node->data.structPtrAccessExp.element);
+      nodePrint(node->data.structPtrAccessExp.element);
       printf(")");
       break;
     }
     case NT_FNCALLEXP: {
       printf("(");
-      printNode(node->data.fnCallExp.who);
+      nodePrint(node->data.fnCallExp.who);
       printf("(");
       for (size_t idx = 0; idx < node->data.fnCallExp.args->size; idx++) {
-        printNode(node->data.fnCallExp.args->elements[idx]);
+        nodePrint(node->data.fnCallExp.args->elements[idx]);
         if (idx != node->data.fnCallExp.args->size - 1) {
           printf(", ");
         }
@@ -1369,7 +1369,7 @@ void nodePrint(Node const *node) {
       printf("<");
       for (size_t idx = 0; idx < node->data.aggregateInitExp.elements->size;
            idx++) {
-        printNode(node->data.aggregateInitExp.elements->elements[idx]);
+        nodePrint(node->data.aggregateInitExp.elements->elements[idx]);
         if (idx != node->data.aggregateInitExp.elements->size - 1) {
           printf(", ");
         }
@@ -1379,21 +1379,21 @@ void nodePrint(Node const *node) {
     }
     case NT_CASTEXP: {
       printf("cast[");
-      printNode(node->data.castExp.toWhat);
+      nodePrint(node->data.castExp.toWhat);
       printf("](");
-      printNode(node->data.castExp.target);
+      nodePrint(node->data.castExp.target);
       printf(")");
       break;
     }
     case NT_SIZEOFTYPEEXP: {
       printf("sizeof(");
-      printNode(node->data.sizeofTypeExp.target);
+      nodePrint(node->data.sizeofTypeExp.target);
       printf(")");
       break;
     }
     case NT_SIZEOFEXPEXP: {
       printf("sizeof(");
-      printNode(node->data.sizeofExpExp.target);
+      nodePrint(node->data.sizeofExpExp.target);
       printf(")");
       break;
     }
@@ -1455,27 +1455,27 @@ void nodePrint(Node const *node) {
       break;
     }
     case NT_CONSTTYPE: {
-      printNode(node->data.constType.target);
+      nodePrint(node->data.constType.target);
       printf(" const");
       break;
     }
     case NT_ARRAYTYPE: {
-      printNode(node->data.arrayType.element);
+      nodePrint(node->data.arrayType.element);
       printf("[");
-      printNode(node->data.arrayType.size);
+      nodePrint(node->data.arrayType.size);
       printf("]");
       break;
     }
     case NT_PTRTYPE: {
-      printNode(node->data.ptrType.target);
+      nodePrint(node->data.ptrType.target);
       printf("*");
       break;
     }
     case NT_FNPTRTYPE: {
-      printNode(node->data.fnPtrType.returnType);
+      nodePrint(node->data.fnPtrType.returnType);
       printf("(");
       for (size_t idx = 0; idx < node->data.fnPtrType.argTypes->size; idx++) {
-        printNode(node->data.fnPtrType.argTypes->elements[idx]);
+        nodePrint(node->data.fnPtrType.argTypes->elements[idx]);
         if (idx != node->data.fnPtrType.argTypes->size - 1) {
           printf(", ");
         }
