@@ -23,10 +23,13 @@
 
 Report *reportCreate(void) {
   Report *report = malloc(sizeof(Report));
+  reportInit(report);
+  return report;
+}
+void reportInit(Report *report) {
   vectorInit(&report->messages);
   report->errors = 0;
   report->warnings = 0;
-  return report;
 }
 
 void reportMessage(Report *report, char *message) {
@@ -61,7 +64,8 @@ int reportState(Report const *report) {
   }
 }
 
+void reportUninit(Report *report) { vectorUninit(&report->messages, free); }
 void reportDestroy(Report *report) {
-  vectorUninit(&report->messages, free);
+  reportUninit(report);
   free(report);
 }

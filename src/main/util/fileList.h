@@ -35,11 +35,15 @@ typedef struct {
 
 // ctor
 FileList *fileListCreate(void);
+// in-place ctor
+void fileListInit(FileList *);
+// in-place dtor
+void fileListUninit(FileList *);
 // dtor
 void fileListDestroy(FileList *);
 
 // parser
-FileList *parseFiles(Report *report, Options *options, size_t argc,
-                     char const *const *argv);
+void parseFiles(FileList *, Report *report, Options *options, size_t argc,
+                char const *const *argv);
 
 #endif  // TLC_UTIL_FILELIST_H_

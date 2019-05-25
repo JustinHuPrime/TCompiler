@@ -27,18 +27,24 @@
 
 FileList *fileListCreate(void) {
   FileList *list = malloc(sizeof(FileList));
-  vectorInit(&list->decls);
-  vectorInit(&list->codes);
+  fileListInit(list);
   return list;
 }
-void fileListDestroy(FileList *list) {
+void fileListInit(FileList *list) {
+  vectorInit(&list->decls);
+  vectorInit(&list->codes);
+}
+void fileListUninit(FileList *list) {
   vectorUninit(&list->decls, nullDtor);
   vectorUninit(&list->codes, nullDtor);
+}
+void fileListDestroy(FileList *list) {
+  fileListUninit(list);
   free(list);
 }
-FileList *parseFiles(Report *report, Options *options, size_t argc,
-                     char const *const *argv) {
-  FileList *list = fileListCreate();
+void parseFiles(FileList *list, Report *report, Options *options, size_t argc,
+                char const *const *argv) {
+  fileListInit(list);
 
   for (size_t idx = 1; idx < argc; idx++) {
     // skip - this is an option
@@ -127,6 +133,4 @@ FileList *parseFiles(Report *report, Options *options, size_t argc,
 
   if (list->codes.size == 0)
     reportError(report, format("tlc: error: no input code files"));
-
-  return list;
 }

@@ -30,12 +30,16 @@ typedef HashMap Options;
 
 // ctor
 Options *optionsCreate(void);
+// in-place ctor
+void optionsInit(Options *);
 // gets the option with the given key
 // key must be valid, or zero will be returned
 intptr_t optionsGet(Options const *, char const *);
 // sets the option with the given key to the given value
 // key should be valid
 void optionsSet(Options *, char const *, intptr_t);
+// in-place dtor
+void optionsUninit(Options *);
 // dtor
 void optionsDestroy(Options *);
 
@@ -62,6 +66,7 @@ typedef enum {
 extern char const *optionDebugDump;
 
 // parser
-Options *parseOptions(Report *report, size_t argc, char const *const *argv);
+void parseOptions(Options *, Report *report, size_t argc,
+                  char const *const *argv);
 
 #endif  // TLC_UTIL_OPTIONS_H_

@@ -31,6 +31,8 @@ typedef struct {
 
 // constructor
 Report *reportCreate(void);
+// in-place ctor
+void reportInit(Report *);
 
 // adds a message
 void reportMessage(Report *, char *message);
@@ -50,6 +52,8 @@ extern int const RPT_WARN;
 //          RPT_WARN if any warnings exist.
 int reportState(Report const *);
 
+// in-place dtor
+void reportUninit(Report *);
 // destructor
 void reportDestroy(Report *);
 

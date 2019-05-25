@@ -24,44 +24,55 @@
 #include <string.h>
 
 void fileListTest(TestStatus *status) {
-  Report *report = reportCreate();
-  Options *options = parseOptions(report, 1, NULL);
+  Report report;
+  reportInit(&report);
+  Options options;
+  parseOptions(&options, &report, 1, NULL);
   char const *good[] = {"./tlc", "foo.tc", "bar.td"};
   char const *badExt[] = {"./tlc", "bad.badext", "good.tc"};
   char const *badDup[] = {"./tlc", "dup.tc", "dup.tc"};
-  FileList *fileList;
+  FileList fileList;
 
   // ctor
-  fileList = parseFiles(report, options, 1, NULL);
+  parseFiles(&fileList, &report, &options, 1, NULL);
   test(status, "[util] [fileList] [ctor] empty list produces no code files",
-       fileList->codes.size == 0);
+       fileList.codes.size == 0);
   test(status, "[util] [fileList] [ctor] empty list produces no decl files",
-       fileList->decls.size == 0);
+       fileList.decls.size == 0);
   test(status, "[util] [fileList] [ctor] no code files is caught",
-       reportState(report) == RPT_ERR);
-  fileListDestroy(fileList);
+       reportState(&report) == RPT_ERR);
+  fileListUninit(&fileList);
 
-  fileList = parseFiles(report, options, 3, good);
+  reportUninit(&report);
+  reportInit(&report);
+
+  parseFiles(&fileList, &report, &options, 3, good);
   test(status, "[util] [fileList] [ctor] code file is parsed as code file",
-       fileList->codes.elements[0] == good[1]);
+       fileList.codes.elements[0] == good[1]);
   test(status, "[util] [fileList] [ctor] decl file is parsed as decl file",
-       fileList->decls.elements[0] == good[2]);
-  fileListDestroy(fileList);
+       fileList.decls.elements[0] == good[2]);
+  fileListUninit(&fileList);
 
-  fileList = parseFiles(report, options, 3, badExt);
+  reportUninit(&report);
+  reportInit(&report);
+
+  parseFiles(&fileList, &report, &options, 3, badExt);
   test(status, "[util] [fileList] [ctor] badExt is caught",
-       reportState(report) == RPT_ERR);
+       reportState(&report) == RPT_ERR);
   test(status, "[util] [fileList] [ctor] further files are processed correctly",
-       fileList->codes.elements[0] == badExt[2]);
-  fileListDestroy(fileList);
+       fileList.codes.elements[0] == badExt[2]);
+  fileListUninit(&fileList);
 
-  fileList = parseFiles(report, options, 3, badDup);
+  reportUninit(&report);
+  reportInit(&report);
+
+  parseFiles(&fileList, &report, &options, 3, badDup);
   test(status, "[util] [fileList] [ctor] duplicate is caught",
-       reportState(report) == RPT_ERR);
+       reportState(&report) == RPT_ERR);
   test(status, "[util] [fileList] [ctor] first file is processed correctly",
-       fileList->codes.elements[0] == badDup[1]);
-  fileListDestroy(fileList);
+       fileList.codes.elements[0] == badDup[1]);
+  fileListUninit(&fileList);
 
-  optionsDestroy(options);
-  reportDestroy(report);
+  optionsUninit(&options);
+  reportUninit(&report);
 }

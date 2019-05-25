@@ -26,47 +26,51 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  Report *report = reportCreate();
+  Report report;
+  reportInit(&report);
 
   // Read the given options, and validate them
-  Options *options =
-      parseOptions(report, (size_t)argc, (char const *const *)argv);
-  if (reportState(report) == RPT_ERR) {
-    reportDisplay(report);
+  Options options;
 
-    optionsDestroy(options);
-    reportDestroy(report);
+  parseOptions(&options, &report, (size_t)argc, (char const *const *)argv);
+  if (reportState(&report) == RPT_ERR) {
+    reportDisplay(&report);
+
+    optionsUninit(&options);
+    reportUninit(&report);
     return EXIT_FAILURE;
   }
 
   // Sort the given files, and validate them
-  FileList *files =
-      parseFiles(report, options, (size_t)argc, (char const *const *)argv);
-  if (reportState(report) == RPT_ERR) {
-    reportDisplay(report);
+  FileList files;
+  parseFiles(&files, &report, &options, (size_t)argc,
+             (char const *const *)argv);
+  if (reportState(&report) == RPT_ERR) {
+    reportDisplay(&report);
 
-    fileListDestroy(files);
-    optionsDestroy(options);
-    reportDestroy(report);
+    fileListUninit(&files);
+    optionsUninit(&options);
+    reportUninit(&report);
     return EXIT_FAILURE;
   }
 
   // debug stop for lex
-  if (optionsGet(options, optionDebugDump) == O_DD_LEX) {
-    Report *dumpReport = reportCreate();
-    lexDump(dumpReport, files);
-    reportDisplay(dumpReport);
-    reportDestroy(dumpReport);
+  if (optionsGet(&options, optionDebugDump) == O_DD_LEX) {
+    Report dumpReport;
+    reportInit(&dumpReport);
+    lexDump(&dumpReport, &files);
+    reportDisplay(&dumpReport);
+    reportUninit(&dumpReport);
   }
 
   // parse the files
-  ModuleAstMapPair *asts = parse(report, options, files);
+  ModuleAstMapPair *asts = parse(&report, &options, &files);
 
   // clean up
   moduleAstMapPairDestroy(asts);
-  fileListDestroy(files);
-  optionsDestroy(options);
-  reportDestroy(report);
+  fileListUninit(&files);
+  optionsUninit(&options);
+  reportUninit(&report);
 
   return EXIT_SUCCESS;
 }

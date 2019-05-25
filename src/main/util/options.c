@@ -26,6 +26,7 @@
 #include <string.h>
 
 Options *optionsCreate(void) { return hashMapCreate(); }
+void optionsInit(Options *options) { hashMapInit(options); }
 intptr_t optionsGet(Options const *options, char const *key) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wbad-function-cast"
@@ -35,6 +36,7 @@ intptr_t optionsGet(Options const *options, char const *key) {
 void optionsSet(Options *options, char const *key, intptr_t value) {
   hashMapSet(options, key, (void *)value);
 }
+void optionsUninit(Options *options) { hashMapUninit(options, nullDtor); }
 void optionsDestroy(Options *options) { hashMapDestroy(options, nullDtor); }
 
 char const *optionArch = "arch";
@@ -42,8 +44,9 @@ char const *optionWDuplicateFile = "duplicate-file";
 char const *optionWDuplicateImport = "duplicate-import";
 char const *optionWUnrecognizedFile = "unrecognized-file";
 char const *optionDebugDump = "debug-dump";
-Options *parseOptions(Report *report, size_t argc, char const *const *argv) {
-  Options *options = optionsCreate();
+void parseOptions(Options *options, Report *report, size_t argc,
+                  char const *const *argv) {
+  optionsInit(options);
 
   // default settings
   optionsSet(options, optionArch, O_AT_X86);
@@ -89,6 +92,4 @@ Options *parseOptions(Report *report, size_t argc, char const *const *argv) {
                   format("tlc: error: option '%s' not recognized", argv[idx]));
     }
   }
-
-  return options;
 }
