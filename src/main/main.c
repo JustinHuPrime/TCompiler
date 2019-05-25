@@ -16,6 +16,7 @@
 
 // Compiles code modules into assembly files, guided by decl modules
 
+#include "ast/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "util/errorReport.h"
@@ -64,10 +65,18 @@ int main(int argc, char *argv[]) {
   }
 
   // parse the files
-  ModuleAstMapPair *asts = parse(&report, &options, &files);
+  ModuleAstMapPair asts;
+  ModuleSymbolTableMapPair stabs;
+  parse(&asts, &stabs, &report, &options, &files);
+
+  // debug stop for parse
+  if (optionsGet(&options, optionDebugDump) == O_DD_PARSE) {
+    Report dumpReport;
+    // TODO: print out the output
+  }
 
   // clean up
-  moduleAstMapPairDestroy(asts);
+  moduleAstMapPairUninit(&asts);
   fileListUninit(&files);
   optionsUninit(&options);
   reportUninit(&report);

@@ -165,7 +165,9 @@ typedef struct {
 typedef HashMap KeywordMap;
 
 KeywordMap *keywordMapCreate(void);
+void keywordMapInit(KeywordMap *);
 TokenType const *keywordMapGet(KeywordMap const *, char const *);
+void keywordMapUninit(KeywordMap *);
 void keywordMapDestroy(KeywordMap *);
 
 // creates and initializes the lexer info

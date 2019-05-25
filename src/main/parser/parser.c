@@ -25,49 +25,7 @@
 
 #include <stdlib.h>
 
-typedef HashMap ModuleLexerInfoMap;
-static ModuleLexerInfoMap *moduleLexerInfoMapCreate(void) {
-  return hashMapCreate();
-}
-static LexerInfo *moduleLexerInfoMapGet(ModuleLexerInfoMap const *map,
-                                        char const *key) {
-  return hashMapGet(map, key);
-}
-static int moduleLexerInfoMapPut(ModuleLexerInfoMap *map, char const *key,
-                                 LexerInfo *value) {
-  return hashMapPut(map, key, value, (void (*)(void *))lexerInfoDestroy);
-}
-static void moduleLexerInfoMapDestroy(ModuleLexerInfoMap *map) {
-  hashMapDestroy(map, (void (*)(void *))lexerInfoDestroy);
-}
-
-typedef HashMap ModuleFileMap;
-static ModuleFileMap *moduleFileMapCreate(void) { return hashMapCreate(); }
-static char const *moduleFileMapGet(ModuleFileMap const *map, char const *key) {
-  return hashMapGet(map, key);
-}
-static int moduleFileMapPut(ModuleFileMap *map, char const *key,
-                            char const *value) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-  return hashMapPut(map, key, (void *)value, nullDtor);
-#pragma GCC diagnostic pop
-}
-static void moduleFileMapDestroy(ModuleFileMap *map) {
-  hashMapDestroy(map, nullDtor);
-}
-
-typedef HashMap ModuleNodeMap;
-static ModuleNodeMap *moduleNodeMapCreate(void) { return hashMapCreate(); }
-static Node *moduleNodeMapGet(ModuleNodeMap const *map, char const *key) {
-  return hashMapGet(map, key);
-}
-static int moduleNodeMapPut(ModuleNodeMap *map, char const *key, Node *value) {
-  return hashMapPut(map, key, value, (void (*)(void *))nodeDestroy);
-}
-static void moduleNodeMapDestroy(ModuleNodeMap *map) {
-  hashMapDestroy(map, nullDtor);
-}
+// output data structures
 
 ModuleAstMap *moduleAstMapCreate(void) { return hashMapCreate(); }
 void moduleAstMapInit(ModuleAstMap *map) { hashMapInit(map); }
@@ -86,15 +44,90 @@ void moduleAstMapDestroy(ModuleAstMap *map) {
 
 ModuleAstMapPair *moduleAstMapPairCreate(void) {
   ModuleAstMapPair *pair = malloc(sizeof(ModuleAstMapPair));
-  moduleAstMapInit(&pair->decls);
-  moduleAstMapInit(&pair->codes);
+  moduleAstMapPairInit(pair);
   return pair;
 }
-void moduleAstMapPairDestroy(ModuleAstMapPair *pair) {
+void moduleAstMapPairInit(ModuleAstMapPair *pair) {
+  moduleAstMapInit(&pair->decls);
+  moduleAstMapInit(&pair->codes);
+}
+void moduleAstMapPairUninit(ModuleAstMapPair *pair) {
   moduleAstMapUninit(&pair->decls);
   moduleAstMapUninit(&pair->codes);
+}
+void moduleAstMapPairDestroy(ModuleAstMapPair *pair) {
+  moduleAstMapPairInit(pair);
   free(pair);
 }
+
+ModuleSymbolTableMap *moduleSymbolTableMapCreate(void) {
+  return hashMapCreate();
+}
+void moduleSymbolTableMapInit(ModuleSymbolTableMap *map) { hashMapInit(map); }
+SymbolTable *moduleSymbolTableMapGet(ModuleSymbolTableMap const *map,
+                                     char const *key) {
+  return hashMapGet(map, key);
+}
+int moduleSymbolTableMapPut(ModuleSymbolTableMap *map, char const *key,
+                            SymbolTable *value) {
+  return hashMapPut(map, key, value, (void (*)(void *))symbolTableDestroy);
+}
+void moduleSymbolTableMapUninit(ModuleSymbolTableMap *map) {
+  hashMapUninit(map, (void (*)(void *))symbolTableDestroy);
+}
+void moduleSymbolTableMapDestroy(ModuleSymbolTableMap *map) {
+  hashMapDestroy(map, (void (*)(void *))symbolTableDestroy);
+}
+
+ModuleSymbolTableMapPair *moduleSymbolTableMapPairCreate(void) {
+  ModuleSymbolTableMapPair *pair = malloc(sizeof(ModuleSymbolTableMapPair));
+  moduleSymbolTableMapPairInit(pair);
+  return pair;
+}
+void moduleSymbolTableMapPairInit(ModuleSymbolTableMapPair *pair) {
+  moduleSymbolTableMapInit(&pair->codes);
+  moduleSymbolTableMapInit(&pair->decls);
+}
+void moduleSymbolTableMapPairUninit(ModuleSymbolTableMapPair *pair) {
+  moduleSymbolTableMapUninit(&pair->codes);
+  moduleSymbolTableMapUninit(&pair->decls);
+}
+void moduleSymbolTableMapPairDestroy(ModuleSymbolTableMapPair *pair) {
+  moduleSymbolTableMapPairUninit(pair);
+  free(pair);
+}
+
+// internal data structures
+
+typedef HashMap ModuleLexerInfoMap;
+static void moduleLexerInfoMapInit(ModuleLexerInfoMap *map) {
+  hashMapInit(map);
+}
+static LexerInfo *moduleLexerInfoMapGet(ModuleLexerInfoMap const *map,
+                                        char const *key) {
+  return hashMapGet(map, key);
+}
+static int moduleLexerInfoMapPut(ModuleLexerInfoMap *map, char const *key,
+                                 LexerInfo *value) {
+  return hashMapPut(map, key, value, (void (*)(void *))lexerInfoDestroy);
+}
+static void moduleLexerInfoMapUninit(ModuleLexerInfoMap *map) {
+  hashMapUninit(map, (void (*)(void *))lexerInfoDestroy);
+}
+
+typedef HashMap ModuleNodeMap;
+static void moduleNodeMapInit(ModuleNodeMap *map) { hashMapInit(map); }
+static Node *moduleNodeMapGet(ModuleNodeMap const *map, char const *key) {
+  return hashMapGet(map, key);
+}
+static int moduleNodeMapPut(ModuleNodeMap *map, char const *key, Node *value) {
+  return hashMapPut(map, key, value, (void (*)(void *))nodeDestroy);
+}
+static void moduleNodeMapUninit(ModuleNodeMap *map) {
+  hashMapUninit(map, nullDtor);
+}
+
+// parsing helpers
 
 static Node *parseAnyId(Report *report, LexerInfo *li) {
   TokenInfo info;
@@ -127,7 +160,6 @@ static Node *parseUnscopedId(Report *report, LexerInfo *li) {
     return idNodeCreate(info.line, info.character, info.data.string);
   }
 }
-
 static Node *parseModule(Report *report, LexerInfo *li) {
   TokenInfo info;
   TokenType type;
@@ -139,7 +171,7 @@ static Node *parseModule(Report *report, LexerInfo *li) {
       reportError(
           report,
           format("%s:%zu:%zu: error: expected first thing in "
-                 "file to be a 'module' declaration, but found %s",
+                 "file to be a module declaration, but found %s",
                  li->fileName, info.line, info.character, tokenToName(type)));
     }
     return NULL;
@@ -149,32 +181,56 @@ static Node *parseModule(Report *report, LexerInfo *li) {
       tokenInfoUninit(type, &info);
       return NULL;
     } else {
+      type = lex(report, li, &info);
+      if (type != TT_SEMI) {
+        tokenInfoUninit(type, &info);
+        if (!lexerError(type)) {
+          reportError(report,
+                      format("%s:%zu:%zu: error: expected a semicolon to "
+                             "terminate the module declaration, but found %s",
+                             li->fileName, info.line, info.character,
+                             tokenToName(type)));
+        }
+        return NULL;
+      }
       return moduleNodeCreate(info.line, info.character, idNode);
     }
   }
 }
-static Node *parseFile(Report *report, Options *options, HashSet *stalled,
-                       LexerInfo *lexerInfo, Node *module) {
+static Node *parseDeclFile(Report *report, Options *options, HashSet *stalled,
+                           LexerInfo *lexerInfo, Node *module) {
   return programNodeCreate(module->line, module->character, module,
                            nodeListCreate(), nodeListCreate());
-  // FIXME: this is only a stub.
+  // TODO: write this function
+}
+static Node *parseCodeFile(Report *report, Options *options,
+                           LexerInfo *lexerInfo) {
+  return NULL;
+  // TODO: write this function
 }
 
-ModuleAstMapPair *parse(Report *report, Options *options, FileList *files) {
-  KeywordMap *kwMap = keywordMapCreate();
+void parse(ModuleAstMapPair *asts, ModuleSymbolTableMapPair *stabs,
+           Report *report, Options *options, FileList *files) {
+  moduleAstMapPairInit(asts);
+  moduleSymbolTableMapPairInit(stabs);
 
-  ModuleLexerInfoMap *miMap = moduleLexerInfoMapCreate();
-  ModuleNodeMap *mnMap = moduleNodeMapCreate();
+  KeywordMap kwMap;
+  keywordMapInit(&kwMap);
+
+  ModuleLexerInfoMap miMap;
+  moduleLexerInfoMapInit(&miMap);
+  ModuleNodeMap mnMap;
+  moduleNodeMapInit(&mnMap);
 
   // for each decl file, read the module line, and add an entry to a
   // module-lexerinfo hashMap
   for (size_t idx = 0; idx < files->decls.size; idx++) {
-    LexerInfo *li = lexerInfoCreate(files->decls.elements[idx], kwMap);
+    LexerInfo *li = lexerInfoCreate(files->decls.elements[idx], &kwMap);
     Node *module = parseModule(report, li);
     if (module == NULL) {  // didn't find it, file can't be parsed.
       reportError(report, format("%s: error: no module declaration found",
                                  (char const *)files->decls.elements[idx]));
-    } else if (moduleNodeMapPut(mnMap, module->data.module.id->data.id.id,
+    } else if (moduleNodeMapPut(&mnMap, module->data.module.id->data.id.id,
                                 module) == HM_EEXISTS) {
       reportError(
           report,
@@ -182,27 +238,27 @@ ModuleAstMapPair *parse(Report *report, Options *options, FileList *files) {
               "%s: error: module '%s' has already been declared (in file %s)",
               (char const *)files->decls.elements[idx],
               module->data.module.id->data.id.id,
-              moduleLexerInfoMapGet(miMap, module->data.module.id->data.id.id)
+              moduleLexerInfoMapGet(&miMap, module->data.module.id->data.id.id)
                   ->fileName));
       nodeDestroy(module);
     } else {
-      moduleLexerInfoMapPut(miMap, module->data.module.id->data.id.id, li);
+      moduleLexerInfoMapPut(&miMap, module->data.module.id->data.id.id, li);
     }
   }
 
-  ModuleAstMapPair *parseResult = moduleAstMapPairCreate();
-
   // parse all decl files in order
-  while (parseResult->decls.size < miMap->size) {
+  while (asts->decls.size < miMap.size) {
     HashSet *stalled = hashSetCreate();
 
     // select one to parse
-    for (size_t idx = 0; idx < miMap->capacity; idx++) {
+    for (size_t idx = 0; idx < miMap.capacity; idx++) {
       // if this is a module, and it hasn't been parsed
-      if (miMap->keys[idx] != NULL &&
-          moduleAstMapGet(&parseResult->decls, miMap->keys[idx]) == NULL) {
-        parseFile(report, options, stalled, miMap->values[idx],
-                  moduleNodeMapGet(mnMap, miMap->keys[idx]));
+      if (miMap.keys[idx] != NULL &&
+          moduleAstMapGet(&asts->decls, miMap.keys[idx]) == NULL) {
+        Node *parsed =
+            parseDeclFile(report, options, stalled, miMap.values[idx],
+                          moduleNodeMapGet(&mnMap, miMap.keys[idx]));
+
         // TODO: also needs parseResult->decls, and map b/w module and exported
         // types
       }
@@ -210,12 +266,14 @@ ModuleAstMapPair *parse(Report *report, Options *options, FileList *files) {
 
     hashSetDestroy(stalled, false);
   }
-  moduleLexerInfoMapDestroy(miMap);
-  moduleNodeMapDestroy(mnMap);
+  moduleLexerInfoMapUninit(&miMap);
+  moduleNodeMapUninit(&mnMap);
 
-  // TODO: parse the codes files
+  for (size_t idx = 0; idx < files->codes.size; idx++) {
+    Node *parsed = parseCodeFile(
+        report, options, lexerInfoCreate(files->codes.elements[idx], &kwMap));
+    // TODO: parse the codes files
+  }
 
-  keywordMapDestroy(kwMap);
-
-  return parseResult;
+  keywordMapUninit(&kwMap);
 }

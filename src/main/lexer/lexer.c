@@ -263,20 +263,24 @@ static TokenType const KEYWORD_TOKENS[] = {
 static size_t const NUM_KEYWORDS = 35;
 
 KeywordMap *keywordMapCreate(void) {
-  KeywordMap *map = hashMapCreate();
+  KeywordMap *map = malloc(sizeof(KeywordMap));
+  keywordMapInit(map);
+  return map;
+}
+void keywordMapInit(KeywordMap *map) {
+  hashMapInit(map);
   for (size_t idx = 0; idx < NUM_KEYWORDS; idx++) {
     // must turn cast-qual off; this is a generic
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-    hashMapPut(map, (char *)KEYWORDS[idx], (TokenType *)&KEYWORD_TOKENS[idx],
-               nullDtor);
+    hashMapPut(map, KEYWORDS[idx], (TokenType *)&KEYWORD_TOKENS[idx], nullDtor);
 #pragma GCC diagnostic pop
   }
-  return map;
 }
 TokenType const *keywordMapGet(KeywordMap const *map, char const *key) {
   return hashMapGet(map, key);
 }
+void keywordMapUninit(KeywordMap *map) { hashMapUninit(map, nullDtor); }
 void keywordMapDestroy(HashMap *map) { hashMapDestroy(map, nullDtor); }
 
 LexerInfo *lexerInfoCreate(char const *fileName, HashMap const *keywords) {
