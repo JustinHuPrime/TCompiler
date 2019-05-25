@@ -37,7 +37,7 @@ static double punToFloatAsDouble(uint32_t bits) {
   u.i = bits;
   return u.f;
 }
-void printNodeStructure(Node const *node) {
+void nodePrintStructure(Node const *node) {
   if (node == NULL) return;  // base case
 
   // polymorphically, recursively print
@@ -756,7 +756,7 @@ void printNodeStructure(Node const *node) {
   }
 }
 
-void printNode(Node const *node) {
+void nodePrint(Node const *node) {
   if (node == NULL) return;  // base case
 
   // recursively, polymorphically print

@@ -71,8 +71,16 @@ int main(int argc, char *argv[]) {
 
   // debug stop for parse
   if (optionsGet(&options, optionDebugDump) == O_DD_PARSE) {
-    Report dumpReport;
-    // TODO: print out the output
+    for (size_t idx = 0; idx < asts.decls.capacity; idx++) {
+      if (asts.decls.keys[idx] != NULL) {
+        nodePrint(asts.decls.values[idx]);
+      }
+    }
+    for (size_t idx = 0; idx < asts.codes.capacity; idx++) {
+      if (asts.codes.keys[idx] != NULL) {
+        nodePrint(asts.codes.values[idx]);
+      }
+    }
   }
 
   // clean up
