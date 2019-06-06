@@ -27,24 +27,24 @@ void fileTest(TestStatus *status) {
   File *f;
 
   // ctor
-  f = fOpen("testFiles/fileStreamTestFileGoodNonempty.txt");
+  f = fOpen("testFiles/fileStream/fileStreamTestFileGoodNonempty.txt");
   test(status,
        "[util] [fileStream] [ctor] good, non-empty file does not produce error",
        f != NULL);
   fClose(f);
 
-  f = fOpen("testFiles/fileStreamTestFileGoodEmpty.txt");
+  f = fOpen("testFiles/fileStream/fileStreamTestFileGoodEmpty.txt");
   test(status,
        "[util] [fileStream] [ctor] good, empty file does not produce error",
        f != NULL);
   fClose(f);
 
-  f = fOpen("testFiles/fileStreamTestFileDNE.txt");
+  f = fOpen("testFiles/fileStream/fileStreamTestFileDNE.txt");
   test(status, "[util] [fileStream] [ctor] nonexistent file produces error",
        f == NULL);
 
   // fGet
-  f = fOpen("testFiles/fileStreamTestFileTwoChar.txt");
+  f = fOpen("testFiles/fileStream/fileStreamTestFileTwoChar.txt");
   test(status, "[util] [fileStream] [fGet] getting a character works",
        fGet(f) == 'a');
   test(status,
@@ -67,7 +67,7 @@ void fileTest(TestStatus *status) {
   test(status,
        "[util] [fileStream] [buffer boundary] expect buffer size to be 4096",
        F_BUFFER_SIZE == 4096);
-  f = fOpen("testFiles/fileStreamTestFile4097Char.txt");
+  f = fOpen("testFiles/fileStream/fileStreamTestFile4097Char.txt");
   for (size_t n = 0; n < F_BUFFER_SIZE; n++) fGet(f);
   test(status,
        "[util] [fileStream] [buffer boundary] get after buffer boundary "

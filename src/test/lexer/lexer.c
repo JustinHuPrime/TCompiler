@@ -44,7 +44,8 @@ void lexerTest(TestStatus *status) {
   Report *report = reportCreate();
   KeywordMap *keywords = keywordMapCreate();
 
-  LexerInfo *info = lexerInfoCreate("testFiles/lexerTestBasic.tc", keywords);
+  LexerInfo *info =
+      lexerInfoCreate("testFiles/lexer/lexerTestBasic.tc", keywords);
 
   lex(&tokenInfo, report, info);
   test(status, "[lexer] [lex] basic file token one is module",
@@ -83,7 +84,7 @@ void lexerTest(TestStatus *status) {
 
   lexerInfoDestroy(info);
 
-  info = lexerInfoCreate("testFiles/lexerTestComprehensive.tc", keywords);
+  info = lexerInfoCreate("testFiles/lexer/lexerTestComprehensive.tc", keywords);
 
   lex(&tokenInfo, report, info);
   test(status, "[lexer] [lex] comprehensive file token 1 is module",
@@ -889,7 +890,7 @@ void lexerTest(TestStatus *status) {
 
   lexerInfoDestroy(info);
 
-  info = lexerInfoCreate("testFiles/lexerTestCorner.tc", keywords);
+  info = lexerInfoCreate("testFiles/lexer/lexerTestCorner.tc", keywords);
 
   lex(&tokenInfo, report, info);
   test(status, "[lexer] [lex] id before colon is plain id",
