@@ -44,8 +44,8 @@ char const *tokenToName(TokenType tt) {
       return "a character literal with multiple characters";
     case TT_MODULE:
       return "the keyword 'module'";
-    case TT_USING:
-      return "the keyword 'using'";
+    case TT_IMPORT:
+      return "the keyword 'import'";
     case TT_STRUCT:
       return "the keyword 'struct'";
     case TT_UNION:
@@ -251,14 +251,14 @@ void tokenInfoUninit(TokenInfo *info) {
 }
 
 static char const *const KEYWORDS[] = {
-    "module", "using",    "struct", "union", "enum",   "typedef", "if",
+    "module", "import",   "struct", "union", "enum",   "typedef", "if",
     "else",   "while",    "do",     "for",   "switch", "case",    "default",
     "break",  "continue", "return", "asm",   "true",   "false",   "cast",
     "sizeof", "void",     "ubyte",  "byte",  "char",   "uint",    "int",
     "wchar",  "ulong",    "long",   "float", "double", "bool",    "const",
 };
 static TokenType const KEYWORD_TOKENS[] = {
-    TT_MODULE, TT_USING,   TT_STRUCT, TT_UNION,    TT_ENUM,   TT_TYPEDEF,
+    TT_MODULE, TT_IMPORT,  TT_STRUCT, TT_UNION,    TT_ENUM,   TT_TYPEDEF,
     TT_IF,     TT_ELSE,    TT_WHILE,  TT_DO,       TT_FOR,    TT_SWITCH,
     TT_CASE,   TT_DEFAULT, TT_BREAK,  TT_CONTINUE, TT_RETURN, TT_ASM,
     TT_TRUE,   TT_FALSE,   TT_CAST,   TT_SIZEOF,   TT_VOID,   TT_UBYTE,
@@ -2339,8 +2339,8 @@ static void lexDumpOne(Report *report, KeywordMap *keywords,
                tokenInfo.character);
         break;
       }
-      case TT_USING: {
-        printf("%s:%zu:%zu: USING\n", filename, tokenInfo.line,
+      case TT_IMPORT: {
+        printf("%s:%zu:%zu: IMPORT\n", filename, tokenInfo.line,
                tokenInfo.character);
         break;
       }

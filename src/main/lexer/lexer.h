@@ -39,7 +39,7 @@ typedef enum {
 
   // keywords
   TT_MODULE,
-  TT_USING,
+  TT_IMPORT,
   TT_STRUCT,
   TT_UNION,
   TT_ENUM,

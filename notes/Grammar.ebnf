@@ -13,7 +13,7 @@ declaration_module = module_name, { import }, { declaration } ;
 code_module = module_name, { import }, { function | variable_declaration_statement | declaration } ;
 
 module_name = "module", scoped_identifier, ";" ;
-import = "using", scoped_identifier, ";" ;
+import = "import", scoped_identifier, ";" ;
 
 declaration = function_declaration
             | variable_declaration

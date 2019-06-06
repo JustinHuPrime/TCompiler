@@ -1,5 +1,5 @@
 // line comment
-module using struct union enum typedef
+module import struct union enum typedef
 if else while do for switch case default
 break continue return asm true false cast
 sizeof void ubyte byte char uint int wchar

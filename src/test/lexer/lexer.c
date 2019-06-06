@@ -94,8 +94,8 @@ void lexerTest(TestStatus *status) {
        tokenInfo.character == 1);
 
   lex(&tokenInfo, report, info);
-  test(status, "[lexer] [lex] comprehensive file token 2 is using",
-       tokenInfo.type == TT_USING);
+  test(status, "[lexer] [lex] comprehensive file token 2 is import",
+       tokenInfo.type == TT_IMPORT);
   test(status, "[lexer] [lex] comprehensive file token 2 is at line 2",
        tokenInfo.line == 2);
   test(status, "[lexer] [lex] comprehensive file token 2 is at char 8",
@@ -106,32 +106,32 @@ void lexerTest(TestStatus *status) {
        tokenInfo.type == TT_STRUCT);
   test(status, "[lexer] [lex] comprehensive file token 3 is at line 2",
        tokenInfo.line == 2);
-  test(status, "[lexer] [lex] comprehensive file token 3 is at char 14",
-       tokenInfo.character == 14);
+  test(status, "[lexer] [lex] comprehensive file token 3 is at char 15",
+       tokenInfo.character == 15);
 
   lex(&tokenInfo, report, info);
   test(status, "[lexer] [lex] comprehensive file token 4 is union",
        tokenInfo.type == TT_UNION);
   test(status, "[lexer] [lex] comprehensive file token 4 is at line 2",
        tokenInfo.line == 2);
-  test(status, "[lexer] [lex] comprehensive file token 4 is at char 21",
-       tokenInfo.character == 21);
+  test(status, "[lexer] [lex] comprehensive file token 4 is at char 22",
+       tokenInfo.character == 22);
 
   lex(&tokenInfo, report, info);
   test(status, "[lexer] [lex] comprehensive file token 5 is enum",
        tokenInfo.type == TT_ENUM);
   test(status, "[lexer] [lex] comprehensive file token 5 is at line 2",
        tokenInfo.line == 2);
-  test(status, "[lexer] [lex] comprehensive file token 5 is at char 27",
-       tokenInfo.character == 27);
+  test(status, "[lexer] [lex] comprehensive file token 5 is at char 28",
+       tokenInfo.character == 28);
 
   lex(&tokenInfo, report, info);
   test(status, "[lexer] [lex] comprehensive file token 6 is typedef",
        tokenInfo.type == TT_TYPEDEF);
   test(status, "[lexer] [lex] comprehensive file token 6 is at line 2",
        tokenInfo.line == 2);
-  test(status, "[lexer] [lex] comprehensive file token 6 is at char 32",
-       tokenInfo.character == 32);
+  test(status, "[lexer] [lex] comprehensive file token 6 is at char 33",
+       tokenInfo.character == 33);
 
   lex(&tokenInfo, report, info);
   test(status, "[lexer] [lex] comprehensive file token 7 is if",
