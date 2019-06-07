@@ -19,7 +19,7 @@
 #include "symbolTable/symbolTable.h"
 
 #include "parser/nameUtils.h"
-#include "util/format.h"
+#include "util/functional.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -51,25 +51,31 @@ void symbolTableDestroy(SymbolTable *table) {
 }
 
 ModuleTableMap *moduleTableMapCreate(void) { return hashMapCreate(); }
+void moduleTableMapInit(ModuleTableMap *map) { hashMapInit(map); }
 SymbolTable *moduleTableMapGet(ModuleTableMap const *table, char const *key) {
   return hashMapGet(table, key);
 }
 int moduleTableMapPut(ModuleTableMap *table, char const *key,
                       SymbolTable *value) {
-  return hashMapPut(table, key, value, (void (*)(void *))symbolTableDestroy);
+  return hashMapPut(table, key, value, nullDtor);
 }
+void moduleTableMapUninit(ModuleTableMap *map) { hashMapUninit(map, nullDtor); }
 void moduleTableMapDestroy(ModuleTableMap *table) {
-  hashMapDestroy(table, (void (*)(void *))symbolTableDestroy);
+  hashMapDestroy(table, nullDtor);
 }
 
 Environment *environmentCreate(SymbolTable *currentModule,
                                char const *currentModuleName) {
   Environment *env = malloc(sizeof(Environment));
+  environmentInit(env, currentModule, currentModuleName);
+  return env;
+}
+void environmentInit(Environment *env, SymbolTable *currentModule,
+                     char const *currentModuleName) {
   env->currentModule = currentModule;
   env->currentModuleName = currentModuleName;
-  env->imports = moduleTableMapCreate();
+  moduleTableMapInit(&env->imports);
   stackInit(&env->scopes);
-  return env;
 }
 TernaryValue environmentIsType(Environment const *env, Report *report,
                                TokenInfo const *token, char const *filename) {
@@ -85,10 +91,10 @@ TernaryValue environmentIsType(Environment const *env, Report *report,
         return info->kind == SK_TYPE ? YES : NO;
       }
     } else {
-      for (size_t idx = 0; idx < env->imports->capacity; idx++) {
-        if (strcmp(moduleName, env->imports->keys[idx]) == 0) {
+      for (size_t idx = 0; idx < env->imports.capacity; idx++) {
+        if (strcmp(moduleName, env->imports.keys[idx]) == 0) {
           SymbolInfo *info =
-              symbolTableGet(env->imports->values[idx], shortName);
+              symbolTableGet(env->imports.values[idx], shortName);
           if (info != NULL) {
             free(moduleName);
             free(shortName);
@@ -107,9 +113,8 @@ TernaryValue environmentIsType(Environment const *env, Report *report,
 
     free(moduleName);
     free(shortName);
-    reportError(report,
-                format("%s:%zu:%zu: error: undefined identifier '%s'", filename,
-                       token->line, token->character, token->data.string));
+    reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'\n",
+                filename, token->line, token->character, token->data.string);
     return INDETERMINATE;
   } else {
     for (size_t idx = env->scopes.size; idx-- > 0;) {
@@ -121,22 +126,22 @@ TernaryValue environmentIsType(Environment const *env, Report *report,
     if (info != NULL) return info->kind == SK_TYPE ? YES : NO;
 
     char const *foundModule = NULL;
-    for (size_t idx = 0; idx < env->imports->capacity; idx++) {
-      if (env->imports->keys[idx] != NULL) {
+    for (size_t idx = 0; idx < env->imports.capacity; idx++) {
+      if (env->imports.keys[idx] != NULL) {
         SymbolInfo *current =
-            symbolTableGet(env->imports->values[idx], token->data.string);
+            symbolTableGet(env->imports.values[idx], token->data.string);
         if (current != NULL) {
           if (info == NULL) {
             info = current;
-            foundModule = env->imports->keys[idx];
+            foundModule = env->imports.keys[idx];
           } else {
             reportError(
                 report,
-                format(
-                    "%s:%zu:%zu: error: identifier '%s' is "
-                    "ambiguous\n\tcandidate module: %s\n\tcandidate module: %s",
-                    filename, token->line, token->character, token->data.string,
-                    env->imports->keys[idx], foundModule));
+
+                "%s:%zu:%zu: error: identifier '%s' is ambiguous\n\tcandidate "
+                "module: %s\n\tcandidate module: %s\n",
+                filename, token->line, token->character, token->data.string,
+                env->imports.keys[idx], foundModule);
             return INDETERMINATE;
           }
         }
@@ -145,16 +150,17 @@ TernaryValue environmentIsType(Environment const *env, Report *report,
     if (info != NULL) {
       return info->kind == SK_TYPE ? YES : NO;
     } else {
-      reportError(report, format("%s:%zu:%zu: error: undefined identifier '%s'",
-                                 filename, token->line, token->character,
-                                 token->data.string));
+      reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'\n",
+                  filename, token->line, token->character, token->data.string);
       return INDETERMINATE;
     }
   }
 }
-void environmentDestroy(Environment *env) {
-  symbolTableDestroy(env->currentModule);
-  moduleTableMapDestroy(env->imports);
+void environmentUninit(Environment *env) {
+  moduleTableMapUninit(&env->imports);
   stackUninit(&env->scopes, (void (*)(void *))symbolTableDestroy);
+}
+void environmentDestroy(Environment *env) {
+  environmentUninit(env);
   free(env);
 }

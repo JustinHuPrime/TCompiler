@@ -83,20 +83,25 @@ void symbolTableDestroy(SymbolTable *);
 // specialization of a generic
 typedef HashMap ModuleTableMap;
 ModuleTableMap *moduleTableMapCreate(void);
+void moduleTableMapInit(ModuleTableMap *);
 SymbolTable *moduleTableMapGet(ModuleTableMap const *, char const *key);
 int moduleTableMapPut(ModuleTableMap *, char const *key, SymbolTable *value);
+void moduleTableMapUninit(ModuleTableMap *);
 void moduleTableMapDestroy(ModuleTableMap *);
 
 typedef struct {
-  ModuleTableMap *imports;  // map of symbol tables
-  SymbolTable *currentModule;
-  char const *currentModuleName;
-  Stack scopes;  // stack of symbol tables
+  ModuleTableMap imports;         // map of symbol tables, non-owning
+  SymbolTable *currentModule;     // non-owing current stab
+  char const *currentModuleName;  // non-owning current module name
+  Stack scopes;                   // stack of local env symbol tables (owning)
 } Environment;
 Environment *environmentCreate(SymbolTable *currentModule,
                                char const *currentModuleName);
+void environmentInit(Environment *, SymbolTable *currentModule,
+                     char const *currentModuleName);
 TernaryValue environmentIsType(Environment const *, Report *report,
                                TokenInfo const *token, char const *fileName);
+void environmentUninit(Environment *);
 void environmentDestroy(Environment *);
 
 #endif  // TLC_SYMBOLTABLE_SYMBOLTABLE_H_

@@ -34,15 +34,15 @@ Report *reportCreate(void);
 // in-place ctor
 void reportInit(Report *);
 
-// adds a message
-void reportMessage(Report *, char *message);
-// adds an error
-void reportError(Report *, char *message);
-// adds a warning
-void reportWarning(Report *, char *message);
-
-// displays all errors and warnings to stderr
-void reportDisplay(Report const *);
+// displays a message
+void reportMessage(Report *, char const *format, ...)
+    __attribute__((format(printf, 2, 3)));
+// displays an error
+void reportError(Report *, char const *format, ...)
+    __attribute__((format(printf, 2, 3)));
+// displays a warning
+void reportWarning(Report *, char const *format, ...)
+    __attribute__((format(printf, 2, 3)));
 
 extern int const RPT_OK;
 extern int const RPT_ERR;

@@ -35,8 +35,6 @@ int main(int argc, char *argv[]) {
 
   parseOptions(&options, &report, (size_t)argc, (char const *const *)argv);
   if (reportState(&report) == RPT_ERR) {
-    reportDisplay(&report);
-
     optionsUninit(&options);
     reportUninit(&report);
     return EXIT_FAILURE;
@@ -47,8 +45,6 @@ int main(int argc, char *argv[]) {
   parseFiles(&files, &report, &options, (size_t)argc,
              (char const *const *)argv);
   if (reportState(&report) == RPT_ERR) {
-    reportDisplay(&report);
-
     fileListUninit(&files);
     optionsUninit(&options);
     reportUninit(&report);
@@ -60,7 +56,6 @@ int main(int argc, char *argv[]) {
     Report dumpReport;
     reportInit(&dumpReport);
     lexDump(&dumpReport, &files);
-    reportDisplay(&dumpReport);
     reportUninit(&dumpReport);
   }
 
@@ -68,6 +63,14 @@ int main(int argc, char *argv[]) {
   ModuleAstMapPair asts;
   ModuleSymbolTableMapPair stabs;
   parse(&asts, &stabs, &report, &options, &files);
+  if (reportState(&report) == RPT_ERR) {
+    moduleSymbolTableMapPairUninit(&stabs);
+    moduleAstMapPairUninit(&asts);
+    fileListUninit(&files);
+    optionsUninit(&options);
+    reportUninit(&report);
+    return EXIT_FAILURE;
+  }
 
   // debug stop for parse
   if (optionsGet(&options, optionDebugDump) == O_DD_PARSE) {
@@ -84,6 +87,7 @@ int main(int argc, char *argv[]) {
   }
 
   // clean up
+  moduleSymbolTableMapPairUninit(&stabs);
   moduleAstMapPairUninit(&asts);
   fileListUninit(&files);
   optionsUninit(&options);

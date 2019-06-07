@@ -18,7 +18,6 @@
 
 #include "util/fileList.h"
 
-#include "util/format.h"
 #include "util/functional.h"
 
 #include <stdio.h>
@@ -64,13 +63,11 @@ void parseFiles(FileList *list, Report *report, Options *options, size_t argc,
       if (duplicated) {
         switch (optionsGet(options, optionWDuplicateFile)) {
           case O_WT_ERROR: {
-            reportError(report,
-                        format("%s: error: duplicated file", argv[idx]));
+            reportError(report, "%s: error: duplicated file\n", argv[idx]);
             break;
           }
           case O_WT_WARN: {
-            reportWarning(report,
-                          format("%s: warning: duplicated file", argv[idx]));
+            reportWarning(report, "%s: warning: duplicated file\n", argv[idx]);
           }
           case O_WT_IGNORE: {
             break;
@@ -95,13 +92,11 @@ void parseFiles(FileList *list, Report *report, Options *options, size_t argc,
       if (duplicated) {
         switch (optionsGet(options, optionWDuplicateFile)) {
           case O_WT_ERROR: {
-            reportError(report,
-                        format("%s: error: duplicated file", argv[idx]));
+            reportError(report, "%s: error: duplicated file\n", argv[idx]);
             break;
           }
           case O_WT_WARN: {
-            reportWarning(report,
-                          format("%s: warning: duplicated file", argv[idx]));
+            reportWarning(report, "%s: warning: duplicated file\n", argv[idx]);
           }
           case O_WT_IGNORE: {
             break;
@@ -116,13 +111,12 @@ void parseFiles(FileList *list, Report *report, Options *options, size_t argc,
     } else {
       switch (optionsGet(options, optionWUnrecognizedFile)) {
         case O_WT_ERROR: {
-          reportError(report,
-                      format("%s: error: unrecogized extension", argv[idx]));
+          reportError(report, "%s: error: unrecogized extension\n", argv[idx]);
           break;
         }
         case O_WT_WARN: {
-          reportWarning(
-              report, format("%s: warning: unrecogized extension", argv[idx]));
+          reportWarning(report, "%s: warning: unrecogized extension\n",
+                        argv[idx]);
         }
         case O_WT_IGNORE: {
           break;
@@ -132,5 +126,5 @@ void parseFiles(FileList *list, Report *report, Options *options, size_t argc,
   }
 
   if (list->codes.size == 0)
-    reportError(report, format("tlc: error: no input code files"));
+    reportError(report, "tlc: error: no input code files\n");
 }

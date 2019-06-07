@@ -18,6 +18,7 @@
 
 #include "util/errorReport.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -27,28 +28,31 @@ Report *reportCreate(void) {
   return report;
 }
 void reportInit(Report *report) {
-  vectorInit(&report->messages);
   report->errors = 0;
   report->warnings = 0;
 }
 
-void reportMessage(Report *report, char *message) {
-  vectorInsert(&report->messages, message);
+void reportMessage(Report *report, char const *format, ...) {
+  va_list args;
+  va_start(args, format);
+  vfprintf(stderr, format, args);
+  va_end(args);
 }
 
-void reportError(Report *report, char *message) {
-  vectorInsert(&report->messages, message);
+void reportError(Report *report, char const *format, ...) {
+  va_list args;
+  va_start(args, format);
+  vfprintf(stderr, format, args);
+  va_end(args);
   report->errors++;
 }
 
-void reportWarning(Report *report, char *message) {
-  vectorInsert(&report->messages, message);
+void reportWarning(Report *report, char const *format, ...) {
+  va_list args;
+  va_start(args, format);
+  vfprintf(stderr, format, args);
+  va_end(args);
   report->warnings++;
-}
-
-void reportDisplay(Report const *report) {
-  for (size_t idx = 0; idx < report->messages.size; idx++)
-    fprintf(stderr, "%s\n", (char *)report->messages.elements[idx]);
 }
 
 int const RPT_OK = 0;
@@ -64,7 +68,7 @@ int reportState(Report const *report) {
   }
 }
 
-void reportUninit(Report *report) { vectorUninit(&report->messages, free); }
+void reportUninit(Report *report) {}
 void reportDestroy(Report *report) {
   reportUninit(report);
   free(report);

@@ -34,9 +34,6 @@ void fileListTest(TestStatus *);
 // in util/file.c
 void fileTest(TestStatus *);
 
-// in util/format.c
-void formatTest(TestStatus *);
-
 // in util/hash.c
 void hashTest(TestStatus *);
 
