@@ -302,6 +302,7 @@ LexerInfo *lexerInfoCreate(char const *filename, HashMap const *keywords) {
   return li;
 }
 void lexerInfoDestroy(LexerInfo *li) {
+  if (li->pushedBack) tokenInfoUninit(&li->previous);
   fClose(li->file);
   free(li);
 }

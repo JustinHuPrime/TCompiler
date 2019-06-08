@@ -205,6 +205,7 @@ typedef struct Node {
       struct Node *module;
       NodeList *imports;
       NodeList *bodies;
+      char const *filename;
     } program;
 
     struct {
@@ -430,7 +431,8 @@ extern uint64_t const LONG_MIN;
 // constructors
 // Note that all pointers should be owning pointers
 Node *programNodeCreate(size_t line, size_t character, Node *module,
-                        NodeList *imports, NodeList *bodyParts);
+                        NodeList *imports, NodeList *bodyParts,
+                        char const *filename);
 Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);
 Node *importNodeCreate(size_t line, size_t character, Node *importId);
 Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,

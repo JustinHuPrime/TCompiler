@@ -135,13 +135,14 @@ TernaryValue environmentIsType(Environment const *env, Report *report,
             info = current;
             foundModule = env->imports.keys[idx];
           } else {
-            reportError(
-                report,
+            reportError(report,
 
-                "%s:%zu:%zu: error: identifier '%s' is ambiguous\n\tcandidate "
-                "module: %s\n\tcandidate module: %s\n",
-                filename, token->line, token->character, token->data.string,
-                env->imports.keys[idx], foundModule);
+                        "%s:%zu:%zu: error: identifier '%s' is ambiguous\n",
+                        filename, token->line, token->character,
+                        token->data.string);
+            reportMessage(report, "\tcandidate module: %s\n",
+                          env->imports.keys[idx]);
+            reportMessage(report, "\tcandidate module: %s\n", foundModule);
             return INDETERMINATE;
           }
         }

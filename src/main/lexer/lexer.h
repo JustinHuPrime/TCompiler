@@ -164,13 +164,13 @@ typedef struct {
   size_t character;
   File *file;
   HashMap const *keywords;
-  char const *fileName;
+  char const *filename;
   TokenInfo previous;
   bool pushedBack;
 } LexerInfo;
 
 // creates and initializes the lexer info
-LexerInfo *lexerInfoCreate(char const *fileName, HashMap const *keywords);
+LexerInfo *lexerInfoCreate(char const *filename, HashMap const *keywords);
 // dtor - note that keywords is not owned by the LexerInfo
 void lexerInfoDestroy(LexerInfo *);
 

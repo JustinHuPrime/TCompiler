@@ -84,12 +84,14 @@ static Node *nodeCreate(size_t line, size_t character) {
   return node;
 }
 Node *programNodeCreate(size_t line, size_t character, Node *module,
-                        NodeList *imports, NodeList *bodies) {
+                        NodeList *imports, NodeList *bodies,
+                        char const *filename) {
   Node *node = nodeCreate(line, character);
   node->type = NT_PROGRAM;
   node->data.program.module = module;
   node->data.program.imports = imports;
   node->data.program.bodies = bodies;
+  node->data.program.filename = filename;
   return node;
 }
 
@@ -776,8 +778,7 @@ Node *idNodeCreate(size_t line, size_t character, char *id) {
 
 // Destructor
 void nodeDestroy(Node *node) {
-  if (node == NULL)
-    return;  // base case: might be asked internally to free NULL.
+  if (node == NULL) return;  // base case: might be asked to free NULL.
 
   // free contents
   switch (node->type) {
