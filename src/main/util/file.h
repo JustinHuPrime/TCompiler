@@ -34,7 +34,7 @@ typedef struct {
 } File;
 
 // opens a file. returns NULL if failed
-File *fOpen(char const *fileName);
+File *fOpen(char const *filename);
 
 extern char const F_OK;
 extern char const F_EOF;

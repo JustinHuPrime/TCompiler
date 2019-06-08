@@ -100,7 +100,7 @@ Environment *environmentCreate(SymbolTable *currentModule,
 void environmentInit(Environment *, SymbolTable *currentModule,
                      char const *currentModuleName);
 TernaryValue environmentIsType(Environment const *, Report *report,
-                               TokenInfo const *token, char const *fileName);
+                               TokenInfo const *token, char const *filename);
 void environmentUninit(Environment *);
 void environmentDestroy(Environment *);
 

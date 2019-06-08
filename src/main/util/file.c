@@ -26,9 +26,9 @@
 
 size_t const F_BUFFER_SIZE = 4096;
 
-File *fOpen(char const *fileName) {
+File *fOpen(char const *filename) {
   // try to open the file
-  int fd = open(fileName, O_RDONLY | O_CLOEXEC);
+  int fd = open(filename, O_RDONLY | O_CLOEXEC);
   if (fd == -1) return NULL;
 
   // setup the data structure
