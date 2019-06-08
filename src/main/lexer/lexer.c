@@ -419,9 +419,8 @@ static bool isAlnumOrUnderscore(char c) {
 // common action used by all hex digits in char or string literals
 static LexerState hexDigitAction(Report *report, char c, StringBuilder *buffer,
                                  TokenInfo *tokenInfo, LexerInfo *lexerInfo,
-                                 LexerState state, LexerState nextState,
-                                 LexerState nextError, size_t offset,
-                                 bool isCharLiteral) {
+                                 LexerState nextState, LexerState nextError,
+                                 size_t offset, bool isCharLiteral) {
   switch (c) {
     case -2: {  // F_EOF
       stringBuilderDestroy(buffer);
@@ -460,7 +459,7 @@ static LexerState hexDigitAction(Report *report, char c, StringBuilder *buffer,
     case 'f':
     case 'F': {
       stringBuilderPush(buffer, c);
-      return LS_CHAR_HEX_DIGIT_2;
+      return nextState;
     }
     default: {
       reportError(report, "%s:%zu:%zu: error: invalid escape sequence\n",
@@ -469,7 +468,7 @@ static LexerState hexDigitAction(Report *report, char c, StringBuilder *buffer,
 
       stringBuilderDestroy(buffer);
       buffer = NULL;
-      return LS_CHAR_BAD_ESCAPE;
+      return nextError;
     }
   }
 }
@@ -1428,59 +1427,59 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
       }  // LS_CHAR_ESCAPED
       case LS_CHAR_HEX_DIGIT_1: {
         state =
-            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                            LS_CHAR_HEX_DIGIT_2, LS_CHAR_BAD_ESCAPE, true, 2);
         break;
       }  // LS_CHAR_HEX_DIGIT_1
       case LS_CHAR_HEX_DIGIT_2: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_CHAR_SINGLE, LS_CHAR_BAD_ESCAPE, true, 3);
         break;
       }  // LS_CHAR_HEX_DIGIT_2
       case LS_CHAR_WHEX_DIGIT_1: {
         state =
-            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                            LS_CHAR_WHEX_DIGIT_2, LS_CHAR_BAD_ESCAPE, true, 2);
         break;
       }  // LS_CHAR_WHEX_DIGIT_1
       case LS_CHAR_WHEX_DIGIT_2: {
         state =
-            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                            LS_CHAR_WHEX_DIGIT_3, LS_CHAR_BAD_ESCAPE, true, 3);
         break;
       }  // LS_CHAR_WHEX_DIGIT_2
       case LS_CHAR_WHEX_DIGIT_3: {
         state =
-            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                            LS_CHAR_WHEX_DIGIT_4, LS_CHAR_BAD_ESCAPE, true, 4);
         break;
       }  // LS_CHAR_WHEX_DIGIT_3
       case LS_CHAR_WHEX_DIGIT_4: {
         state =
-            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                            LS_CHAR_WHEX_DIGIT_5, LS_CHAR_BAD_ESCAPE, true, 5);
         break;
       }  // LS_CHAR_WHEX_DIGIT_4
       case LS_CHAR_WHEX_DIGIT_5: {
         state =
-            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                            LS_CHAR_WHEX_DIGIT_6, LS_CHAR_BAD_ESCAPE, true, 6);
         break;
       }  // LS_CHAR_WHEX_DIGIT_5
       case LS_CHAR_WHEX_DIGIT_6: {
         state =
-            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                            LS_CHAR_WHEX_DIGIT_7, LS_CHAR_BAD_ESCAPE, true, 7);
         break;
       }  // LS_CHAR_WHEX_DIGIT_6
       case LS_CHAR_WHEX_DIGIT_7: {
         state =
-            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+            hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                            LS_CHAR_WHEX_DIGIT_8, LS_CHAR_BAD_ESCAPE, true, 8);
         break;
       }  // LS_CHAR_WHEX_DIGIT_7
       case LS_CHAR_WHEX_DIGIT_8: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_EXPECT_WCHAR, LS_CHAR_BAD_ESCAPE, true, 9);
         break;
       }  // LS_CHAR_WHEX_DIGIT_8
@@ -1707,60 +1706,60 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
         break;
       }  // LS_STRING_ESCAPED
       case LS_STRING_HEX_DIGIT_1: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_HEX_DIGIT_2, LS_STRING_BAD_ESCAPE,
                                false, 2);
         break;
       }  // LS_STRING_HEX_DIGIT_1
       case LS_STRING_HEX_DIGIT_2: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING, LS_STRING_BAD_ESCAPE, false, 3);
         break;
       }  // LS_STRING_HEX_DIGIT_2
       case LS_STRING_WHEX_DIGIT_1: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WHEX_DIGIT_2, LS_STRING_BAD_ESCAPE,
                                false, 2);
         break;
       }  // LS_STRING_WHEX_DIGIT_1
       case LS_STRING_WHEX_DIGIT_2: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WHEX_DIGIT_3, LS_STRING_BAD_ESCAPE,
                                false, 3);
         break;
       }  // LS_STRING_WHEX_DIGIT_2
       case LS_STRING_WHEX_DIGIT_3: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WHEX_DIGIT_4, LS_STRING_BAD_ESCAPE,
                                false, 4);
         break;
       }  // LS_STRING_WHEX_DIGIT_4
       case LS_STRING_WHEX_DIGIT_4: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WHEX_DIGIT_5, LS_STRING_BAD_ESCAPE,
                                false, 5);
         break;
       }  // LS_STRING_WHEX_DIGIT_4
       case LS_STRING_WHEX_DIGIT_5: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WHEX_DIGIT_6, LS_STRING_BAD_ESCAPE,
                                false, 6);
         break;
       }  // LS_STRING_WHEX_DIGIT_5
       case LS_STRING_WHEX_DIGIT_6: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WHEX_DIGIT_7, LS_STRING_BAD_ESCAPE,
                                false, 7);
         break;
       }  // LS_STRING_WHEX_DIGIT_6
       case LS_STRING_WHEX_DIGIT_7: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WHEX_DIGIT_8, LS_STRING_BAD_ESCAPE,
                                false, 8);
         break;
       }  // LS_STRING_WHEX_DIGIT_7
       case LS_STRING_WHEX_DIGIT_8: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE, LS_STRING_BAD_ESCAPE, false, 9);
         break;
       }  // LS_STRING_WHEX_DIGIT_8
@@ -1853,60 +1852,60 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
         break;
       }  // LS_STRING_WIDE_ESCAPED
       case LS_STRING_WIDE_HEX_DIGIT_1: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE_HEX_DIGIT_2, LS_STRING_BAD_ESCAPE,
                                false, 2);
         break;
       }  // LS_STRING_WIDE_HEX_DIGIT_1
       case LS_STRING_WIDE_HEX_DIGIT_2: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE, LS_STRING_BAD_ESCAPE, false, 3);
         break;
       }  // LS_STRING_WIDE_HEX_DIGIT_2
       case LS_STRING_WIDE_WHEX_DIGIT_1: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE_WHEX_DIGIT_2,
                                LS_STRING_BAD_ESCAPE, false, 2);
         break;
       }  // LS_STRING_WIDE_WHEX_DIGIT_1
       case LS_STRING_WIDE_WHEX_DIGIT_2: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE_WHEX_DIGIT_3,
                                LS_STRING_BAD_ESCAPE, false, 3);
         break;
       }  // LS_STRING_WIDE_WHEX_DIGIT_2
       case LS_STRING_WIDE_WHEX_DIGIT_3: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE_WHEX_DIGIT_4,
                                LS_STRING_BAD_ESCAPE, false, 4);
         break;
       }  // LS_STRING_WIDE_WHEX_DIGIT_3
       case LS_STRING_WIDE_WHEX_DIGIT_4: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE_WHEX_DIGIT_5,
                                LS_STRING_BAD_ESCAPE, false, 5);
         break;
       }  // LS_STRING_WIDE_WHEX_DIGIT_4
       case LS_STRING_WIDE_WHEX_DIGIT_5: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE_WHEX_DIGIT_6,
                                LS_STRING_BAD_ESCAPE, false, 6);
         break;
       }  // LS_STRING_WIDE_WHEX_DIGIT_5
       case LS_STRING_WIDE_WHEX_DIGIT_6: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE_WHEX_DIGIT_7,
                                LS_STRING_BAD_ESCAPE, false, 7);
         break;
       }  // LS_STRING_WIDE_WHEX_DIGIT_6
       case LS_STRING_WIDE_WHEX_DIGIT_7: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE_WHEX_DIGIT_8,
                                LS_STRING_BAD_ESCAPE, false, 8);
         break;
       }  // LS_STRING_WIDE_WHEX_DIGIT_7
       case LS_STRING_WIDE_WHEX_DIGIT_8: {
-        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo, state,
+        state = hexDigitAction(report, c, buffer, tokenInfo, lexerInfo,
                                LS_STRING_WIDE, LS_STRING_BAD_ESCAPE, false, 9);
         break;
       }  // LS_STRING_WIDE_WHEX_DIGIT_8
