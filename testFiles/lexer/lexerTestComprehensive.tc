@@ -18,3 +18,8 @@ multiline */
 'c'
 "wstring"w
 'c'w
++1
+-2
+"\xaF"
+'\u12ab34CD'w
+

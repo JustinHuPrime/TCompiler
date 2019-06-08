@@ -795,6 +795,8 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 11);
   test(status, "[lexer] [lex] comprehensive file token 88 is at char 1",
        tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 88 is '0'",
+       strcmp("0", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);
@@ -804,6 +806,8 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 12);
   test(status, "[lexer] [lex] comprehensive file token 89 is at char 1",
        tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 89 is '0b101'",
+       strcmp("0b101", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);
@@ -813,6 +817,8 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 13);
   test(status, "[lexer] [lex] comprehensive file token 90 is at char 1",
        tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 90 is '0135'",
+       strcmp("0135", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);
@@ -822,6 +828,8 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 14);
   test(status, "[lexer] [lex] comprehensive file token 91 is at char 1",
        tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 91 is '123'",
+       strcmp("123", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);
@@ -832,6 +840,8 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 15);
   test(status, "[lexer] [lex] comprehensive file token 92 is at char 1",
        tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 92 is '0xfF1'",
+       strcmp("0xfF1", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);
@@ -842,6 +852,8 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 16);
   test(status, "[lexer] [lex] comprehensive file token 93 is at char 1",
        tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 93 is '3.1415'",
+       strcmp("3.1415", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);
@@ -851,6 +863,8 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 17);
   test(status, "[lexer] [lex] comprehensive file token 94 is at char 1",
        tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 94 is 'string'",
+       strcmp("string", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);
@@ -860,6 +874,8 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 18);
   test(status, "[lexer] [lex] comprehensive file token 95 is at char 1",
        tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 95 is 'c'",
+       strcmp("c", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);
@@ -869,6 +885,8 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 19);
   test(status, "[lexer] [lex] comprehensive file token 96 is at char 1",
        tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 96 is 'wstring'",
+       strcmp("wstring", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);
@@ -878,14 +896,60 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 20);
   test(status, "[lexer] [lex] comprehensive file token 97 is at char 1",
        tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 97 is 'c'",
+       strcmp("c", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);
-  test(status, "[lexer] [lex] comprehensive file token 98 is eof",
-       tokenInfo.type == TT_EOF);
+  test(status, "[lexer] [lex] comprehensive file token 98 is literal decimal",
+       tokenInfo.type == TT_LITERALINT_D);
   test(status, "[lexer] [lex] comprehensive file token 98 is at line 21",
        tokenInfo.line == 21);
   test(status, "[lexer] [lex] comprehensive file token 98 is at char 1",
+       tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 98 is '+1'",
+       strcmp("+1", tokenInfo.data.string) == 0);
+  free(tokenInfo.data.string);
+
+  lex(&tokenInfo, report, info);
+  test(status, "[lexer] [lex] comprehensive file token 99 is literal decimal",
+       tokenInfo.type == TT_LITERALINT_D);
+  test(status, "[lexer] [lex] comprehensive file token 99 is at line 22",
+       tokenInfo.line == 22);
+  test(status, "[lexer] [lex] comprehensive file token 99 is at char 1",
+       tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 99 is '-2'",
+       strcmp("-2", tokenInfo.data.string) == 0);
+  free(tokenInfo.data.string);
+
+  lex(&tokenInfo, report, info);
+  test(status, "[lexer] [lex] comprehensive file token 100 is literal string",
+       tokenInfo.type == TT_LITERALSTRING);
+  test(status, "[lexer] [lex] comprehensive file token 100 is at line 23",
+       tokenInfo.line == 23);
+  test(status, "[lexer] [lex] comprehensive file token 100 is at char 1",
+       tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 100 is '\\xaF'",
+       strcmp("\\xaF", tokenInfo.data.string) == 0);
+  free(tokenInfo.data.string);
+
+  lex(&tokenInfo, report, info);
+  test(status, "[lexer] [lex] comprehensive file token 101 is literal wchar",
+       tokenInfo.type == TT_LITERALWCHAR);
+  test(status, "[lexer] [lex] comprehensive file token 101 is at line 23",
+       tokenInfo.line == 24);
+  test(status, "[lexer] [lex] comprehensive file token 101 is at char 1",
+       tokenInfo.character == 1);
+  test(status, "[lexer] [lex] comprehensive file token 101 is '\\u12ab34CD'",
+       strcmp("\\u12ab34CD", tokenInfo.data.string) == 0);
+  free(tokenInfo.data.string);
+
+  lex(&tokenInfo, report, info);
+  test(status, "[lexer] [lex] comprehensive file token 192 is eof",
+       tokenInfo.type == TT_EOF);
+  test(status, "[lexer] [lex] comprehensive file token 102 is at line 21",
+       tokenInfo.line == 26);
+  test(status, "[lexer] [lex] comprehensive file token 102 is at char 1",
        tokenInfo.character == 1);
 
   lexerInfoDestroy(info);

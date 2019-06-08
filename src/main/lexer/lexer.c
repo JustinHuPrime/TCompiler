@@ -564,6 +564,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
             buffer = stringBuilderCreate();
+            stringBuilderPush(buffer, c);
             break;
           }
           case '1':
@@ -580,6 +581,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
             buffer = stringBuilderCreate();
+            stringBuilderPush(buffer, c);
             break;
           }
           case '-': {
@@ -588,6 +590,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
             buffer = stringBuilderCreate();
+            stringBuilderPush(buffer, c);
             break;
           }
           case '+': {
@@ -596,6 +599,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             tokenInfo->line = lexerInfo->line;
             tokenInfo->character = lexerInfo->character;
             buffer = stringBuilderCreate();
+            stringBuilderPush(buffer, c);
             break;
           }
           case '(': {
