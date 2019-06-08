@@ -29,7 +29,6 @@ int main(void) {
   fileTest(status);
   hashTest(status);
   hashMapTest(status);
-  hashSetTest(status);
   stringBuilderTest(status);
   vectorTest(status);
 

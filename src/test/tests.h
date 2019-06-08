@@ -40,9 +40,6 @@ void hashTest(TestStatus *);
 // in util/hashMap.c
 void hashMapTest(TestStatus *);
 
-// in util/hashSet.c
-void hashSetTest(TestStatus *);
-
 // in util/stringBuilder.c
 void stringBuilderTest(TestStatus *);
 
