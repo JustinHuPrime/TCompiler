@@ -157,6 +157,7 @@ static Node *parseUnscopedId(Report *report, LexerInfo *info) {
   return idNodeCreate(id.line, id.character, id.data.string);
 }
 
+// module
 static Node *parseModule(Report *report, LexerInfo *info) {
   TokenInfo moduleToken;
   lex(&moduleToken, report, info);
@@ -193,6 +194,7 @@ static Node *parseModule(Report *report, LexerInfo *info) {
   return moduleNodeCreate(moduleToken.line, moduleToken.character, idNode);
 }
 
+// imports
 static Node *parseDeclFile(Report *report, Options *options,
                            ModuleSymbolTableMapPair *stabs,
                            Stack *dependencyStack, ModuleLexerInfoMap *miMap,
@@ -360,7 +362,6 @@ static Node *parseCodeImport(Report *report, Options *options,
 
   return moduleNodeCreate(importToken.line, importToken.character, idNode);
 }
-
 static NodeList *parseDeclImports(Report *report, Options *options,
                                   ModuleSymbolTableMapPair *stabs,
                                   Environment *env, Stack *dependencyStack,
@@ -414,11 +415,132 @@ static NodeList *parseCodeImports(Report *report, Options *options,
   return imports;
 }
 
+// expression
+
+// statement
+
+// body
+static Node *parseStructDecl(Report *report, Options *options, Environment *env,
+                             LexerInfo *info) {
+  TokenInfo structKwd;
+  lex(&structKwd, report, info);  // must be right to get here
+
+  Node *id = parseUnscopedId(report, info);
+  if (id == NULL) return NULL;
+
+  TokenInfo nextToken;
+  lex(&nextToken, report, info);
+
+  switch (nextToken.type) {
+    case TT_SEMI: {
+      SymbolInfo *si = symbolInfoCreate();
+      // FIXME: add some data to symbol info
+      // FIXME: deal with duplicate names
+      if (env->scopes.size == 0) {
+        // global struct
+        symbolTablePut(env->currentModule, id->data.id.id, si);
+      } else {
+        // local struct
+        symbolTablePut(env->scopes.elements[env->scopes.size - 1],
+                       id->data.id.id, si);
+      }
+      break;
+    }
+    case TT_LBRACE: {
+      break;
+    }
+    default: {
+      if (!tokenInfoIsLexerError(&nextToken)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a semicolon or a left brace, "
+                    "but found %s",
+                    info->filename, nextToken.line, nextToken.character,
+                    tokenToName(nextToken.type));
+      }
+      nodeDestroy(id);
+      return NULL;
+    }
+  }
+}
+static Node *parseUnionDecl(Report *report, Options *options, Environment *env,
+                            LexerInfo *info) {}
+static Node *parseEnumDecl(Report *report, Options *options, Environment *env,
+                           LexerInfo *info) {}
+static Node *parseTypedef(Report *report, Options *options, Environment *env,
+                          LexerInfo *info) {}
+static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
+                                     Environment *env, LexerInfo *info) {}
 static Node *parseBody(Report *report, Options *options, Environment *env,
                        LexerInfo *info) {
-  return NULL;  // TODO: write this
-}
+  TokenInfo peek;
+  lex(&peek, report, info);
 
+  switch (peek.type) {
+    case TT_STRUCT: {
+      // struct or struct forward decl
+      unLex(info, &peek);
+      return parseStructDecl(report, options, env, info);
+    }
+    case TT_UNION: {
+      // union or union forward decl
+      unLex(info, &peek);
+      return parseUnionDecl(report, options, env, info);
+    }
+    case TT_ENUM: {
+      // enum or enum forward decl
+      unLex(info, &peek);
+      return parseEnumDecl(report, options, env, info);
+    }
+    case TT_TYPEDEF: {
+      // typedef or typedef forward decl
+      unLex(info, &peek);
+      return parseTypedef(report, options, env, info);
+    }
+
+    case TT_ID:
+    case TT_SCOPED_ID: {
+      TernaryValue isType =
+          environmentIsType(env, report, &peek, info->filename);
+      if (isType == NO) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a declaration, but found an "
+                    "identifier\n",
+                    info->filename, peek.line, peek.character);
+      }
+      if (isType != YES) {
+        return NULL;
+      }
+      // might be a type
+      __attribute__((fallthrough));
+    }
+    case TT_VOID:
+    case TT_UBYTE:
+    case TT_BYTE:
+    case TT_CHAR:
+    case TT_UINT:
+    case TT_INT:
+    case TT_WCHAR:
+    case TT_ULONG:
+    case TT_LONG:
+    case TT_FLOAT:
+    case TT_DOUBLE:
+    case TT_BOOL: {
+      // type, introducing a function decl/defn or variable decl/defn
+      unLex(info, &peek);
+      return parseVarOrFunDeclOrDefn(report, options, env, info);
+    }
+    default: {
+      if (!tokenInfoIsLexerError(&peek)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a declaration or definition, "
+                    "but found %s\n",
+                    info->filename, peek.line, peek.character,
+                    tokenToName(peek.type));
+      }
+      return NULL;
+    }
+  }
+}
 static NodeList *parseBodies(Report *report, Options *options, Environment *env,
                              LexerInfo *info) {
   NodeList *bodies = nodeListCreate();
@@ -441,6 +563,8 @@ static NodeList *parseBodies(Report *report, Options *options, Environment *env,
   tokenInfoUninit(&peek);  // actually not needed
   return bodies;
 }
+
+// whole file
 static Node *parseDeclFile(Report *report, Options *options,
                            ModuleSymbolTableMapPair *stabs,
                            Stack *dependencyStack, ModuleLexerInfoMap *miMap,
