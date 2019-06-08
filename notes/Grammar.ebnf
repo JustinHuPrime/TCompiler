@@ -48,6 +48,13 @@ statement = compound_statement
           | return_statement
           | variable_declaration_statement
           | asm_statement
+          | struct_declaration
+          | struct_forward_declaration
+          | union_declaration
+          | union_forward_declaration
+          | enum_declaration
+          | enum_forward_declaration
+          | typedef_declaration
           | expression, ";"
           | ";"
           ;
