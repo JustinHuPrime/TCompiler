@@ -19,6 +19,7 @@
 #ifndef TLC_UTIL_CONTAINER_VECTOR_H_
 #define TLC_UTIL_CONTAINER_VECTOR_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 
 // vector, in java generic style
@@ -39,5 +40,19 @@ void vectorInsert(Vector *, void *);
 void vectorUninit(Vector *, void (*dtor)(void *));
 // dtor
 void vectorDestroy(Vector *, void (*dtor)(void *));
+
+// vector of strings
+typedef Vector StringVector;
+// ctor
+StringVector *stringVectorCreate(void);
+// in place ctor
+void stringVectorInit(StringVector *);
+// insert
+void stringVectorInsert(StringVector *, char *);
+// in place dtor
+// takes in a destructor function to apply to the elements
+void stringVectorUninit(StringVector *, bool freeStrings);
+// dtor
+void stringVectorDestroy(StringVector *, bool freeStrings);
 
 #endif  // TLC_UTIL_CONTAINER_VECTOR_H_

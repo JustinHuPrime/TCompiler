@@ -18,6 +18,8 @@
 
 #include "util/container/vector.h"
 
+#include "util/functional.h"
+
 #include <stdlib.h>
 
 Vector *vectorCreate(void) {
@@ -45,4 +47,14 @@ void vectorUninit(Vector *vector, void (*dtor)(void *)) {
 void vectorDestroy(Vector *vector, void (*dtor)(void *)) {
   vectorUninit(vector, dtor);
   free(vector);
+}
+
+StringVector *stringVectorCreate(void) { return vectorCreate(); }
+void stringVectorInit(StringVector *v) { vectorInit(v); }
+void stringVectorInsert(StringVector *v, char *s) { vectorInsert(v, s); }
+void stringVectorUninit(StringVector *v, bool freeStrings) {
+  vectorUninit(v, freeStrings ? free : nullDtor);
+}
+void stringVectorDestroy(StringVector *v, bool freeStrings) {
+  vectorDestroy(v, freeStrings ? free : nullDtor);
 }
