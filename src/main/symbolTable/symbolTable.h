@@ -20,6 +20,7 @@
 #define TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 
 #include "lexer/lexer.h"
+#include "symbolTable/type.h"
 #include "util/container/hashMap.h"
 #include "util/container/stack.h"
 #include "util/container/vector.h"
@@ -35,37 +36,36 @@ typedef struct {
   } kind;
   union {
     struct {
-      void *type;  // TODO: figure this out later
+      Type *type;
     } var;
     struct {
       enum {
-        TK_STRUCT,
-        TK_UNION,
-        TK_ENUM,
-        TK_TYPEDEF,
-      } typeKind;
-      void *type;  // TODO: figure this out later
+        TDK_STRUCT,
+        TDK_UNION,
+        TDK_ENUM,
+        TDK_TYPEDEF,
+      } typeDefinitionKind;
       union {
         struct {
-          void *type;  // TODO: figure this out later
+          TypeVector *fields;
+          StringVector *names;
         } structType;
         struct {
-          void *type;  // TODO: figure this out later
+          TypeVector *fields;
+          StringVector *names;
         } unionType;
         struct {
-          void *type;  // TODO: figure this out later
+          StringVector *fields;
         } enumType;
         struct {
-          void *type;  // TODO: figure this out later
+          Type *type;
         } typedefType;
       } data;
     } type;
     struct {
-      void *type;  // TODO: figure this out later
+      Type *returnType;
+      Vector *argumentTypes;
     } function;
-    struct {
-      void *parentEnum;  // TODO: figure this out later
-    } enumField;
   } data;
 } SymbolInfo;
 SymbolInfo *symbolInfoCreate(void);

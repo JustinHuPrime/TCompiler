@@ -26,7 +26,7 @@
 
 SymbolInfo *symbolInfoCreate(void) { return malloc(sizeof(SymbolInfo)); }
 void symbolInfoDestroy(SymbolInfo *si) {
-  switch (si->kind) {
+  switch (si->kind) {  // TODO: write this
     case SK_VAR: {
       break;
     }
