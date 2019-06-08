@@ -18,6 +18,7 @@
 
 #include "ast/printer.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -1129,7 +1130,7 @@ void nodePrint(Node const *node) {
           break;
         }
         case BO_ARRAYACCESS:
-          abort();  // already dealt with, so can't come here again.
+          assert(false);  // already dealt with, so can't come here again.
       }
       nodePrint(node->data.binopExp.rhs);
       printf(")");

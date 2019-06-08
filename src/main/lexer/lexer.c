@@ -21,6 +21,7 @@
 #include "util/container/stringBuilder.h"
 #include "util/functional.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -233,7 +234,7 @@ char const *tokenToName(TokenType tt) {
     case TT_LITERALWCHAR:
       return "a wide character literal";
   }
-  abort();  // not a TokenType; type safety violated
+  assert(false);  // not a TokenType; type safety violated
 }
 
 bool tokenInfoIsLexerError(TokenInfo *info) {
@@ -298,6 +299,7 @@ LexerInfo *lexerInfoCreate(char const *filename, HashMap const *keywords) {
   li->file = f;
   li->keywords = keywords;
   li->filename = filename;
+  li->pushedBack = false;
 
   return li;
 }
@@ -2271,6 +2273,8 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
   }
 }
 void unLex(LexerInfo *info, TokenInfo *tokenInfo) {
+  // info->pushedBack must be false - this is used for LL(1)
+  assert(!info->pushedBack);
   memcpy(&info->previous, tokenInfo, sizeof(TokenInfo));
   info->pushedBack = true;
 }
