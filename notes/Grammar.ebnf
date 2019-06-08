@@ -56,7 +56,7 @@ if_statement = "if", "(", expression, ")", statement, [ "else", statement ] ;
 while_statement = "while", "(", expression, ")", statement ;
 do_while_statement = "do", statement, "while", "(", expression, ")" ;
 for_statement = "for", "(", ( variable_declaration_statement | expression, ";" ), expression, ";", expression, ")", statement ;
-switch_statement = "switch", "(", expression, ")", "{", { "case", int_constant, ":", compound_statement | "default", ":", compound_statement }, "}" ;
+switch_statement = "switch", "(", expression, ")", "{", { "case", ( int_constant | scoped_identifier ), ":", compound_statement | "default", ":", compound_statement }, "}" ;
 break_statement = "break", ";" ;
 continue_statement = "continue", ";" ;
 return_statement = "return", [ expression ], ";" ;
@@ -156,8 +156,8 @@ literal = int_constant
         | wcharacter_constant
         | "true"
         | "false"
+        | scoped_identifier
         | aggregate_initializer
-        | type, ".", identifier
         ;
 
 type = "void"
