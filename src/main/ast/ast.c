@@ -83,15 +83,15 @@ static Node *nodeCreate(size_t line, size_t character) {
   node->character = character;
   return node;
 }
-Node *programNodeCreate(size_t line, size_t character, Node *module,
+Node *fileNodeCreate(size_t line, size_t character, Node *module,
                         NodeList *imports, NodeList *bodies,
                         char const *filename) {
   Node *node = nodeCreate(line, character);
-  node->type = NT_PROGRAM;
-  node->data.program.module = module;
-  node->data.program.imports = imports;
-  node->data.program.bodies = bodies;
-  node->data.program.filename = filename;
+  node->type = NT_FILE;
+  node->data.file.module = module;
+  node->data.file.imports = imports;
+  node->data.file.bodies = bodies;
+  node->data.file.filename = filename;
   return node;
 }
 
@@ -782,10 +782,10 @@ void nodeDestroy(Node *node) {
 
   // free contents
   switch (node->type) {
-    case NT_PROGRAM: {
-      nodeDestroy(node->data.program.module);
-      nodeListDestroy(node->data.program.imports);
-      nodeListDestroy(node->data.program.bodies);
+    case NT_FILE: {
+      nodeDestroy(node->data.file.module);
+      nodeListDestroy(node->data.file.imports);
+      nodeListDestroy(node->data.file.bodies);
       break;
     }
     case NT_MODULE: {
