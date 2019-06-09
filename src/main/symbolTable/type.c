@@ -35,6 +35,7 @@ static Type *typeCreate(TypeKind kind) {
   t->kind = kind;
   return t;
 }
+static void typeInit(Type *t, TypeKind kind) { t->kind = kind; }
 Type *keywordTypeCreate(TypeKind kind) { return typeCreate(kind); }
 Type *referneceTypeCreate(TypeKind kind, char const *name) {
   Type *t = typeCreate(kind);
@@ -58,7 +59,26 @@ Type *functionTypeCreate(Type *returnType, TypeVector *argumentTypes) {
   t->data.functionPtr.argumentTypes = argumentTypes;
   return t;
 }
-void typeDestroy(Type *t) {
+void keywordTypeInit(Type *t, TypeKind kind) { typeInit(t, kind); }
+void referneceTypeInit(Type *t, TypeKind kind, char const *name) {
+  typeInit(t, kind);
+  t->data.reference.name = name;
+}
+void modifierTypeInit(Type *t, TypeKind kind, Type *target) {
+  typeInit(t, kind);
+  t->data.modifier.type = target;
+}
+void arrayTypeInit(Type *t, Type *target, size_t size) {
+  typeInit(t, K_ARRAY);
+  t->data.array.type = target;
+  t->data.array.size = size;
+}
+void functionTypeInit(Type *t, Type *returnType, TypeVector *argumentTypes) {
+  typeInit(t, K_FUNCTION_PTR);
+  t->data.functionPtr.returnType = returnType;
+  t->data.functionPtr.argumentTypes = argumentTypes;
+}
+void typeUninit(Type *t) {
   switch (t->kind) {
     case K_VOID:
     case K_UBYTE:
@@ -93,5 +113,8 @@ void typeDestroy(Type *t) {
       break;
     }
   }
+}
+void typeDestroy(Type *t) {
+  typeUninit(t);
   free(t);
 }

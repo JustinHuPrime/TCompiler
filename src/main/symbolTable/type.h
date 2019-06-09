@@ -85,11 +85,21 @@ typedef struct Type {
   } data;
 } Type;
 
+// ctor
 Type *keywordTypeCreate(TypeKind kind);
 Type *referneceTypeCreate(TypeKind kind, char const *name);
 Type *modifierTypeCreate(TypeKind kind, Type *target);
 Type *arrayTypeCreate(Type *target, size_t size);
 Type *functionTypeCreate(Type *returnType, TypeVector *argumentTypes);
+// in-place ctor
+void keywordTypeInit(Type *, TypeKind kind);
+void referneceTypeInit(Type *, TypeKind kind, char const *name);
+void modifierTypeInit(Type *, TypeKind kind, Type *target);
+void arrayTypeInit(Type *, Type *target, size_t size);
+void functionTypeInit(Type *, Type *returnType, TypeVector *argumentTypes);
+// in-place dtor
+void typeUninit(Type *);
+// dtor
 void typeDestroy(Type *);
 
 #endif  // TLC_SYMBOLTABLE_TYPE_H_
