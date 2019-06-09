@@ -142,7 +142,7 @@ typedef enum {
   TT_LITERALWSTRING,
   TT_LITERALWCHAR,
 } TokenType;
-char const *tokenToName(TokenType);
+char const *tokenTypeToString(TokenType);
 
 // pod object, stores the result of a lex
 typedef struct {

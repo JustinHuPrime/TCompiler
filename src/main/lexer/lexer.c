@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char const *tokenToName(TokenType tt) {
+char const *tokenTypeToString(TokenType tt) {
   switch (tt) {
     case TT_ERR:
       return "a read error";
