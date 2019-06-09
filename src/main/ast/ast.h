@@ -431,8 +431,8 @@ extern uint64_t const LONG_MIN;
 // constructors
 // Note that all pointers should be owning pointers
 Node *fileNodeCreate(size_t line, size_t character, Node *module,
-                        NodeList *imports, NodeList *bodyParts,
-                        char const *filename);
+                     NodeList *imports, NodeList *bodyParts,
+                     char const *filename);
 Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);
 Node *importNodeCreate(size_t line, size_t character, Node *importId);
 Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,

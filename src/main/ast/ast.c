@@ -84,8 +84,8 @@ static Node *nodeCreate(size_t line, size_t character) {
   return node;
 }
 Node *fileNodeCreate(size_t line, size_t character, Node *module,
-                        NodeList *imports, NodeList *bodies,
-                        char const *filename) {
+                     NodeList *imports, NodeList *bodies,
+                     char const *filename) {
   Node *node = nodeCreate(line, character);
   node->type = NT_FILE;
   node->data.file.module = module;
