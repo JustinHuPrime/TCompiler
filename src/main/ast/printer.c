@@ -43,16 +43,16 @@ void nodePrintStructure(Node const *node) {
 
   // polymorphically, recursively print
   switch (node->type) {
-    case NT_PROGRAM: {
-      printf("PROGRAM(");
-      nodePrintStructure(node->data.program.module);
-      for (size_t idx = 0; idx < node->data.program.imports->size; idx++) {
+    case NT_FILE: {
+      printf("FILE(");
+      nodePrintStructure(node->data.file.module);
+      for (size_t idx = 0; idx < node->data.file.imports->size; idx++) {
         printf(" ");
-        nodePrintStructure(node->data.program.imports->elements[idx]);
+        nodePrintStructure(node->data.file.imports->elements[idx]);
       }
-      for (size_t idx = 0; idx < node->data.program.bodies->size; idx++) {
+      for (size_t idx = 0; idx < node->data.file.bodies->size; idx++) {
         printf(" ");
-        nodePrintStructure(node->data.program.bodies->elements[idx]);
+        nodePrintStructure(node->data.file.bodies->elements[idx]);
       }
       printf(")");
       break;
@@ -762,15 +762,15 @@ void nodePrint(Node const *node) {
 
   // recursively, polymorphically print
   switch (node->type) {
-    case NT_PROGRAM: {
-      nodePrint(node->data.program.module);
+    case NT_FILE: {
+      nodePrint(node->data.file.module);
       printf("\n");
-      for (size_t idx = 0; idx < node->data.program.imports->size; idx++) {
-        nodePrint(node->data.program.imports->elements[idx]);
+      for (size_t idx = 0; idx < node->data.file.imports->size; idx++) {
+        nodePrint(node->data.file.imports->elements[idx]);
       }
-      if (node->data.program.imports->size != 0) printf("\n");
-      for (size_t idx = 0; idx < node->data.program.bodies->size; idx++) {
-        nodePrint(node->data.program.bodies->elements[idx]);
+      if (node->data.file.imports->size != 0) printf("\n");
+      for (size_t idx = 0; idx < node->data.file.bodies->size; idx++) {
+        nodePrint(node->data.file.bodies->elements[idx]);
       }
       break;
     }

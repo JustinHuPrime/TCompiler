@@ -58,7 +58,7 @@ void nodePairListDestroy(NodePairList *);
 
 // tag for the specialized type of the AST node
 typedef enum {
-  NT_PROGRAM,
+  NT_FILE,
   NT_MODULE,
   NT_IMPORT,
   NT_FUNDECL,
@@ -206,7 +206,7 @@ typedef struct Node {
       NodeList *imports;
       NodeList *bodies;
       char const *filename;
-    } program;
+    } file;
 
     struct {
       struct Node *id;
@@ -430,7 +430,7 @@ extern uint64_t const LONG_MIN;
 
 // constructors
 // Note that all pointers should be owning pointers
-Node *programNodeCreate(size_t line, size_t character, Node *module,
+Node *fileNodeCreate(size_t line, size_t character, Node *module,
                         NodeList *imports, NodeList *bodyParts,
                         char const *filename);
 Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);
