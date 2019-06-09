@@ -24,19 +24,111 @@
 #include <stdlib.h>
 #include <string.h>
 
-SymbolInfo *symbolInfoCreate(void) { return malloc(sizeof(SymbolInfo)); }
+char const *symbolKindToString(SymbolKind kind) {
+  switch (kind) {
+    case SK_VAR:
+      return "a variable";
+    case SK_TYPE:
+      return "a type";
+    case SK_FUNCTION:
+      return "a function";
+  }
+}
+
+char const *typeDefinitionKindToString(TypeDefinitionKind kind) {
+  switch (kind) {
+    case TDK_STRUCT:
+      return "a struct";
+    case TDK_UNION:
+      return "a union";
+    case TDK_ENUM:
+      return "an enumeration";
+    case TDK_TYPEDEF:
+      return "a type alias";
+  }
+}
+
+static SymbolInfo *symbolInfoCreate(SymbolKind kind) {
+  SymbolInfo *si = malloc(sizeof(SymbolInfo));
+  si->kind = kind;
+  return si;
+}
+SymbolInfo *varSymbolInfoCreate(Type *type) {
+  SymbolInfo *si = symbolInfoCreate(SK_VAR);
+  si->data.var.type = type;
+  return si;
+}
+SymbolInfo *structSymbolInfoCreate(void) {
+  SymbolInfo *si = symbolInfoCreate(SK_TYPE);
+  si->data.type.kind = TDK_STRUCT;
+  si->data.type.data.structType.incomplete = true;
+  typeVectorInit(&si->data.type.data.structType.fields);
+  stringVectorInit(&si->data.type.data.structType.names);
+  return si;
+}
+SymbolInfo *unionSymbolInfoCreate(void) {
+  SymbolInfo *si = symbolInfoCreate(SK_TYPE);
+  si->data.type.kind = TDK_UNION;
+  si->data.type.data.unionType.incomplete = true;
+  typeVectorInit(&si->data.type.data.unionType.fields);
+  stringVectorInit(&si->data.type.data.unionType.names);
+  return si;
+}
+SymbolInfo *enumSymbolInfoCreate(void) {
+  SymbolInfo *si = symbolInfoCreate(SK_TYPE);
+  si->data.type.kind = TDK_ENUM;
+  si->data.type.data.enumType.incomplete = true;
+  stringVectorInit(&si->data.type.data.enumType.fields);
+  return si;
+}
+SymbolInfo *typdefSymbolInfoCreate(Type *what) {
+  SymbolInfo *si = symbolInfoCreate(SK_TYPE);
+  si->data.type.kind = TDK_TYPEDEF;
+  si->data.type.data.typedefType.type = what;
+  return si;
+}
+SymbolInfo *functionSymbolInfoCreate(Type *returnType) {
+  SymbolInfo *si = symbolInfoCreate(SK_FUNCTION);
+  si->data.function.returnType = returnType;
+  typeVectorInit(&si->data.function.argumentTypes);
+  return si;
+}
 void symbolInfoDestroy(SymbolInfo *si) {
-  switch (si->kind) {  // TODO: write this
+  switch (si->kind) {
     case SK_VAR: {
+      typeDestroy(si->data.var.type);
       break;
     }
     case SK_TYPE: {
+      switch (si->data.type.kind) {
+        case TDK_STRUCT: {
+          typeVectorUninit(&si->data.type.data.structType.fields);
+          stringVectorUninit(&si->data.type.data.structType.names, false);
+          break;
+        }
+        case TDK_UNION: {
+          typeVectorUninit(&si->data.type.data.unionType.fields);
+          stringVectorUninit(&si->data.type.data.unionType.names, false);
+          break;
+        }
+        case TDK_ENUM: {
+          stringVectorUninit(&si->data.type.data.unionType.fields, false);
+          break;
+        }
+        case TDK_TYPEDEF: {
+          typeDestroy(si->data.type.data.typedefType.type);
+          break;
+        }
+      }
       break;
     }
     case SK_FUNCTION: {
+      typeDestroy(si->data.function.returnType);
+      typeVectorUninit(&si->data.function.argumentTypes);
       break;
     }
   }
+  free(si);
 }
 
 SymbolTable *symbolTableCreate(void) { return hashMapCreate(); }

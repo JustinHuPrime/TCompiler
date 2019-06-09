@@ -27,35 +27,44 @@
 #include "util/errorReport.h"
 #include "util/ternary.h"
 
+typedef enum {
+  SK_VAR,
+  SK_TYPE,
+  SK_FUNCTION,
+} SymbolKind;
+char const *symbolKindToString(SymbolKind);
+
+typedef enum {
+  TDK_STRUCT,
+  TDK_UNION,
+  TDK_ENUM,
+  TDK_TYPEDEF,
+} TypeDefinitionKind;
+char const *typeDefinitionKindToString(TypeDefinitionKind);
+
 // information for a symbol in some module
 typedef struct {
-  enum {
-    SK_VAR,
-    SK_TYPE,
-    SK_FUNCTION,
-  } kind;
+  SymbolKind kind;
   union {
     struct {
       Type *type;
     } var;
     struct {
-      enum {
-        TDK_STRUCT,
-        TDK_UNION,
-        TDK_ENUM,
-        TDK_TYPEDEF,
-      } typeDefinitionKind;
+      TypeDefinitionKind kind;
       union {
         struct {
-          TypeVector *fields;
-          StringVector *names;
+          bool incomplete;
+          TypeVector fields;
+          StringVector names;
         } structType;
         struct {
-          TypeVector *fields;
-          StringVector *names;
+          bool incomplete;
+          TypeVector fields;
+          StringVector names;
         } unionType;
         struct {
-          StringVector *fields;
+          bool incomplete;
+          StringVector fields;
         } enumType;
         struct {
           Type *type;
@@ -64,11 +73,18 @@ typedef struct {
     } type;
     struct {
       Type *returnType;
-      Vector *argumentTypes;
+      Vector argumentTypes;
     } function;
   } data;
 } SymbolInfo;
-SymbolInfo *symbolInfoCreate(void);
+// ctor
+SymbolInfo *varSymbolInfoCreate(Type *);
+SymbolInfo *structSymbolInfoCreate(void);
+SymbolInfo *unionSymbolInfoCreate(void);
+SymbolInfo *enumSymbolInfoCreate(void);
+SymbolInfo *typedefSymbolInfoCreate(Type *);
+SymbolInfo *functionSymbolInfoCreate(Type *returnType);
+// dtor
 void symbolInfoDestroy(SymbolInfo *);
 
 // symbol table for a module
