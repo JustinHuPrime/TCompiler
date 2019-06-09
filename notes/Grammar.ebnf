@@ -68,7 +68,7 @@ break_statement = "break", ";" ;
 continue_statement = "continue", ";" ;
 return_statement = "return", [ expression ], ";" ;
 variable_declaration_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
-asm_statement = "asm", string_constant ;
+asm_statement = "asm", string_constant, ";" ;
 expression = assignment_expression
            | expression, ",", assignment_expression
            ;
