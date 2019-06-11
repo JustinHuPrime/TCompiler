@@ -29,7 +29,7 @@ void optionsInit(Options *options) { hashMapInit(options); }
 intptr_t optionsGet(Options const *options, char const *key) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wbad-function-cast"
-  return (intptr_t)(hashMapGet(options, key));
+  return (intptr_t)hashMapGet(options, key);
 #pragma GCC diagnostic pop
 }
 void optionsSet(Options *options, char const *key, intptr_t value) {

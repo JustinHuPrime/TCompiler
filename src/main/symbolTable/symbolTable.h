@@ -14,7 +14,7 @@
 //
 // This file is part of the T Language Compiler.
 
-// Symbol table for parse and typecheck time
+// Symbol table for typecheck time
 
 #ifndef TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 #define TLC_SYMBOLTABLE_SYMBOLTABLE_H_
@@ -111,13 +111,10 @@ typedef struct {
   char const *currentModuleName;  // non-owning current module name
   Stack scopes;                   // stack of local env symbol tables (owning)
 } Environment;
-Environment *environmentCreate(SymbolTable *currentModule,
-                               char const *currentModuleName);
 void environmentInit(Environment *, SymbolTable *currentModule,
                      char const *currentModuleName);
 TernaryValue environmentIsType(Environment const *, Report *report,
                                TokenInfo const *token, char const *filename);
 void environmentUninit(Environment *);
-void environmentDestroy(Environment *);
 
 #endif  // TLC_SYMBOLTABLE_SYMBOLTABLE_H_

@@ -19,6 +19,7 @@
 #include "parser/parser.h"
 
 #include "lexer/lexer.h"
+#include "symbolTable/typeTable.h"
 #include "util/functional.h"
 
 #include <stdlib.h>
@@ -56,43 +57,6 @@ void moduleAstMapPairUninit(ModuleAstMapPair *pair) {
 }
 void moduleAstMapPairDestroy(ModuleAstMapPair *pair) {
   moduleAstMapPairInit(pair);
-  free(pair);
-}
-
-ModuleSymbolTableMap *moduleSymbolTableMapCreate(void) {
-  return hashMapCreate();
-}
-void moduleSymbolTableMapInit(ModuleSymbolTableMap *map) { hashMapInit(map); }
-SymbolTable *moduleSymbolTableMapGet(ModuleSymbolTableMap const *map,
-                                     char const *key) {
-  return hashMapGet(map, key);
-}
-int moduleSymbolTableMapPut(ModuleSymbolTableMap *map, char const *key,
-                            SymbolTable *value) {
-  return hashMapPut(map, key, value, (void (*)(void *))symbolTableDestroy);
-}
-void moduleSymbolTableMapUninit(ModuleSymbolTableMap *map) {
-  hashMapUninit(map, (void (*)(void *))symbolTableDestroy);
-}
-void moduleSymbolTableMapDestroy(ModuleSymbolTableMap *map) {
-  hashMapDestroy(map, (void (*)(void *))symbolTableDestroy);
-}
-
-ModuleSymbolTableMapPair *moduleSymbolTableMapPairCreate(void) {
-  ModuleSymbolTableMapPair *pair = malloc(sizeof(ModuleSymbolTableMapPair));
-  moduleSymbolTableMapPairInit(pair);
-  return pair;
-}
-void moduleSymbolTableMapPairInit(ModuleSymbolTableMapPair *pair) {
-  moduleSymbolTableMapInit(&pair->codes);
-  moduleSymbolTableMapInit(&pair->decls);
-}
-void moduleSymbolTableMapPairUninit(ModuleSymbolTableMapPair *pair) {
-  moduleSymbolTableMapUninit(&pair->codes);
-  moduleSymbolTableMapUninit(&pair->decls);
-}
-void moduleSymbolTableMapPairDestroy(ModuleSymbolTableMapPair *pair) {
-  moduleSymbolTableMapPairUninit(pair);
   free(pair);
 }
 
@@ -196,15 +160,15 @@ static Node *parseModule(Report *report, LexerInfo *info) {
 
 // imports
 static Node *parseDeclFile(Report *report, Options *options,
-                           ModuleSymbolTableMapPair *stabs,
+                           ModuleTypeTableMap *typeTable,
                            Stack *dependencyStack, ModuleLexerInfoMap *miMap,
                            ModuleNodeMap *mnMap, ModuleAstMap *decls,
                            LexerInfo *lexerInfo, Node *module);
 static Node *parseDeclImport(Report *report, Options *options,
-                             ModuleSymbolTableMapPair *stabs, Environment *env,
-                             Stack *dependencyStack, ModuleLexerInfoMap *miMap,
-                             ModuleNodeMap *mnMap, ModuleAstMap *decls,
-                             LexerInfo *info) {
+                             ModuleTypeTableMap *typeTable,
+                             TypeEnvironment *env, Stack *dependencyStack,
+                             ModuleLexerInfoMap *miMap, ModuleNodeMap *mnMap,
+                             ModuleAstMap *decls, LexerInfo *info) {
   TokenInfo importToken;
   lex(&importToken, report, info);
   if (importToken.type != TT_IMPORT) {
@@ -237,10 +201,10 @@ static Node *parseDeclImport(Report *report, Options *options,
     return NULL;
   }
 
-  // find and add the stab in stabs to env
-  SymbolTable *importedStab =
-      moduleSymbolTableMapGet(&stabs->decls, idNode->data.id.id);
-  if (importedStab == NULL) {
+  // find and add the stab in typeTables to env
+  TypeTable *importedTypeTable =
+      moduleTypeTableMapGet(typeTable, idNode->data.id.id);
+  if (importedTypeTable == NULL) {
     for (size_t idx = 0; idx < dependencyStack->size; idx++) {
       if (strcmp(idNode->data.id.id, dependencyStack->elements[idx]) == 0) {
         // circular dep between current and all later elements in the stack
@@ -263,19 +227,19 @@ static Node *parseDeclImport(Report *report, Options *options,
       }
     }
     Node *parsed =
-        parseDeclFile(report, options, stabs, dependencyStack, miMap, mnMap,
+        parseDeclFile(report, options, typeTable, dependencyStack, miMap, mnMap,
                       decls, moduleLexerInfoMapGet(miMap, idNode->data.id.id),
                       moduleNodeMapGet(mnMap, idNode->data.id.id));
     if (parsed != NULL) {
       moduleAstMapPut(decls, idNode->data.id.id, parsed);
-      importedStab = moduleSymbolTableMapGet(&stabs->decls, idNode->data.id.id);
+      importedTypeTable = moduleTypeTableMapGet(typeTable, idNode->data.id.id);
     } else {
       nodeDestroy(idNode);
       return NULL;
     }
   }
-  int retVal =
-      moduleTableMapPut(&env->imports, idNode->data.id.id, importedStab);
+  int retVal = moduleTypeTableMapPut(&env->imports, idNode->data.id.id,
+                                     importedTypeTable);
   if (retVal == HM_EEXISTS) {
     switch (optionsGet(options, optionWDuplicateImport)) {
       case O_WT_ERROR: {
@@ -301,8 +265,8 @@ static Node *parseDeclImport(Report *report, Options *options,
   return moduleNodeCreate(importToken.line, importToken.character, idNode);
 }
 static Node *parseCodeImport(Report *report, Options *options,
-                             ModuleSymbolTableMapPair *stabs, Environment *env,
-                             LexerInfo *info) {
+                             ModuleTypeTableMap *typeTables,
+                             TypeEnvironment *env, LexerInfo *info) {
   TokenInfo importToken;
   lex(&importToken, report, info);
   if (importToken.type != TT_IMPORT) {
@@ -335,10 +299,10 @@ static Node *parseCodeImport(Report *report, Options *options,
     return NULL;
   }
 
-  // find and add the stab in stabs to env
-  int retVal = moduleTableMapPut(
+  // find and add the stab in typeTables to env
+  int retVal = moduleTypeTableMapPut(
       &env->imports, idNode->data.id.id,
-      moduleSymbolTableMapGet(&stabs->decls, idNode->data.id.id));
+      moduleTypeTableMapGet(typeTables, idNode->data.id.id));
   if (retVal == HM_EEXISTS) {
     switch (optionsGet(options, optionWDuplicateImport)) {
       case O_WT_ERROR: {
@@ -363,8 +327,8 @@ static Node *parseCodeImport(Report *report, Options *options,
   return moduleNodeCreate(importToken.line, importToken.character, idNode);
 }
 static NodeList *parseDeclImports(Report *report, Options *options,
-                                  ModuleSymbolTableMapPair *stabs,
-                                  Environment *env, Stack *dependencyStack,
+                                  ModuleTypeTableMap *typeTables,
+                                  TypeEnvironment *env, Stack *dependencyStack,
                                   ModuleLexerInfoMap *miMap,
                                   ModuleNodeMap *mnMap, ModuleAstMap *decls,
                                   LexerInfo *info) {
@@ -375,8 +339,8 @@ static NodeList *parseDeclImports(Report *report, Options *options,
 
   while (peek.type == TT_IMPORT) {
     unLex(info, &peek);
-    Node *node = parseDeclImport(report, options, stabs, env, dependencyStack,
-                                 miMap, mnMap, decls, info);
+    Node *node = parseDeclImport(report, options, typeTables, env,
+                                 dependencyStack, miMap, mnMap, decls, info);
     if (node == NULL) {
       nodeListDestroy(imports);
       return NULL;
@@ -391,8 +355,8 @@ static NodeList *parseDeclImports(Report *report, Options *options,
   return imports;
 }
 static NodeList *parseCodeImports(Report *report, Options *options,
-                                  ModuleSymbolTableMapPair *stabs,
-                                  Environment *env, LexerInfo *info) {
+                                  ModuleTypeTableMap *typeTables,
+                                  TypeEnvironment *env, LexerInfo *info) {
   NodeList *imports = nodeListCreate();
 
   TokenInfo peek;
@@ -400,7 +364,7 @@ static NodeList *parseCodeImports(Report *report, Options *options,
 
   while (peek.type == TT_IMPORT) {
     unLex(info, &peek);
-    Node *node = parseCodeImport(report, options, stabs, env, info);
+    Node *node = parseCodeImport(report, options, typeTables, env, info);
     if (node == NULL) {
       nodeListDestroy(imports);
       return NULL;
@@ -420,26 +384,29 @@ static NodeList *parseCodeImports(Report *report, Options *options,
 // statement
 
 // body
+static Node *parseVariableDecl(Report *report, Options *options,
+                               TypeEnvironment *env, LexerInfo *info) {
+  return NULL;  // TODO: write this
+}
 static NodeList *parseStructElements(Report *report, Options *options,
-                                     Environment *env, SymbolInfo *structInfo,
-                                     LexerInfo *info) {
+                                     TypeEnvironment *env, LexerInfo *info) {
   NodeList *elements = nodeListCreate();
 
   TokenInfo peek;
   lex(&peek, report, info);
 
-  while (tokenInfoIsTypeKeyword(peek.type) || peek.type == TT_SCOPED_ID ||
+  while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_SCOPED_ID ||
          peek.type == TT_ID) {
     unLex(info, &peek);
     if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
-      TernaryValue isType =
-          environmentIsType(env, report, &peek, info->filename);
-      if (isType == INDETERMINATE) {
-        nodeListDestroy(elements);
-        return NULL;
-      } else if (isType == NO) {
-        break;
-      }
+      // TernaryValue isType =
+      //     environmentIsType(env, report, &peek, info->filename);
+      // if (isType == INDETERMINATE) {
+      //   nodeListDestroy(elements);
+      //   return NULL;
+      // } else if (isType == NO) {
+      //   break;
+      // } // TODO: finish this
     }
 
     // is the start of a type!
@@ -455,8 +422,8 @@ static NodeList *parseStructElements(Report *report, Options *options,
 
   return elements;
 }
-static Node *parseStructDecl(Report *report, Options *options, Environment *env,
-                             LexerInfo *info) {
+static Node *parseStructDecl(Report *report, Options *options,
+                             TypeEnvironment *env, LexerInfo *info) {
   TokenInfo structKwd;
   lex(&structKwd, report, info);  // must be right to get here
 
@@ -469,123 +436,129 @@ static Node *parseStructDecl(Report *report, Options *options, Environment *env,
   switch (nextToken.type) {
     case TT_SEMI: {
       // declaration
-      SymbolInfo *symbol = symbolTableGet(
-          env->scopes.size == 0 ? env->currentModule
-                                : env->scopes.elements[env->scopes.size - 1],
-          id->data.id.id);
-      if (symbol == NULL) {
-        symbolTablePut(env->scopes.size == 0
-                           ? env->currentModule
-                           : env->scopes.elements[env->scopes.size - 1],
-                       id->data.id.id, structSymbolInfoCreate());
-      } else {
-        switch (optionsGet(options, optionWDuplicateDeclaration)) {
-          case O_WT_ERROR: {
-            reportWarning(report, "%s:%zu:%zu: error: redeclaration of '%s'",
-                          info->filename, id->line, id->character,
-                          id->data.id.id);
-            nodeDestroy(id);
-            return NULL;
-          }
-          case O_WT_WARN: {
-            reportWarning(report, "%s:%zu:%zu: warning: redeclaration of '%s'",
-                          info->filename, id->line, id->character,
-                          id->data.id.id);
-            break;
-          }
-          case O_WT_IGNORE: {
-            break;
-          }
-        }
-        if (symbol->kind != SK_TYPE) {
-          reportError(report,
-                      "%s:%zu:%zu: error: '%s' already declared as %s\n",
-                      info->filename, id->line, id->character, id->data.id.id,
-                      symbolKindToString(symbol->kind));
-          nodeDestroy(id);
-          return NULL;
-        } else if (symbol->data.type.kind != TDK_STRUCT) {
-          reportError(report,
-                      "%s:%zu:%zu: error: '%s' already declared as %s\n",
-                      info->filename, id->line, id->character, id->data.id.id,
-                      typeDefinitionKindToString(symbol->data.type.kind));
-          nodeDestroy(id);
-          return NULL;
-        }
-      }
-      return structForwardDeclNodeCreate(structKwd.line, structKwd.character,
-                                         id);
+      // SymbolInfo *symbol = symbolTableGet(
+      //     env->scopes.size == 0 ? env->currentModule
+      //                           : env->scopes.elements[env->scopes.size - 1],
+      //     id->data.id.id);
+      // if (symbol == NULL) {
+      //   symbolTablePut(env->scopes.size == 0
+      //                      ? env->currentModule
+      //                      : env->scopes.elements[env->scopes.size - 1],
+      //                  id->data.id.id, structSymbolInfoCreate());
+      // } else {
+      //   switch (optionsGet(options, optionWDuplicateDeclaration)) {
+      //     case O_WT_ERROR: {
+      //       reportWarning(report, "%s:%zu:%zu: error: redeclaration of '%s'",
+      //                     info->filename, id->line, id->character,
+      //                     id->data.id.id);
+      //       nodeDestroy(id);
+      //       return NULL;
+      //     }
+      //     case O_WT_WARN: {
+      //       reportWarning(report, "%s:%zu:%zu: warning: redeclaration of
+      //       '%s'",
+      //                     info->filename, id->line, id->character,
+      //                     id->data.id.id);
+      //       break;
+      //     }
+      //     case O_WT_IGNORE: {
+      //       break;
+      //     }
+      //   }
+      //   if (symbol->kind != SK_TYPE) {
+      //     reportError(report,
+      //                 "%s:%zu:%zu: error: '%s' already declared as %s\n",
+      //                 info->filename, id->line, id->character,
+      //                 id->data.id.id, symbolKindToString(symbol->kind));
+      //     nodeDestroy(id);
+      //     return NULL;
+      //   } else if (symbol->data.type.kind != TDK_STRUCT) {
+      //     reportError(report,
+      //                 "%s:%zu:%zu: error: '%s' already declared as %s\n",
+      //                 info->filename, id->line, id->character,
+      //                 id->data.id.id,
+      //                 typeDefinitionKindToString(symbol->data.type.kind));
+      //     nodeDestroy(id);
+      //     return NULL;
+      //   }
+      // }
+      //   return structForwardDeclNodeCreate(structKwd.line,
+      //   structKwd.character,
+      //                                      id); // TODO: write this
     }
     case TT_LBRACE: {
-      // definition: must not be exist or only be declared
-      SymbolInfo *symbol = symbolTableGet(
-          env->scopes.size == 0 ? env->currentModule
-                                : env->scopes.elements[env->scopes.size - 1],
-          id->data.id.id);
+      // // definition: must not be exist or only be declared
+      // SymbolInfo *symbol = symbolTableGet(
+      //     env->scopes.size == 0 ? env->currentModule
+      //                           : env->scopes.elements[env->scopes.size - 1],
+      //     id->data.id.id);
 
-      if (symbol == NULL) {
-        symbol = structSymbolInfoCreate();
-        symbolTablePut(env->scopes.size == 0
-                           ? env->currentModule
-                           : env->scopes.elements[env->scopes.size - 1],
-                       id->data.id.id, symbol);
-      } else if (symbol->kind != SK_TYPE) {
-        reportError(report, "%s:%zu:%zu: error: '%s' already declared as %s\n",
-                    info->filename, id->line, id->character, id->data.id.id,
-                    symbolKindToString(symbol->kind));
-        nodeDestroy(id);
-        return NULL;
-      } else if (symbol->data.type.kind != TDK_STRUCT) {
-        reportError(report, "%s:%zu:%zu: error: '%s' already declared as %s\n",
-                    info->filename, id->line, id->character, id->data.id.id,
-                    typeDefinitionKindToString(symbol->data.type.kind));
-        nodeDestroy(id);
-        return NULL;
-      } else if (!symbol->data.type.data.structType.incomplete) {
-        reportError(report, "%s:%zu:%zu: error: duplicate definition of '%s'\n",
-                    info->filename, id->line, id->character, id->data.id.id);
-        nodeDestroy(id);
-        return NULL;
-      }
-      NodeList *elements =
-          parseStructElements(report, options, env, symbol, info);
-      if (elements == NULL) {
-        nodeDestroy(id);
-        return NULL;
-      }
+      // if (symbol == NULL) {
+      //   symbol = structSymbolInfoCreate();
+      //   symbolTablePut(env->scopes.size == 0
+      //                      ? env->currentModule
+      //                      : env->scopes.elements[env->scopes.size - 1],
+      //                  id->data.id.id, symbol);
+      // } else if (symbol->kind != SK_TYPE) {
+      //   reportError(report, "%s:%zu:%zu: error: '%s' already declared as
+      //   %s\n",
+      //               info->filename, id->line, id->character, id->data.id.id,
+      //               symbolKindToString(symbol->kind));
+      //   nodeDestroy(id);
+      //   return NULL;
+      // } else if (symbol->data.type.kind != TDK_STRUCT) {
+      //   reportError(report, "%s:%zu:%zu: error: '%s' already declared as
+      //   %s\n",
+      //               info->filename, id->line, id->character, id->data.id.id,
+      //               typeDefinitionKindToString(symbol->data.type.kind));
+      //   nodeDestroy(id);
+      //   return NULL;
+      // } else if (!symbol->data.type.data.structType.incomplete) {
+      //   reportError(report, "%s:%zu:%zu: error: duplicate definition of
+      //   '%s'\n",
+      //               info->filename, id->line, id->character, id->data.id.id);
+      //   nodeDestroy(id);
+      //   return NULL;
+      // }
+      // NodeList *elements =
+      //     parseStructElements(report, options, env, symbol, info);
+      // if (elements == NULL) {
+      //   nodeDestroy(id);
+      //   return NULL;
+      // }
 
-      TokenInfo closeBrace;
-      lex(&closeBrace, report, info);
-      if (closeBrace.type != TT_RBRACE) {
-        if (!tokenInfoIsLexerError(&closeBrace)) {
-          reportError(report,
-                      "%s:%zu:%zu: error: expected a right brace to close the "
-                      "struct definition, but found %s",
-                      info->filename, closeBrace.line, closeBrace.character,
-                      tokenTypeToString(closeBrace.type));
-        }
-        tokenInfoUninit(&closeBrace);
-        nodeListDestroy(elements);
-        nodeDestroy(id);
-      }
+      // TokenInfo closeBrace;
+      // lex(&closeBrace, report, info);
+      // if (closeBrace.type != TT_RBRACE) {
+      //   if (!tokenInfoIsLexerError(&closeBrace)) {
+      //     reportError(report,
+      //                 "%s:%zu:%zu: error: expected a right brace to close the
+      //                 " "struct definition, but found %s", info->filename,
+      //                 closeBrace.line, closeBrace.character,
+      //                 tokenTypeToString(closeBrace.type));
+      //   }
+      //   tokenInfoUninit(&closeBrace);
+      //   nodeListDestroy(elements);
+      //   nodeDestroy(id);
+      // }
 
-      TokenInfo semicolon;
-      lex(&semicolon, report, info);
-      if (semicolon.type != TT_SEMI) {
-        if (!tokenInfoIsLexerError(&semicolon)) {
-          reportError(report,
-                      "%s:%zu:%zu: error: expected a semicolon to close the "
-                      "struct definition, but found %s",
-                      info->filename, semicolon.line, semicolon.character,
-                      tokenTypeToString(semicolon.type));
-        }
-        tokenInfoUninit(&semicolon);
-        nodeListDestroy(elements);
-        nodeDestroy(id);
-      }
+      // TokenInfo semicolon;
+      // lex(&semicolon, report, info);
+      // if (semicolon.type != TT_SEMI) {
+      //   if (!tokenInfoIsLexerError(&semicolon)) {
+      //     reportError(report,
+      //                 "%s:%zu:%zu: error: expected a semicolon to close the "
+      //                 "struct definition, but found %s",
+      //                 info->filename, semicolon.line, semicolon.character,
+      //                 tokenTypeToString(semicolon.type));
+      //   }
+      //   tokenInfoUninit(&semicolon);
+      //   nodeListDestroy(elements);
+      //   nodeDestroy(id);
+      // }
 
-      return structDeclNodeCreate(structKwd.line, structKwd.character, id,
-                                  elements);
+      // return structDeclNodeCreate(structKwd.line, structKwd.character, id,
+      //                             elements); // TODO: write this
     }
     default: {
       if (!tokenInfoIsLexerError(&nextToken)) {
@@ -600,15 +573,15 @@ static Node *parseStructDecl(Report *report, Options *options, Environment *env,
     }
   }
 }
-static Node *parseUnionDecl(Report *report, Options *options, Environment *env,
-                            LexerInfo *info) {}
-static Node *parseEnumDecl(Report *report, Options *options, Environment *env,
-                           LexerInfo *info) {}
-static Node *parseTypedef(Report *report, Options *options, Environment *env,
-                          LexerInfo *info) {}
+static Node *parseUnionDecl(Report *report, Options *options,
+                            TypeEnvironment *env, LexerInfo *info) {}
+static Node *parseEnumDecl(Report *report, Options *options,
+                           TypeEnvironment *env, LexerInfo *info) {}
+static Node *parseTypedef(Report *report, Options *options,
+                          TypeEnvironment *env, LexerInfo *info) {}
 static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
-                                     Environment *env, LexerInfo *info) {}
-static Node *parseBody(Report *report, Options *options, Environment *env,
+                                     TypeEnvironment *env, LexerInfo *info) {}
+static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
                        LexerInfo *info) {
   TokenInfo peek;
   lex(&peek, report, info);
@@ -637,19 +610,20 @@ static Node *parseBody(Report *report, Options *options, Environment *env,
 
     case TT_ID:
     case TT_SCOPED_ID: {
-      TernaryValue isType =
-          environmentIsType(env, report, &peek, info->filename);
-      if (isType == NO) {
-        reportError(report,
-                    "%s:%zu:%zu: error: expected a declaration, but found an "
-                    "identifier\n",
-                    info->filename, peek.line, peek.character);
-      }
-      if (isType != YES) {
-        return NULL;
-      }
-      // might be a type
-      __attribute__((fallthrough));
+      // TernaryValue isType =
+      //     environmentIsType(env, report, &peek, info->filename);
+      // if (isType == NO) {
+      //   reportError(report,
+      //               "%s:%zu:%zu: error: expected a declaration, but found an
+      //               " "identifier\n", info->filename, peek.line,
+      //               peek.character);
+      // }
+      // if (isType != YES) {
+      //   return NULL;
+      // }
+      // // might be a type
+      // __attribute__((fallthrough));
+      // TODO: write this
     }
     case TT_VOID:
     case TT_UBYTE:
@@ -679,8 +653,8 @@ static Node *parseBody(Report *report, Options *options, Environment *env,
     }
   }
 }
-static NodeList *parseBodies(Report *report, Options *options, Environment *env,
-                             LexerInfo *info) {
+static NodeList *parseBodies(Report *report, Options *options,
+                             TypeEnvironment *env, LexerInfo *info) {
   NodeList *bodies = nodeListCreate();
 
   TokenInfo peek;
@@ -704,82 +678,82 @@ static NodeList *parseBodies(Report *report, Options *options, Environment *env,
 
 // whole file
 static Node *parseDeclFile(Report *report, Options *options,
-                           ModuleSymbolTableMapPair *stabs,
+                           ModuleTypeTableMap *typeTables,
                            Stack *dependencyStack, ModuleLexerInfoMap *miMap,
                            ModuleNodeMap *mnMap, ModuleAstMap *decls,
                            LexerInfo *lexerInfo, Node *module) {
-  SymbolTable *currStab = symbolTableCreate();  // env setup
-  Environment env;
-  environmentInit(&env, currStab, module->data.module.id->data.id.id);
+  TypeTable *currTypes = typeTableCreate();  // env setup
+  TypeEnvironment env;
+  typeEnvironmentInit(&env, currTypes, module->data.module.id->data.id.id);
 
   NodeList *imports =
-      parseDeclImports(report, options, stabs, &env, dependencyStack, miMap,
-                       mnMap, decls, lexerInfo);
+      parseDeclImports(report, options, typeTables, &env, dependencyStack,
+                       miMap, mnMap, decls, lexerInfo);
   if (imports == NULL) {
-    environmentUninit(&env);
-    symbolTableDestroy(currStab);
+    typeEnvironmentUninit(&env);
+    typeTableDestroy(currTypes);
     nodeDestroy(module);
     return NULL;
   }
   NodeList *bodies = parseBodies(report, options, &env, lexerInfo);
   if (bodies == NULL) {
     nodeListDestroy(imports);
-    environmentUninit(&env);
-    symbolTableDestroy(currStab);
+    typeEnvironmentUninit(&env);
+    typeTableDestroy(currTypes);
     nodeDestroy(module);
     return NULL;
   }
 
   // env cleanup
-  moduleSymbolTableMapPut(&stabs->decls, module->data.module.id->data.id.id,
-                          currStab);
-  environmentUninit(&env);
+  moduleTypeTableMapPut(typeTables, module->data.module.id->data.id.id,
+                        currTypes);
+  typeEnvironmentUninit(&env);
 
   return fileNodeCreate(module->line, module->character, module, imports,
                         bodies, lexerInfo->filename);
 }
 static Node *parseCodeFile(Report *report, Options *options,
-                           ModuleSymbolTableMapPair *stabs,
+                           ModuleTypeTableMap *typeTables,
                            LexerInfo *lexerInfo) {
   Node *module = parseModule(report, lexerInfo);
   if (module == NULL) {
     return NULL;
   }
 
-  SymbolTable *currStab = symbolTableCreate();  // env setup
-  Environment env;
-  environmentInit(&env, currStab, module->data.module.id->data.id.id);
+  TypeTable *currTypes = typeTableCreate();  // env setup
+  TypeEnvironment env;
+  typeEnvironmentInit(&env, currTypes, module->data.module.id->data.id.id);
 
-  NodeList *imports = parseCodeImports(report, options, stabs, &env, lexerInfo);
+  NodeList *imports =
+      parseCodeImports(report, options, typeTables, &env, lexerInfo);
   if (imports == NULL) {
-    environmentUninit(&env);
-    symbolTableDestroy(currStab);
+    typeEnvironmentUninit(&env);
+    typeTableDestroy(currTypes);
     nodeDestroy(module);
     return NULL;
   }
   NodeList *bodies = parseBodies(report, options, &env, lexerInfo);
   if (bodies == NULL) {
     nodeListDestroy(imports);
-    environmentUninit(&env);
-    symbolTableDestroy(currStab);
+    typeEnvironmentUninit(&env);
+    typeTableDestroy(currTypes);
     nodeDestroy(module);
     return NULL;
   }
 
   // env cleanup
-  moduleSymbolTableMapPut(&stabs->codes, module->data.module.id->data.id.id,
-                          currStab);
-  environmentUninit(&env);
+  moduleTypeTableMapPut(typeTables, module->data.module.id->data.id.id,
+                        currTypes);
+  typeEnvironmentUninit(&env);
 
   return fileNodeCreate(module->line, module->character, module,
                         nodeListCreate(), nodeListCreate(),
                         lexerInfo->filename);
 }
 
-void parse(ModuleAstMapPair *asts, ModuleSymbolTableMapPair *stabs,
-           Report *report, Options *options, FileList *files) {
+void parse(ModuleAstMapPair *asts, Report *report, Options *options,
+           FileList *files) {
   moduleAstMapPairInit(asts);
-  moduleSymbolTableMapPairInit(stabs);
 
   KeywordMap kwMap;
   keywordMapInit(&kwMap);
@@ -825,6 +799,9 @@ void parse(ModuleAstMapPair *asts, ModuleSymbolTableMapPair *stabs,
     return;
   }
 
+  ModuleTypeTableMap typeTables;
+  moduleTypeTableMapInit(&typeTables);
+
   // parse all decl files in order
   while (asts->decls.size < miMap.size) {
     Stack dependencyStack;
@@ -836,8 +813,8 @@ void parse(ModuleAstMapPair *asts, ModuleSymbolTableMapPair *stabs,
       if (miMap.keys[idx] != NULL &&
           moduleAstMapGet(&asts->decls, miMap.keys[idx]) == NULL) {
         Node *parsed =
-            parseDeclFile(report, options, stabs, &dependencyStack, &miMap,
-                          &mnMap, &asts->decls, miMap.values[idx],
+            parseDeclFile(report, options, &typeTables, &dependencyStack,
+                          &miMap, &mnMap, &asts->decls, miMap.values[idx],
                           moduleNodeMapGet(&mnMap, miMap.keys[idx]));
         if (parsed != NULL) {
           moduleAstMapPut(&asts->decls, miMap.keys[idx], parsed);
@@ -852,7 +829,7 @@ void parse(ModuleAstMapPair *asts, ModuleSymbolTableMapPair *stabs,
 
   for (size_t idx = 0; idx < files->codes.size; idx++) {
     Node *parsed =
-        parseCodeFile(report, options, stabs,
+        parseCodeFile(report, options, &typeTables,
                       lexerInfoCreate(files->codes.elements[idx],
                                       &kwMap));  // may be null, but don't case
     if (parsed != NULL) {
@@ -874,5 +851,6 @@ void parse(ModuleAstMapPair *asts, ModuleSymbolTableMapPair *stabs,
     }
   }
 
+  moduleTypeTableMapUninit(&typeTables);
   keywordMapUninit(&kwMap);
 }

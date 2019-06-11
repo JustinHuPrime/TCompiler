@@ -61,10 +61,8 @@ int main(int argc, char *argv[]) {
 
   // parse the files
   ModuleAstMapPair asts;
-  ModuleSymbolTableMapPair stabs;
-  parse(&asts, &stabs, &report, &options, &files);
+  parse(&asts, &report, &options, &files);
   if (reportState(&report) == RPT_ERR) {
-    moduleSymbolTableMapPairUninit(&stabs);
     moduleAstMapPairUninit(&asts);
     fileListUninit(&files);
     optionsUninit(&options);
@@ -86,8 +84,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // ModuleSymbolTableMapPair stabs;
+
   // clean up
-  moduleSymbolTableMapPairUninit(&stabs);
+  // moduleSymbolTableMapPairUninit(&stabs);
   moduleAstMapPairUninit(&asts);
   fileListUninit(&files);
   optionsUninit(&options);

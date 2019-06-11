@@ -16,8 +16,8 @@
 
 // Utilities for names, scoped or otherwise
 
-#ifndef TLC_PARSER_NAMEUTILS_H_
-#define TLC_PARSER_NAMEUTILS_H_
+#ifndef TLC_UTIL_NAMEUTILS_H_
+#define TLC_UTIL_NAMEUTILS_H_
 
 #include <stdbool.h>
 
@@ -27,4 +27,4 @@ bool isScoped(char const *);
 // splits a name into the module and the short name (must be scoped)
 void splitName(char const *fullName, char **module, char **shortName);
 
-#endif  // TLC_PARSER_NAMEUTILS_H_
+#endif  // TLC_UTIL_NAMEUTILS_H_

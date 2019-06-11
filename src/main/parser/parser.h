@@ -19,7 +19,6 @@
 #ifndef TLC_PARSER_PARSER_H_
 #define TLC_PARSER_PARSER_H_
 
-#include "symbolTable/symbolTable.h"
 #include "util/container/hashMap.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
@@ -44,29 +43,7 @@ void moduleAstMapPairInit(ModuleAstMapPair *);
 void moduleAstMapPairUninit(ModuleAstMapPair *);
 void moduleAstMapPairDestroy(ModuleAstMapPair *);
 
-// specialization of a generic
-typedef HashMap ModuleSymbolTableMap;
-ModuleSymbolTableMap *moduleSymbolTableMapCreate(void);
-void moduleSymbolTableMapInit(ModuleSymbolTableMap *);
-SymbolTable *moduleSymbolTableMapGet(ModuleSymbolTableMap const *,
-                                     char const *key);
-int moduleSymbolTableMapPut(ModuleSymbolTableMap *, char const *key,
-                            SymbolTable *value);
-void moduleSymbolTableMapUninit(ModuleSymbolTableMap *);
-void moduleSymbolTableMapDestroy(ModuleSymbolTableMap *);
-
-// pod struct holding two ModuleSymbolTableMaps
-typedef struct {
-  ModuleSymbolTableMap decls;
-  ModuleSymbolTableMap codes;
-} ModuleSymbolTableMapPair;
-ModuleSymbolTableMapPair *moduleSymbolTableMapPairCreate(void);
-void moduleSymbolTableMapPairInit(ModuleSymbolTableMapPair *);
-void moduleSymbolTableMapPairUninit(ModuleSymbolTableMapPair *);
-void moduleSymbolTableMapPairDestroy(ModuleSymbolTableMapPair *);
-
 // parses the files, producing SOME_TYPE
-void parse(ModuleAstMapPair *, ModuleSymbolTableMapPair *, Report *, Options *,
-           FileList *);
+void parse(ModuleAstMapPair *, Report *, Options *, FileList *);
 
 #endif  // TLC_PARSER_PARSER_H_
