@@ -133,9 +133,9 @@ static Node *parseAnyId(Report *report, LexerInfo *info) {
   TokenInfo id;
   lex(&id, report, info);
   if (id.type != TT_ID && id.type != TT_SCOPED_ID) {
-    reportError(report,
-                "%s:%zu:%zu: error: expected an identifier, but found %s\n",
-                info->filename, id.line, id.character, tokenToName(id.type));
+    reportError(
+        report, "%s:%zu:%zu: error: expected an identifier, but found %s\n",
+        info->filename, id.line, id.character, tokenTypeToString(id.type));
     tokenInfoUninit(&id);
     return NULL;
   }
@@ -149,7 +149,7 @@ static Node *parseUnscopedId(Report *report, LexerInfo *info) {
     reportError(
         report,
         "%s:%zu:%zu: error: expected an unqualified identifier, but found %s\n",
-        info->filename, id.line, id.character, tokenToName(id.type));
+        info->filename, id.line, id.character, tokenTypeToString(id.type));
     tokenInfoUninit(&id);
     return NULL;
   }
@@ -167,7 +167,7 @@ static Node *parseModule(Report *report, LexerInfo *info) {
                   "%s:%zu:%zu: error: expected first thing in file to be a "
                   "module declaration, but found %s\n",
                   info->filename, moduleToken.line, moduleToken.character,
-                  tokenToName(moduleToken.type));
+                  tokenTypeToString(moduleToken.type));
     }
     tokenInfoUninit(&moduleToken);
     return NULL;
@@ -184,7 +184,7 @@ static Node *parseModule(Report *report, LexerInfo *info) {
                   "%s:%zu:%zu: error: expected a semicolon to terminate "
                   "the module declaration, but found %s\n",
                   info->filename, semiToken.line, semiToken.character,
-                  tokenToName(semiToken.type));
+                  tokenTypeToString(semiToken.type));
     }
     nodeDestroy(idNode);
     tokenInfoUninit(&semiToken);
@@ -213,7 +213,7 @@ static Node *parseDeclImport(Report *report, Options *options,
                   "%s:%zu:%zu: error: expected first thing in file to be a "
                   "module declaration, but found %s\n",
                   info->filename, importToken.line, importToken.character,
-                  tokenToName(importToken.type));
+                  tokenTypeToString(importToken.type));
     }
     tokenInfoUninit(&importToken);
     return NULL;
@@ -230,7 +230,7 @@ static Node *parseDeclImport(Report *report, Options *options,
                   "%s:%zu:%zu: error: expected a semicolon to terminate "
                   "the module declaration, but found %s\n",
                   info->filename, semiToken.line, semiToken.character,
-                  tokenToName(semiToken.type));
+                  tokenTypeToString(semiToken.type));
     }
     tokenInfoUninit(&semiToken);
     nodeDestroy(idNode);
@@ -311,7 +311,7 @@ static Node *parseCodeImport(Report *report, Options *options,
                   "%s:%zu:%zu: error: expected first thing in file to be a "
                   "module declaration, but found %s\n",
                   info->filename, importToken.line, importToken.character,
-                  tokenToName(importToken.type));
+                  tokenTypeToString(importToken.type));
     }
     tokenInfoUninit(&importToken);
     return NULL;
@@ -328,7 +328,7 @@ static Node *parseCodeImport(Report *report, Options *options,
                   "%s:%zu:%zu: error: expected a semicolon to terminate "
                   "the module declaration, but found %s\n",
                   info->filename, semiToken.line, semiToken.character,
-                  tokenToName(semiToken.type));
+                  tokenTypeToString(semiToken.type));
     }
     tokenInfoUninit(&semiToken);
     nodeDestroy(idNode);
@@ -420,6 +420,41 @@ static NodeList *parseCodeImports(Report *report, Options *options,
 // statement
 
 // body
+static NodeList *parseStructElements(Report *report, Options *options,
+                                     Environment *env, SymbolInfo *structInfo,
+                                     LexerInfo *info) {
+  NodeList *elements = nodeListCreate();
+
+  TokenInfo peek;
+  lex(&peek, report, info);
+
+  while (tokenInfoIsTypeKeyword(peek.type) || peek.type == TT_SCOPED_ID ||
+         peek.type == TT_ID) {
+    unLex(info, &peek);
+    if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
+      TernaryValue isType =
+          environmentIsType(env, report, &peek, info->filename);
+      if (isType == INDETERMINATE) {
+        nodeListDestroy(elements);
+        return NULL;
+      } else if (isType == NO) {
+        break;
+      }
+    }
+
+    // is the start of a type!
+    Node *dec = parseVariableDecl(report, options, env, info);
+    if (dec == NULL) {
+      nodeListDestroy(elements);
+      return NULL;
+    }
+    nodeListInsert(elements, dec);
+
+    lex(&peek, report, info);
+  }
+
+  return elements;
+}
 static Node *parseStructDecl(Report *report, Options *options, Environment *env,
                              LexerInfo *info) {
   TokenInfo structKwd;
@@ -433,21 +468,124 @@ static Node *parseStructDecl(Report *report, Options *options, Environment *env,
 
   switch (nextToken.type) {
     case TT_SEMI: {
-      SymbolInfo *si = symbolInfoCreate();
-      // FIXME: add some data to symbol info
-      // FIXME: deal with duplicate names
-      if (env->scopes.size == 0) {
-        // global struct
-        symbolTablePut(env->currentModule, id->data.id.id, si);
+      // declaration
+      SymbolInfo *symbol = symbolTableGet(
+          env->scopes.size == 0 ? env->currentModule
+                                : env->scopes.elements[env->scopes.size - 1],
+          id->data.id.id);
+      if (symbol == NULL) {
+        symbolTablePut(env->scopes.size == 0
+                           ? env->currentModule
+                           : env->scopes.elements[env->scopes.size - 1],
+                       id->data.id.id, structSymbolInfoCreate());
       } else {
-        // local struct
-        symbolTablePut(env->scopes.elements[env->scopes.size - 1],
-                       id->data.id.id, si);
+        switch (optionsGet(options, optionWDuplicateDeclaration)) {
+          case O_WT_ERROR: {
+            reportWarning(report, "%s:%zu:%zu: error: redeclaration of '%s'",
+                          info->filename, id->line, id->character,
+                          id->data.id.id);
+            nodeDestroy(id);
+            return NULL;
+          }
+          case O_WT_WARN: {
+            reportWarning(report, "%s:%zu:%zu: warning: redeclaration of '%s'",
+                          info->filename, id->line, id->character,
+                          id->data.id.id);
+            break;
+          }
+          case O_WT_IGNORE: {
+            break;
+          }
+        }
+        if (symbol->kind != SK_TYPE) {
+          reportError(report,
+                      "%s:%zu:%zu: error: '%s' already declared as %s\n",
+                      info->filename, id->line, id->character, id->data.id.id,
+                      symbolKindToString(symbol->kind));
+          nodeDestroy(id);
+          return NULL;
+        } else if (symbol->data.type.kind != TDK_STRUCT) {
+          reportError(report,
+                      "%s:%zu:%zu: error: '%s' already declared as %s\n",
+                      info->filename, id->line, id->character, id->data.id.id,
+                      typeDefinitionKindToString(symbol->data.type.kind));
+          nodeDestroy(id);
+          return NULL;
+        }
       }
-      break;
+      return structForwardDeclNodeCreate(structKwd.line, structKwd.character,
+                                         id);
     }
     case TT_LBRACE: {
-      break;
+      // definition: must not be exist or only be declared
+      SymbolInfo *symbol = symbolTableGet(
+          env->scopes.size == 0 ? env->currentModule
+                                : env->scopes.elements[env->scopes.size - 1],
+          id->data.id.id);
+
+      if (symbol == NULL) {
+        symbol = structSymbolInfoCreate();
+        symbolTablePut(env->scopes.size == 0
+                           ? env->currentModule
+                           : env->scopes.elements[env->scopes.size - 1],
+                       id->data.id.id, symbol);
+      } else if (symbol->kind != SK_TYPE) {
+        reportError(report, "%s:%zu:%zu: error: '%s' already declared as %s\n",
+                    info->filename, id->line, id->character, id->data.id.id,
+                    symbolKindToString(symbol->kind));
+        nodeDestroy(id);
+        return NULL;
+      } else if (symbol->data.type.kind != TDK_STRUCT) {
+        reportError(report, "%s:%zu:%zu: error: '%s' already declared as %s\n",
+                    info->filename, id->line, id->character, id->data.id.id,
+                    typeDefinitionKindToString(symbol->data.type.kind));
+        nodeDestroy(id);
+        return NULL;
+      } else if (!symbol->data.type.data.structType.incomplete) {
+        reportError(report, "%s:%zu:%zu: error: duplicate definition of '%s'\n",
+                    info->filename, id->line, id->character, id->data.id.id);
+        nodeDestroy(id);
+        return NULL;
+      }
+      NodeList *elements =
+          parseStructElements(report, options, env, symbol, info);
+      if (elements == NULL) {
+        nodeDestroy(id);
+        return NULL;
+      }
+
+      TokenInfo closeBrace;
+      lex(&closeBrace, report, info);
+      if (closeBrace.type != TT_RBRACE) {
+        if (!tokenInfoIsLexerError(&closeBrace)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a right brace to close the "
+                      "struct definition, but found %s",
+                      info->filename, closeBrace.line, closeBrace.character,
+                      tokenTypeToString(closeBrace.type));
+        }
+        tokenInfoUninit(&closeBrace);
+        nodeListDestroy(elements);
+        nodeDestroy(id);
+      }
+
+      TokenInfo semicolon;
+      lex(&semicolon, report, info);
+      if (semicolon.type != TT_SEMI) {
+        if (!tokenInfoIsLexerError(&semicolon)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a semicolon to close the "
+                      "struct definition, but found %s",
+                      info->filename, semicolon.line, semicolon.character,
+                      tokenTypeToString(semicolon.type));
+        }
+        tokenInfoUninit(&semicolon);
+        nodeListDestroy(elements);
+        nodeDestroy(id);
+      }
+
+      return structDeclNodeCreate(structKwd.line, structKwd.character, id,
+                                  elements);
     }
     default: {
       if (!tokenInfoIsLexerError(&nextToken)) {
@@ -455,7 +593,7 @@ static Node *parseStructDecl(Report *report, Options *options, Environment *env,
                     "%s:%zu:%zu: error: expected a semicolon or a left brace, "
                     "but found %s",
                     info->filename, nextToken.line, nextToken.character,
-                    tokenToName(nextToken.type));
+                    tokenTypeToString(nextToken.type));
       }
       nodeDestroy(id);
       return NULL;
@@ -535,7 +673,7 @@ static Node *parseBody(Report *report, Options *options, Environment *env,
                     "%s:%zu:%zu: error: expected a declaration or definition, "
                     "but found %s\n",
                     info->filename, peek.line, peek.character,
-                    tokenToName(peek.type));
+                    tokenTypeToString(peek.type));
       }
       return NULL;
     }
@@ -597,8 +735,8 @@ static Node *parseDeclFile(Report *report, Options *options,
                           currStab);
   environmentUninit(&env);
 
-  return programNodeCreate(module->line, module->character, module, imports,
-                           bodies, lexerInfo->filename);
+  return fileNodeCreate(module->line, module->character, module, imports,
+                        bodies, lexerInfo->filename);
 }
 static Node *parseCodeFile(Report *report, Options *options,
                            ModuleSymbolTableMapPair *stabs,
@@ -633,9 +771,9 @@ static Node *parseCodeFile(Report *report, Options *options,
                           currStab);
   environmentUninit(&env);
 
-  return programNodeCreate(module->line, module->character, module,
-                           nodeListCreate(), nodeListCreate(),
-                           lexerInfo->filename);
+  return fileNodeCreate(module->line, module->character, module,
+                        nodeListCreate(), nodeListCreate(),
+                        lexerInfo->filename);
 }
 
 void parse(ModuleAstMapPair *asts, ModuleSymbolTableMapPair *stabs,
@@ -719,19 +857,18 @@ void parse(ModuleAstMapPair *asts, ModuleSymbolTableMapPair *stabs,
                                       &kwMap));  // may be null, but don't case
     if (parsed != NULL) {
       Node const *duplicateCheck = moduleAstMapGet(
-          &asts->codes,
-          parsed->data.program.module->data.module.id->data.id.id);
+          &asts->codes, parsed->data.file.module->data.module.id->data.id.id);
       if (duplicateCheck != NULL) {
         // exists, error!
         reportError(
             report,
             "%s: error: module '%s' has already been declared (in file %s)\n",
             (char const *)files->codes.elements[idx],
-            parsed->data.program.module->data.module.id->data.id.id,
-            duplicateCheck->data.program.filename);
+            parsed->data.file.module->data.module.id->data.id.id,
+            duplicateCheck->data.file.filename);
       } else {
         moduleAstMapPut(&asts->codes,
-                        parsed->data.program.module->data.module.id->data.id.id,
+                        parsed->data.file.module->data.module.id->data.id.id,
                         parsed);
       }
     }
