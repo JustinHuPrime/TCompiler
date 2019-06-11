@@ -57,13 +57,16 @@ TEXENAME := tlc-test
 
 # compiler warnings
 WARNINGS := -pedantic -pedantic-errors -Wall -Wextra -Wdouble-promotion\
--Winit-self -Wmissing-include-dirs -Wswitch-bool -Wswitch-unreachable\
+-Winit-self -Wunused -Wswitch-unreachable -Wuninitialized\
+-Wstringop-truncation -Wsuggest-attribute=format -Wsuggest-attribute=malloc\
+-Wmissing-include-dirs -Wswitch-bool -Wduplicated-branches -Wduplicated-cond\
 -Wtrampolines -Wfloat-equal -Wundef -Wshadow -Wunsafe-loop-optimizations\
--Wbad-function-cast -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion\
--Wjump-misses-init -Wlogical-op -Waggregate-return -Wstrict-prototypes\
--Wold-style-definition -Wmissing-prototypes -Wmissing-declarations\
--Wmissing-format-attribute -Wpacked -Wnested-externs -Winline -Winvalid-pch\
--Wdisabled-optimization -Wstack-protector
+-Wunused-macros -Wbad-function-cast -Wcast-qual -Wcast-align -Wwrite-strings\
+-Wconversion  -Wdate-time -Wjump-misses-init -Wlogical-op -Waggregate-return\
+-Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes\
+-Wmissing-declarations -Wpacked -Wredundant-decls -Wnested-externs -Winline\
+-Winvalid-pch -Wdisabled-optimization -Wstack-protector\
+-Wunsuffixed-float-constants
 
 # compiler options
 OPTIONS := -std=c18 -m64 -D_POSIX_C_SOURCE=201904L -I$(SRCDIR) $(WARNINGS)
