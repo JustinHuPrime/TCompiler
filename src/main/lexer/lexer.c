@@ -240,6 +240,9 @@ char const *tokenTypeToString(TokenType tt) {
 bool tokenInfoIsLexerError(TokenInfo *info) {
   return info->type != TT_EOF && info->type <= TT_MULTICHAR_CHAR;
 }
+bool tokenInfoIsTypeKeyword(TokenInfo *info) {
+  return TT_VOID <= info->type && info->type <= TT_BOOL;
+}
 void tokenInfoUninit(TokenInfo *info) {
   if (info->type == TT_LITERALCHAR || info->type == TT_LITERALWCHAR ||
       info->type == TT_LITERALSTRING || info->type == TT_LITERALWSTRING ||

@@ -156,6 +156,8 @@ typedef struct {
 } TokenInfo;
 // produce true if token type is an error result handled by the lexer
 bool tokenInfoIsLexerError(TokenInfo *);
+// produces true if token type is a type keyword token
+bool tokenInfoIsTypeKeyword(TokenInfo *);
 // dtor
 void tokenInfoUninit(TokenInfo *);
 

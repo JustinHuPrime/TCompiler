@@ -22,6 +22,8 @@ Note that if a later option conflicts with an earlier option, the later option w
 
 All warning options have three forms, a `-W...=error` form, a `-W...=warn` form, and a `-W...=ignore` form. These forms instruct the compiler to either produce an error if this particular event is encountered (stopping compilation), produce a warning, or ignore the issue. So, for example, `-Wfoo=error` makes `foo` into an error, `-Wfoo=warn` makes `foo` into a warning, and `-Wfoo=ignore` ignores `foo`.
 
+* `duplicate-declaration`: warns if a data type or function is declared more than once, even if multiple declarations have no effects. Multiple declarations of variables is always an error. This does not warn about multiple declarations involving the same function name that create an overload set. Defaults to ignore.
+
 * `duplciate-file`: duplciated files given. Defaults to error. If not an error, later files have no effect.
 
 * `duplicate-import`: duplicated imports in a module. Defaults to ignore. If not an error, later imports have no effect.
