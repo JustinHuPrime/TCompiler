@@ -21,6 +21,7 @@
 #include "parser/nameUtils.h"
 #include "util/functional.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -33,6 +34,7 @@ char const *symbolKindToString(SymbolKind kind) {
     case SK_FUNCTION:
       return "a function";
   }
+  assert(false);  // not a valid enum - type safety violated
 }
 
 char const *typeDefinitionKindToString(TypeDefinitionKind kind) {
@@ -46,6 +48,7 @@ char const *typeDefinitionKindToString(TypeDefinitionKind kind) {
     case TDK_TYPEDEF:
       return "a type alias";
   }
+  assert(false);  // not a valid enum - type safety violated
 }
 
 static SymbolInfo *symbolInfoCreate(SymbolKind kind) {
@@ -81,7 +84,7 @@ SymbolInfo *enumSymbolInfoCreate(void) {
   stringVectorInit(&si->data.type.data.enumType.fields);
   return si;
 }
-SymbolInfo *typdefSymbolInfoCreate(Type *what) {
+SymbolInfo *typedefSymbolInfoCreate(Type *what) {
   SymbolInfo *si = symbolInfoCreate(SK_TYPE);
   si->data.type.kind = TDK_TYPEDEF;
   si->data.type.data.typedefType.type = what;

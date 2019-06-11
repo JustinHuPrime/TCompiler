@@ -189,7 +189,7 @@ type = "void"
 scoped_identifier = ? Any scoped identifier ? ;
 scoped_type_identifier = ? Any scoped identifier that names a type ? ;
 
-identifier = ? Anything starting with an underscore or an alphabetical character, and containing only alphanumeric characters or underscores ? ;
+identifier = ? Anything starting with an underscore or an alphabetical character, and containing only alphanumeric characters or underscores, noting that any identifier with a double underscore is considered reserved ? ;
 int_constant = ? Any integer constant that fits in a long, possibly including a sign ? ;
 float_constant = ? Any floating point constant that fits in a double, possibly including a sign ? ;
 string_constant = ? Any string literal constant ? ;
