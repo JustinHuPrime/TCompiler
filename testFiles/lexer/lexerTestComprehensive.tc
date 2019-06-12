@@ -7,7 +7,7 @@ ulong long float double bool const /* block
 comment
 multiline */
 ;,()[]{}.
-->++--*&+-!~/%<<>>>>><=><><=/**/>===!=|^&&||?:=*=/=%=+=-=<<=>>>=>>=&=^=|=&&=||=id/*comment as space*/scoped::id
+->++--*&+-!~/%<<>>>>><=><><=/**/>===!=|^&&||?:=*=/=%=+=-=<<=>>>=>>=&=^=|=&&=||=id/*comment as space*/scoped::id::withCapitals
 0
 0b101
 0135

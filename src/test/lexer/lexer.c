@@ -784,8 +784,10 @@ void lexerTest(TestStatus *status) {
        tokenInfo.line == 10);
   test(status, "[lexer] [lex] comprehensive file token 87 is at char 102",
        tokenInfo.character == 102);
-  test(status, "[lexer] [lex] comprehensive file token 87 is 'scoped::id'",
-       strcmp("scoped::id", tokenInfo.data.string) == 0);
+  test(
+      status,
+      "[lexer] [lex] comprehensive file token 87 is 'scoped::id::withCapitals'",
+      strcmp("scoped::id::withCapitals", tokenInfo.data.string) == 0);
   free(tokenInfo.data.string);
 
   lex(&tokenInfo, report, info);

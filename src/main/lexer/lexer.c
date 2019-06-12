@@ -416,7 +416,7 @@ typedef enum {
 } LexerState;
 
 static bool isAlphaOrUnderscore(char c) {
-  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'A') || c == '_';
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
 }
 static bool isAlnumOrUnderscore(char c) {
   return isAlphaOrUnderscore(c) || ('0' <= c && c <= '9');
