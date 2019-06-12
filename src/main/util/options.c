@@ -95,8 +95,7 @@ void parseOptions(Options *options, Report *report, size_t argc,
     } else if (strcmp(argv[idx], "--debug-dump=parse") == 0) {
       optionsSet(options, optionDebugDump, O_DD_PARSE);
     } else {
-      reportError(report, "tlc: error: option '%s' not recognized\n",
-                  argv[idx]);
+      reportError(report, "tlc: error: option '%s' not recognized", argv[idx]);
     }
   }
 }

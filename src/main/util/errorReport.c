@@ -38,6 +38,7 @@ void reportMessage(Report *report, char const *format, ...) {
   va_start(args, format);
   vfprintf(stderr, format, args);
   va_end(args);
+  fprintf(stderr, "\n");
 }
 
 void reportError(Report *report, char const *format, ...) {
@@ -45,6 +46,7 @@ void reportError(Report *report, char const *format, ...) {
   va_start(args, format);
   vfprintf(stderr, format, args);
   va_end(args);
+  fprintf(stderr, "\n");
   report->errors++;
 }
 
@@ -53,6 +55,7 @@ void reportWarning(Report *report, char const *format, ...) {
   va_start(args, format);
   vfprintf(stderr, format, args);
   va_end(args);
+  fprintf(stderr, "\n");
   report->warnings++;
 }
 

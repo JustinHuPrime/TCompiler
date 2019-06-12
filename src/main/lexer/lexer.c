@@ -432,8 +432,8 @@ static LexerState hexDigitAction(Report *report, char c, StringBuilder *buffer,
 
       reportError(report,
                   isCharLiteral
-                      ? "%s:%zu:%zu: error: unterminated character literal\n"
-                      : "%s:%zu:%zu: error: unterminated string literal\n",
+                      ? "%s:%zu:%zu: error: unterminated character literal"
+                      : "%s:%zu:%zu: error: unterminated string literal",
                   lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
       tokenInfo->line = lexerInfo->line;
@@ -467,7 +467,7 @@ static LexerState hexDigitAction(Report *report, char c, StringBuilder *buffer,
       return nextState;
     }
     default: {
-      reportError(report, "%s:%zu:%zu: error: invalid escape sequence\n",
+      reportError(report, "%s:%zu:%zu: error: invalid escape sequence",
                   lexerInfo->filename, lexerInfo->line,
                   lexerInfo->character - offset);
 
@@ -500,7 +500,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
 
       reportError(report,
                   "%s:%zu:%zu: error: could not read next character; potential "
-                  "filesystem error\n",
+                  "filesystem error",
                   lexerInfo->filename, lexerInfo->line, lexerInfo->character);
 
       if (buffer != NULL) stringBuilderDestroy(buffer);
@@ -757,7 +757,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
               tokenInfo->type = TT_INVALID;
               tokenInfo->data.invalidChar = c;
 
-              reportError(report, "%s:%zu:%zu: error: unexpected '%c'\n",
+              reportError(report, "%s:%zu:%zu: error: unexpected '%c'",
                           lexerInfo->filename, lexerInfo->line,
                           lexerInfo->character, c);
               return;
@@ -1201,7 +1201,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
           case -2: {  // F_EOF
             reportError(report,
                         "%s:%zu:%zu: error: unterminated block comment at end "
-                        "of file\n",
+                        "of file",
                         lexerInfo->filename, tokenInfo->line,
                         tokenInfo->character);
             tokenInfo->line = lexerInfo->line;
@@ -1255,7 +1255,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
           case -2: {  // F_EOF
             reportError(report,
                         "%s:%zu:%zu: error: unterminated block comment at end "
-                        "of file\n",
+                        "of file",
                         lexerInfo->filename, tokenInfo->line,
                         tokenInfo->character);
             tokenInfo->line = lexerInfo->line;
@@ -1318,7 +1318,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             stringBuilderDestroy(buffer);
 
             reportError(
-                report, "%s:%zu:%zu: error: unterminated character literal\n",
+                report, "%s:%zu:%zu: error: unterminated character literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
@@ -1327,7 +1327,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
           case '\'': {
             stringBuilderDestroy(buffer);
 
-            reportError(report, "%s:%zu:%zu: error: empty character literal\n",
+            reportError(report, "%s:%zu:%zu: error: empty character literal",
                         lexerInfo->filename, lexerInfo->line,
                         lexerInfo->character - 1);
 
@@ -1355,7 +1355,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             stringBuilderDestroy(buffer);
 
             reportError(
-                report, "%s:%zu:%zu: error: unterminated character literal\n",
+                report, "%s:%zu:%zu: error: unterminated character literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
@@ -1374,7 +1374,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
 
             reportError(
                 report,
-                "%s:%zu:%zu: error: multiple characters in single quotes\n",
+                "%s:%zu:%zu: error: multiple characters in single quotes",
                 lexerInfo->filename, lexerInfo->line,
                 lexerInfo->character - buffer->size);
 
@@ -1391,7 +1391,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             stringBuilderDestroy(buffer);
 
             reportError(
-                report, "%s:%zu:%zu: error: unterminated character literal\n",
+                report, "%s:%zu:%zu: error: unterminated character literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
@@ -1423,7 +1423,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
           default: {
             state = LS_CHAR_BAD_ESCAPE;
 
-            reportError(report, "%s:%zu:%zu: error: invalid escape sequence\n",
+            reportError(report, "%s:%zu:%zu: error: invalid escape sequence",
                         lexerInfo->filename, lexerInfo->line,
                         lexerInfo->character - 1);
 
@@ -1514,7 +1514,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             stringBuilderDestroy(buffer);
 
             reportError(
-                report, "%s:%zu:%zu: error: unterminated character literal\n",
+                report, "%s:%zu:%zu: error: unterminated character literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
@@ -1551,7 +1551,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             reportError(
                 report,
                 "%s:%zu:%zu: error: expected wide character, but no specifier "
-                "found\n",
+                "found",
                 lexerInfo->filename, lexerInfo->line,
                 lexerInfo->character - strlen(tokenInfo->data.string) - 1);
 
@@ -1568,7 +1568,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             stringBuilderDestroy(buffer);
 
             reportError(
-                report, "%s:%zu:%zu: error: unterminated character literal\n",
+                report, "%s:%zu:%zu: error: unterminated character literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
@@ -1604,7 +1604,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             stringBuilderDestroy(buffer);
 
             reportError(
-                report, "%s:%zu:%zu: error: unterminated character literal\n",
+                report, "%s:%zu:%zu: error: unterminated character literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
@@ -1642,7 +1642,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             stringBuilderDestroy(buffer);
 
             reportError(
-                report, "%s:%zu:%zu: error: unterminated string literal\n",
+                report, "%s:%zu:%zu: error: unterminated string literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
@@ -1675,7 +1675,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             stringBuilderDestroy(buffer);
 
             reportError(
-                report, "%s:%zu:%zu: error: unterminated string literal\n",
+                report, "%s:%zu:%zu: error: unterminated string literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
@@ -1817,7 +1817,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             stringBuilderDestroy(buffer);
 
             reportError(
-                report, "%s:%zu:%zu: error: unterminated string literal\n",
+                report, "%s:%zu:%zu: error: unterminated string literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
@@ -1849,7 +1849,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
           default: {
             state = LS_STRING_BAD_ESCAPE;
 
-            reportError(report, "%s:%zu:%zu: error: invalid escape sequence\n",
+            reportError(report, "%s:%zu:%zu: error: invalid escape sequence",
                         lexerInfo->filename, lexerInfo->line,
                         lexerInfo->character - 1);
 
@@ -1931,7 +1931,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             reportError(
                 report,
                 "%s:%zu:%zu: error: expected wide string, but no specifier "
-                "found\n",
+                "found",
                 lexerInfo->filename, lexerInfo->line,
                 lexerInfo->character - strlen(tokenInfo->data.string) - 1);
 
@@ -1949,7 +1949,7 @@ void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
             stringBuilderDestroy(buffer);
 
             reportError(
-                report, "%s:%zu:%zu: error: unterminated string literal\n",
+                report, "%s:%zu:%zu: error: unterminated string literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
