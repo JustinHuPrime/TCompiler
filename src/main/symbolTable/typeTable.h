@@ -26,14 +26,14 @@
 #include "util/errorReport.h"
 #include "util/ternary.h"
 
-typedef enum { ST_ID = 1, ST_TYPE } SymbolType;
+typedef enum { ST_UNDEFINED = 0, ST_ID, ST_TYPE } SymbolType;
 
 // exported types and identifiers for a module
 // specialsization of a generic
 typedef HashMap TypeTable;
 TypeTable *typeTableCreate(void);
 SymbolType typeTableGet(TypeTable const *, char const *key);
-int typeTablePut(TypeTable *, char const *key, SymbolType value);
+void typeTableSet(TypeTable *, char const *key, SymbolType value);
 void typeTableDestroy(TypeTable *);
 
 // specialization of a generic

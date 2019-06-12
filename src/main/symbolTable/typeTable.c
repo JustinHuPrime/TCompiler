@@ -28,8 +28,8 @@ SymbolType typeTableGet(TypeTable const *table, char const *key) {
   return (intptr_t)hashMapGet(table, key);
 #pragma GCC diagnostic pop
 }
-int typeTablePut(TypeTable *table, char const *key, SymbolType value) {
-  return hashMapPut(table, key, (void *)value, nullDtor);
+void typeTableSet(TypeTable *table, char const *key, SymbolType value) {
+  hashMapSet(table, key, (void *)value);
 }
 void typeTableDestroy(TypeTable *table) { hashMapDestroy(table, nullDtor); }
 
