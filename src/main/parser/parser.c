@@ -95,10 +95,10 @@ static void moduleNodeMapUninit(ModuleNodeMap *map) {
 // basic helpers
 static Node *parseAnyId(Report *report, LexerInfo *info) {
   TokenInfo id;
-  lex(&id, report, info);
+  lex(info, report, &id);
   if (id.type != TT_ID && id.type != TT_SCOPED_ID) {
     reportError(
-        report, "%s:%zu:%zu: error: expected an identifier, but found %s\n",
+        report, "%s:%zu:%zu: error: expected an identifier, but found %s",
         info->filename, id.line, id.character, tokenTypeToString(id.type));
     tokenInfoUninit(&id);
     return NULL;
@@ -108,11 +108,11 @@ static Node *parseAnyId(Report *report, LexerInfo *info) {
 }
 static Node *parseUnscopedId(Report *report, LexerInfo *info) {
   TokenInfo id;
-  lex(&id, report, info);
+  lex(info, report, &id);
   if (id.type != TT_ID) {
     reportError(
         report,
-        "%s:%zu:%zu: error: expected an unqualified identifier, but found %s\n",
+        "%s:%zu:%zu: error: expected an unqualified identifier, but found %s",
         info->filename, id.line, id.character, tokenTypeToString(id.type));
     tokenInfoUninit(&id);
     return NULL;
@@ -120,16 +120,35 @@ static Node *parseUnscopedId(Report *report, LexerInfo *info) {
 
   return idNodeCreate(id.line, id.character, id.data.string);
 }
+static NodeList *parseUnscopedIdList(Report *report, Options *options,
+                                     TypeEnvironment *env, LexerInfo *info) {
+  NodeList *ids = nodeListCreate();
+  TokenInfo peek;
+
+  lex(info, report, &peek);
+  while (peek.type == TT_ID) {
+    nodeListInsert(ids,
+                   idNodeCreate(peek.line, peek.character, peek.data.string));
+
+    lex(info, report, &peek);
+    if (peek.type != TT_COMMA) {
+      break;
+    }
+  }
+  unLex(info, &peek);
+
+  return ids;
+}
 
 // module
 static Node *parseModule(Report *report, LexerInfo *info) {
   TokenInfo moduleToken;
-  lex(&moduleToken, report, info);
+  lex(info, report, &moduleToken);
   if (moduleToken.type != TT_MODULE) {
     if (!tokenInfoIsLexerError(&moduleToken)) {
       reportError(report,
                   "%s:%zu:%zu: error: expected first thing in file to be a "
-                  "module declaration, but found %s\n",
+                  "module declaration, but found %s",
                   info->filename, moduleToken.line, moduleToken.character,
                   tokenTypeToString(moduleToken.type));
     }
@@ -141,12 +160,12 @@ static Node *parseModule(Report *report, LexerInfo *info) {
   if (idNode == NULL) return NULL;
 
   TokenInfo semiToken;
-  lex(&semiToken, report, info);
+  lex(info, report, &semiToken);
   if (semiToken.type != TT_SEMI) {
     if (!tokenInfoIsLexerError(&semiToken)) {
       reportError(report,
-                  "%s:%zu:%zu: error: expected a semicolon to terminate "
-                  "the module declaration, but found %s\n",
+                  "%s:%zu:%zu: error: expected a semicolon to terminate the "
+                  "module declaration, but found %s",
                   info->filename, semiToken.line, semiToken.character,
                   tokenTypeToString(semiToken.type));
     }
@@ -170,12 +189,12 @@ static Node *parseDeclImport(Report *report, Options *options,
                              ModuleLexerInfoMap *miMap, ModuleNodeMap *mnMap,
                              ModuleAstMap *decls, LexerInfo *info) {
   TokenInfo importToken;
-  lex(&importToken, report, info);
+  lex(info, report, &importToken);
   if (importToken.type != TT_IMPORT) {
     if (!tokenInfoIsLexerError(&importToken)) {
       reportError(report,
                   "%s:%zu:%zu: error: expected first thing in file to be a "
-                  "module declaration, but found %s\n",
+                  "module declaration, but found %s",
                   info->filename, importToken.line, importToken.character,
                   tokenTypeToString(importToken.type));
     }
@@ -187,12 +206,12 @@ static Node *parseDeclImport(Report *report, Options *options,
   if (idNode == NULL) return NULL;
 
   TokenInfo semiToken;
-  lex(&semiToken, report, info);
+  lex(info, report, &semiToken);
   if (semiToken.type != TT_SEMI) {
     if (!tokenInfoIsLexerError(&semiToken)) {
       reportError(report,
                   "%s:%zu:%zu: error: expected a semicolon to terminate "
-                  "the module declaration, but found %s\n",
+                  "the module declaration, but found %s",
                   info->filename, semiToken.line, semiToken.character,
                   tokenTypeToString(semiToken.type));
     }
@@ -209,19 +228,19 @@ static Node *parseDeclImport(Report *report, Options *options,
       if (strcmp(idNode->data.id.id, dependencyStack->elements[idx]) == 0) {
         // circular dep between current and all later elements in the stack
         reportError(report,
-                    "%s:%zu:%zu: error: circular dependency on module '%s'\n",
+                    "%s:%zu:%zu: error: circular dependency on module '%s'",
                     info->filename, importToken.line, importToken.character,
                     (char const *)dependencyStack->elements[idx]);
         reportMessage(report,
-                      "\tmodule '%s' imports module '%s', which imports\n",
+                      "\tmodule '%s' imports module '%s', which imports",
                       env->currentModuleName,
                       (char const *)dependencyStack->elements[idx]);
         for (size_t rptIdx = idx + 1; rptIdx < dependencyStack->size;
              rptIdx++) {
-          reportMessage(report, "\tmodule '%s', which imports\n",
+          reportMessage(report, "\tmodule '%s', which imports",
                         (char const *)dependencyStack->elements[rptIdx]);
         }
-        reportMessage(report, "\tthe current module\n");
+        reportMessage(report, "\tthe current module");
         nodeDestroy(idNode);
         return NULL;
       }
@@ -243,7 +262,7 @@ static Node *parseDeclImport(Report *report, Options *options,
   if (retVal == HM_EEXISTS) {
     switch (optionsGet(options, optionWDuplicateImport)) {
       case O_WT_ERROR: {
-        reportError(report, "%s:%zu:%zu: error: module '%s' already imported\n",
+        reportError(report, "%s:%zu:%zu: error: module '%s' already imported",
                     info->filename, importToken.line, importToken.character,
                     idNode->data.id.id);
         nodeDestroy(idNode);
@@ -251,7 +270,7 @@ static Node *parseDeclImport(Report *report, Options *options,
       }
       case O_WT_WARN: {
         reportWarning(report,
-                      "%s:%zu:%zu: warning: module '%s' already imported\n",
+                      "%s:%zu:%zu: warning: module '%s' already imported",
                       info->filename, importToken.line, importToken.character,
                       idNode->data.id.id);
         break;
@@ -268,12 +287,12 @@ static Node *parseCodeImport(Report *report, Options *options,
                              ModuleTypeTableMap *typeTables,
                              TypeEnvironment *env, LexerInfo *info) {
   TokenInfo importToken;
-  lex(&importToken, report, info);
+  lex(info, report, &importToken);
   if (importToken.type != TT_IMPORT) {
     if (!tokenInfoIsLexerError(&importToken)) {
       reportError(report,
                   "%s:%zu:%zu: error: expected first thing in file to be a "
-                  "module declaration, but found %s\n",
+                  "module declaration, but found %s",
                   info->filename, importToken.line, importToken.character,
                   tokenTypeToString(importToken.type));
     }
@@ -285,12 +304,12 @@ static Node *parseCodeImport(Report *report, Options *options,
   if (idNode == NULL) return NULL;
 
   TokenInfo semiToken;
-  lex(&semiToken, report, info);
+  lex(info, report, &semiToken);
   if (semiToken.type != TT_SEMI) {
     if (!tokenInfoIsLexerError(&semiToken)) {
       reportError(report,
                   "%s:%zu:%zu: error: expected a semicolon to terminate "
-                  "the module declaration, but found %s\n",
+                  "the module declaration, but found %s",
                   info->filename, semiToken.line, semiToken.character,
                   tokenTypeToString(semiToken.type));
     }
@@ -335,7 +354,7 @@ static NodeList *parseDeclImports(Report *report, Options *options,
   NodeList *imports = nodeListCreate();
 
   TokenInfo peek;
-  lex(&peek, report, info);
+  lex(info, report, &peek);
 
   while (peek.type == TT_IMPORT) {
     unLex(info, &peek);
@@ -348,7 +367,7 @@ static NodeList *parseDeclImports(Report *report, Options *options,
 
     nodeListInsert(imports, node);
 
-    lex(&peek, report, info);
+    lex(info, report, &peek);
   }
 
   unLex(info, &peek);
@@ -360,7 +379,7 @@ static NodeList *parseCodeImports(Report *report, Options *options,
   NodeList *imports = nodeListCreate();
 
   TokenInfo peek;
-  lex(&peek, report, info);
+  lex(info, report, &peek);
 
   while (peek.type == TT_IMPORT) {
     unLex(info, &peek);
@@ -372,7 +391,7 @@ static NodeList *parseCodeImports(Report *report, Options *options,
 
     nodeListInsert(imports, node);
 
-    lex(&peek, report, info);
+    lex(info, report, &peek);
   }
 
   unLex(info, &peek);
@@ -384,29 +403,67 @@ static NodeList *parseCodeImports(Report *report, Options *options,
 // statement
 
 // body
+static Node *parseType(Report *report, Options *options, TypeEnvironment *env,
+                       LexerInfo *info) {
+  return NULL;  // TODO: write this
+}
 static Node *parseVariableDecl(Report *report, Options *options,
                                TypeEnvironment *env, LexerInfo *info) {
-  return NULL;  // TODO: write this
+  Node *type = parseType(report, options, env, info);
+  if (type == NULL) {
+    return NULL;
+  }
+
+  NodeList *ids = parseUnscopedIdList(report, options, env, info);
+  if (ids == NULL) {
+    nodeDestroy(type);
+    return NULL;
+  } else if (ids->size == 0) {
+    reportError(report,
+                "%s:%zu:%zu: error: expected at least one identifier in a "
+                "variable or field declaration",
+                info->filename, type->line, type->character);
+    nodeDestroy(type);
+    return NULL;
+  }
+
+  TokenInfo semicolon;
+  lex(info, report, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    if (!tokenInfoIsLexerError(&semicolon)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a semicolon after a variable or "
+                  "field declaration, but found %s",
+                  info->filename, semicolon.line, semicolon.character,
+                  tokenTypeToString(semicolon.type));
+    }
+    tokenInfoUninit(&semicolon);
+    nodeListDestroy(ids);
+    nodeDestroy(type);
+    return NULL;
+  }
+
+  return varDeclNodeCreate(type->line, type->character, type, ids);
 }
 static NodeList *parseStructElements(Report *report, Options *options,
                                      TypeEnvironment *env, LexerInfo *info) {
   NodeList *elements = nodeListCreate();
 
   TokenInfo peek;
-  lex(&peek, report, info);
+  lex(info, report, &peek);
 
   while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_SCOPED_ID ||
          peek.type == TT_ID) {
     unLex(info, &peek);
     if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
-      // TernaryValue isType =
-      //     environmentIsType(env, report, &peek, info->filename);
-      // if (isType == INDETERMINATE) {
-      //   nodeListDestroy(elements);
-      //   return NULL;
-      // } else if (isType == NO) {
-      //   break;
-      // } // TODO: finish this
+      TernaryValue isType =
+          typeEnvironmentLookup(env, report, &peek, info->filename);
+      if (isType == INDETERMINATE) {
+        nodeListDestroy(elements);
+        return NULL;
+      } else if (isType == NO) {
+        break;
+      }
     }
 
     // is the start of a type!
@@ -417,7 +474,7 @@ static NodeList *parseStructElements(Report *report, Options *options,
     }
     nodeListInsert(elements, dec);
 
-    lex(&peek, report, info);
+    lex(info, report, &peek);
   }
 
   return elements;
@@ -425,140 +482,99 @@ static NodeList *parseStructElements(Report *report, Options *options,
 static Node *parseStructDecl(Report *report, Options *options,
                              TypeEnvironment *env, LexerInfo *info) {
   TokenInfo structKwd;
-  lex(&structKwd, report, info);  // must be right to get here
+  lex(info, report, &structKwd);  // must be right to get here
 
   Node *id = parseUnscopedId(report, info);
   if (id == NULL) return NULL;
 
   TokenInfo nextToken;
-  lex(&nextToken, report, info);
+  lex(info, report, &nextToken);
 
   switch (nextToken.type) {
     case TT_SEMI: {
       // declaration
-      // SymbolInfo *symbol = symbolTableGet(
-      //     env->scopes.size == 0 ? env->currentModule
-      //                           : env->scopes.elements[env->scopes.size - 1],
-      //     id->data.id.id);
-      // if (symbol == NULL) {
-      //   symbolTablePut(env->scopes.size == 0
-      //                      ? env->currentModule
-      //                      : env->scopes.elements[env->scopes.size - 1],
-      //                  id->data.id.id, structSymbolInfoCreate());
-      // } else {
-      //   switch (optionsGet(options, optionWDuplicateDeclaration)) {
-      //     case O_WT_ERROR: {
-      //       reportWarning(report, "%s:%zu:%zu: error: redeclaration of '%s'",
-      //                     info->filename, id->line, id->character,
-      //                     id->data.id.id);
-      //       nodeDestroy(id);
-      //       return NULL;
-      //     }
-      //     case O_WT_WARN: {
-      //       reportWarning(report, "%s:%zu:%zu: warning: redeclaration of
-      //       '%s'",
-      //                     info->filename, id->line, id->character,
-      //                     id->data.id.id);
-      //       break;
-      //     }
-      //     case O_WT_IGNORE: {
-      //       break;
-      //     }
-      //   }
-      //   if (symbol->kind != SK_TYPE) {
-      //     reportError(report,
-      //                 "%s:%zu:%zu: error: '%s' already declared as %s\n",
-      //                 info->filename, id->line, id->character,
-      //                 id->data.id.id, symbolKindToString(symbol->kind));
-      //     nodeDestroy(id);
-      //     return NULL;
-      //   } else if (symbol->data.type.kind != TDK_STRUCT) {
-      //     reportError(report,
-      //                 "%s:%zu:%zu: error: '%s' already declared as %s\n",
-      //                 info->filename, id->line, id->character,
-      //                 id->data.id.id,
-      //                 typeDefinitionKindToString(symbol->data.type.kind));
-      //     nodeDestroy(id);
-      //     return NULL;
-      //   }
-      // }
-      //   return structForwardDeclNodeCreate(structKwd.line,
-      //   structKwd.character,
-      //                                      id); // TODO: write this
+      TypeTable *table = typeEnvironmentTop(env);
+      SymbolType type = typeTableGet(table, id->data.id.id);
+      switch (type) {
+        case ST_UNDEFINED: {
+          typeTableSet(table, id->data.id.id, ST_TYPE);
+          break;
+        }
+        case ST_TYPE: {
+          break;
+        }
+        case ST_ID: {
+          reportError(report,
+                      "%s:%zu:%zu: error: identifier '%s' has already been "
+                      "declared as a variable or function name",
+                      info->filename, id->line, id->character, id->data.id.id);
+          nodeDestroy(id);
+          return NULL;
+        }
+      }
+      return structForwardDeclNodeCreate(structKwd.line, structKwd.character,
+                                         id);
     }
     case TT_LBRACE: {
-      // // definition: must not be exist or only be declared
-      // SymbolInfo *symbol = symbolTableGet(
-      //     env->scopes.size == 0 ? env->currentModule
-      //                           : env->scopes.elements[env->scopes.size - 1],
-      //     id->data.id.id);
+      // definition: must not be exist or only be declared
+      TypeTable *table = typeEnvironmentTop(env);
+      SymbolType type = typeTableGet(table, id->data.id.id);
 
-      // if (symbol == NULL) {
-      //   symbol = structSymbolInfoCreate();
-      //   symbolTablePut(env->scopes.size == 0
-      //                      ? env->currentModule
-      //                      : env->scopes.elements[env->scopes.size - 1],
-      //                  id->data.id.id, symbol);
-      // } else if (symbol->kind != SK_TYPE) {
-      //   reportError(report, "%s:%zu:%zu: error: '%s' already declared as
-      //   %s\n",
-      //               info->filename, id->line, id->character, id->data.id.id,
-      //               symbolKindToString(symbol->kind));
-      //   nodeDestroy(id);
-      //   return NULL;
-      // } else if (symbol->data.type.kind != TDK_STRUCT) {
-      //   reportError(report, "%s:%zu:%zu: error: '%s' already declared as
-      //   %s\n",
-      //               info->filename, id->line, id->character, id->data.id.id,
-      //               typeDefinitionKindToString(symbol->data.type.kind));
-      //   nodeDestroy(id);
-      //   return NULL;
-      // } else if (!symbol->data.type.data.structType.incomplete) {
-      //   reportError(report, "%s:%zu:%zu: error: duplicate definition of
-      //   '%s'\n",
-      //               info->filename, id->line, id->character, id->data.id.id);
-      //   nodeDestroy(id);
-      //   return NULL;
-      // }
-      // NodeList *elements =
-      //     parseStructElements(report, options, env, symbol, info);
-      // if (elements == NULL) {
-      //   nodeDestroy(id);
-      //   return NULL;
-      // }
+      switch (type) {
+        case ST_UNDEFINED: {
+          typeTableSet(table, id->data.id.id, ST_TYPE);
+          break;
+        }
+        case ST_TYPE: {
+          break;
+        }
+        case ST_ID: {
+          reportError(report,
+                      "%s:%zu:%zu: error: identifier '%s' has already been "
+                      "declared as a variable or function name",
+                      info->filename, id->line, id->character, id->data.id.id);
+          nodeDestroy(id);
+          return NULL;
+        }
+      }
+      NodeList *elements = parseStructElements(report, options, env, info);
+      if (elements == NULL) {
+        nodeDestroy(id);
+        return NULL;
+      }
 
-      // TokenInfo closeBrace;
-      // lex(&closeBrace, report, info);
-      // if (closeBrace.type != TT_RBRACE) {
-      //   if (!tokenInfoIsLexerError(&closeBrace)) {
-      //     reportError(report,
-      //                 "%s:%zu:%zu: error: expected a right brace to close the
-      //                 " "struct definition, but found %s", info->filename,
-      //                 closeBrace.line, closeBrace.character,
-      //                 tokenTypeToString(closeBrace.type));
-      //   }
-      //   tokenInfoUninit(&closeBrace);
-      //   nodeListDestroy(elements);
-      //   nodeDestroy(id);
-      // }
+      TokenInfo closeBrace;
+      lex(info, report, &closeBrace);
+      if (closeBrace.type != TT_RBRACE) {
+        if (!tokenInfoIsLexerError(&closeBrace)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a right brace to close the "
+                      "struct definition, but found %s",
+                      info->filename, closeBrace.line, closeBrace.character,
+                      tokenTypeToString(closeBrace.type));
+        }
+        tokenInfoUninit(&closeBrace);
+        nodeListDestroy(elements);
+        nodeDestroy(id);
+      }
 
-      // TokenInfo semicolon;
-      // lex(&semicolon, report, info);
-      // if (semicolon.type != TT_SEMI) {
-      //   if (!tokenInfoIsLexerError(&semicolon)) {
-      //     reportError(report,
-      //                 "%s:%zu:%zu: error: expected a semicolon to close the "
-      //                 "struct definition, but found %s",
-      //                 info->filename, semicolon.line, semicolon.character,
-      //                 tokenTypeToString(semicolon.type));
-      //   }
-      //   tokenInfoUninit(&semicolon);
-      //   nodeListDestroy(elements);
-      //   nodeDestroy(id);
-      // }
+      TokenInfo semicolon;
+      lex(info, report, &semicolon);
+      if (semicolon.type != TT_SEMI) {
+        if (!tokenInfoIsLexerError(&semicolon)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a semicolon to close the "
+                      "struct definition, but found %s",
+                      info->filename, semicolon.line, semicolon.character,
+                      tokenTypeToString(semicolon.type));
+        }
+        tokenInfoUninit(&semicolon);
+        nodeListDestroy(elements);
+        nodeDestroy(id);
+      }
 
-      // return structDeclNodeCreate(structKwd.line, structKwd.character, id,
-      //                             elements); // TODO: write this
+      return structDeclNodeCreate(structKwd.line, structKwd.character, id,
+                                  elements);
     }
     default: {
       if (!tokenInfoIsLexerError(&nextToken)) {
@@ -574,17 +590,29 @@ static Node *parseStructDecl(Report *report, Options *options,
   }
 }
 static Node *parseUnionDecl(Report *report, Options *options,
-                            TypeEnvironment *env, LexerInfo *info) {}
+                            TypeEnvironment *env, LexerInfo *info) {
+  return NULL;
+  // TODO: write this
+}
 static Node *parseEnumDecl(Report *report, Options *options,
-                           TypeEnvironment *env, LexerInfo *info) {}
+                           TypeEnvironment *env, LexerInfo *info) {
+  return NULL;
+  // TODO: write this
+}
 static Node *parseTypedef(Report *report, Options *options,
-                          TypeEnvironment *env, LexerInfo *info) {}
+                          TypeEnvironment *env, LexerInfo *info) {
+  return NULL;
+  // TODO: write this
+}
 static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
-                                     TypeEnvironment *env, LexerInfo *info) {}
+                                     TypeEnvironment *env, LexerInfo *info) {
+  return NULL;
+  // TODO: write this
+}
 static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
                        LexerInfo *info) {
   TokenInfo peek;
-  lex(&peek, report, info);
+  lex(info, report, &peek);
 
   switch (peek.type) {
     case TT_STRUCT: {
@@ -610,20 +638,19 @@ static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
 
     case TT_ID:
     case TT_SCOPED_ID: {
-      // TernaryValue isType =
-      //     environmentIsType(env, report, &peek, info->filename);
-      // if (isType == NO) {
-      //   reportError(report,
-      //               "%s:%zu:%zu: error: expected a declaration, but found an
-      //               " "identifier\n", info->filename, peek.line,
-      //               peek.character);
-      // }
-      // if (isType != YES) {
-      //   return NULL;
-      // }
-      // // might be a type
-      // __attribute__((fallthrough));
-      // TODO: write this
+      TernaryValue isType =
+          typeEnvironmentLookup(env, report, &peek, info->filename);
+      if (isType == NO) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a declaration, but found an "
+                    "identifier",
+                    info->filename, peek.line, peek.character);
+      }
+      if (isType != YES) {
+        return NULL;
+      }
+      // might be a type
+      __attribute__((fallthrough));
     }
     case TT_VOID:
     case TT_UBYTE:
@@ -645,7 +672,7 @@ static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
       if (!tokenInfoIsLexerError(&peek)) {
         reportError(report,
                     "%s:%zu:%zu: error: expected a declaration or definition, "
-                    "but found %s\n",
+                    "but found %s",
                     info->filename, peek.line, peek.character,
                     tokenTypeToString(peek.type));
       }
@@ -658,7 +685,7 @@ static NodeList *parseBodies(Report *report, Options *options,
   NodeList *bodies = nodeListCreate();
 
   TokenInfo peek;
-  lex(&peek, report, info);
+  lex(info, report, &peek);
 
   while (peek.type != TT_EOF && peek.type != TT_ERR) {
     unLex(info, &peek);
@@ -669,7 +696,7 @@ static NodeList *parseBodies(Report *report, Options *options,
     } else {
       nodeListInsert(bodies, node);
     }
-    lex(&peek, report, info);
+    lex(info, report, &peek);
   }
 
   tokenInfoUninit(&peek);  // actually not needed
@@ -681,21 +708,21 @@ static Node *parseDeclFile(Report *report, Options *options,
                            ModuleTypeTableMap *typeTables,
                            Stack *dependencyStack, ModuleLexerInfoMap *miMap,
                            ModuleNodeMap *mnMap, ModuleAstMap *decls,
-                           LexerInfo *lexerInfo, Node *module) {
+                           LexerInfo *info, Node *module) {
   TypeTable *currTypes = typeTableCreate();  // env setup
   TypeEnvironment env;
   typeEnvironmentInit(&env, currTypes, module->data.module.id->data.id.id);
 
   NodeList *imports =
       parseDeclImports(report, options, typeTables, &env, dependencyStack,
-                       miMap, mnMap, decls, lexerInfo);
+                       miMap, mnMap, decls, info);
   if (imports == NULL) {
     typeEnvironmentUninit(&env);
     typeTableDestroy(currTypes);
     nodeDestroy(module);
     return NULL;
   }
-  NodeList *bodies = parseBodies(report, options, &env, lexerInfo);
+  NodeList *bodies = parseBodies(report, options, &env, info);
   if (bodies == NULL) {
     nodeListDestroy(imports);
     typeEnvironmentUninit(&env);
@@ -710,12 +737,11 @@ static Node *parseDeclFile(Report *report, Options *options,
   typeEnvironmentUninit(&env);
 
   return fileNodeCreate(module->line, module->character, module, imports,
-                        bodies, lexerInfo->filename);
+                        bodies, info->filename);
 }
 static Node *parseCodeFile(Report *report, Options *options,
-                           ModuleTypeTableMap *typeTables,
-                           LexerInfo *lexerInfo) {
-  Node *module = parseModule(report, lexerInfo);
+                           ModuleTypeTableMap *typeTables, LexerInfo *info) {
+  Node *module = parseModule(report, info);
   if (module == NULL) {
     return NULL;
   }
@@ -724,15 +750,14 @@ static Node *parseCodeFile(Report *report, Options *options,
   TypeEnvironment env;
   typeEnvironmentInit(&env, currTypes, module->data.module.id->data.id.id);
 
-  NodeList *imports =
-      parseCodeImports(report, options, typeTables, &env, lexerInfo);
+  NodeList *imports = parseCodeImports(report, options, typeTables, &env, info);
   if (imports == NULL) {
     typeEnvironmentUninit(&env);
     typeTableDestroy(currTypes);
     nodeDestroy(module);
     return NULL;
   }
-  NodeList *bodies = parseBodies(report, options, &env, lexerInfo);
+  NodeList *bodies = parseBodies(report, options, &env, info);
   if (bodies == NULL) {
     nodeListDestroy(imports);
     typeEnvironmentUninit(&env);
@@ -747,8 +772,7 @@ static Node *parseCodeFile(Report *report, Options *options,
   typeEnvironmentUninit(&env);
 
   return fileNodeCreate(module->line, module->character, module,
-                        nodeListCreate(), nodeListCreate(),
-                        lexerInfo->filename);
+                        nodeListCreate(), nodeListCreate(), info->filename);
 }
 
 void parse(ModuleAstMapPair *asts, Report *report, Options *options,
@@ -768,18 +792,18 @@ void parse(ModuleAstMapPair *asts, Report *report, Options *options,
   for (size_t idx = 0; idx < files->decls.size; idx++) {
     LexerInfo *li = lexerInfoCreate(files->decls.elements[idx], &kwMap);
     if (li == NULL) {  // bad file!
-      reportError(report, "%s: error: no such file\n",
+      reportError(report, "%s: error: no such file",
                   (char *)files->decls.elements[idx]);
     }
     Node *module = parseModule(report, li);
     if (module == NULL) {  // didn't find it, file can't be parsed.
-      reportError(report, "%s: error: no module declaration found\n",
+      reportError(report, "%s: error: no module declaration found",
                   (char const *)files->decls.elements[idx]);
     } else if (moduleNodeMapPut(&mnMap, module->data.module.id->data.id.id,
                                 module) == HM_EEXISTS) {
       reportError(
           report,
-          "%s: error: module '%s' has already been declared (in file %s)\n",
+          "%s: error: module '%s' has already been declared (in file %s)",
           (char const *)files->decls.elements[idx],
           module->data.module.id->data.id.id,
           moduleLexerInfoMapGet(&miMap, module->data.module.id->data.id.id)
@@ -839,7 +863,7 @@ void parse(ModuleAstMapPair *asts, Report *report, Options *options,
         // exists, error!
         reportError(
             report,
-            "%s: error: module '%s' has already been declared (in file %s)\n",
+            "%s: error: module '%s' has already been declared (in file %s)",
             (char const *)files->codes.elements[idx],
             parsed->data.file.module->data.module.id->data.id.id,
             duplicateCheck->data.file.filename);
