@@ -56,6 +56,7 @@ void typeEnvironmentInit(TypeEnvironment *, TypeTable *currentModule,
                          char const *currentModuleName);
 SymbolType typeEnvironmentLookup(TypeEnvironment const *, Report *report,
                                  TokenInfo const *token, char const *filename);
+TypeTable *typeEnvironmentTop(TypeEnvironment const *);
 void typeEnvironmentUninit(TypeEnvironment *);
 
 #endif  // TLC_SYMBOLTABLE_TYPETABLE_H_

@@ -162,6 +162,10 @@ SymbolType typeEnvironmentLookup(TypeEnvironment const *env, Report *report,
                                  TokenInfo const *token, char const *filename) {
   return typeEnvironmentLookupInternal(env, report, token, filename, true);
 }
+TypeTable *typeEnvironmentTop(TypeEnvironment const *env) {
+  return env->scopes.size == 0 ? env->currentModule
+                               : env->scopes.elements[env->scopes.size - 1];
+}
 void typeEnvironmentUninit(TypeEnvironment *env) {
   moduleTypeTableMapUninit(&env->imports);
   stackUninit(&env->scopes, (void (*)(void *))typeTableDestroy);
