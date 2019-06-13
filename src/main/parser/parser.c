@@ -131,9 +131,9 @@ static NodeList *parseUnscopedIdList(Report *report, Options *options,
                    idNodeCreate(peek.line, peek.character, peek.data.string));
 
     lex(info, report, &peek);
-    if (peek.type != TT_COMMA) {
-      break;
-    }
+    if (peek.type != TT_COMMA) break;
+
+    lex(info, report, &peek);
   }
   unLex(info, &peek);
 
@@ -397,15 +397,35 @@ static NodeList *parseCodeImports(Report *report, Options *options,
   unLex(info, &peek);
   return imports;
 }
-
-// expression
-
-// statement
-
-// body
+static Node *parseTypeExtensions(Report *report, Options *options,
+                                 TypeEnvironment *env, Node *base,
+                                 LexerInfo *info) {
+  return base;  // TODO: write this
+}
 static Node *parseType(Report *report, Options *options, TypeEnvironment *env,
                        LexerInfo *info) {
-  return NULL;  // TODO: write this
+  TokenInfo base;
+  lex(info, report, &base);
+
+  if (tokenInfoIsTypeKeyword(&base)) {
+    return parseTypeExtensions(
+        report, options, env,
+        typeKeywordNodeCreate(base.line, base.character,
+                              tokenTypeToTypeKeyword(base.type)),
+        info);
+  } else if (base.type == TT_ID || base.type == TT_SCOPED_ID) {
+    return parseTypeExtensions(
+        report, options, env,
+        idTypeNodeCreate(base.line, base.character, base.data.string), info);
+  } else {
+    if (!tokenInfoIsLexerError(&base)) {
+      reportError(report, "%s:%zu:%zu: error: expected a type, but found '%s'",
+                  info->filename, base.line, base.character,
+                  tokenTypeToString(base.type));
+      tokenInfoUninit(&base);
+    }
+    return NULL;
+  }
 }
 static Node *parseVariableDecl(Report *report, Options *options,
                                TypeEnvironment *env, LexerInfo *info) {
@@ -445,6 +465,12 @@ static Node *parseVariableDecl(Report *report, Options *options,
 
   return varDeclNodeCreate(type->line, type->character, type, ids);
 }
+
+// expression
+
+// statement
+
+// body
 static NodeList *parseStructElements(Report *report, Options *options,
                                      TypeEnvironment *env, LexerInfo *info) {
   NodeList *elements = nodeListCreate();
@@ -638,18 +664,18 @@ static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
 
     case TT_ID:
     case TT_SCOPED_ID: {
-      TernaryValue isType =
+      SymbolType type =
           typeEnvironmentLookup(env, report, &peek, info->filename);
-      if (isType == NO) {
+      if (type == ST_ID) {
         reportError(report,
                     "%s:%zu:%zu: error: expected a declaration, but found an "
                     "identifier",
                     info->filename, peek.line, peek.character);
       }
-      if (isType != YES) {
+      if (type != ST_TYPE) {
         return NULL;
       }
-      // might be a type
+      // is a type
       __attribute__((fallthrough));
     }
     case TT_VOID:
@@ -842,6 +868,14 @@ void parse(ModuleAstMapPair *asts, Report *report, Options *options,
                           moduleNodeMapGet(&mnMap, miMap.keys[idx]));
         if (parsed != NULL) {
           moduleAstMapPut(&asts->decls, miMap.keys[idx], parsed);
+        } else {
+          // something's broke - get out
+          stackUninit(&dependencyStack, nullDtor);
+          moduleLexerInfoMapUninit(&miMap);
+          moduleNodeMapUninit(&mnMap);
+          moduleTypeTableMapUninit(&typeTables);
+          keywordMapUninit(&kwMap);
+          return;
         }
       }
     }
