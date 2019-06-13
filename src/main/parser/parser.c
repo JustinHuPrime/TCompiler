@@ -22,6 +22,7 @@
 #include "symbolTable/typeTable.h"
 #include "util/functional.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -120,24 +121,202 @@ static Node *parseUnscopedId(Report *report, LexerInfo *info) {
 
   return idNodeCreate(id.line, id.character, id.data.string);
 }
+static Node *parseIntConstant(Report *report, Options *options,
+                              TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo constant;
+  lex(info, report, &constant);
+
+  if (!tokenInfoIsIntConst(&constant)) {
+    if (!tokenInfoIsLexerError(&constant)) {
+      reportError(
+          report,
+          "%s:%zu:%zu: error: expected an integer constant, but found %s",
+          info->filename, constant.line, constant.character,
+          tokenTypeToString(constant.type));
+    }
+    tokenInfoUninit(&constant);
+    return NULL;
+  }
+
+  switch (constant.type) {
+    case TT_LITERALINT_0: {
+      return constZeroIntExpNodeCreate(constant.line, constant.character,
+                                       constant.data.string);
+    }
+    case TT_LITERALINT_B: {
+      return constBinaryIntExpNodeCreate(constant.line, constant.character,
+                                         constant.data.string);
+    }
+    case TT_LITERALINT_O: {
+      return constOctalIntExpNodeCreate(constant.line, constant.character,
+                                        constant.data.string);
+    }
+    case TT_LITERALINT_D: {
+      return constDecimalIntExpNodeCreate(constant.line, constant.character,
+                                          constant.data.string);
+    }
+    case TT_LITERALINT_H: {
+      return constHexadecimalIntExpNodeCreate(constant.line, constant.character,
+                                              constant.data.string);
+    }
+    default: {
+      assert(false);  // error: tokenInfoIsIntConst is broken.
+    }
+  }
+}
 static NodeList *parseUnscopedIdList(Report *report, Options *options,
                                      TypeEnvironment *env, LexerInfo *info) {
   NodeList *ids = nodeListCreate();
+  TokenInfo next;
+
+  lex(info, report, &next);
+  while (next.type == TT_ID) {
+    nodeListInsert(ids,
+                   idNodeCreate(next.line, next.character, next.data.string));
+
+    lex(info, report, &next);
+    if (next.type != TT_COMMA) break;
+
+    lex(info, report, &next);
+  }
+  unLex(info, &next);
+
+  return ids;
+}
+static Node *parseType(Report *, Options *, TypeEnvironment *, LexerInfo *);
+static NodeList *parseTypeList(Report *report, Options *options,
+                               TypeEnvironment *env, LexerInfo *info) {
+  NodeList *types = nodeListCreate();
   TokenInfo peek;
 
   lex(info, report, &peek);
-  while (peek.type == TT_ID) {
-    nodeListInsert(ids,
-                   idNodeCreate(peek.line, peek.character, peek.data.string));
+  while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_SCOPED_ID ||
+         peek.type == TT_ID) {
+    unLex(info, &peek);
+    if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
+      TernaryValue isType =
+          typeEnvironmentLookup(env, report, &peek, info->filename);
+      if (isType == INDETERMINATE) {
+        nodeListDestroy(types);
+        return NULL;
+      } else if (isType == NO) {
+        break;
+      }
+    }
+
+    // is the start of a type!
+    Node *type = parseType(report, options, env, info);
+    if (type == NULL) {
+      nodeListDestroy(types);
+      return NULL;
+    }
+    nodeListInsert(types, type);
 
     lex(info, report, &peek);
-    if (peek.type != TT_COMMA) break;
+    if (peek.type != TT_COMMA) {
+      break;
+    }
 
     lex(info, report, &peek);
   }
   unLex(info, &peek);
 
-  return ids;
+  return types;
+}
+static Node *parseTypeExtensions(Report *report, Options *options,
+                                 TypeEnvironment *env, Node *base,
+                                 LexerInfo *info) {
+  TokenInfo peek;
+  lex(info, report, &peek);
+
+  switch (peek.type) {
+    case TT_CONST: {
+      return parseTypeExtensions(
+          report, options, env,
+          constTypeNodeCreate(base->line, base->character, base), info);
+    }
+    case TT_LSQUARE: {
+      Node *size = parseIntConstant(report, options, env, info);
+
+      if (size == NULL) {
+        return NULL;
+      }
+
+      TokenInfo closeSquare;
+      lex(info, report, &closeSquare);
+      if (closeSquare.type != TT_RSQUARE) {
+        if (!tokenInfoIsLexerError(&closeSquare)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a close square brace to end "
+                      "the array type, but found %s",
+                      info->filename, closeSquare.line, closeSquare.character,
+                      tokenTypeToString(closeSquare.type));
+        }
+        nodeDestroy(size);
+        tokenInfoUninit(&closeSquare);
+      }
+
+      return parseTypeExtensions(
+          report, options, env,
+          arrayTypeNodeCreate(base->line, base->character, base, size), info);
+    }
+    case TT_STAR: {
+      return parseTypeExtensions(
+          report, options, env,
+          ptrTypeNodeCreate(base->line, base->character, base), info);
+    }
+    case TT_LPAREN: {
+      NodeList *argTypes = parseTypeList(report, options, env, info);
+
+      TokenInfo closeParen;
+      lex(info, report, &closeParen);
+      if (closeParen.type != TT_RPAREN) {
+        if (!tokenInfoIsLexerError(&closeParen)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a close paren to end the "
+                      "function pointer type, but found %s",
+                      info->filename, closeParen.line, closeParen.character,
+                      tokenTypeToString(closeParen.type));
+        }
+        tokenInfoUninit(&closeParen);
+        nodeListDestroy(argTypes);
+        return NULL;
+      }
+      return parseTypeExtensions(
+          report, options, env,
+          fnPtrTypeNodeCreate(base->line, base->character, base, argTypes),
+          info);
+    }
+    default: {
+      unLex(info, &peek);
+      return base;
+    }
+  }
+}
+static Node *parseType(Report *report, Options *options, TypeEnvironment *env,
+                       LexerInfo *info) {
+  TokenInfo base;
+  lex(info, report, &base);
+
+  if (tokenInfoIsTypeKeyword(&base)) {
+    return parseTypeExtensions(
+        report, options, env,
+        typeKeywordNodeCreate(base.line, base.character,
+                              tokenTypeToTypeKeyword(base.type)),
+        info);
+  } else if (base.type == TT_ID || base.type == TT_SCOPED_ID) {
+    return parseTypeExtensions(
+        report, options, env,
+        idTypeNodeCreate(base.line, base.character, base.data.string), info);
+  } else {
+    if (!tokenInfoIsLexerError(&base)) {
+      reportError(report, "%s:%zu:%zu: error: expected a type, but found '%s'",
+                  info->filename, base.line, base.character,
+                  tokenTypeToString(base.type));
+      tokenInfoUninit(&base);
+    }
+    return NULL;
+  }
 }
 
 // module
@@ -354,8 +533,8 @@ static NodeList *parseDeclImports(Report *report, Options *options,
   NodeList *imports = nodeListCreate();
 
   TokenInfo peek;
-  lex(info, report, &peek);
 
+  lex(info, report, &peek);
   while (peek.type == TT_IMPORT) {
     unLex(info, &peek);
     Node *node = parseDeclImport(report, options, typeTables, env,
@@ -397,36 +576,12 @@ static NodeList *parseCodeImports(Report *report, Options *options,
   unLex(info, &peek);
   return imports;
 }
-static Node *parseTypeExtensions(Report *report, Options *options,
-                                 TypeEnvironment *env, Node *base,
-                                 LexerInfo *info) {
-  return base;  // TODO: write this
-}
-static Node *parseType(Report *report, Options *options, TypeEnvironment *env,
-                       LexerInfo *info) {
-  TokenInfo base;
-  lex(info, report, &base);
 
-  if (tokenInfoIsTypeKeyword(&base)) {
-    return parseTypeExtensions(
-        report, options, env,
-        typeKeywordNodeCreate(base.line, base.character,
-                              tokenTypeToTypeKeyword(base.type)),
-        info);
-  } else if (base.type == TT_ID || base.type == TT_SCOPED_ID) {
-    return parseTypeExtensions(
-        report, options, env,
-        idTypeNodeCreate(base.line, base.character, base.data.string), info);
-  } else {
-    if (!tokenInfoIsLexerError(&base)) {
-      reportError(report, "%s:%zu:%zu: error: expected a type, but found '%s'",
-                  info->filename, base.line, base.character,
-                  tokenTypeToString(base.type));
-      tokenInfoUninit(&base);
-    }
-    return NULL;
-  }
-}
+// expression
+
+// statement
+
+// body
 static Node *parseVariableDecl(Report *report, Options *options,
                                TypeEnvironment *env, LexerInfo *info) {
   Node *type = parseType(report, options, env, info);
@@ -465,19 +620,13 @@ static Node *parseVariableDecl(Report *report, Options *options,
 
   return varDeclNodeCreate(type->line, type->character, type, ids);
 }
-
-// expression
-
-// statement
-
-// body
 static NodeList *parseStructElements(Report *report, Options *options,
                                      TypeEnvironment *env, LexerInfo *info) {
   NodeList *elements = nodeListCreate();
 
   TokenInfo peek;
-  lex(info, report, &peek);
 
+  lex(info, report, &peek);
   while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_SCOPED_ID ||
          peek.type == TT_ID) {
     unLex(info, &peek);
