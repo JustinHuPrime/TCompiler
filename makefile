@@ -70,7 +70,7 @@ WARNINGS := -pedantic -pedantic-errors -Wall -Wextra -Wdouble-promotion\
 
 # compiler options
 OPTIONS := -std=c18 -m64 -D_POSIX_C_SOURCE=201904L -I$(SRCDIR) $(WARNINGS)
-DEBUGOPTIONS := -Og -ggdb
+DEBUGOPTIONS := -Og -ggdb -Wno-unused-parameter
 RELEASEOPTIONS := -O3 -D NDEBUG
 TOPTIONS := -I$(TSRCDIR)
 LIBS :=
