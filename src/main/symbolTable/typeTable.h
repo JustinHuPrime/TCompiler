@@ -54,9 +54,8 @@ typedef struct {
 } TypeEnvironment;
 void typeEnvironmentInit(TypeEnvironment *, TypeTable *currentModule,
                          char const *currentModuleName);
-TernaryValue typeEnvironmentIsType(TypeEnvironment const *, Report *report,
-                                   TokenInfo const *token,
-                                   char const *filename);
+SymbolType typeEnvironmentLookup(TypeEnvironment const *, Report *report,
+                                 TokenInfo const *token, char const *filename);
 void typeEnvironmentUninit(TypeEnvironment *);
 
 #endif  // TLC_SYMBOLTABLE_TYPETABLE_H_

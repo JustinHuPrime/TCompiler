@@ -21,6 +21,9 @@
 #include "util/functional.h"
 #include "util/nameUtils.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 TypeTable *typeTableCreate(void) { return hashMapCreate(); }
 SymbolType typeTableGet(TypeTable const *table, char const *key) {
 #pragma GCC diagnostic push
@@ -57,10 +60,107 @@ void typeEnvironmentInit(TypeEnvironment *env, TypeTable *currentModule,
   moduleTypeTableMapInit(&env->imports);
   stackInit(&env->scopes);
 }
-TernaryValue typeEnvironmentIsType(TypeEnvironment const *env, Report *report,
-                                   TokenInfo const *token,
-                                   char const *filename) {
-  // TODO: write this
+static SymbolType typeEnvironmentLookupInternal(TypeEnvironment const *env,
+                                                Report *report,
+                                                TokenInfo const *token,
+                                                char const *filename,
+                                                bool reportErrors) {
+  if (isScoped(token->data.string)) {
+    char *moduleName;
+    char *shortName;
+    splitName(token->data.string, &moduleName, &shortName);
+    if (strcmp(moduleName, env->currentModuleName) == 0) {
+      return typeTableGet(env->currentModule, shortName);
+    } else {
+      for (size_t idx = 0; idx < env->imports.capacity; idx++) {
+        if (strcmp(moduleName, env->imports.keys[idx]) == 0) {
+          SymbolType info = typeTableGet(env->imports.values[idx], shortName);
+          if (info != ST_UNDEFINED) {
+            free(moduleName);
+            free(shortName);
+            return info;
+          }
+        }
+      }
+    }
+
+    if (isScoped(moduleName)) {
+      char *enumModuleName;
+      char *enumName;
+      splitName(moduleName, &enumModuleName, &enumName);
+
+      TokenInfo enumModule;
+      memcpy(&enumModule, token, sizeof(TokenInfo));
+      enumModule.data.string = enumModuleName;
+
+      SymbolType enumType = typeEnvironmentLookupInternal(
+          env, report, &enumModule, filename, false);
+      free(enumName);
+      free(enumModuleName);
+      tokenInfoUninit(&enumModule);
+
+      if (enumType == ST_TYPE) {
+        free(moduleName);
+        free(shortName);
+
+        return enumType;
+      }
+    }
+
+    free(moduleName);
+    free(shortName);
+    if (reportErrors) {
+      reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'\n",
+                  filename, token->line, token->character, token->data.string);
+    }
+    return ST_UNDEFINED;
+  } else {
+    for (size_t idx = env->scopes.size; idx-- > 0;) {
+      SymbolType info =
+          typeTableGet(env->scopes.elements[idx], token->data.string);
+      if (info != ST_UNDEFINED) return info;
+    }
+    SymbolType info = typeTableGet(env->currentModule, token->data.string);
+    if (info != ST_UNDEFINED) return info;
+
+    char const *foundModule = NULL;
+    for (size_t idx = 0; idx < env->imports.capacity; idx++) {
+      if (env->imports.keys[idx] != NULL) {
+        SymbolType current =
+            typeTableGet(env->imports.values[idx], token->data.string);
+        if (current != ST_UNDEFINED) {
+          if (info == ST_UNDEFINED) {
+            info = current;
+            foundModule = env->imports.keys[idx];
+          } else {
+            if (reportErrors) {
+              reportError(
+                  report, "%s:%zu:%zu: error: identifier '%s' is ambiguous\n",
+                  filename, token->line, token->character, token->data.string);
+              reportMessage(report, "\tcandidate module: %s\n",
+                            env->imports.keys[idx]);
+              reportMessage(report, "\tcandidate module: %s\n", foundModule);
+            }
+            return ST_UNDEFINED;
+          }
+        }
+      }
+    }
+    if (info != ST_UNDEFINED) {
+      return info;
+    } else {
+      if (reportErrors) {
+        reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'\n",
+                    filename, token->line, token->character,
+                    token->data.string);
+      }
+      return ST_UNDEFINED;
+    }
+  }
+}
+SymbolType typeEnvironmentLookup(TypeEnvironment const *env, Report *report,
+                                 TokenInfo const *token, char const *filename) {
+  return typeEnvironmentLookupInternal(env, report, token, filename, true);
 }
 void typeEnvironmentUninit(TypeEnvironment *env) {
   moduleTypeTableMapUninit(&env->imports);
