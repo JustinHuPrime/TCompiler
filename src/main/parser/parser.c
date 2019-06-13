@@ -304,7 +304,8 @@ static Node *parseType(Report *report, Options *options, TypeEnvironment *env,
         typeKeywordNodeCreate(base.line, base.character,
                               tokenTypeToTypeKeyword(base.type)),
         info);
-  } else if (base.type == TT_ID || base.type == TT_SCOPED_ID) {
+  } else if (base.type == TT_ID ||
+             base.type == TT_SCOPED_ID) {  // must be a type ID to get here
     return parseTypeExtensions(
         report, options, env,
         idTypeNodeCreate(base.line, base.character, base.data.string), info);
@@ -631,12 +632,12 @@ static NodeList *parseStructElements(Report *report, Options *options,
          peek.type == TT_ID) {
     unLex(info, &peek);
     if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
-      TernaryValue isType =
+      SymbolType isType =
           typeEnvironmentLookup(env, report, &peek, info->filename);
-      if (isType == INDETERMINATE) {
+      if (isType == ST_UNDEFINED) {
         nodeListDestroy(elements);
         return NULL;
-      } else if (isType == NO) {
+      } else if (isType == ST_ID) {
         break;
       }
     }
@@ -765,10 +766,7 @@ static Node *parseStructDecl(Report *report, Options *options,
   }
 }
 static Node *parseUnionDecl(Report *report, Options *options,
-                            TypeEnvironment *env, LexerInfo *info) {
-  return NULL;
-  // TODO: write this
-}
+                            TypeEnvironment *env, LexerInfo *info) {}
 static Node *parseEnumDecl(Report *report, Options *options,
                            TypeEnvironment *env, LexerInfo *info) {
   return NULL;
