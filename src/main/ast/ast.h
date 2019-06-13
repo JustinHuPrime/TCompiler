@@ -497,6 +497,8 @@ Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *basePtr,
 Node *fnCallExpNodeCreate(size_t line, size_t character, Node *functionId,
                           NodeList *args);
 Node *idExpNodeCreate(size_t line, size_t character, char *idString);
+Node *constZeroIntExpNodeCreate(size_t line, size_t character,
+                                char *constantString);
 Node *constBinaryIntExpNodeCreate(size_t line, size_t character,
                                   char *constantString);
 Node *constOctalIntExpNodeCreate(size_t line, size_t character,

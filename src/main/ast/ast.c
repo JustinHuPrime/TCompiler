@@ -479,6 +479,13 @@ static Node *constIntExpSetValue(Node *node, Sign sign, bool overflow,
 
   return node;
 }
+Node *constZeroIntExpNodeCreate(size_t line, size_t character,
+                                char *constantString) {
+  Node *node = constExpNodeCreate(line, character);
+  Sign sign = constIntExpGetSign(constantString);
+  free(constantString);
+  return constIntExpSetValue(node, sign, false, 0);
+}
 Node *constBinaryIntExpNodeCreate(size_t line, size_t character,
                                   char *constantString) {
   Node *node = constExpNodeCreate(line, character);
