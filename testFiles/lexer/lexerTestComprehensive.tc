@@ -2,7 +2,7 @@
 module import struct union enum typedef
 if else while do for switch case default
 break continue return asm true false cast
-sizeof void ubyte byte char uint int wchar
+sizeof void ubyte byte char ushort short uint int wchar
 ulong long float double bool const /* block
 comment
 multiline */
@@ -14,7 +14,8 @@ multiline */
 123
 0xfF1
 3.1415
-"string"
+"string
+with newline"
 'c'
 "wstring"w
 'c'w
@@ -22,4 +23,6 @@ multiline */
 -2
 "\xaF"
 '\u12ab34CD'w
+'
+'
 

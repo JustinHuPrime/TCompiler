@@ -64,6 +64,8 @@ typedef enum {
   TT_UBYTE,
   TT_BYTE,
   TT_CHAR,
+  TT_USHORT,
+  TT_SHORT,
   TT_UINT,
   TT_INT,
   TT_WCHAR,

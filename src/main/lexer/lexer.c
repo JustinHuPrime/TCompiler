@@ -95,6 +95,10 @@ char const *tokenTypeToString(TokenType tt) {
       return "the keyword 'byte'";
     case TT_CHAR:
       return "the keyword 'char'";
+    case TT_USHORT:
+      return "the keyword 'ushort'";
+    case TT_SHORT:
+      return "the keyword 'short'";
     case TT_UINT:
       return "the keyword 'uint'";
     case TT_INT:
@@ -258,18 +262,20 @@ static char const *const KEYWORDS[] = {
     "module", "import",   "struct", "union", "enum",   "typedef", "if",
     "else",   "while",    "do",     "for",   "switch", "case",    "default",
     "break",  "continue", "return", "asm",   "true",   "false",   "cast",
-    "sizeof", "void",     "ubyte",  "byte",  "char",   "uint",    "int",
-    "wchar",  "ulong",    "long",   "float", "double", "bool",    "const",
+    "sizeof", "void",     "ubyte",  "byte",  "char",   "ushort",  "short",
+    "uint",   "int",      "wchar",  "ulong", "long",   "float",   "double",
+    "bool",   "const",
 };
 static TokenType const KEYWORD_TOKENS[] = {
     TT_MODULE, TT_IMPORT,  TT_STRUCT, TT_UNION,    TT_ENUM,   TT_TYPEDEF,
     TT_IF,     TT_ELSE,    TT_WHILE,  TT_DO,       TT_FOR,    TT_SWITCH,
     TT_CASE,   TT_DEFAULT, TT_BREAK,  TT_CONTINUE, TT_RETURN, TT_ASM,
     TT_TRUE,   TT_FALSE,   TT_CAST,   TT_SIZEOF,   TT_VOID,   TT_UBYTE,
-    TT_BYTE,   TT_CHAR,    TT_UINT,   TT_INT,      TT_WCHAR,  TT_ULONG,
-    TT_LONG,   TT_FLOAT,   TT_DOUBLE, TT_BOOL,     TT_CONST,
+    TT_BYTE,   TT_CHAR,    TT_USHORT, TT_SHORT,    TT_UINT,   TT_INT,
+    TT_WCHAR,  TT_ULONG,   TT_LONG,   TT_FLOAT,    TT_DOUBLE, TT_BOOL,
+    TT_CONST,
 };
-static size_t const NUM_KEYWORDS = 35;
+static size_t const NUM_KEYWORDS = 37;
 
 KeywordMap *keywordMapCreate(void) {
   KeywordMap *map = malloc(sizeof(KeywordMap));
@@ -2455,6 +2461,16 @@ static void lexDumpOne(Report *report, KeywordMap *keywords,
       }
       case TT_CHAR: {
         printf("%s:%zu:%zu: CHAR\n", filename, tokenInfo.line,
+               tokenInfo.character);
+        break;
+      }
+      case TT_USHORT: {
+        printf("%s:%zu:%zu: USHORT\n", filename, tokenInfo.line,
+               tokenInfo.character);
+        break;
+      }
+      case TT_SHORT: {
+        printf("%s:%zu:%zu: SHORT\n", filename, tokenInfo.line,
                tokenInfo.character);
         break;
       }
