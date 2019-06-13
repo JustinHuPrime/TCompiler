@@ -478,7 +478,7 @@ static LexerState hexDigitAction(Report *report, char c, StringBuilder *buffer,
   }
 }
 
-void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *lexerInfo) {
+void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
   if (lexerInfo->pushedBack) {
     memcpy(tokenInfo, &lexerInfo->previous, sizeof(TokenInfo));
     lexerInfo->pushedBack = false;
@@ -2289,7 +2289,7 @@ static void lexDumpOne(Report *report, KeywordMap *keywords,
   TokenInfo tokenInfo;
   printf("%s:\n", filename);
   do {
-    lex(&tokenInfo, report, info);
+    lex(info, report, &tokenInfo);
     switch (tokenInfo.type) {
       // errors
       case TT_ERR: {

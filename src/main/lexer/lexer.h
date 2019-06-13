@@ -188,7 +188,7 @@ void keywordMapDestroy(KeywordMap *);
 // takes the lexer info and reads one token from it, discarding preceeding
 // whitespace recursively. note that the parser is responsible for figuring out
 // the exact value of a literal
-void lex(TokenInfo *tokenInfo, Report *report, LexerInfo *info);
+void lex(LexerInfo *info, Report *report, TokenInfo *tokenInfo);
 // pushes a token back into the lexer info
 void unLex(LexerInfo *info, TokenInfo *tokenInfo);
 
