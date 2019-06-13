@@ -621,8 +621,8 @@ static Node *parseVariableDecl(Report *report, Options *options,
 
   return varDeclNodeCreate(type->line, type->character, type, ids);
 }
-static NodeList *parseStructElements(Report *report, Options *options,
-                                     TypeEnvironment *env, LexerInfo *info) {
+static NodeList *parseFields(Report *report, Options *options,
+                             TypeEnvironment *env, LexerInfo *info) {
   NodeList *elements = nodeListCreate();
 
   TokenInfo peek;
@@ -655,10 +655,10 @@ static NodeList *parseStructElements(Report *report, Options *options,
 
   return elements;
 }
-static Node *parseStructDecl(Report *report, Options *options,
-                             TypeEnvironment *env, LexerInfo *info) {
-  TokenInfo structKwd;
-  lex(info, report, &structKwd);  // must be right to get here
+static Node *parseUnionOrStructDecl(Report *report, Options *options,
+                                    TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo kwd;
+  lex(info, report, &kwd);  // must be right to get here
 
   Node *id = parseUnscopedId(report, info);
   if (id == NULL) return NULL;
@@ -688,8 +688,9 @@ static Node *parseStructDecl(Report *report, Options *options,
           return NULL;
         }
       }
-      return structForwardDeclNodeCreate(structKwd.line, structKwd.character,
-                                         id);
+      return (kwd.type == TT_STRUCT
+                  ? structForwardDeclNodeCreate
+                  : unionForwardDeclNodeCreate)(kwd.line, kwd.character, id);
     }
     case TT_LBRACE: {
       // definition: must not be exist or only be declared
@@ -713,7 +714,7 @@ static Node *parseStructDecl(Report *report, Options *options,
           return NULL;
         }
       }
-      NodeList *elements = parseStructElements(report, options, env, info);
+      NodeList *elements = parseFields(report, options, env, info);
       if (elements == NULL) {
         nodeDestroy(id);
         return NULL;
@@ -725,8 +726,9 @@ static Node *parseStructDecl(Report *report, Options *options,
         if (!tokenInfoIsLexerError(&closeBrace)) {
           reportError(report,
                       "%s:%zu:%zu: error: expected a right brace to close the "
-                      "struct definition, but found %s",
+                      "%s definition, but found %s",
                       info->filename, closeBrace.line, closeBrace.character,
+                      kwd.type == TT_STRUCT ? "struct" : "union",
                       tokenTypeToString(closeBrace.type));
         }
         tokenInfoUninit(&closeBrace);
@@ -740,8 +742,9 @@ static Node *parseStructDecl(Report *report, Options *options,
         if (!tokenInfoIsLexerError(&semicolon)) {
           reportError(report,
                       "%s:%zu:%zu: error: expected a semicolon to close the "
-                      "struct definition, but found %s",
+                      "%s definition, but found %s",
                       info->filename, semicolon.line, semicolon.character,
+                      kwd.type == TT_STRUCT ? "struct" : "union",
                       tokenTypeToString(semicolon.type));
         }
         tokenInfoUninit(&semicolon);
@@ -749,8 +752,9 @@ static Node *parseStructDecl(Report *report, Options *options,
         nodeDestroy(id);
       }
 
-      return structDeclNodeCreate(structKwd.line, structKwd.character, id,
-                                  elements);
+      return (kwd.type == TT_STRUCT
+                  ? structDeclNodeCreate
+                  : unionDeclNodeCreate)(kwd.line, kwd.character, id, elements);
     }
     default: {
       if (!tokenInfoIsLexerError(&nextToken)) {
@@ -765,8 +769,6 @@ static Node *parseStructDecl(Report *report, Options *options,
     }
   }
 }
-static Node *parseUnionDecl(Report *report, Options *options,
-                            TypeEnvironment *env, LexerInfo *info) {}
 static Node *parseEnumDecl(Report *report, Options *options,
                            TypeEnvironment *env, LexerInfo *info) {
   return NULL;
@@ -788,15 +790,11 @@ static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
   lex(info, report, &peek);
 
   switch (peek.type) {
+    case TT_UNION:
     case TT_STRUCT: {
       // struct or struct forward decl
       unLex(info, &peek);
-      return parseStructDecl(report, options, env, info);
-    }
-    case TT_UNION: {
-      // union or union forward decl
-      unLex(info, &peek);
-      return parseUnionDecl(report, options, env, info);
+      return parseUnionOrStructDecl(report, options, env, info);
     }
     case TT_ENUM: {
       // enum or enum forward decl
