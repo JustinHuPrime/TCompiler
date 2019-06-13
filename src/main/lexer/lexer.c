@@ -244,11 +244,14 @@ TypeKeyword tokenTypeToTypeKeyword(TokenType type) {
   return type - TT_VOID + TK_VOID;
 }
 
-bool tokenInfoIsLexerError(TokenInfo *info) {
+bool tokenInfoIsLexerError(TokenInfo const *info) {
   return info->type != TT_EOF && info->type <= TT_MULTICHAR_CHAR;
 }
-bool tokenInfoIsTypeKeyword(TokenInfo *info) {
+bool tokenInfoIsTypeKeyword(TokenInfo const *info) {
   return TT_VOID <= info->type && info->type <= TT_BOOL;
+}
+bool tokenInfoIsIntConst(TokenInfo const *info) {
+  return TT_LITERALINT_0 <= info->type && info->type <= TT_LITERALINT_H;
 }
 void tokenInfoUninit(TokenInfo *info) {
   if (info->type == TT_LITERALCHAR || info->type == TT_LITERALWCHAR ||

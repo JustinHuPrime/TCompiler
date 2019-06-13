@@ -159,9 +159,11 @@ typedef struct {
   } data;
 } TokenInfo;
 // produce true if token type is an error result handled by the lexer
-bool tokenInfoIsLexerError(TokenInfo *);
+bool tokenInfoIsLexerError(TokenInfo const *);
 // produces true if token type is a type keyword token
-bool tokenInfoIsTypeKeyword(TokenInfo *);
+bool tokenInfoIsTypeKeyword(TokenInfo const *);
+// produces true if token type is an int constant
+bool tokenInfoIsIntConst(TokenInfo const *);
 // dtor
 void tokenInfoUninit(TokenInfo *);
 
