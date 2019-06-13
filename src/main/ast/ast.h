@@ -185,6 +185,8 @@ typedef enum {
   TK_UBYTE,
   TK_BYTE,
   TK_CHAR,
+  TK_USHORT,
+  TK_SHORT,
   TK_UINT,
   TK_INT,
   TK_WCHAR,

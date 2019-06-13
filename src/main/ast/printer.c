@@ -681,6 +681,14 @@ void nodePrintStructure(Node const *node) {
           printf("KEYWORDTYPE(byte)");
           break;
         }
+        case TK_USHORT: {
+          printf("KEYWORDTYPE(ushort)");
+          break;
+        }
+        case TK_SHORT: {
+          printf("KEYWORDTYPE(short)");
+          break;
+        }
         case TK_UINT: {
           printf("KEYWORDTYPE(uint)");
           break;
@@ -1414,6 +1422,14 @@ void nodePrint(Node const *node) {
         }
         case TK_CHAR: {
           printf("char");
+          break;
+        }
+        case TK_USHORT: {
+          printf("ushort");
+          break;
+        }
+        case TK_SHORT: {
+          printf("short");
           break;
         }
         case TK_UINT: {
