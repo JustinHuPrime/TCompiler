@@ -19,6 +19,7 @@
 #ifndef TLC_LEXER_LEXER_H_
 #define TLC_LEXER_LEXER_H_
 
+#include "ast/ast.h"
 #include "util/container/hashMap.h"
 #include "util/errorReport.h"
 #include "util/file.h"
@@ -145,6 +146,7 @@ typedef enum {
   TT_LITERALWCHAR,
 } TokenType;
 char const *tokenTypeToString(TokenType);
+TypeKeyword tokenTypeToTypeKeyword(TokenType);
 
 // pod object, stores the result of a lex
 typedef struct {

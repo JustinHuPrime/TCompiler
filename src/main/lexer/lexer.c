@@ -240,6 +240,9 @@ char const *tokenTypeToString(TokenType tt) {
   }
   assert(false);  // not a TokenType; type safety violated
 }
+TypeKeyword tokenTypeToTypeKeyword(TokenType type) {
+  return type - TT_VOID + TK_VOID;
+}
 
 bool tokenInfoIsLexerError(TokenInfo *info) {
   return info->type != TT_EOF && info->type <= TT_MULTICHAR_CHAR;
