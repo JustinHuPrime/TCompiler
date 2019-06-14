@@ -981,6 +981,36 @@ static Node *parseTypedef(Report *report, Options *options,
 }
 static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
                                      TypeEnvironment *env, LexerInfo *info) {
+  Node *type = parseType(report, options, env, info);
+
+  if (type == NULL) {
+    return NULL;
+  }
+
+  Node *id = parseUnscopedId(report, info);
+  if (id == NULL) {
+    nodeDestroy(type);
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+
+  switch (peek.type) {
+    case TT_LPAREN: {
+      // function defn or decl
+    }
+    case TT_SEMI: {
+      // is a completed var decl
+    }
+    case TT_EQ: {
+      // is a var decl
+    }
+    case TT_COMMA: {
+      // is a var decl
+    }
+  }
+
   return NULL;
   // TODO: write this
 }
