@@ -359,6 +359,7 @@ typedef enum {
 
   // char states
   LS_CHARS,
+  LS_CHAR_SEEN_CR,
   LS_CHAR_SINGLE,
   LS_CHAR_ESCAPED,
   LS_CHAR_HEX_DIGIT_1,
@@ -375,12 +376,15 @@ typedef enum {
   LS_EXPECT_WCHAR,
   LS_IS_WCHAR,
   LS_CHAR_ERROR_MUNCH,
+  LS_CHAR_ERROR_MUNCH_NL,
   LS_CHAR_ERROR_MAYBE_WCHAR,
   LS_CHAR_BAD_ESCAPE,
+  LS_CHAR_BAD_ESCAPE_NL,
   LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR,
 
   // string states
   LS_STRING,
+  LS_STRING_SEEN_CR,
   LS_STRING_ESCAPED,
   LS_STRING_HEX_DIGIT_1,
   LS_STRING_HEX_DIGIT_2,
@@ -394,6 +398,7 @@ typedef enum {
   LS_STRING_WHEX_DIGIT_8,
   LS_MAYBE_WSTRING,
   LS_STRING_WIDE,
+  LS_STRING_WIDE_SEEN_CR,
   LS_STRING_WIDE_ESCAPED,
   LS_STRING_WIDE_HEX_DIGIT_1,
   LS_STRING_WIDE_HEX_DIGIT_2,
@@ -407,6 +412,7 @@ typedef enum {
   LS_STRING_WIDE_WHEX_DIGIT_8,
   LS_STRING_WIDE_END,
   LS_STRING_BAD_ESCAPE,
+  LS_STRING_BAD_ESCAPE_NL,
   LS_STRING_BAD_ESCAPE_MAYBE_WCHAR,
 
   // number states
@@ -1352,6 +1358,24 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
             stringBuilderPush(buffer, c);
             break;
           }
+          case '\n': {
+            state = LS_CHAR_SINGLE;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case '\r': {
+            state = LS_CHAR_SEEN_CR;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
           default: {
             state = LS_CHAR_SINGLE;
 
@@ -1361,6 +1385,24 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_CHARS
+      case LS_CHAR_SEEN_CR: {
+        switch (c) {
+          case '\n': {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            lexerInfo->character = 0;
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character = 0;
+
+            state = LS_CHAR_SINGLE;
+            break;
+          }
+        }
+        break;
+      }  // LS_CHAR_SEEN_CR
       case LS_CHAR_SINGLE: {
         switch (c) {
           case -2: {  // F_EOF
@@ -1379,6 +1421,38 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
             tokenInfo->data.string = stringBuilderData(buffer);
             stringBuilderDestroy(buffer);
             buffer = NULL;
+            break;
+          }
+          case '\n': {
+            state = LS_CHAR_ERROR_MUNCH;
+
+            reportError(
+                report,
+                "%s:%zu:%zu: error: multiple characters in single quotes",
+                lexerInfo->filename, lexerInfo->line,
+                lexerInfo->character - buffer->size);
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\r': {
+            state = LS_CHAR_ERROR_MUNCH_NL;
+
+            reportError(
+                report,
+                "%s:%zu:%zu: error: multiple characters in single quotes",
+                lexerInfo->filename, lexerInfo->line,
+                lexerInfo->character - buffer->size);
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
             break;
           }
           default: {
@@ -1430,6 +1504,34 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
             state = LS_CHAR_SINGLE;
 
             stringBuilderPush(buffer, c);
+            break;
+          }
+          case '\n': {
+            reportError(report, "%s:%zu:%zu: error: invalid escape sequence",
+                        lexerInfo->filename, lexerInfo->line,
+                        lexerInfo->character - 1);
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
+            state = LS_CHAR_BAD_ESCAPE;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\r': {
+            reportError(report, "%s:%zu:%zu: error: invalid escape sequence",
+                        lexerInfo->filename, lexerInfo->line,
+                        lexerInfo->character - 1);
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
+            state = LS_CHAR_BAD_ESCAPE_NL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
             break;
           }
           default: {
@@ -1540,8 +1642,46 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
             buffer = NULL;
             break;
           }
+          case '\n': {
+            state = LS_CHAR_ERROR_MUNCH;
+
+            reportError(
+                report,
+                "%s:%zu:%zu: error: multiple characters in single quotes",
+                lexerInfo->filename, lexerInfo->line,
+                lexerInfo->character - buffer->size);
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\r': {
+            state = LS_CHAR_ERROR_MUNCH_NL;
+
+            reportError(
+                report,
+                "%s:%zu:%zu: error: multiple characters in single quotes",
+                lexerInfo->filename, lexerInfo->line,
+                lexerInfo->character - buffer->size);
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
           default: {
             state = LS_CHAR_ERROR_MUNCH;
+
+            reportError(
+                report,
+                "%s:%zu:%zu: error: multiple characters in single quotes",
+                lexerInfo->filename, lexerInfo->line,
+                lexerInfo->character - buffer->size);
 
             stringBuilderDestroy(buffer);
             buffer = NULL;
@@ -1590,10 +1730,40 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
             state = LS_CHAR_ERROR_MAYBE_WCHAR;
             break;
           }
+          case '\r': {
+            state = LS_CHAR_ERROR_MUNCH_NL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\n': {
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
           default: { break; }
         }
         break;
       }  // LS_CHAR_ERROR_MUNCH
+      case LS_CHAR_ERROR_MUNCH_NL: {
+        switch (c) {
+          case '\n': {
+            state = LS_CHAR_ERROR_MUNCH;
+
+            lexerInfo->character = 0;
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character = 0;
+
+            state = LS_CHAR_ERROR_MUNCH;
+            break;
+          }
+        }
+        break;
+      }  // LS_CHAR_ERROR_MUNCH_NL
       case LS_CHAR_ERROR_MAYBE_WCHAR: {
         switch (c) {
           case 'w': {
@@ -1626,10 +1796,40 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
             state = LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR;
             break;
           }
+          case '\r': {
+            state = LS_CHAR_BAD_ESCAPE_NL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\n': {
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
           default: { break; }
         }
         break;
       }  // LS_CHAR_BAD_ESCAPE
+      case LS_CHAR_BAD_ESCAPE_NL: {
+        switch (c) {
+          case '\n': {
+            state = LS_CHAR_BAD_ESCAPE;
+
+            lexerInfo->character = 0;
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character = 0;
+
+            state = LS_CHAR_BAD_ESCAPE;
+            break;
+          }
+        }
+        break;
+      }  // LS_CHAR_BAD_ESCAPE_NL
       case LS_CHAR_BAD_ESCAPE_MAYBE_WCHAR: {
         switch (c) {
           case 'w': {
@@ -1674,6 +1874,22 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
             buffer = NULL;
             break;
           }
+          case '\n': {
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          case '\r': {
+            state = LS_STRING_SEEN_CR;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
           default: {
             stringBuilderPush(buffer, c);
             break;
@@ -1681,6 +1897,26 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_STRING
+      case LS_STRING_SEEN_CR: {
+        switch (c) {
+          case '\n': {
+            state = LS_STRING;
+
+            lexerInfo->character = 0;
+
+            stringBuilderPush(buffer, c);
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character = 0;
+
+            state = LS_STRING;
+            break;
+          }
+        }
+        break;
+      }
       case LS_STRING_ESCAPED: {
         switch (c) {
           case -2: {  // F_EOF
@@ -1716,8 +1952,40 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
             stringBuilderPush(buffer, c);
             break;
           }
+          case '\n': {
+            state = LS_STRING_BAD_ESCAPE;
+
+            reportError(report, "%s:%zu:%zu: error: invalid escape sequence",
+                        lexerInfo->filename, lexerInfo->line,
+                        lexerInfo->character - 1);
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\r': {
+            state = LS_STRING_BAD_ESCAPE_NL;
+
+            reportError(report, "%s:%zu:%zu: error: invalid escape sequence",
+                        lexerInfo->filename, lexerInfo->line,
+                        lexerInfo->character - 1);
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
           default: {
             state = LS_STRING_BAD_ESCAPE;
+
+            reportError(report, "%s:%zu:%zu: error: invalid escape sequence",
+                        lexerInfo->filename, lexerInfo->line,
+                        lexerInfo->character - 1);
 
             stringBuilderDestroy(buffer);
             buffer = NULL;
@@ -1816,6 +2084,22 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
             buffer = NULL;
             break;
           }
+          case '\n': {
+            stringBuilderPush(buffer, c);
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\r': {
+            stringBuilderPush(buffer, c);
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+
+            state = LS_STRING_WIDE_SEEN_CR;
+            break;
+          }
           default: {
             stringBuilderPush(buffer, c);
             break;
@@ -1823,6 +2107,26 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_STRING_WIDE
+      case LS_STRING_WIDE_SEEN_CR: {
+        switch (c) {
+          case '\n': {
+            state = LS_STRING_WIDE;
+
+            stringBuilderPush(buffer, c);
+
+            lexerInfo->character = 0;
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character = 0;
+
+            state = LS_STRING_WIDE;
+            break;
+          }
+        }
+        break;
+      }  // LS_STRING_WIDE_SEEN_CR
       case LS_STRING_WIDE_ESCAPED: {
         switch (c) {
           case -2: {  // F_EOF
@@ -1856,6 +2160,34 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
             state = LS_STRING_WIDE_WHEX_DIGIT_1;
 
             stringBuilderPush(buffer, c);
+            break;
+          }
+          case '\n': {
+            state = LS_STRING_BAD_ESCAPE;
+
+            reportError(report, "%s:%zu:%zu: error: invalid escape sequence",
+                        lexerInfo->filename, lexerInfo->line,
+                        lexerInfo->character - 1);
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\r': {
+            state = LS_STRING_BAD_ESCAPE_NL;
+
+            reportError(report, "%s:%zu:%zu: error: invalid escape sequence",
+                        lexerInfo->filename, lexerInfo->line,
+                        lexerInfo->character - 1);
+
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
+            lexerInfo->line++;
+            lexerInfo->character = 0;
             break;
           }
           default: {
@@ -1958,14 +2290,24 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
       case LS_STRING_BAD_ESCAPE: {
         switch (c) {
           case -2: {  // F_EOF
-            stringBuilderDestroy(buffer);
-
             reportError(
                 report, "%s:%zu:%zu: error: unterminated string literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
 
             tokenInfo->type = TT_EOF;
             return;
+          }
+          case '\n': {
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+            break;
+          }
+          case '\r': {
+            lexerInfo->line++;
+            lexerInfo->character = 0;
+
+            state = LS_STRING_BAD_ESCAPE_NL;
+            break;
           }
           case '"': {
             state = LS_STRING_BAD_ESCAPE_MAYBE_WCHAR;
@@ -1975,6 +2317,24 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_STRING_BAD_ESCAPE
+      case LS_STRING_BAD_ESCAPE_NL: {
+        switch (c) {
+          case '\n': {
+            state = LS_STRING_BAD_ESCAPE;
+
+            lexerInfo->character = 0;
+            break;
+          }
+          default: {
+            fUnget(lexerInfo->file);
+            lexerInfo->character = 0;
+
+            state = LS_STRING_BAD_ESCAPE;
+            break;
+          }
+        }
+        break;
+      }  // LS_STRING_BAD_ESCAPE_NL
       case LS_STRING_BAD_ESCAPE_MAYBE_WCHAR: {
         switch (c) {
           case 'w': {
