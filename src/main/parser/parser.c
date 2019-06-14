@@ -600,6 +600,7 @@ static Node *parseVariableDecl(Report *report, Options *options,
                 "variable or field declaration",
                 info->filename, type->line, type->character);
     nodeDestroy(type);
+    nodeListDestroy(ids);
     return NULL;
   }
 
@@ -654,6 +655,32 @@ static NodeList *parseFields(Report *report, Options *options,
   }
 
   return elements;
+}
+static NodeList *parseEnumFields(Report *report, Options *options,
+                                 TypeEnvironment *env, LexerInfo *info) {
+  NodeList *ids = nodeListCreate();
+
+  TokenInfo next;
+
+  lex(info, report, &next);
+  while (next.type == TT_ID) {
+    nodeListInsert(ids,
+                   idNodeCreate(next.line, next.character, next.data.string));
+
+    lex(info, report, &next);
+    if (next.type != TT_COMMA) break;
+
+    lex(info, report, &next);
+  }
+
+  if (next.type == TT_ID) {
+    nodeListInsert(ids,
+                   idNodeCreate(next.line, next.character, next.data.string));
+  } else {
+    unLex(info, &next);
+  }
+
+  return ids;
 }
 static Node *parseUnionOrStructDecl(Report *report, Options *options,
                                     TypeEnvironment *env, LexerInfo *info) {
@@ -718,6 +745,15 @@ static Node *parseUnionOrStructDecl(Report *report, Options *options,
       if (elements == NULL) {
         nodeDestroy(id);
         return NULL;
+      } else if (elements->size == 0) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected at least one field in a "
+                    "%s declaration",
+                    info->filename, nextToken.line, nextToken.character,
+                    kwd.type == TT_STRUCT ? "struct" : "union");
+        nodeListDestroy(elements);
+        nodeDestroy(id);
+        return NULL;
       }
 
       TokenInfo closeBrace;
@@ -771,8 +807,121 @@ static Node *parseUnionOrStructDecl(Report *report, Options *options,
 }
 static Node *parseEnumDecl(Report *report, Options *options,
                            TypeEnvironment *env, LexerInfo *info) {
-  return NULL;
-  // TODO: write this
+  TokenInfo kwd;
+  lex(info, report, &kwd);  // must be an enum to get here
+
+  Node *id = parseUnscopedId(report, info);
+  if (id == NULL) return NULL;
+
+  TokenInfo nextToken;
+  lex(info, report, &nextToken);
+
+  switch (nextToken.type) {
+    case TT_SEMI: {
+      // declaration
+      TypeTable *table = typeEnvironmentTop(env);
+      SymbolType type = typeTableGet(table, id->data.id.id);
+      switch (type) {
+        case ST_UNDEFINED: {
+          typeTableSet(table, id->data.id.id, ST_TYPE);
+          break;
+        }
+        case ST_TYPE: {
+          break;
+        }
+        case ST_ID: {
+          reportError(report,
+                      "%s:%zu:%zu: error: identifier '%s' has already been "
+                      "declared as a variable or function name",
+                      info->filename, id->line, id->character, id->data.id.id);
+          nodeDestroy(id);
+          return NULL;
+        }
+      }
+      return enumForwardDeclNodeCreate(kwd.line, kwd.character, id);
+    }
+    case TT_LBRACE: {
+      // definition: must not be exist or only be declared
+      TypeTable *table = typeEnvironmentTop(env);
+      SymbolType type = typeTableGet(table, id->data.id.id);
+
+      switch (type) {
+        case ST_UNDEFINED: {
+          typeTableSet(table, id->data.id.id, ST_TYPE);
+          break;
+        }
+        case ST_TYPE: {
+          break;
+        }
+        case ST_ID: {
+          reportError(report,
+                      "%s:%zu:%zu: error: identifier '%s' has already been "
+                      "declared as a variable or function name",
+                      info->filename, id->line, id->character, id->data.id.id);
+          nodeDestroy(id);
+          return NULL;
+        }
+      }
+      NodeList *elements = parseEnumFields(report, options, env, info);
+      if (elements == NULL) {
+        nodeDestroy(id);
+        return NULL;
+      } else if (elements->size == 0) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected at least one field in a "
+                    "enum declaration",
+                    info->filename, nextToken.line, nextToken.character);
+        nodeListDestroy(elements);
+        nodeDestroy(id);
+        return NULL;
+      }
+
+      TokenInfo closeBrace;
+      lex(info, report, &closeBrace);
+      if (closeBrace.type != TT_RBRACE) {
+        if (!tokenInfoIsLexerError(&closeBrace)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a right brace to close the "
+                      "%s definition, but found %s",
+                      info->filename, closeBrace.line, closeBrace.character,
+                      kwd.type == TT_STRUCT ? "struct" : "union",
+                      tokenTypeToString(closeBrace.type));
+        }
+        tokenInfoUninit(&closeBrace);
+        nodeListDestroy(elements);
+        nodeDestroy(id);
+      }
+
+      TokenInfo semicolon;
+      lex(info, report, &semicolon);
+      if (semicolon.type != TT_SEMI) {
+        if (!tokenInfoIsLexerError(&semicolon)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a semicolon to close the "
+                      "%s definition, but found %s",
+                      info->filename, semicolon.line, semicolon.character,
+                      kwd.type == TT_STRUCT ? "struct" : "union",
+                      tokenTypeToString(semicolon.type));
+        }
+        tokenInfoUninit(&semicolon);
+        nodeListDestroy(elements);
+        nodeDestroy(id);
+      }
+
+      return enumDeclNodeCreate(kwd.line, kwd.character, id, elements);
+    }
+    default: {
+      if (!tokenInfoIsLexerError(&nextToken)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a semicolon or a left brace, "
+                    "but found %s",
+                    info->filename, nextToken.line, nextToken.character,
+                    tokenTypeToString(nextToken.type));
+      }
+      nodeDestroy(id);
+      return NULL;
+    }
+  }
 }
 static Node *parseTypedef(Report *report, Options *options,
                           TypeEnvironment *env, LexerInfo *info) {
