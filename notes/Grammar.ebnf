@@ -25,8 +25,8 @@ declaration = function_declaration
             | enum_forward_declaration
             | typedef_declaration
             ;
-function_declaration = type, identifier, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")", ";" ;
-variable_declaration = type, identifier, { ",", identifier }, ";" ;
+function_declaration = type, identifier, "(", [ type, [ identifier ], [ "=", literal ], { ",", type, [ identifier ], [ "=", literal ] } ], ")", ";" ;
+variable_declaration = type, identifier, [ "=", literal ], { ",", identifier, [ "=", literal ] }, ";" ;
 struct_declaration = "struct", identifier, "{", { variable_declaration }+, "}", ";" ;
 struct_forward_declaration = "struct", identifier, ";" ;
 union_declaration = "union", identifier, "{", { variable_declaration }+, "}", ";" ;
