@@ -925,8 +925,59 @@ static Node *parseEnumDecl(Report *report, Options *options,
 }
 static Node *parseTypedef(Report *report, Options *options,
                           TypeEnvironment *env, LexerInfo *info) {
-  return NULL;
-  // TODO: write this
+  TokenInfo kwd;
+  lex(info, report, &kwd);  // must be typedef to get here
+
+  Node *type = parseType(report, options, env, info);
+  if (type == NULL) {
+    return NULL;
+  }
+
+  Node *id = parseUnscopedId(report, info);
+  if (id == NULL) {
+    nodeDestroy(type);
+    return NULL;
+  }
+
+  TokenInfo semicolon;
+  lex(info, report, &semicolon);
+
+  if (semicolon.type != TT_SEMI) {
+    if (!tokenInfoIsLexerError(&semicolon)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a semicolon after a 'typedef' "
+                  "definition, but found %s",
+                  info->filename, semicolon.line, semicolon.character,
+                  tokenTypeToString(semicolon.type));
+    }
+    tokenInfoUninit(&semicolon);
+    nodeDestroy(id);
+    nodeDestroy(type);
+    return NULL;
+  }
+
+  TypeTable *table = typeEnvironmentTop(env);
+  SymbolType symbolType = typeTableGet(table, id->data.id.id);
+  switch (symbolType) {
+    case ST_UNDEFINED: {
+      typeTableSet(table, id->data.id.id, ST_TYPE);
+      break;
+    }
+    case ST_TYPE: {
+      break;
+    }
+    case ST_ID: {
+      reportError(report,
+                  "%s:%zu:%zu: error: identifier '%s' has already been "
+                  "declared as a variable or function name",
+                  info->filename, id->line, id->character, id->data.id.id);
+      nodeDestroy(id);
+      nodeDestroy(type);
+      return NULL;
+    }
+  }
+
+  return typedefNodeCreate(kwd.line, kwd.character, type, id);
 }
 static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
                                      TypeEnvironment *env, LexerInfo *info) {
