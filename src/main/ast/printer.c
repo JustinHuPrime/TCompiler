@@ -81,12 +81,12 @@ void nodePrintStructure(Node const *node) {
       printf(")");
       break;
     }
-    case NT_VARDECL: {
-      printf("VARDECL(");
-      nodePrintStructure(node->data.varDecl.type);
-      for (size_t idx = 0; idx < node->data.varDecl.ids->size; idx++) {
+    case NT_FIELDDECL: {
+      printf("FIELDDECL(");
+      nodePrintStructure(node->data.fieldDecl.type);
+      for (size_t idx = 0; idx < node->data.fieldDecl.ids->size; idx++) {
         printf(" ");
-        nodePrintStructure(node->data.varDecl.ids->elements[idx]);
+        nodePrintStructure(node->data.fieldDecl.ids->elements[idx]);
       }
       printf(")");
       break;
@@ -163,6 +163,23 @@ void nodePrintStructure(Node const *node) {
       }
       printf(" ");
       nodePrintStructure(node->data.function.body);
+      printf(")");
+      break;
+    }
+    case NT_VARDECL: {
+      printf("VARDECL(");
+      nodePrintStructure(node->data.varDecl.type);
+      printf(" ");
+      for (size_t idx = 0; idx < node->data.varDecl.idValuePairs->size; idx++) {
+        printf(" DECL(");
+        nodePrintStructure(node->data.varDecl.idValuePairs->firstElements[idx]);
+        if (node->data.varDecl.idValuePairs->secondElements[idx] != NULL) {
+          printf(" ");
+          nodePrintStructure(
+              node->data.varDecl.idValuePairs->secondElements[idx]);
+        }
+        printf(")");
+      }
       printf(")");
       break;
     }
@@ -256,25 +273,6 @@ void nodePrintStructure(Node const *node) {
         nodePrintStructure(node->data.returnStmt.value);
         printf(")");
       }
-      break;
-    }
-    case NT_VARDECLSTMT: {
-      printf("VARDECLSTMT(");
-      nodePrintStructure(node->data.varDeclStmt.type);
-      printf(" ");
-      for (size_t idx = 0; idx < node->data.varDeclStmt.idValuePairs->size;
-           idx++) {
-        printf(" DECL(");
-        nodePrintStructure(
-            node->data.varDeclStmt.idValuePairs->firstElements[idx]);
-        if (node->data.varDeclStmt.idValuePairs->secondElements[idx] != NULL) {
-          printf(" ");
-          nodePrintStructure(
-              node->data.varDeclStmt.idValuePairs->secondElements[idx]);
-        }
-        printf(")");
-      }
-      printf(")");
       break;
     }
     case NT_ASMSTMT: {
@@ -808,12 +806,12 @@ void nodePrint(Node const *node) {
       printf(");\n");
       break;
     }
-    case NT_VARDECL: {
-      nodePrint(node->data.varDecl.type);
+    case NT_FIELDDECL: {
+      nodePrint(node->data.fieldDecl.type);
       printf(" ");
-      for (size_t idx = 0; idx < node->data.varDecl.ids->size; idx++) {
-        nodePrint(node->data.varDecl.ids->elements[idx]);
-        if (idx != node->data.varDecl.ids->size - 1) {
+      for (size_t idx = 0; idx < node->data.fieldDecl.ids->size; idx++) {
+        nodePrint(node->data.fieldDecl.ids->elements[idx]);
+        if (idx != node->data.fieldDecl.ids->size - 1) {
           printf(", ");
         }
         printf(";\n");
@@ -897,6 +895,22 @@ void nodePrint(Node const *node) {
       printf(") ");
       nodePrint(node->data.function.body);
       printf("\n");
+      break;
+    }
+    case NT_VARDECL: {
+      nodePrint(node->data.varDecl.type);
+      printf(" ");
+      for (size_t idx = 0; idx < node->data.varDecl.idValuePairs->size; idx++) {
+        nodePrint(node->data.varDecl.idValuePairs->firstElements[idx]);
+        if (node->data.varDecl.idValuePairs->secondElements[idx] != NULL) {
+          printf(" = ");
+          nodePrint(node->data.varDecl.idValuePairs->secondElements[idx]);
+        }
+        if (idx != node->data.varDecl.idValuePairs->size - 1) {
+          printf(", ");
+        }
+      }
+      printf(";\n");
       break;
     }
     case NT_COMPOUNDSTMT: {
@@ -987,23 +1001,6 @@ void nodePrint(Node const *node) {
         nodePrint(node->data.returnStmt.value);
       }
       printf(";");
-      break;
-    }
-    case NT_VARDECLSTMT: {
-      nodePrint(node->data.varDeclStmt.type);
-      printf(" ");
-      for (size_t idx = 0; idx < node->data.varDeclStmt.idValuePairs->size;
-           idx++) {
-        nodePrint(node->data.varDeclStmt.idValuePairs->firstElements[idx]);
-        if (node->data.varDeclStmt.idValuePairs->secondElements[idx] != NULL) {
-          printf(" = ");
-          nodePrint(node->data.varDeclStmt.idValuePairs->secondElements[idx]);
-        }
-        if (idx != node->data.varDeclStmt.idValuePairs->size - 1) {
-          printf(", ");
-        }
-      }
-      printf(";\n");
       break;
     }
     case NT_ASMSTMT: {

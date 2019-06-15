@@ -620,7 +620,7 @@ static Node *parseVariableDecl(Report *report, Options *options,
     return NULL;
   }
 
-  return varDeclNodeCreate(type->line, type->character, type, ids);
+  return fieldDeclNodeCreate(type->line, type->character, type, ids);
 }
 static NodeList *parseFields(Report *report, Options *options,
                              TypeEnvironment *env, LexerInfo *info) {
@@ -999,15 +999,23 @@ static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
   switch (peek.type) {
     case TT_LPAREN: {
       // function defn or decl
+      break;
     }
     case TT_SEMI: {
       // is a completed var decl
+      break;
     }
     case TT_EQ: {
       // is a var decl
+      break;
     }
     case TT_COMMA: {
       // is a var decl
+      break;
+    }
+    default: {
+      // incomplete!
+      break;
     }
   }
 

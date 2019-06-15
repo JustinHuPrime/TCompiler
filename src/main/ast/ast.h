@@ -62,7 +62,7 @@ typedef enum {
   NT_MODULE,
   NT_IMPORT,
   NT_FUNDECL,
-  NT_VARDECL,
+  NT_FIELDDECL,
   NT_STRUCTDECL,
   NT_STRUCTFORWARDDECL,
   NT_UNIONDECL,
@@ -70,6 +70,7 @@ typedef enum {
   NT_ENUMDECL,
   NT_ENUMFORWARDDECL,
   NT_TYPEDEFDECL,
+  NT_VARDECL,
   NT_FUNCTION,
   NT_COMPOUNDSTMT,
   NT_IFSTMT,
@@ -82,7 +83,6 @@ typedef enum {
   NT_BREAKSTMT,
   NT_CONTINUESTMT,
   NT_RETURNSTMT,
-  NT_VARDECLSTMT,
   NT_ASMSTMT,
   NT_EXPRESSIONSTMT,
   NT_NULLSTMT,
@@ -225,7 +225,7 @@ typedef struct Node {
     struct {
       struct Node *type;
       NodeList *ids;
-    } varDecl;
+    } fieldDecl;
     struct {
       struct Node *id;
       NodeList *decls;
@@ -298,7 +298,7 @@ typedef struct Node {
     struct {
       struct Node *type;
       NodePairList *idValuePairs;  // pair of id, value (nullable)
-    } varDeclStmt;
+    } varDecl;
     struct {
       struct Node *assembly;
     } asmStmt;
@@ -439,8 +439,8 @@ Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);
 Node *importNodeCreate(size_t line, size_t character, Node *importId);
 Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
                         Node *functionId, NodeList *argTypes);
-Node *varDeclNodeCreate(size_t line, size_t character, Node *varType,
-                        NodeList *ids);
+Node *fieldDeclNodeCreate(size_t line, size_t character, Node *varType,
+                          NodeList *ids);
 Node *structDeclNodeCreate(size_t line, size_t character, Node *structId,
                            NodeList *elements);
 Node *structForwardDeclNodeCreate(size_t line, size_t character,
@@ -454,6 +454,8 @@ Node *enumForwardDeclNodeCreate(size_t line, size_t character, Node *enumId);
 Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *newId);
 Node *functionNodeCreate(size_t line, size_t character, Node *returnType,
                          Node *functionId, NodePairList *args, Node *body);
+Node *varDeclNodeCreate(size_t line, size_t character, Node *type,
+                        NodePairList *idValuePairs);
 Node *compoundStmtNodeCreate(size_t line, size_t character, NodeList *stmts);
 Node *ifStmtNodeCreate(size_t line, size_t character, Node *condition,
                        Node *thenCase, Node *elseCase);
@@ -470,8 +472,6 @@ Node *defaultCaseNodeCreate(size_t line, size_t character, Node *body);
 Node *breakStmtNodeCreate(size_t line, size_t character);
 Node *continueStmtNodeCreate(size_t line, size_t character);
 Node *returnStmtNodeCreate(size_t line, size_t character, Node *value);
-Node *varDeclStmtNodeCreate(size_t line, size_t character, Node *type,
-                            NodePairList *idValuePairs);
 Node *asmStmtNodeCreate(size_t line, size_t character, Node *asmString);
 Node *expressionStmtNodeCreate(size_t line, size_t character, Node *expression);
 Node *nullStmtNodeCreate(size_t line, size_t character);

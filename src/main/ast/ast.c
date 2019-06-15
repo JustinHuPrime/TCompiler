@@ -116,12 +116,12 @@ Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
   node->data.funDecl.paramTypes = paramTypes;
   return node;
 }
-Node *varDeclNodeCreate(size_t line, size_t character, Node *type,
-                        NodeList *ids) {
+Node *fieldDeclNodeCreate(size_t line, size_t character, Node *type,
+                          NodeList *ids) {
   Node *node = nodeCreate(line, character);
-  node->type = NT_VARDECL;
-  node->data.varDecl.type = type;
-  node->data.varDecl.ids = ids;
+  node->type = NT_FIELDDECL;
+  node->data.fieldDecl.type = type;
+  node->data.fieldDecl.ids = ids;
   return node;
 }
 Node *structDeclNodeCreate(size_t line, size_t character, Node *id,
@@ -181,6 +181,14 @@ Node *functionNodeCreate(size_t line, size_t character, Node *returnType,
   node->data.function.id = id;
   node->data.function.formals = formals;
   node->data.function.body = body;
+  return node;
+}
+Node *varDeclNodeCreate(size_t line, size_t character, Node *type,
+                        NodePairList *idValuePairs) {
+  Node *node = nodeCreate(line, character);
+  node->type = NT_VARDECL;
+  node->data.varDecl.type = type;
+  node->data.varDecl.idValuePairs = idValuePairs;
   return node;
 }
 Node *compoundStmtNodeCreate(size_t line, size_t character,
@@ -261,14 +269,6 @@ Node *returnStmtNodeCreate(size_t line, size_t character, Node *value) {
   Node *node = nodeCreate(line, character);
   node->type = NT_RETURNSTMT;
   node->data.returnStmt.value = value;
-  return node;
-}
-Node *varDeclStmtNodeCreate(size_t line, size_t character, Node *type,
-                            NodePairList *idValuePairs) {
-  Node *node = nodeCreate(line, character);
-  node->type = NT_VARDECLSTMT;
-  node->data.varDeclStmt.type = type;
-  node->data.varDeclStmt.idValuePairs = idValuePairs;
   return node;
 }
 Node *asmStmtNodeCreate(size_t line, size_t character, Node *assembly) {
@@ -809,9 +809,9 @@ void nodeDestroy(Node *node) {
       nodeListDestroy(node->data.funDecl.paramTypes);
       break;
     }
-    case NT_VARDECL: {
-      nodeDestroy(node->data.varDecl.type);
-      nodeListDestroy(node->data.varDecl.ids);
+    case NT_FIELDDECL: {
+      nodeDestroy(node->data.fieldDecl.type);
+      nodeListDestroy(node->data.fieldDecl.ids);
       break;
     }
     case NT_STRUCTDECL: {
@@ -851,6 +851,11 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.function.id);
       nodePairListDestroy(node->data.function.formals);
       nodeDestroy(node->data.function.body);
+      break;
+    }
+    case NT_VARDECL: {
+      nodeDestroy(node->data.varDecl.type);
+      nodePairListDestroy(node->data.varDecl.idValuePairs);
       break;
     }
     case NT_COMPOUNDSTMT: {
@@ -900,11 +905,6 @@ void nodeDestroy(Node *node) {
       break;
     case NT_RETURNSTMT: {
       nodeDestroy(node->data.returnStmt.value);
-      break;
-    }
-    case NT_VARDECLSTMT: {
-      nodeDestroy(node->data.varDeclStmt.type);
-      nodePairListDestroy(node->data.varDeclStmt.idValuePairs);
       break;
     }
     case NT_ASMSTMT: {
