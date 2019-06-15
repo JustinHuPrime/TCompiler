@@ -66,6 +66,43 @@ void nodePairListDestroy(NodePairList *list) {
   free(list);
 }
 
+NodeTripleList *nodeTripleListCreate(void) {
+  NodeTripleList *list = malloc(sizeof(NodeTripleList));
+  list->size = 0;
+  list->capacity = 1;
+  list->firstElements = malloc(sizeof(Node *));
+  list->secondElements = malloc(sizeof(Node *));
+  list->thirdElements = malloc(sizeof(Node *));
+  return list;
+}
+void nodeTripleListInsert(NodeTripleList *list, struct Node *first,
+                          struct Node *second, struct Node *third) {
+  if (list->size == list->capacity) {
+    list->capacity *= 2;
+    list->firstElements =
+        realloc(list->firstElements, list->capacity * sizeof(Node *));
+    list->secondElements =
+        realloc(list->secondElements, list->capacity * sizeof(Node *));
+    list->thirdElements =
+        realloc(list->thirdElements, list->capacity * sizeof(Node *));
+  }
+  list->firstElements[list->size] = first;
+  list->secondElements[list->size] = second;
+  list->thirdElements[list->size] = third;
+  list->size++;
+}
+void nodeTripleListDestroy(NodeTripleList *list) {
+  for (size_t idx = 0; idx < list->size; idx++) {
+    nodeDestroy(list->firstElements[idx]);
+    nodeDestroy(list->secondElements[idx]);
+    nodeDestroy(list->thirdElements[idx]);
+  }
+  free(list->firstElements);
+  free(list->secondElements);
+  free(list->thirdElements);
+  free(list);
+}
+
 uint64_t const UBYTE_MAX = 255;
 uint64_t const BYTE_MAX = 127;
 uint64_t const BYTE_MIN = 128;
@@ -108,12 +145,12 @@ Node *importNodeCreate(size_t line, size_t character, Node *id) {
   return node;
 }
 Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
-                        Node *id, NodeList *paramTypes) {
+                        Node *id, NodePairList *params) {
   Node *node = nodeCreate(line, character);
   node->type = NT_FUNDECL;
   node->data.funDecl.returnType = returnType;
   node->data.funDecl.id = id;
-  node->data.funDecl.paramTypes = paramTypes;
+  node->data.funDecl.params = params;
   return node;
 }
 Node *fieldDeclNodeCreate(size_t line, size_t character, Node *type,
@@ -174,7 +211,7 @@ Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *id) {
   return node;
 }
 Node *functionNodeCreate(size_t line, size_t character, Node *returnType,
-                         Node *id, NodePairList *formals, Node *body) {
+                         Node *id, NodeTripleList *formals, Node *body) {
   Node *node = nodeCreate(line, character);
   node->type = NT_FUNCTION;
   node->data.function.returnType = returnType;
@@ -806,7 +843,7 @@ void nodeDestroy(Node *node) {
     case NT_FUNDECL: {
       nodeDestroy(node->data.funDecl.returnType);
       nodeDestroy(node->data.funDecl.id);
-      nodeListDestroy(node->data.funDecl.paramTypes);
+      nodePairListDestroy(node->data.funDecl.params);
       break;
     }
     case NT_FIELDDECL: {
@@ -849,7 +886,7 @@ void nodeDestroy(Node *node) {
     case NT_FUNCTION: {
       nodeDestroy(node->data.function.returnType);
       nodeDestroy(node->data.function.id);
-      nodePairListDestroy(node->data.function.formals);
+      nodeTripleListDestroy(node->data.function.formals);
       nodeDestroy(node->data.function.body);
       break;
     }

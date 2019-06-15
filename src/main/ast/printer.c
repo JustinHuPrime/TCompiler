@@ -74,9 +74,13 @@ void nodePrintStructure(Node const *node) {
       nodePrintStructure(node->data.funDecl.returnType);
       printf(" ");
       nodePrintStructure(node->data.funDecl.id);
-      for (size_t idx = 0; idx < node->data.funDecl.paramTypes->size; idx++) {
+      for (size_t idx = 0; idx < node->data.funDecl.params->size; idx++) {
         printf(" ");
-        nodePrintStructure(node->data.funDecl.paramTypes->elements[idx]);
+        nodePrintStructure(node->data.funDecl.params->firstElements[idx]);
+        if (node->data.funDecl.params->secondElements[idx] != NULL) {
+          printf(" ");
+          nodePrintStructure(node->data.funDecl.params->secondElements[idx]);
+        }
       }
       printf(")");
       break;
@@ -158,6 +162,10 @@ void nodePrintStructure(Node const *node) {
         if (node->data.function.formals->secondElements[idx] != NULL) {
           printf(" ");
           nodePrintStructure(node->data.function.formals->secondElements[idx]);
+          if (node->data.function.formals->thirdElements[idx] != NULL) {
+            printf(" ");
+            nodePrint(node->data.function.formals->thirdElements[idx]);
+          }
         }
         printf(")");
       }
@@ -797,9 +805,13 @@ void nodePrint(Node const *node) {
       printf(" ");
       nodePrint(node->data.funDecl.id);
       printf("(");
-      for (size_t idx = 0; idx < node->data.funDecl.paramTypes->size; idx++) {
-        nodePrint(node->data.funDecl.paramTypes->elements[idx]);
-        if (idx != node->data.funDecl.paramTypes->size - 1) {
+      for (size_t idx = 0; idx < node->data.funDecl.params->size; idx++) {
+        nodePrint(node->data.funDecl.params->firstElements[idx]);
+        if (node->data.funDecl.params->secondElements[idx] != NULL) {
+          printf(" = ");
+          nodePrint(node->data.funDecl.params->secondElements[idx]);
+        }
+        if (idx != node->data.funDecl.params->size - 1) {
           printf(", ");
         }
       }
@@ -887,6 +899,10 @@ void nodePrint(Node const *node) {
         if (node->data.function.formals->secondElements[idx] != NULL) {
           printf(" ");
           nodePrint(node->data.function.formals->secondElements[idx]);
+          if (node->data.function.formals->thirdElements[idx] != NULL) {
+            printf(" = ");
+            nodePrint(node->data.function.formals->thirdElements[idx]);
+          }
         }
         if (idx != node->data.function.formals->size - 1) {
           printf(", ");

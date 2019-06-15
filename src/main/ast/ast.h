@@ -29,13 +29,10 @@ struct Node;
 
 // specialization of vector
 typedef Vector NodeList;
-
 // constructor
 NodeList *nodeListCreate(void);
-
 // inserts a pointer into the list. The list now owns the pointer
 void nodeListInsert(NodeList *, struct Node *);
-
 // destructor
 void nodeListDestroy(NodeList *);
 
@@ -46,15 +43,28 @@ typedef struct {
   struct Node **firstElements;
   struct Node **secondElements;
 } NodePairList;
-
 // constructor
 NodePairList *nodePairListCreate(void);
-
 // inserts a pair of pointers into the list. The list now owns both pointers
 void nodePairListInsert(NodePairList *, struct Node *, struct Node *);
-
 // destructor
 void nodePairListDestroy(NodePairList *);
+
+// A list of triples of nodes, vector-style
+typedef struct {
+  size_t size;
+  size_t capacity;
+  struct Node **firstElements;
+  struct Node **secondElements;
+  struct Node **thirdElements;
+} NodeTripleList;
+// constructor
+NodeTripleList *nodeTripleListCreate(void);
+// inserts a pair of pointers into the list. The list now owns both pointers
+void nodeTripleListInsert(NodeTripleList *, struct Node *, struct Node *,
+                          struct Node *);
+// destructor
+void nodeTripleListDestroy(NodeTripleList *);
 
 // tag for the specialized type of the AST node
 typedef enum {
@@ -220,7 +230,7 @@ typedef struct Node {
     struct {
       struct Node *returnType;
       struct Node *id;
-      NodeList *paramTypes;
+      NodePairList *params;  // <type, literal>
     } funDecl;
     struct {
       struct Node *type;
@@ -255,7 +265,7 @@ typedef struct Node {
     struct {
       struct Node *returnType;
       struct Node *id;
-      NodePairList *formals;  // pair of type, id (nullable)
+      NodeTripleList *formals;  // <type, id (nullable), literal (nullable)>
       struct Node *body;
     } function;
 
@@ -438,7 +448,7 @@ Node *fileNodeCreate(size_t line, size_t character, Node *module,
 Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);
 Node *importNodeCreate(size_t line, size_t character, Node *importId);
 Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
-                        Node *functionId, NodeList *argTypes);
+                        Node *functionId, NodePairList *args);
 Node *fieldDeclNodeCreate(size_t line, size_t character, Node *varType,
                           NodeList *ids);
 Node *structDeclNodeCreate(size_t line, size_t character, Node *structId,
@@ -453,7 +463,7 @@ Node *enumDeclNodeCreate(size_t line, size_t character, Node *enumId,
 Node *enumForwardDeclNodeCreate(size_t line, size_t character, Node *enumId);
 Node *typedefNodeCreate(size_t line, size_t character, Node *type, Node *newId);
 Node *functionNodeCreate(size_t line, size_t character, Node *returnType,
-                         Node *functionId, NodePairList *args, Node *body);
+                         Node *functionId, NodeTripleList *args, Node *body);
 Node *varDeclNodeCreate(size_t line, size_t character, Node *type,
                         NodePairList *idValuePairs);
 Node *compoundStmtNodeCreate(size_t line, size_t character, NodeList *stmts);

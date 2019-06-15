@@ -581,6 +581,10 @@ static NodeList *parseCodeImports(Report *report, Options *options,
 // expression
 
 // statement
+static Node *parseCompoundStmt(Report *report, Options *options,
+                               TypeEnvironment *env, LexerInfo *info) {
+  return NULL;  // TODO: write this
+}
 
 // body
 static Node *parseVariableDecl(Report *report, Options *options,
@@ -979,10 +983,10 @@ static Node *parseTypedef(Report *report, Options *options,
 
   return typedefNodeCreate(kwd.line, kwd.character, type, id);
 }
-static NodePairList *parseFunctionParams(Report *report, Options *options,
-                                         TypeEnvironment *env,
-                                         LexerInfo *info) {
-  NodePairList *list = nodePairListCreate();
+static NodeTripleList *parseFunctionParams(Report *report, Options *options,
+                                           TypeEnvironment *env,
+                                           LexerInfo *info) {
+  NodeTripleList *list = nodeTripleListCreate();
 
   TokenInfo peek;
   lex(info, report, &peek);
@@ -993,7 +997,7 @@ static NodePairList *parseFunctionParams(Report *report, Options *options,
 static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
                                      TypeEnvironment *env, Node *type, Node *id,
                                      LexerInfo *info) {
-  NodePairList *params = parseFunctionParams(report, options, env, info);
+  NodeTripleList *params = parseFunctionParams(report, options, env, info);
 
   TokenInfo closeParen;
   lex(info, report, &closeParen);
@@ -1007,7 +1011,7 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
                   tokenTypeToString(closeParen.type));
     }
     tokenInfoUninit(&closeParen);
-    nodePairListDestroy(params);
+    nodeTripleListDestroy(params);
     nodeDestroy(id);
     nodeDestroy(type);
     return NULL;
@@ -1018,19 +1022,29 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
 
   switch (peek.type) {
     case TT_LBRACE: {
-      // function definition // TODO: finish
-      return NULL;
+      unLex(info, &peek);
+      Node *compoundStmt = parseCompoundStmt(report, options, env, info);
+      if (compoundStmt == NULL) {
+        nodeTripleListDestroy(params);
+        nodeDestroy(id);
+        nodeDestroy(type);
+        return NULL;
+      }
+      return functionNodeCreate(type->line, type->character, type, id, params,
+                                compoundStmt);
     }
     case TT_SEMI: {
-      NodeList *types = nodeListCreate();
+      NodePairList *types = nodePairListCreate();
       for (size_t idx = 0; idx < params->size; idx++) {
-        nodeListInsert(types, params->firstElements[idx]);
+        nodePairListInsert(types, params->firstElements[idx],
+                           params->thirdElements[idx]);
         if (params->secondElements[idx] != NULL) {
           nodeDestroy(params->secondElements[idx]);
         }
       }
       free(params->firstElements);
       free(params->secondElements);
+      free(params->thirdElements);
       free(params);
 
       return funDeclNodeCreate(type->line, type->character, type, id, types);
@@ -1044,7 +1058,7 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
                     tokenTypeToString(peek.type));
       }
       tokenInfoUninit(&peek);
-      nodePairListDestroy(params);
+      nodeTripleListDestroy(params);
       nodeDestroy(id);
       nodeDestroy(type);
       return NULL;
