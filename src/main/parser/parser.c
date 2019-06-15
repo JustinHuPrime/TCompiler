@@ -979,6 +979,78 @@ static Node *parseTypedef(Report *report, Options *options,
 
   return typedefNodeCreate(kwd.line, kwd.character, type, id);
 }
+static NodePairList *parseFunctionParams(Report *report, Options *options,
+                                         TypeEnvironment *env,
+                                         LexerInfo *info) {
+  NodePairList *list = nodePairListCreate();
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+
+  return list;
+  // TODO: finish
+}
+static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
+                                     TypeEnvironment *env, Node *type, Node *id,
+                                     LexerInfo *info) {
+  NodePairList *params = parseFunctionParams(report, options, env, info);
+
+  TokenInfo closeParen;
+  lex(info, report, &closeParen);
+
+  if (closeParen.type != TT_RPAREN) {
+    if (!tokenInfoIsLexerError(&closeParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a close paren after the "
+                  "parameter list, but found %s",
+                  info->filename, closeParen.line, closeParen.character,
+                  tokenTypeToString(closeParen.type));
+    }
+    tokenInfoUninit(&closeParen);
+    nodePairListDestroy(params);
+    nodeDestroy(id);
+    nodeDestroy(type);
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+
+  switch (peek.type) {
+    case TT_LBRACE: {
+      // function definition // TODO: finish
+      return NULL;
+    }
+    case TT_SEMI: {
+      NodeList *types = nodeListCreate();
+      for (size_t idx = 0; idx < params->size; idx++) {
+        nodeListInsert(types, params->firstElements[idx]);
+        if (params->secondElements[idx] != NULL) {
+          nodeDestroy(params->secondElements[idx]);
+        }
+      }
+      free(params->firstElements);
+      free(params->secondElements);
+      free(params);
+
+      return funDeclNodeCreate(type->line, type->character, type, id, types);
+    }
+    default: {
+      if (!tokenInfoIsLexerError(&peek)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a function body or a "
+                    "semicolon, but found %s",
+                    info->filename, peek.line, peek.character,
+                    tokenTypeToString(peek.type));
+      }
+      tokenInfoUninit(&peek);
+      nodePairListDestroy(params);
+      nodeDestroy(id);
+      nodeDestroy(type);
+      return NULL;
+    }
+  }
+}
 static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
                                      TypeEnvironment *env, LexerInfo *info) {
   Node *type = parseType(report, options, env, info);
@@ -998,29 +1070,34 @@ static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
 
   switch (peek.type) {
     case TT_LPAREN: {
-      // function defn or decl
-      break;
+      return parseFunctionDeclOrDefn(report, options, env, type, id, info);
     }
     case TT_SEMI: {
-      // is a completed var decl
-      break;
+      NodePairList *elms = nodePairListCreate();
+      nodePairListInsert(elms, id, NULL);
+      return varDeclNodeCreate(type->line, type->character, type, elms);
     }
     case TT_EQ: {
-      // is a var decl
-      break;
+      // is a var decl // TODO: finish
+      return NULL;
     }
     case TT_COMMA: {
-      // is a var decl
-      break;
+      // is a var decl // TODO: finish
+      return NULL;
     }
     default: {
-      // incomplete!
-      break;
+      if (!tokenInfoIsLexerError(&peek)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a variable or function "
+                    "declaration or definition, but found %s",
+                    info->filename, peek.line, peek.character,
+                    tokenTypeToString(peek.type));
+      }
+      nodeDestroy(id);
+      nodeDestroy(type);
+      return NULL;
     }
   }
-
-  return NULL;
-  // TODO: write this
 }
 static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
                        LexerInfo *info) {
