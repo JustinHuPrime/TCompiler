@@ -579,6 +579,10 @@ static NodeList *parseCodeImports(Report *report, Options *options,
 }
 
 // expression
+static Node *parseLiteral(Report *report, Options *options,
+                          TypeEnvironment *env, LexerInfo *info) {
+  return NULL;  // TODO: write this
+}
 
 // statement
 static Node *parseCompoundStmt(Report *report, Options *options,
@@ -587,8 +591,8 @@ static Node *parseCompoundStmt(Report *report, Options *options,
 }
 
 // body
-static Node *parseVariableDecl(Report *report, Options *options,
-                               TypeEnvironment *env, LexerInfo *info) {
+static Node *parseFieldDecl(Report *report, Options *options,
+                            TypeEnvironment *env, LexerInfo *info) {
   Node *type = parseType(report, options, env, info);
   if (type == NULL) {
     return NULL;
@@ -648,7 +652,7 @@ static NodeList *parseFields(Report *report, Options *options,
     }
 
     // is the start of a type!
-    Node *dec = parseVariableDecl(report, options, env, info);
+    Node *dec = parseFieldDecl(report, options, env, info);
     if (dec == NULL) {
       nodeListDestroy(elements);
       return NULL;
@@ -657,6 +661,8 @@ static NodeList *parseFields(Report *report, Options *options,
 
     lex(info, report, &peek);
   }
+
+  unLex(info, &peek);
 
   return elements;
 }
@@ -983,16 +989,86 @@ static Node *parseTypedef(Report *report, Options *options,
 
   return typedefNodeCreate(kwd.line, kwd.character, type, id);
 }
+// produce false on an error
+static bool parseFunctionParam(Report *report, Options *options,
+                               TypeEnvironment *env, NodeTripleList *list,
+                               LexerInfo *info) {
+  Node *type = parseType(report, options, env, info);
+  if (type == NULL) {
+    return false;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  if (peek.type != TT_ID) {
+    // end of the param
+    unLex(info, &peek);
+    nodeTripleListInsert(list, type, NULL, NULL);
+    return true;
+  }
+  unLex(info, &peek);
+  Node *id = parseUnscopedId(report, info);
+  if (id == NULL) {
+    nodeDestroy(type);
+    return false;
+  }
+
+  lex(info, report, &peek);
+  if (peek.type != TT_EQ) {
+    // end of the param
+    unLex(info, &peek);
+    nodeTripleListInsert(list, type, id, NULL);
+    return true;
+  }
+
+  Node *literal = parseLiteral(report, options, env, info);
+  if (literal == NULL) {
+    nodeDestroy(id);
+    nodeDestroy(type);
+    return false;
+  }
+
+  // absolutely the end of the param
+  nodeTripleListInsert(list, type, id, literal);
+  return true;
+}
 static NodeTripleList *parseFunctionParams(Report *report, Options *options,
                                            TypeEnvironment *env,
                                            LexerInfo *info) {
   NodeTripleList *list = nodeTripleListCreate();
 
   TokenInfo peek;
+
   lex(info, report, &peek);
+  while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_SCOPED_ID ||
+         peek.type == TT_ID) {
+    unLex(info, &peek);
+    if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
+      SymbolType isType =
+          typeEnvironmentLookup(env, report, &peek, info->filename);
+      if (isType == ST_UNDEFINED) {
+        nodeTripleListDestroy(list);
+        return NULL;
+      } else if (isType == ST_ID) {
+        break;
+      }
+    }
+
+    // is the start of a type!
+    if (!parseFunctionParam(report, options, env, list, info)) {
+      nodeTripleListDestroy(list);
+      return NULL;
+    }
+
+    // deal with comma (if it isn't a comma, return early)
+    lex(info, report, &peek);
+    if (peek.type != TT_COMMA) break;
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
 
   return list;
-  // TODO: finish
 }
 static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
                                      TypeEnvironment *env, Node *type, Node *id,
