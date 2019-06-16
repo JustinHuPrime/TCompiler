@@ -672,25 +672,244 @@ static Node *parseLiteral(Report *report, Options *options,
                           TypeEnvironment *env, LexerInfo *info) {
   return NULL;  // TODO: write this
 }
+static Node *parseExpression(Report *, Options *, TypeEnvironment *,
+                             LexerInfo *);
 static Node *parseCast(Report *report, Options *options, TypeEnvironment *env,
                        LexerInfo *info) {
-  return NULL;  // TODO: write this
+  TokenInfo castKwd;
+  lex(info, report, &castKwd);
+
+  TokenInfo openSquare;
+  lex(info, report, &openSquare);
+  if (openSquare.type != TT_LSQUARE) {
+    if (!tokenInfoIsLexerError(&openSquare)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an open square bracket after "
+                  "'cast', but found %s",
+                  info->filename, openSquare.line, openSquare.character,
+                  tokenTypeToString(openSquare.type));
+    }
+    tokenInfoUninit(&openSquare);
+    return NULL;
+  }
+
+  Node *type = parseType(report, options, env, info);
+
+  TokenInfo closeSquare;
+  lex(info, report, &closeSquare);
+  if (closeSquare.type != TT_RSQUARE) {
+    if (!tokenInfoIsLexerError(&closeSquare)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a close square bracket after "
+                  "the target type in a cast, but found %s",
+                  info->filename, closeSquare.line, closeSquare.character,
+                  tokenTypeToString(closeSquare.type));
+    }
+    tokenInfoUninit(&closeSquare);
+    nodeDestroy(type);
+    return NULL;
+  }
+
+  TokenInfo openParen;
+  lex(info, report, &openParen);
+  if (openParen.type != TT_LPAREN) {
+    if (!tokenInfoIsLexerError(&openParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an open paren after the target "
+                  "type in a cast, but found %s",
+                  info->filename, openParen.line, openParen.character,
+                  tokenTypeToString(openParen.type));
+    }
+    tokenInfoUninit(&openParen);
+    nodeDestroy(type);
+    return NULL;
+  }
+
+  Node *from = parseExpression(report, options, env, info);
+
+  TokenInfo closeParen;
+  lex(info, report, &closeParen);
+  if (closeParen.type != TT_RPAREN) {
+    if (!tokenInfoIsLexerError(&closeParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an close paren, but found %s",
+                  info->filename, closeParen.line, closeParen.character,
+                  tokenTypeToString(closeParen.type));
+    }
+    tokenInfoUninit(&closeParen);
+    nodeDestroy(from);
+    nodeDestroy(type);
+    return NULL;
+  }
+
+  return castExpNodeCreate(castKwd.line, castKwd.character, type, from);
 }
 static Node *parseSizeof(Report *report, Options *options, TypeEnvironment *env,
                          LexerInfo *info) {
+  TokenInfo sizeofKwd;
+  lex(info, report, &sizeofKwd);
+
+  TokenInfo openParen;
+  lex(info, report, &openParen);
+  if (openParen.type != TT_LPAREN) {
+    if (!tokenInfoIsLexerError(&openParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an open paren after 'sizeof', "
+                  "but found %s",
+                  info->filename, openParen.line, openParen.character,
+                  tokenTypeToString(openParen.type));
+    }
+    tokenInfoUninit(&openParen);
+    return NULL;
+  }
+
+  Node *target = NULL;  // TODO: write this
+  if (target == NULL) {
+    return NULL;
+  }
+
+  TokenInfo closeParen;
+  lex(info, report, &closeParen);
+  if (closeParen.type != TT_RPAREN) {
+    if (!tokenInfoIsLexerError(&closeParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a close paren, but found %s",
+                  info->filename, closeParen.line, closeParen.character,
+                  tokenTypeToString(closeParen.type));
+    }
+    tokenInfoUninit(&closeParen);
+    nodeDestroy(target);
+    return NULL;
+  }
+
   return NULL;  // TODO: write this
 }
-static Node *parseExpression(Report *, Options *, TypeEnvironment *,
-                             LexerInfo *);
 static Node *parsePrimaryExpression(Report *report, Options *options,
                                     TypeEnvironment *env, LexerInfo *info) {
-  return NULL;  // TODO: write this
+  TokenInfo peek;
+  lex(info, report, &peek);
+
+  switch (peek.type) {
+    case TT_SCOPED_ID:
+    case TT_ID: {
+      // peek's id must be a valid id to get here
+      SymbolType symbolType =
+          typeEnvironmentLookup(env, report, &peek, info->filename);
+      switch (symbolType) {
+        case ST_UNDEFINED: {
+          return NULL;
+        }
+        case ST_TYPE: {
+          reportError(
+              report,
+              "%s:%zu:%zu: error: expected an expression, but found a type",
+              info->filename, peek.line, peek.character);
+          return NULL;
+        }
+        case ST_ID: {
+          return idExpNodeCreate(peek.line, peek.character, peek.data.string);
+        }
+        case ST_ENUMCONST: {
+          unLex(info, &peek);
+          return parseLiteral(report, options, env, info);
+        }
+        default: {
+          assert(false);  // error: not a valid enum
+        }
+      }
+    }
+    case TT_LITERALINT_0:
+    case TT_LITERALINT_B:
+    case TT_LITERALINT_O:
+    case TT_LITERALINT_D:
+    case TT_LITERALINT_H:
+    case TT_LITERALFLOAT:
+    case TT_LITERALSTRING:
+    case TT_LITERALCHAR:
+    case TT_LITERALWSTRING:
+    case TT_LITERALWCHAR:
+    case TT_TRUE:
+    case TT_FALSE:
+    case TT_LSQUARE: {
+      unLex(info, &peek);
+      return parseLiteral(report, options, env, info);
+    }
+    case TT_CAST: {
+      unLex(info, &peek);
+      return parseCast(report, options, env, info);
+    }
+    case TT_SIZEOF: {
+      unLex(info, &peek);
+      return parseSizeof(report, options, env, info);
+    }
+    case TT_LPAREN: {
+      Node *expression = parseExpression(report, options, env, info);
+
+      TokenInfo closeParen;
+      lex(info, report, &closeParen);
+      if (closeParen.type != TT_RPAREN) {
+        if (!tokenInfoIsLexerError(&closeParen)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a close paren, but found %s",
+                      info->filename, closeParen.line, closeParen.character,
+                      tokenTypeToString(closeParen.type));
+        }
+        tokenInfoUninit(&closeParen);
+        return NULL;
+      }
+
+      return expression;
+    }
+    default: {
+      if (!tokenInfoIsLexerError(&peek)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected an expression, but found %s",
+                    info->filename, peek.line, peek.character,
+                    tokenTypeToString(peek.type));
+      }
+      tokenInfoUninit(&peek);
+      return NULL;
+    }
+  }
 }
 static Node *parseAssignmentExpression(Report *, Options *, TypeEnvironment *,
                                        LexerInfo *);
 static NodeList *parseArgumentList(Report *report, Options *options,
                                    TypeEnvironment *env, LexerInfo *info) {
-  return NULL;  // TODO: write this
+  NodeList *args = nodeListCreate();
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type != TT_RPAREN) {
+    unLex(info, &peek);
+
+    Node *arg = parseAssignmentExpression(report, options, env, info);
+    if (arg == NULL) {
+      nodeListDestroy(args);
+      return NULL;
+    }
+    nodeListInsert(args, arg);
+
+    TokenInfo comma;
+    lex(info, report, &comma);
+    if (comma.type != TT_COMMA) {
+      if (!tokenInfoIsLexerError(&comma)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a comma after a function call "
+                    "argument, but found %s",
+                    info->filename, comma.line, comma.character,
+                    tokenTypeToString(comma.type));
+      }
+      tokenInfoUninit(&comma);
+      nodeListDestroy(args);
+      return NULL;
+    }
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return args;
 }
 static Node *parsePostfixExpression(Report *report, Options *options,
                                     TypeEnvironment *env, LexerInfo *info) {
