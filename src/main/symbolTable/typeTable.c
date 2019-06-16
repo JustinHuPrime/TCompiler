@@ -103,7 +103,7 @@ static SymbolType typeEnvironmentLookupInternal(TypeEnvironment const *env,
         free(moduleName);
         free(shortName);
 
-        return enumType;
+        return ST_ID;
       }
     }
 
@@ -165,6 +165,12 @@ SymbolType typeEnvironmentLookup(TypeEnvironment const *env, Report *report,
 TypeTable *typeEnvironmentTop(TypeEnvironment const *env) {
   return env->scopes.size == 0 ? env->currentModule
                                : env->scopes.elements[env->scopes.size - 1];
+}
+void typeEnvironmentPush(TypeEnvironment *env) {
+  stackPush(&env->scopes, typeTableCreate());
+}
+void typeEnvironmentPop(TypeEnvironment *env) {
+  typeTableDestroy(stackPop(&env->scopes));
 }
 void typeEnvironmentUninit(TypeEnvironment *env) {
   moduleTypeTableMapUninit(&env->imports);

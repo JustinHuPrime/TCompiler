@@ -26,7 +26,7 @@
 #include "util/errorReport.h"
 #include "util/ternary.h"
 
-typedef enum { ST_UNDEFINED = 0, ST_ID, ST_TYPE } SymbolType;
+typedef enum { ST_UNDEFINED = 0, ST_ID, ST_TYPE, ST_ENUMCONST } SymbolType;
 
 // exported types and identifiers for a module
 // specialsization of a generic
@@ -57,6 +57,8 @@ void typeEnvironmentInit(TypeEnvironment *, TypeTable *currentModule,
 SymbolType typeEnvironmentLookup(TypeEnvironment const *, Report *report,
                                  TokenInfo const *token, char const *filename);
 TypeTable *typeEnvironmentTop(TypeEnvironment const *);
+void typeEnvironmentPush(TypeEnvironment *);
+void typeEnvironmentPop(TypeEnvironment *);
 void typeEnvironmentUninit(TypeEnvironment *);
 
 #endif  // TLC_SYMBOLTABLE_TYPETABLE_H_
