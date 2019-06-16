@@ -576,8 +576,8 @@ Node *constDecimalIntExpNodeCreate(size_t line, size_t character,
   size_t acc = 0;
   bool overflow = false;
 
-  for (constantString += 2 + (sign == S_UNSIGNED ? 0 : 1);
-       *constantString != '\0'; constantString++) {
+  for (constantString += sign == S_UNSIGNED ? 0 : 1; *constantString != '\0';
+       constantString++) {
     size_t oldAcc = acc;
 
     acc *= 10;

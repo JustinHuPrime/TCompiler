@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
   }
 
   // debug stop for parse
-  if (optionsGet(&options, optionDebugDump) == O_DD_PARSE) {
+  if (optionsGet(&options, optionDebugDump) == O_DD_PARSE_PRETTY) {
     for (size_t idx = 0; idx < asts.decls.capacity; idx++) {
       if (asts.decls.keys[idx] != NULL) {
         nodePrint(asts.decls.values[idx]);
@@ -80,6 +80,18 @@ int main(int argc, char *argv[]) {
     for (size_t idx = 0; idx < asts.codes.capacity; idx++) {
       if (asts.codes.keys[idx] != NULL) {
         nodePrint(asts.codes.values[idx]);
+      }
+    }
+  }
+  if (optionsGet(&options, optionDebugDump) == O_DD_PARSE_STRUCTURE) {
+    for (size_t idx = 0; idx < asts.decls.capacity; idx++) {
+      if (asts.decls.keys[idx] != NULL) {
+        nodePrintStructure(asts.decls.values[idx]);
+      }
+    }
+    for (size_t idx = 0; idx < asts.codes.capacity; idx++) {
+      if (asts.codes.keys[idx] != NULL) {
+        nodePrintStructure(asts.codes.values[idx]);
       }
     }
   }

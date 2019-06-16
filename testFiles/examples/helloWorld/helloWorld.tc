@@ -7,6 +7,6 @@ void write(int fd, char const *str, ulong n) {
 
 int main(int argc, char **argv) {
     char const *message = "Hello, world!\n";
-    write(1, message, 15);
+    write(1, message, 15, "string-literal");
     return 0;
 }

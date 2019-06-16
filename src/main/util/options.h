@@ -62,7 +62,8 @@ extern char const *optionWUnrecognizedFile;
 typedef enum {
   O_DD_NONE = 1,
   O_DD_LEX,
-  O_DD_PARSE,
+  O_DD_PARSE_STRUCTURE,
+  O_DD_PARSE_PRETTY,
 } DebugDumpMode;
 extern char const *optionDebugDump;
 

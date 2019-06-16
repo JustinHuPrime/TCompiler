@@ -110,7 +110,7 @@ static SymbolType typeEnvironmentLookupInternal(TypeEnvironment const *env,
     free(moduleName);
     free(shortName);
     if (reportErrors) {
-      reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'\n",
+      reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'",
                   filename, token->line, token->character, token->data.string);
     }
     return ST_UNDEFINED;
@@ -135,11 +135,11 @@ static SymbolType typeEnvironmentLookupInternal(TypeEnvironment const *env,
           } else {
             if (reportErrors) {
               reportError(
-                  report, "%s:%zu:%zu: error: identifier '%s' is ambiguous\n",
+                  report, "%s:%zu:%zu: error: identifier '%s' is ambiguous",
                   filename, token->line, token->character, token->data.string);
-              reportMessage(report, "\tcandidate module: %s\n",
+              reportMessage(report, "\tcandidate module: %s",
                             env->imports.keys[idx]);
-              reportMessage(report, "\tcandidate module: %s\n", foundModule);
+              reportMessage(report, "\tcandidate module: %s", foundModule);
             }
             return ST_UNDEFINED;
           }
@@ -150,7 +150,7 @@ static SymbolType typeEnvironmentLookupInternal(TypeEnvironment const *env,
       return info;
     } else {
       if (reportErrors) {
-        reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'\n",
+        reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'",
                     filename, token->line, token->character,
                     token->data.string);
       }

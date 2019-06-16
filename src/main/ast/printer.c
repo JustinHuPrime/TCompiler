@@ -950,7 +950,7 @@ void nodePrint(Node const *node) {
            idx++) {
         nodePrint(node->data.compoundStmt.statements->elements[idx]);
       }
-      printf("}");
+      printf("\n}");
       break;
     }
     case NT_IFSTMT: {

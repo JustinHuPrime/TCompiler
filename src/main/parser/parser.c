@@ -22,6 +22,7 @@
 #include "symbolTable/typeTable.h"
 #include "util/functional.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -1131,9 +1132,8 @@ static NodeList *parseArgumentList(Report *report, Options *options,
     }
     nodeListInsert(args, arg);
 
-    TokenInfo comma;
-    lex(info, report, &comma);
-    if (comma.type != TT_COMMA) {
+    lex(info, report, &peek);
+    if (peek.type != TT_COMMA) {
       break;
     }
 
@@ -2195,6 +2195,7 @@ static Node *parseReturnStatement(Report *report, Options *options,
   if (next.type == TT_SEMI) {
     return returnStmtNodeCreate(returnKwd.line, returnKwd.character, NULL);
   } else {
+    unLex(info, &next);
     Node *expression = parseExpression(report, options, env, info);
     if (expression == NULL) {
       return NULL;
@@ -2409,6 +2410,9 @@ static Node *parseStatement(Report *report, Options *options,
         case ST_ID: {
           unLex(info, &peek);
           Node *expression = parseExpression(report, options, env, info);
+          if (expression == NULL) {
+            return NULL;
+          }
 
           TokenInfo semi;
           lex(info, report, &semi);
@@ -2469,6 +2473,7 @@ static Node *parseCompoundStatement(Report *report, Options *options,
       typeEnvironmentPop(env);
       return NULL;
     }
+    nodeListInsert(stmts, stmt);
 
     lex(info, report, &peek);
   }
@@ -3182,7 +3187,7 @@ static NodePairList *parseVarIds(Report *report, Options *options,
   lex(info, report, &next);
 
   switch (next.type) {
-    case TT_EQ: {
+    case TT_ASSIGN: {
       Node *value = parseLiteral(report, options, env, info);
       if (value == NULL) {
         nodePairListDestroy(list);
@@ -3463,7 +3468,7 @@ static NodeList *parseBodies(Report *report, Options *options,
   TokenInfo peek;
   lex(info, report, &peek);
 
-  while (peek.type != TT_EOF && peek.type != TT_ERR) {
+  while (peek.type != TT_EOF) {
     unLex(info, &peek);
     Node *node = parseBody(report, options, env, info);
     if (node == NULL) {
@@ -3474,8 +3479,8 @@ static NodeList *parseBodies(Report *report, Options *options,
     }
     lex(info, report, &peek);
   }
+  // consume the TT_EOF
 
-  tokenInfoUninit(&peek);  // actually not needed
   return bodies;
 }
 
@@ -3547,8 +3552,8 @@ static Node *parseCodeFile(Report *report, Options *options,
                         currTypes);
   typeEnvironmentUninit(&env);
 
-  return fileNodeCreate(module->line, module->character, module,
-                        nodeListCreate(), nodeListCreate(), info->filename);
+  return fileNodeCreate(module->line, module->character, module, imports,
+                        bodies, info->filename);
 }
 
 void parse(ModuleAstMapPair *asts, Report *report, Options *options,
