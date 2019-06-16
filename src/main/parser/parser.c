@@ -121,49 +121,6 @@ static Node *parseUnscopedId(Report *report, LexerInfo *info) {
 
   return idNodeCreate(id.line, id.character, id.data.string);
 }
-static Node *parseIntConstant(Report *report, Options *options,
-                              TypeEnvironment *env, LexerInfo *info) {
-  TokenInfo constant;
-  lex(info, report, &constant);
-
-  if (!tokenInfoIsIntConst(&constant)) {
-    if (!tokenInfoIsLexerError(&constant)) {
-      reportError(
-          report,
-          "%s:%zu:%zu: error: expected an integer constant, but found %s",
-          info->filename, constant.line, constant.character,
-          tokenTypeToString(constant.type));
-    }
-    tokenInfoUninit(&constant);
-    return NULL;
-  }
-
-  switch (constant.type) {
-    case TT_LITERALINT_0: {
-      return constZeroIntExpNodeCreate(constant.line, constant.character,
-                                       constant.data.string);
-    }
-    case TT_LITERALINT_B: {
-      return constBinaryIntExpNodeCreate(constant.line, constant.character,
-                                         constant.data.string);
-    }
-    case TT_LITERALINT_O: {
-      return constOctalIntExpNodeCreate(constant.line, constant.character,
-                                        constant.data.string);
-    }
-    case TT_LITERALINT_D: {
-      return constDecimalIntExpNodeCreate(constant.line, constant.character,
-                                          constant.data.string);
-    }
-    case TT_LITERALINT_H: {
-      return constHexadecimalIntExpNodeCreate(constant.line, constant.character,
-                                              constant.data.string);
-    }
-    default: {
-      assert(false);  // error: tokenInfoIsIntConst is broken.
-    }
-  }
-}
 static NodeList *parseUnscopedIdList(Report *report, Options *options,
                                      TypeEnvironment *env, LexerInfo *info) {
   NodeList *ids = nodeListCreate();
@@ -192,17 +149,18 @@ static NodeList *parseTypeList(Report *report, Options *options,
   lex(info, report, &peek);
   while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_SCOPED_ID ||
          peek.type == TT_ID) {
-    unLex(info, &peek);
     if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
       TernaryValue isType =
           typeEnvironmentLookup(env, report, &peek, info->filename);
       if (isType == INDETERMINATE) {
+        unLex(info, &peek);
         nodeListDestroy(types);
         return NULL;
       } else if (isType == NO) {
         break;
       }
     }
+    unLex(info, &peek);
 
     // is the start of a type!
     Node *type = parseType(report, options, env, info);
@@ -223,6 +181,8 @@ static NodeList *parseTypeList(Report *report, Options *options,
 
   return types;
 }
+static Node *parseIntLiteral(Report *, Options *, TypeEnvironment *,
+                             LexerInfo *);
 static Node *parseTypeExtensions(Report *report, Options *options,
                                  TypeEnvironment *env, Node *base,
                                  LexerInfo *info) {
@@ -236,7 +196,7 @@ static Node *parseTypeExtensions(Report *report, Options *options,
           constTypeNodeCreate(base->line, base->character, base), info);
     }
     case TT_LSQUARE: {
-      Node *size = parseIntConstant(report, options, env, info);
+      Node *size = parseIntLiteral(report, options, env, info);
 
       if (size == NULL) {
         return NULL;
@@ -534,7 +494,6 @@ static NodeList *parseDeclImports(Report *report, Options *options,
   NodeList *imports = nodeListCreate();
 
   TokenInfo peek;
-
   lex(info, report, &peek);
   while (peek.type == TT_IMPORT) {
     unLex(info, &peek);
@@ -559,8 +518,8 @@ static NodeList *parseCodeImports(Report *report, Options *options,
   NodeList *imports = nodeListCreate();
 
   TokenInfo peek;
-  lex(info, report, &peek);
 
+  lex(info, report, &peek);
   while (peek.type == TT_IMPORT) {
     unLex(info, &peek);
     Node *node = parseCodeImport(report, options, typeTables, env, info);
@@ -573,21 +532,980 @@ static NodeList *parseCodeImports(Report *report, Options *options,
 
     lex(info, report, &peek);
   }
-
   unLex(info, &peek);
+
   return imports;
 }
 
 // expression
+static Node *parseStringLiteral(Report *report, Options *options,
+                                TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo string;
+  lex(info, report, &string);
+
+  if (string.type != TT_LITERALSTRING) {
+    if (!tokenInfoIsLexerError(&string)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a string literal, but found %s",
+                  info->filename, string.line, string.character,
+                  tokenTypeToString(string.type));
+    }
+    tokenInfoUninit(&string);
+    return NULL;
+  }
+
+  return constStringExpNodeCreate(string.line, string.character,
+                                  string.data.string);
+}
+static Node *parseIntOrEnumLiteral(Report *report, Options *options,
+                                   TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo constant;
+  lex(info, report, &constant);
+
+  if (!tokenInfoIsIntConst(&constant) || constant.type == TT_SCOPED_ID) {
+    if (!tokenInfoIsLexerError(&constant)) {
+      reportError(
+          report,
+          "%s:%zu:%zu: error: expected an integer constant, but found %s",
+          info->filename, constant.line, constant.character,
+          tokenTypeToString(constant.type));
+    }
+    tokenInfoUninit(&constant);
+    return NULL;
+  }
+
+  switch (constant.type) {
+    case TT_LITERALINT_0: {
+      return constZeroIntExpNodeCreate(constant.line, constant.character,
+                                       constant.data.string);
+    }
+    case TT_LITERALINT_B: {
+      return constBinaryIntExpNodeCreate(constant.line, constant.character,
+                                         constant.data.string);
+    }
+    case TT_LITERALINT_O: {
+      return constOctalIntExpNodeCreate(constant.line, constant.character,
+                                        constant.data.string);
+    }
+    case TT_LITERALINT_D: {
+      return constDecimalIntExpNodeCreate(constant.line, constant.character,
+                                          constant.data.string);
+    }
+    case TT_LITERALINT_H: {
+      return constHexadecimalIntExpNodeCreate(constant.line, constant.character,
+                                              constant.data.string);
+    }
+    case TT_SCOPED_ID: {
+      SymbolType symbolType =
+          typeEnvironmentLookup(env, report, &constant, info->filename);
+      switch (symbolType) {
+        case ST_UNDEFINED: {
+          return NULL;
+        }
+        case ST_TYPE:
+        case ST_ID: {
+          reportError(
+              report,
+              "%s:%zu:%zu: error: expected an integer constant, but found %s",
+              info->filename, constant.line, constant.character,
+              tokenTypeToString(constant.type));
+          return NULL;
+        }
+        case ST_ENUMCONST: {
+          return enumConstExpNodeCreate(constant.line, constant.character,
+                                        constant.data.string);
+        }
+        default: {
+          assert(false);  // error: not a valid enum
+        }
+      }
+    }
+    default: {
+      assert(false);  // error: tokenInfoIsIntConst is broken.
+    }
+  }
+}
+static Node *parseIntLiteral(Report *report, Options *options,
+                             TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo constant;
+  lex(info, report, &constant);
+
+  if (!tokenInfoIsIntConst(&constant)) {
+    if (!tokenInfoIsLexerError(&constant)) {
+      reportError(
+          report,
+          "%s:%zu:%zu: error: expected an integer constant, but found %s",
+          info->filename, constant.line, constant.character,
+          tokenTypeToString(constant.type));
+    }
+    tokenInfoUninit(&constant);
+    return NULL;
+  }
+
+  switch (constant.type) {
+    case TT_LITERALINT_0: {
+      return constZeroIntExpNodeCreate(constant.line, constant.character,
+                                       constant.data.string);
+    }
+    case TT_LITERALINT_B: {
+      return constBinaryIntExpNodeCreate(constant.line, constant.character,
+                                         constant.data.string);
+    }
+    case TT_LITERALINT_O: {
+      return constOctalIntExpNodeCreate(constant.line, constant.character,
+                                        constant.data.string);
+    }
+    case TT_LITERALINT_D: {
+      return constDecimalIntExpNodeCreate(constant.line, constant.character,
+                                          constant.data.string);
+    }
+    case TT_LITERALINT_H: {
+      return constHexadecimalIntExpNodeCreate(constant.line, constant.character,
+                                              constant.data.string);
+    }
+    default: {
+      assert(false);  // error: tokenInfoIsIntConst is broken.
+    }
+  }
+}
 static Node *parseLiteral(Report *report, Options *options,
                           TypeEnvironment *env, LexerInfo *info) {
   return NULL;  // TODO: write this
 }
+static Node *parseExpression(Report *report, Options *options,
+                             TypeEnvironment *env, LexerInfo *info) {
+  return NULL;  // TODO: write this
+}
 
 // statement
+static Node *parseStmt(Report *, Options *, TypeEnvironment *, LexerInfo *);
+static Node *parseIfStmt(Report *report, Options *options, TypeEnvironment *env,
+                         LexerInfo *info) {
+  TokenInfo ifKwd;
+  lex(info, report, &ifKwd);
+
+  TokenInfo openParen;
+  lex(info, report, &openParen);
+  if (openParen.type != TT_LPAREN) {
+    if (!tokenInfoIsLexerError(&openParen)) {
+      reportError(
+          report,
+          "%s:%zu:%zu: error: expected an open paren after 'if', but found %s",
+          info->filename, openParen.line, openParen.character,
+          tokenTypeToString(openParen.type));
+    }
+    tokenInfoUninit(&openParen);
+    return NULL;
+  }
+
+  Node *test = parseExpression(report, options, env, info);
+  if (test == NULL) {
+    return NULL;
+  }
+
+  TokenInfo closeParen;
+  lex(info, report, &closeParen);
+  if (closeParen.type != TT_RPAREN) {
+    if (!tokenInfoIsLexerError(&closeParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a close paren after the test "
+                  "expression in an if, but found %s",
+                  info->filename, closeParen.line, closeParen.character,
+                  tokenTypeToString(closeParen.type));
+    }
+    tokenInfoUninit(&closeParen);
+    nodeDestroy(test);
+    return NULL;
+  }
+
+  Node *thenExp = parseStmt(report, options, env, info);
+  if (thenExp == NULL) {
+    nodeDestroy(test);
+  }
+
+  TokenInfo next;
+  lex(info, report, &next);
+  if (next.type != TT_ELSE) {
+    unLex(info, &next);
+    return ifStmtNodeCreate(ifKwd.line, ifKwd.character, test, thenExp, NULL);
+  }
+
+  Node *elseExp = parseStmt(report, options, env, info);
+  if (elseExp == NULL) {
+    nodeDestroy(thenExp);
+    nodeDestroy(test);
+  }
+
+  return ifStmtNodeCreate(ifKwd.line, ifKwd.character, test, thenExp, NULL);
+}
+static Node *parseWhileStmt(Report *report, Options *options,
+                            TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo whileKwd;
+  lex(info, report, &whileKwd);
+
+  TokenInfo openParen;
+  lex(info, report, &openParen);
+  if (openParen.type != TT_LPAREN) {
+    if (!tokenInfoIsLexerError(&openParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an open paren after 'while', "
+                  "but found %s",
+                  info->filename, openParen.line, openParen.character,
+                  tokenTypeToString(openParen.type));
+    }
+    tokenInfoUninit(&openParen);
+    return NULL;
+  }
+
+  Node *test = parseExpression(report, options, env, info);
+  if (test == NULL) {
+    return NULL;
+  }
+
+  TokenInfo closeParen;
+  lex(info, report, &closeParen);
+  if (closeParen.type != TT_RPAREN) {
+    if (!tokenInfoIsLexerError(&closeParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a close paren after the test "
+                  "expression in a while loop, but found %s",
+                  info->filename, closeParen.line, closeParen.character,
+                  tokenTypeToString(closeParen.type));
+    }
+    tokenInfoUninit(&closeParen);
+    nodeDestroy(test);
+    return NULL;
+  }
+
+  Node *body = parseStmt(report, options, env, info);
+  if (body == NULL) {
+    nodeDestroy(test);
+  }
+
+  return whileStmtNodeCreate(whileKwd.line, whileKwd.character, test, body);
+}
+static Node *parseDoWhileStmt(Report *report, Options *options,
+                              TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo doKwd;
+  lex(info, report, &doKwd);
+
+  Node *body = parseStmt(report, options, env, info);
+  if (body == NULL) {
+    return NULL;
+  }
+
+  TokenInfo whileKwd;
+  lex(info, report, &whileKwd);
+  if (whileKwd.type != TT_WHILE) {
+    if (!tokenInfoIsLexerError(&whileKwd)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected 'while' after the body of a "
+                  "do-while loop, but found %s",
+                  info->filename, whileKwd.line, whileKwd.character,
+                  tokenTypeToString(whileKwd.type));
+    }
+    tokenInfoUninit(&whileKwd);
+    nodeDestroy(body);
+    return NULL;
+  }
+
+  TokenInfo openParen;
+  lex(info, report, &openParen);
+  if (openParen.type != TT_LPAREN) {
+    if (!tokenInfoIsLexerError(&openParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an open paren after 'while', "
+                  "but found %s",
+                  info->filename, openParen.line, openParen.character,
+                  tokenTypeToString(openParen.type));
+    }
+    tokenInfoUninit(&openParen);
+    nodeDestroy(body);
+    return NULL;
+  }
+
+  Node *test = parseExpression(report, options, env, info);
+  if (test == NULL) {
+    nodeDestroy(body);
+    return NULL;
+  }
+
+  TokenInfo closeParen;
+  lex(info, report, &closeParen);
+  if (closeParen.type != TT_RPAREN) {
+    if (!tokenInfoIsLexerError(&closeParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a close paren after the test "
+                  "expression in a while loop, but found %s",
+                  info->filename, closeParen.line, closeParen.character,
+                  tokenTypeToString(closeParen.type));
+    }
+    tokenInfoUninit(&closeParen);
+    nodeDestroy(test);
+    return NULL;
+  }
+
+  return doWhileStmtNodeCreate(doKwd.line, doKwd.character, test, body);
+}
+static Node *parseVarDecl(Report *, Options *, TypeEnvironment *, LexerInfo *);
+static Node *parseForStmt(Report *report, Options *options,
+                          TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo forKwd;
+  lex(info, report, &forKwd);
+
+  TokenInfo openParen;
+  lex(info, report, &openParen);
+  if (openParen.type != TT_LPAREN) {
+    if (!tokenInfoIsLexerError(&openParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an open paren after 'while', "
+                  "but found %s",
+                  info->filename, openParen.line, openParen.character,
+                  tokenTypeToString(openParen.type));
+    }
+    tokenInfoUninit(&openParen);
+    return NULL;
+  }
+
+  Node *init;
+
+  TokenInfo next;
+  lex(info, report, &next);
+  switch (next.type) {
+    case TT_SEMI: {
+      unLex(info, &next);
+      init = NULL;
+      break;
+    }
+    case TT_VOID:
+    case TT_UBYTE:
+    case TT_BYTE:
+    case TT_CHAR:
+    case TT_USHORT:
+    case TT_SHORT:
+    case TT_UINT:
+    case TT_INT:
+    case TT_WCHAR:
+    case TT_ULONG:
+    case TT_LONG:
+    case TT_FLOAT:
+    case TT_DOUBLE:
+    case TT_BOOL: {
+      unLex(info, &next);
+      init = parseVarDecl(report, options, env, info);
+      if (init == NULL) {
+        return NULL;
+      }
+      break;
+    }
+    case TT_STAR:
+    case TT_AMPERSAND:
+    case TT_PLUSPLUS:
+    case TT_MINUSMINUS:
+    case TT_PLUS:
+    case TT_MINUS:
+    case TT_BANG:
+    case TT_TILDE:
+    case TT_LITERALINT_0:
+    case TT_LITERALINT_B:
+    case TT_LITERALINT_O:
+    case TT_LITERALINT_D:
+    case TT_LITERALINT_H:
+    case TT_LITERALSTRING:
+    case TT_LITERALCHAR:
+    case TT_LITERALWSTRING:
+    case TT_LITERALWCHAR:
+    case TT_TRUE:
+    case TT_FALSE:
+    case TT_LSQUARE:
+    case TT_CAST:
+    case TT_SIZEOF:
+    case TT_LPAREN: {
+      unLex(info, &next);
+      init = parseExpression(report, options, env, info);
+      if (init == NULL) {
+        return NULL;
+      }
+      break;
+    }
+    case TT_ID:
+    case TT_SCOPED_ID: {
+      SymbolType symbolType =
+          typeEnvironmentLookup(env, report, &next, info->filename);
+      switch (symbolType) {
+        case ST_UNDEFINED: {
+          return NULL;
+        }
+        case ST_ENUMCONST:
+        case ST_ID: {
+          unLex(info, &next);
+          init = parseExpression(report, options, env, info);
+          if (init == NULL) {
+            return NULL;
+          }
+          break;
+        }
+        case ST_TYPE: {
+          unLex(info, &next);
+          init = parseVarDecl(report, options, env, info);
+          if (init == NULL) {
+            return NULL;
+          }
+          break;
+        }
+        default: {
+          assert(false);  // error: not a valid enum!
+        }
+      }
+      break;
+    }
+    default: {
+      if (!tokenInfoIsLexerError(&next)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected an expression or variable "
+                    "declaration, but found %s",
+                    info->filename, next.line, next.character,
+                    tokenTypeToString(next.type));
+      }
+      tokenInfoUninit(&next);
+      return NULL;
+    }
+  }
+
+  TokenInfo semi;
+  lex(info, report, &semi);
+  if (semi.type != TT_SEMI) {
+    if (!tokenInfoIsLexerError(&semi)) {
+      reportError(
+          report,
+          "%s:%zu:%zu: error: expected a semicolon after the initialization "
+          "expression or declaration in a for loop, but found %s",
+          info->filename, semi.line, semi.character,
+          tokenTypeToString(semi.type));
+    }
+    tokenInfoUninit(&semi);
+    nodeDestroy(init);
+    return NULL;
+  }
+
+  Node *test = parseExpression(report, options, env, info);
+  if (test == NULL) {
+    nodeDestroy(init);
+    return NULL;
+  }
+
+  lex(info, report, &semi);
+  if (semi.type != TT_SEMI) {
+    if (!tokenInfoIsLexerError(&semi)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a semicolon after the test "
+                  "expression in a for loop, but found %s",
+                  info->filename, semi.line, semi.character,
+                  tokenTypeToString(semi.type));
+    }
+    tokenInfoUninit(&semi);
+    nodeDestroy(test);
+    nodeDestroy(init);
+    return NULL;
+  }
+
+  Node *update;
+
+  lex(info, report, &next);
+  if (next.type == TT_RPAREN) {
+    unLex(info, &next);
+    update = NULL;
+  } else {
+    unLex(info, &next);
+    update = parseExpression(report, options, env, info);
+    if (update == NULL) {
+      nodeDestroy(test);
+      nodeDestroy(init);
+      return NULL;
+    }
+  }
+
+  TokenInfo closeParen;
+  lex(info, report, &closeParen);
+  if (closeParen.type != TT_RPAREN) {
+    if (!tokenInfoIsLexerError(&closeParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a close paren after the update "
+                  "expression in a for loop, but found %s",
+                  info->filename, closeParen.line, closeParen.character,
+                  tokenTypeToString(closeParen.type));
+    }
+    tokenInfoUninit(&closeParen);
+    nodeDestroy(update);
+    nodeDestroy(test);
+    nodeDestroy(init);
+    return NULL;
+  }
+
+  Node *body = parseStmt(report, options, env, info);
+  if (body == NULL) {
+    nodeDestroy(update);
+    nodeDestroy(test);
+    nodeDestroy(init);
+    return NULL;
+  }
+
+  return forStmtNodeCreate(forKwd.line, forKwd.character, init, test, update,
+                           body);
+}
+static Node *parseCaseCase(Report *report, Options *options,
+                           TypeEnvironment *env, LexerInfo *info) {
+  NodeList *consts = nodeListCreate();
+
+  TokenInfo firstCase;
+  lex(info, report, &firstCase);
+  Node *constant = parseIntOrEnumLiteral(report, options, env, info);
+  if (constant == NULL) {
+    nodeListDestroy(consts);
+    return NULL;
+  }
+
+  nodeListInsert(consts, constant);
+
+  TokenInfo colon;
+  lex(info, report, &colon);
+  if (colon.type != TT_COLON) {
+    if (!tokenInfoIsLexerError(&colon)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a colon after the case "
+                  "constant, but found %s",
+                  info->filename, colon.line, colon.character,
+                  tokenTypeToString(colon.type));
+    }
+    tokenInfoUninit(&colon);
+    nodeListDestroy(consts);
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_CASE) {
+    constant = parseIntOrEnumLiteral(report, options, env, info);
+    if (constant == NULL) {
+      nodeListDestroy(consts);
+      return NULL;
+    }
+
+    nodeListInsert(consts, constant);
+
+    lex(info, report, &colon);
+    if (colon.type != TT_COLON) {
+      if (!tokenInfoIsLexerError(&colon)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a colon after the case "
+                    "constant, but found %s",
+                    info->filename, colon.line, colon.character,
+                    tokenTypeToString(colon.type));
+      }
+      tokenInfoUninit(&colon);
+      nodeListDestroy(consts);
+      return NULL;
+    }
+  }
+  unLex(info, &peek);
+
+  Node *statement = parseStmt(report, options, env, info);
+
+  return numCaseNodeCreate(firstCase.line, firstCase.character, consts,
+                           statement);
+}
+static Node *parseDefaultCase(Report *report, Options *options,
+                              TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo defaultKwd;
+  lex(info, report, &defaultKwd);
+
+  TokenInfo colon;
+  lex(info, report, &colon);
+  if (colon.type != TT_COLON) {
+    if (!tokenInfoIsLexerError(&colon)) {
+      reportError(
+          report,
+          "%s:%zu:%zu: error: expected a colon after 'default', but found %s",
+          info->filename, colon.line, colon.character,
+          tokenTypeToString(colon.type));
+    }
+    tokenInfoUninit(&colon);
+    return NULL;
+  }
+
+  Node *body = parseStmt(report, options, env, info);
+  if (body == NULL) {
+    return NULL;
+  }
+
+  return defaultCaseNodeCreate(defaultKwd.line, defaultKwd.character, body);
+}
+static NodeList *parseSwitchStmtCases(Report *report, Options *options,
+                                      TypeEnvironment *env, LexerInfo *info) {
+  NodeList *list = nodeListCreate();
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_CASE || peek.type == TT_DEFAULT) {
+    unLex(info, &peek);
+
+    if (peek.type == TT_CASE) {
+      Node *clause = parseCaseCase(report, options, env, info);
+      if (clause == NULL) {
+        nodeListDestroy(list);
+        return NULL;
+      }
+      nodeListInsert(list, clause);
+    } else {
+      Node *clause = parseDefaultCase(report, options, env, info);
+      if (clause == NULL) {
+        nodeListDestroy(list);
+        return NULL;
+      }
+      nodeListInsert(list, clause);
+    }
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return list;
+}
+static Node *parseSwitchStmt(Report *report, Options *options,
+                             TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo switchKwd;
+  lex(info, report, &switchKwd);
+
+  TokenInfo openParen;
+  lex(info, report, &openParen);
+  if (openParen.type != TT_LPAREN) {
+    if (!tokenInfoIsLexerError(&openParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an open paren after 'switch', "
+                  "but found %s",
+                  info->filename, openParen.line, openParen.character,
+                  tokenTypeToString(openParen.type));
+    }
+    tokenInfoUninit(&openParen);
+    return NULL;
+  }
+
+  Node *switchedOn = parseExpression(report, options, env, info);
+  if (switchedOn == NULL) {
+    return NULL;
+  }
+
+  TokenInfo closeParen;
+  lex(info, report, &closeParen);
+  if (closeParen.type != TT_RPAREN) {
+    if (!tokenInfoIsLexerError(&closeParen)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an close paren after the "
+                  "switched on expression, but found %s",
+                  info->filename, closeParen.line, closeParen.character,
+                  tokenTypeToString(closeParen.type));
+    }
+    tokenInfoUninit(&closeParen);
+    nodeDestroy(switchedOn);
+    return NULL;
+  }
+
+  TokenInfo openBrace;
+  lex(info, report, &openBrace);
+  if (openBrace.type != TT_LBRACE) {
+    if (!tokenInfoIsLexerError(&openBrace)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an open brace after the "
+                  "switched on expression, but found %s",
+                  info->filename, openBrace.line, openBrace.character,
+                  tokenTypeToString(openBrace.type));
+    }
+    tokenInfoUninit(&openBrace);
+    nodeDestroy(switchedOn);
+    return NULL;
+  }
+
+  NodeList *cases = parseSwitchStmtCases(report, options, env, info);
+  if (cases == NULL) {
+    nodeDestroy(switchedOn);
+  }
+
+  TokenInfo closeBrace;
+  lex(info, report, &closeBrace);
+  if (closeBrace.type != TT_RBRACE) {
+    if (!tokenInfoIsLexerError(&closeBrace)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected an open close after the "
+                  "cases in the switch, but found %s",
+                  info->filename, closeBrace.line, closeBrace.character,
+                  tokenTypeToString(closeBrace.type));
+    }
+    tokenInfoUninit(&closeBrace);
+    nodeDestroy(switchedOn);
+    nodeListDestroy(cases);
+    return NULL;
+  }
+
+  return switchStmtNodeCreate(switchKwd.line, switchKwd.character, switchedOn,
+                              cases);
+}
+static Node *parseReturnStmt(Report *report, Options *options,
+                             TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo returnKwd;
+  lex(info, report, &returnKwd);
+
+  TokenInfo next;
+  lex(info, report, &next);
+
+  if (next.type == TT_SEMI) {
+    return returnStmtNodeCreate(returnKwd.line, returnKwd.character, NULL);
+  } else {
+    Node *expression = parseExpression(report, options, env, info);
+    if (expression == NULL) {
+      return NULL;
+    }
+
+    TokenInfo semi;
+    lex(info, report, &semi);
+    if (semi.type != TT_SEMI) {
+      if (!tokenInfoIsLexerError(&semi)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a semicolon to terminate the "
+                    "return statement, but found %s",
+                    info->filename, semi.line, semi.character,
+                    tokenTypeToString(semi.type));
+      }
+      tokenInfoUninit(&semi);
+      nodeDestroy(expression);
+      return NULL;
+    }
+
+    return returnStmtNodeCreate(returnKwd.line, returnKwd.character,
+                                expression);
+  }
+}
+static Node *parseCompoundStmt(Report *, Options *, TypeEnvironment *,
+                               LexerInfo *);
+static Node *parseUnionOrStructDeclOrDefn(Report *, Options *,
+                                          TypeEnvironment *, LexerInfo *);
+static Node *parseEnumDeclOrDefn(Report *, Options *, TypeEnvironment *,
+                                 LexerInfo *);
+static Node *parseTypedef(Report *, Options *, TypeEnvironment *, LexerInfo *);
+static Node *parseStmt(Report *report, Options *options, TypeEnvironment *env,
+                       LexerInfo *info) {
+  TokenInfo peek;
+  lex(info, report, &peek);
+
+  switch (peek.type) {
+    case TT_LBRACE: {
+      unLex(info, &peek);
+      return parseCompoundStmt(report, options, env, info);
+    }
+    case TT_IF: {
+      unLex(info, &peek);
+      return parseIfStmt(report, options, env, info);
+    }
+    case TT_WHILE: {
+      unLex(info, &peek);
+      return parseWhileStmt(report, options, env, info);
+    }
+    case TT_DO: {
+      unLex(info, &peek);
+      return parseDoWhileStmt(report, options, env, info);
+    }
+    case TT_FOR: {
+      unLex(info, &peek);
+      return parseForStmt(report, options, env, info);
+    }
+    case TT_SWITCH: {
+      unLex(info, &peek);
+      return parseSwitchStmt(report, options, env, info);
+    }
+    case TT_BREAK: {
+      TokenInfo semi;
+      lex(info, report, &semi);
+
+      if (semi.type != TT_SEMI) {
+        if (!tokenInfoIsLexerError(&semi)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a semicolon to terminate "
+                      "the break statement, but found %s",
+                      info->filename, semi.line, semi.character,
+                      tokenTypeToString(semi.type));
+        }
+        tokenInfoUninit(&semi);
+        return NULL;
+      }
+
+      return breakStmtNodeCreate(peek.line, peek.character);
+    }
+    case TT_CONTINUE: {
+      TokenInfo semi;
+      lex(info, report, &semi);
+
+      if (semi.type != TT_SEMI) {
+        if (!tokenInfoIsLexerError(&semi)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a semicolon to terminate "
+                      "the break statement, but found %s",
+                      info->filename, semi.line, semi.character,
+                      tokenTypeToString(semi.type));
+        }
+        tokenInfoUninit(&semi);
+        return NULL;
+      }
+
+      return continueStmtNodeCreate(peek.line, peek.character);
+    }
+    case TT_RETURN: {
+      unLex(info, &peek);
+      return parseReturnStmt(report, options, env, info);
+    }
+    case TT_ASM: {
+      Node *string = parseStringLiteral(report, options, env, info);
+      if (string == NULL) {
+        return NULL;
+      }
+
+      TokenInfo semi;
+      lex(info, report, &semi);
+
+      if (semi.type != TT_SEMI) {
+        if (!tokenInfoIsLexerError(&semi)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a semicolon to terminate "
+                      "the break statement, but found %s",
+                      info->filename, semi.line, semi.character,
+                      tokenTypeToString(semi.type));
+        }
+        tokenInfoUninit(&semi);
+        nodeDestroy(string);
+        return NULL;
+      }
+
+      return asmStmtNodeCreate(peek.line, peek.character, string);
+    }
+    case TT_STRUCT:
+    case TT_UNION: {
+      unLex(info, &peek);
+      return parseUnionOrStructDeclOrDefn(report, options, env, info);
+    }
+    case TT_ENUM: {
+      unLex(info, &peek);
+      return parseEnumDeclOrDefn(report, options, env, info);
+    }
+    case TT_TYPEDEF: {
+      unLex(info, &peek);
+      return parseTypedef(report, options, env, info);
+    }
+    case TT_SEMI: {
+      return nullStmtNodeCreate(peek.line, peek.character);
+    }
+    case TT_VOID:
+    case TT_UBYTE:
+    case TT_BYTE:
+    case TT_CHAR:
+    case TT_USHORT:
+    case TT_SHORT:
+    case TT_UINT:
+    case TT_INT:
+    case TT_WCHAR:
+    case TT_ULONG:
+    case TT_LONG:
+    case TT_FLOAT:
+    case TT_DOUBLE:
+    case TT_BOOL: {
+      unLex(info, &peek);
+      return parseVarDecl(report, options, env, info);
+    }
+    case TT_STAR:
+    case TT_AMPERSAND:
+    case TT_PLUSPLUS:
+    case TT_MINUSMINUS:
+    case TT_PLUS:
+    case TT_MINUS:
+    case TT_BANG:
+    case TT_TILDE:
+    case TT_LITERALINT_0:
+    case TT_LITERALINT_B:
+    case TT_LITERALINT_O:
+    case TT_LITERALINT_D:
+    case TT_LITERALINT_H:
+    case TT_LITERALSTRING:
+    case TT_LITERALCHAR:
+    case TT_LITERALWSTRING:
+    case TT_LITERALWCHAR:
+    case TT_TRUE:
+    case TT_FALSE:
+    case TT_LSQUARE:
+    case TT_CAST:
+    case TT_SIZEOF:
+    case TT_LPAREN: {
+      unLex(info, &peek);
+      return parseExpression(report, options, env, info);
+    }
+    case TT_ID:
+    case TT_SCOPED_ID: {
+      SymbolType symbolType =
+          typeEnvironmentLookup(env, report, &peek, info->filename);
+      switch (symbolType) {
+        case ST_UNDEFINED: {
+          return NULL;
+        }
+        case ST_ENUMCONST:
+        case ST_ID: {
+          unLex(info, &peek);
+          return parseExpression(report, options, env, info);
+        }
+        case ST_TYPE: {
+          unLex(info, &peek);
+          return parseVarDecl(report, options, env, info);
+        }
+        default: {
+          assert(false);  // error: not a valid enum!
+        }
+      }
+    }
+    default: {
+      if (!tokenInfoIsLexerError(&peek)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a statement or declaration, "
+                    "but found %s",
+                    info->filename, peek.line, peek.character,
+                    tokenTypeToString(peek.type));
+      }
+      tokenInfoUninit(&peek);
+      return NULL;
+    }
+  }
+}
 static Node *parseCompoundStmt(Report *report, Options *options,
                                TypeEnvironment *env, LexerInfo *info) {
-  return NULL;  // TODO: write this
+  typeEnvironmentPush(env);
+  NodeList *stmts = nodeListCreate();
+  TokenInfo openBrace;
+  lex(info, report, &openBrace);  // must be an open brace to get here
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type != TT_RBRACE) {
+    unLex(info, &peek);
+
+    Node *stmt = parseStmt(report, options, env, info);
+    if (stmt == NULL) {
+      nodeListDestroy(stmts);
+      typeEnvironmentPop(env);
+      return NULL;
+    }
+
+    lex(info, report, &peek);
+  }
+
+  // unLex(info, &peek);
+  // lex(info, report, &peek);  // the rbrace is already munched
+
+  typeEnvironmentPop(env);
+  return compoundStmtNodeCreate(openBrace.line, openBrace.character, stmts);
 }
 
 // body
@@ -639,17 +1557,18 @@ static NodeList *parseFields(Report *report, Options *options,
   lex(info, report, &peek);
   while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_SCOPED_ID ||
          peek.type == TT_ID) {
-    unLex(info, &peek);
     if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
       SymbolType isType =
           typeEnvironmentLookup(env, report, &peek, info->filename);
       if (isType == ST_UNDEFINED) {
+        unLex(info, &peek);
         nodeListDestroy(elements);
         return NULL;
       } else if (isType == ST_ID) {
         break;
       }
     }
+    unLex(info, &peek);
 
     // is the start of a type!
     Node *dec = parseFieldDecl(report, options, env, info);
@@ -692,8 +1611,9 @@ static NodeList *parseEnumFields(Report *report, Options *options,
 
   return ids;
 }
-static Node *parseUnionOrStructDecl(Report *report, Options *options,
-                                    TypeEnvironment *env, LexerInfo *info) {
+static Node *parseUnionOrStructDeclOrDefn(Report *report, Options *options,
+                                          TypeEnvironment *env,
+                                          LexerInfo *info) {
   TokenInfo kwd;
   lex(info, report, &kwd);  // must be right to get here
 
@@ -724,6 +1644,14 @@ static Node *parseUnionOrStructDecl(Report *report, Options *options,
           nodeDestroy(id);
           return NULL;
         }
+        case ST_ENUMCONST: {
+          reportError(report,
+                      "%s:%zu:%zu: error: identifier '%s' has already been "
+                      "declared as an enumeration constant",
+                      info->filename, id->line, id->character, id->data.id.id);
+          nodeDestroy(id);
+          return NULL;
+        }
       }
       return (kwd.type == TT_STRUCT
                   ? structForwardDeclNodeCreate
@@ -746,6 +1674,14 @@ static Node *parseUnionOrStructDecl(Report *report, Options *options,
           reportError(report,
                       "%s:%zu:%zu: error: identifier '%s' has already been "
                       "declared as a variable or function name",
+                      info->filename, id->line, id->character, id->data.id.id);
+          nodeDestroy(id);
+          return NULL;
+        }
+        case ST_ENUMCONST: {
+          reportError(report,
+                      "%s:%zu:%zu: error: identifier '%s' has already been "
+                      "declared as an enumeration constant",
                       info->filename, id->line, id->character, id->data.id.id);
           nodeDestroy(id);
           return NULL;
@@ -815,8 +1751,8 @@ static Node *parseUnionOrStructDecl(Report *report, Options *options,
     }
   }
 }
-static Node *parseEnumDecl(Report *report, Options *options,
-                           TypeEnvironment *env, LexerInfo *info) {
+static Node *parseEnumDeclOrDefn(Report *report, Options *options,
+                                 TypeEnvironment *env, LexerInfo *info) {
   TokenInfo kwd;
   lex(info, report, &kwd);  // must be an enum to get here
 
@@ -847,6 +1783,14 @@ static Node *parseEnumDecl(Report *report, Options *options,
           nodeDestroy(id);
           return NULL;
         }
+        case ST_ENUMCONST: {
+          reportError(report,
+                      "%s:%zu:%zu: error: identifier '%s' has already been "
+                      "declared as an enumeration constant",
+                      info->filename, id->line, id->character, id->data.id.id);
+          nodeDestroy(id);
+          return NULL;
+        }
       }
       return enumForwardDeclNodeCreate(kwd.line, kwd.character, id);
     }
@@ -867,6 +1811,14 @@ static Node *parseEnumDecl(Report *report, Options *options,
           reportError(report,
                       "%s:%zu:%zu: error: identifier '%s' has already been "
                       "declared as a variable or function name",
+                      info->filename, id->line, id->character, id->data.id.id);
+          nodeDestroy(id);
+          return NULL;
+        }
+        case ST_ENUMCONST: {
+          reportError(report,
+                      "%s:%zu:%zu: error: identifier '%s' has already been "
+                      "declared as an enumeration constant",
                       info->filename, id->line, id->character, id->data.id.id);
           nodeDestroy(id);
           return NULL;
@@ -985,6 +1937,14 @@ static Node *parseTypedef(Report *report, Options *options,
       nodeDestroy(type);
       return NULL;
     }
+    case ST_ENUMCONST: {
+      reportError(report,
+                  "%s:%zu:%zu: error: identifier '%s' has already been "
+                  "declared as an enumeration constant",
+                  info->filename, id->line, id->character, id->data.id.id);
+      nodeDestroy(id);
+      return NULL;
+    }
   }
 
   return typedefNodeCreate(kwd.line, kwd.character, type, id);
@@ -1000,23 +1960,58 @@ static bool parseFunctionParam(Report *report, Options *options,
 
   TokenInfo peek;
   lex(info, report, &peek);
-  if (peek.type != TT_ID) {
+  if (peek.type != TT_ID && peek.type != TT_EQ) {
     // end of the param
     unLex(info, &peek);
     nodeTripleListInsert(list, type, NULL, NULL);
     return true;
   }
   unLex(info, &peek);
-  Node *id = parseUnscopedId(report, info);
-  if (id == NULL) {
-    nodeDestroy(type);
-    return false;
+
+  Node *id;
+  if (peek.type == TT_ID) {
+    id = parseUnscopedId(report, info);
+    if (id == NULL) {
+      nodeDestroy(type);
+      return false;
+    }
+    TypeTable *table = typeEnvironmentTop(env);
+    SymbolType symbolType = typeTableGet(table, id->data.id.id);
+    switch (symbolType) {
+      case ST_UNDEFINED: {
+        typeTableSet(table, id->data.id.id, ST_ID);
+        break;
+      }
+      case ST_TYPE: {
+        reportError(report,
+                    "%s:%zu:%zu: error: identifier '%s' has already been "
+                    "declared as a type",
+                    info->filename, id->line, id->character, id->data.id.id);
+        nodeDestroy(id);
+        nodeDestroy(type);
+        return false;
+      }
+      case ST_ID: {
+        break;
+      }
+      case ST_ENUMCONST: {
+        reportError(report,
+                    "%s:%zu:%zu: error: identifier '%s' has already been "
+                    "declared as an enumeration constant",
+                    info->filename, id->line, id->character, id->data.id.id);
+        nodeDestroy(id);
+        return NULL;
+      }
+    }
+  } else {
+    id = NULL;
   }
 
-  lex(info, report, &peek);
-  if (peek.type != TT_EQ) {
+  TokenInfo eq;
+  lex(info, report, &eq);
+  if (eq.type != TT_EQ) {
     // end of the param
-    unLex(info, &peek);
+    unLex(info, &eq);
     nodeTripleListInsert(list, type, id, NULL);
     return true;
   }
@@ -1042,17 +2037,18 @@ static NodeTripleList *parseFunctionParams(Report *report, Options *options,
   lex(info, report, &peek);
   while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_SCOPED_ID ||
          peek.type == TT_ID) {
-    unLex(info, &peek);
     if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
       SymbolType isType =
           typeEnvironmentLookup(env, report, &peek, info->filename);
       if (isType == ST_UNDEFINED) {
+        unLex(info, &peek);
         nodeTripleListDestroy(list);
         return NULL;
       } else if (isType == ST_ID) {
         break;
       }
     }
+    unLex(info, &peek);
 
     // is the start of a type!
     if (!parseFunctionParam(report, options, env, list, info)) {
@@ -1073,6 +2069,7 @@ static NodeTripleList *parseFunctionParams(Report *report, Options *options,
 static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
                                      TypeEnvironment *env, Node *type, Node *id,
                                      LexerInfo *info) {
+  typeEnvironmentPush(env);
   NodeTripleList *params = parseFunctionParams(report, options, env, info);
 
   TokenInfo closeParen;
@@ -1090,6 +2087,7 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
     nodeTripleListDestroy(params);
     nodeDestroy(id);
     nodeDestroy(type);
+    typeEnvironmentPop(env);
     return NULL;
   }
 
@@ -1104,8 +2102,10 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
         nodeTripleListDestroy(params);
         nodeDestroy(id);
         nodeDestroy(type);
+        typeEnvironmentPop(env);
         return NULL;
       }
+      typeEnvironmentPop(env);
       return functionNodeCreate(type->line, type->character, type, id, params,
                                 compoundStmt);
     }
@@ -1123,6 +2123,7 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
       free(params->thirdElements);
       free(params);
 
+      typeEnvironmentPop(env);
       return funDeclNodeCreate(type->line, type->character, type, id, types);
     }
     default: {
@@ -1137,9 +2138,205 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
       nodeTripleListDestroy(params);
       nodeDestroy(id);
       nodeDestroy(type);
+      typeEnvironmentPop(env);
       return NULL;
     }
   }
+}
+// produce false on an error
+static bool parseVarId(Report *report, Options *options, TypeEnvironment *env,
+                       NodePairList *list, LexerInfo *info) {
+  Node *id = parseUnscopedId(report, info);
+  if (id == NULL) {
+    return false;
+  }
+  TypeTable *table = typeEnvironmentTop(env);
+  SymbolType type = typeTableGet(table, id->data.id.id);
+  switch (type) {
+    case ST_UNDEFINED: {
+      typeTableSet(table, id->data.id.id, ST_ID);
+      break;
+    }
+    case ST_TYPE: {
+      reportError(report,
+                  "%s:%zu:%zu: error: identifier '%s' has already been "
+                  "declared as a type",
+                  info->filename, id->line, id->character, id->data.id.id);
+      nodeDestroy(id);
+      return false;
+    }
+    case ST_ID: {
+      break;
+    }
+    case ST_ENUMCONST: {
+      reportError(report,
+                  "%s:%zu:%zu: error: identifier '%s' has already been "
+                  "declared as an enumeration constant",
+                  info->filename, id->line, id->character, id->data.id.id);
+      nodeDestroy(id);
+      return NULL;
+    }
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  if (peek.type != TT_EQ) {
+    // end of the decl
+    unLex(info, &peek);
+    nodePairListInsert(list, id, NULL);
+    return true;
+  }
+
+  Node *literal = parseLiteral(report, options, env, info);
+  if (literal == NULL) {
+    nodeDestroy(id);
+    return false;
+  }
+
+  // absolutely the end of the decl
+  nodePairListInsert(list, id, literal);
+  return true;
+}
+static NodePairList *parseVarIds(Report *report, Options *options,
+                                 TypeEnvironment *env, Node *firstId,
+                                 LexerInfo *info) {
+  NodePairList *list = nodePairListCreate();
+
+  TokenInfo next;
+  lex(info, report, &next);
+
+  switch (next.type) {
+    case TT_EQ: {
+      Node *value = parseLiteral(report, options, env, info);
+      if (value == NULL) {
+        nodePairListDestroy(list);
+        nodeDestroy(firstId);
+        return NULL;
+      }
+      nodePairListInsert(list, firstId, value);
+      break;
+    }
+    case TT_COMMA: {
+      nodePairListInsert(list, firstId, NULL);
+      unLex(info, &next);
+      break;
+    }
+    default: {
+      if (!tokenInfoIsLexerError(&next)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected an initializer or a comma, "
+                    "but found %s",
+                    info->filename, next.line, next.character,
+                    tokenTypeToString(next.type));
+      }
+      nodePairListDestroy(list);
+      nodeDestroy(firstId);
+      tokenInfoUninit(&next);
+      return NULL;
+    }
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_ID ||
+         peek.type == TT_SCOPED_ID) {
+    if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
+      SymbolType isType =
+          typeEnvironmentLookup(env, report, &peek, info->filename);
+      if (isType == ST_UNDEFINED) {
+        unLex(info, &peek);
+        nodePairListDestroy(list);
+        return NULL;
+      } else if (isType == ST_ID) {
+        break;
+      }
+    }
+    unLex(info, &peek);
+
+    // is the start of a type!
+    if (!parseVarId(report, options, env, list, info)) {
+      nodePairListDestroy(list);
+      return NULL;
+    }
+
+    // deal with comma (if it isn't a comma, return early)
+    lex(info, report, &peek);
+    if (peek.type != TT_COMMA) break;
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return list;
+}
+static Node *parseVarDeclPrefixed(Report *report, Options *options,
+                                  TypeEnvironment *env, Node *type,
+                                  Node *firstId, LexerInfo *info) {
+  // currently at int foo .
+  NodePairList *decls = parseVarIds(report, options, env, firstId, info);
+  if (decls == NULL) {
+    return NULL;
+  }
+
+  TokenInfo semicolon;
+  lex(info, report, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    if (!tokenInfoIsLexerError(&semicolon)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a semicolon after a variable "
+                  "declaration, but found %s",
+                  info->filename, semicolon.line, semicolon.character,
+                  tokenTypeToString(semicolon.type));
+    }
+    tokenInfoUninit(&semicolon);
+    nodePairListDestroy(decls);
+    return NULL;
+  }
+
+  return varDeclNodeCreate(type->line, type->character, type, decls);
+}
+static Node *parseVarDecl(Report *report, Options *options,
+                          TypeEnvironment *env, LexerInfo *info) {
+  Node *type = parseType(report, options, env, info);
+  if (type == NULL) {
+    return NULL;
+  }
+
+  Node *id = parseUnscopedId(report, info);
+  if (id == NULL) {
+    nodeDestroy(type);
+    return NULL;
+  }
+  TypeTable *table = typeEnvironmentTop(env);
+  SymbolType symbolType = typeTableGet(table, id->data.id.id);
+  switch (symbolType) {
+    case ST_UNDEFINED: {
+      typeTableSet(table, id->data.id.id, ST_ID);
+      break;
+    }
+    case ST_TYPE: {
+      reportError(report,
+                  "%s:%zu:%zu: error: identifier '%s' has already been "
+                  "declared as a type",
+                  info->filename, id->line, id->character, id->data.id.id);
+      nodeDestroy(id);
+      nodeDestroy(type);
+      return false;
+    }
+    case ST_ID: {
+      break;
+    }
+    case ST_ENUMCONST: {
+      reportError(report,
+                  "%s:%zu:%zu: error: identifier '%s' has already been "
+                  "declared as an enumeration constant",
+                  info->filename, id->line, id->character, id->data.id.id);
+      nodeDestroy(id);
+      return NULL;
+    }
+  }
+
+  return parseVarDeclPrefixed(report, options, env, type, id, info);
 }
 static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
                                      TypeEnvironment *env, LexerInfo *info) {
@@ -1154,6 +2351,34 @@ static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
     nodeDestroy(type);
     return NULL;
   }
+  TypeTable *table = typeEnvironmentTop(env);
+  SymbolType symbolType = typeTableGet(table, id->data.id.id);
+  switch (symbolType) {
+    case ST_UNDEFINED: {
+      typeTableSet(table, id->data.id.id, ST_ID);
+      break;
+    }
+    case ST_TYPE: {
+      reportError(report,
+                  "%s:%zu:%zu: error: identifier '%s' has already been "
+                  "declared as a type",
+                  info->filename, id->line, id->character, id->data.id.id);
+      nodeDestroy(id);
+      nodeDestroy(type);
+      return false;
+    }
+    case ST_ID: {
+      break;
+    }
+    case ST_ENUMCONST: {
+      reportError(report,
+                  "%s:%zu:%zu: error: identifier '%s' has already been "
+                  "declared as an enumeration constant",
+                  info->filename, id->line, id->character, id->data.id.id);
+      nodeDestroy(id);
+      return NULL;
+    }
+  }
 
   TokenInfo peek;
   lex(info, report, &peek);
@@ -1167,13 +2392,10 @@ static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
       nodePairListInsert(elms, id, NULL);
       return varDeclNodeCreate(type->line, type->character, type, elms);
     }
-    case TT_EQ: {
-      // is a var decl // TODO: finish
-      return NULL;
-    }
+    case TT_EQ:
     case TT_COMMA: {
-      // is a var decl // TODO: finish
-      return NULL;
+      unLex(info, &peek);
+      return parseVarDeclPrefixed(report, options, env, type, id, info);
     }
     default: {
       if (!tokenInfoIsLexerError(&peek)) {
@@ -1199,12 +2421,12 @@ static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
     case TT_STRUCT: {
       // struct or struct forward decl
       unLex(info, &peek);
-      return parseUnionOrStructDecl(report, options, env, info);
+      return parseUnionOrStructDeclOrDefn(report, options, env, info);
     }
     case TT_ENUM: {
       // enum or enum forward decl
       unLex(info, &peek);
-      return parseEnumDecl(report, options, env, info);
+      return parseEnumDeclOrDefn(report, options, env, info);
     }
     case TT_TYPEDEF: {
       // typedef or typedef forward decl
