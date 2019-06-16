@@ -18,7 +18,6 @@
 
 #include "util/ternary.h"
 
-#include <assert.h>
 #include <stdbool.h>
 
 TernaryValue and (TernaryValue v1, TernaryValue v2) {
@@ -38,7 +37,7 @@ TernaryValue and (TernaryValue v1, TernaryValue v2) {
       }
     }
   }
-  assert(false);  // not a ternary value; type safety violated
+  return -1;  // not a ternary value; type safety violated
 }
 TernaryValue or (TernaryValue v1, TernaryValue v2) {
   switch (v1) {
@@ -57,7 +56,7 @@ TernaryValue or (TernaryValue v1, TernaryValue v2) {
       }
     }
   }
-  assert(false);  // not a ternary value; type safety violated
+  return -1;  // not a ternary value; type safety violated
 }
 TernaryValue not(TernaryValue v) {
   switch (v) {
@@ -68,5 +67,5 @@ TernaryValue not(TernaryValue v) {
     case INDETERMINATE:
       return INDETERMINATE;
   }
-  assert(false);  // not a ternary value; type safety violated
+  return -1;  // not a ternary value; type safety violated
 }

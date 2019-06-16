@@ -22,7 +22,6 @@
 #include "symbolTable/typeTable.h"
 #include "util/functional.h"
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -121,8 +120,7 @@ static Node *parseUnscopedId(Report *report, LexerInfo *info) {
 
   return idNodeCreate(id.line, id.character, id.data.string);
 }
-static NodeList *parseUnscopedIdList(Report *report, Options *options,
-                                     TypeEnvironment *env, LexerInfo *info) {
+static NodeList *parseUnscopedIdList(Report *report, LexerInfo *info) {
   NodeList *ids = nodeListCreate();
   TokenInfo next;
 
@@ -183,8 +181,7 @@ static NodeList *parseTypeList(Report *report, Options *options,
 
   return types;
 }
-static Node *parseIntLiteral(Report *, Options *, TypeEnvironment *,
-                             LexerInfo *);
+static Node *parseIntLiteral(Report *, LexerInfo *);
 static Node *parseTypeExtensions(Report *report, Options *options,
                                  TypeEnvironment *env, Node *base,
                                  LexerInfo *info) {
@@ -198,7 +195,7 @@ static Node *parseTypeExtensions(Report *report, Options *options,
           constTypeNodeCreate(base->line, base->character, base), info);
     }
     case TT_LSQUARE: {
-      Node *size = parseIntLiteral(report, options, env, info);
+      Node *size = parseIntLiteral(report, info);
 
       if (size == NULL) {
         return NULL;
@@ -540,8 +537,7 @@ static NodeList *parseCodeImports(Report *report, Options *options,
 }
 
 // expression
-static Node *parseStringLiteral(Report *report, Options *options,
-                                TypeEnvironment *env, LexerInfo *info) {
+static Node *parseStringLiteral(Report *report, LexerInfo *info) {
   TokenInfo string;
   lex(info, report, &string);
 
@@ -559,8 +555,8 @@ static Node *parseStringLiteral(Report *report, Options *options,
   return constStringExpNodeCreate(string.line, string.character,
                                   string.data.string);
 }
-static Node *parseIntOrEnumLiteral(Report *report, Options *options,
-                                   TypeEnvironment *env, LexerInfo *info) {
+static Node *parseIntOrEnumLiteral(Report *report, TypeEnvironment *env,
+                                   LexerInfo *info) {
   TokenInfo constant;
   lex(info, report, &constant);
 
@@ -618,17 +614,16 @@ static Node *parseIntOrEnumLiteral(Report *report, Options *options,
                                         constant.data.string);
         }
         default: {
-          assert(false);  // error: not a valid enum
+          return NULL;  // error: not a valid enum
         }
       }
     }
     default: {
-      assert(false);  // error: tokenInfoIsIntConst is broken.
+      return NULL;  // error: tokenInfoIsIntConst is broken.
     }
   }
 }
-static Node *parseIntLiteral(Report *report, Options *options,
-                             TypeEnvironment *env, LexerInfo *info) {
+static Node *parseIntLiteral(Report *report, LexerInfo *info) {
   TokenInfo constant;
   lex(info, report, &constant);
 
@@ -666,7 +661,7 @@ static Node *parseIntLiteral(Report *report, Options *options,
                                               constant.data.string);
     }
     default: {
-      assert(false);  // error: tokenInfoIsIntConst is broken.
+      return NULL;  // error: tokenInfoIsIntConst is broken.
     }
   }
 }
@@ -777,7 +772,7 @@ static Node *parseLiteral(Report *report, Options *options,
           return NULL;
         }
         default: {
-          assert(false);  // error: not a valid enum!
+          return NULL;  // error: not a valid enum!
         }
       }
       break;
@@ -995,7 +990,7 @@ static Node *parseSizeof(Report *report, Options *options, TypeEnvironment *env,
           break;
         }
         default: {
-          assert(false);  // error: not a valid enum!
+          return NULL;  // error: not a valid enum!
         }
       }
       break;
@@ -1060,7 +1055,7 @@ static Node *parsePrimaryExpression(Report *report, Options *options,
           return parseLiteral(report, options, env, info);
         }
         default: {
-          assert(false);  // error: not a valid enum
+          return NULL;  // error: not a valid enum
         }
       }
     }
@@ -1234,7 +1229,7 @@ static Node *parsePostfixExpression(Report *report, Options *options,
         break;
       }
       default: {
-        assert(false);  // mutation to something that wasn't mutated!
+        return NULL;  // mutation to something that wasn't mutated!
       }
     }
 
@@ -1893,7 +1888,7 @@ static Node *parseForStatement(Report *report, Options *options,
           break;
         }
         default: {
-          assert(false);  // error: not a valid enum!
+          return NULL;  // error: not a valid enum!
         }
       }
       break;
@@ -1998,7 +1993,7 @@ static Node *parseCaseCase(Report *report, Options *options,
 
   TokenInfo firstCase;
   lex(info, report, &firstCase);
-  Node *constant = parseIntOrEnumLiteral(report, options, env, info);
+  Node *constant = parseIntOrEnumLiteral(report, env, info);
   if (constant == NULL) {
     nodeListDestroy(consts);
     return NULL;
@@ -2024,7 +2019,7 @@ static Node *parseCaseCase(Report *report, Options *options,
   TokenInfo peek;
   lex(info, report, &peek);
   while (peek.type == TT_CASE) {
-    constant = parseIntOrEnumLiteral(report, options, env, info);
+    constant = parseIntOrEnumLiteral(report, env, info);
     if (constant == NULL) {
       nodeListDestroy(consts);
       return NULL;
@@ -2228,8 +2223,7 @@ static Node *parseCompoundStatement(Report *, Options *, TypeEnvironment *,
                                     LexerInfo *);
 static Node *parseUnionOrStructDeclOrDefn(Report *, Options *,
                                           TypeEnvironment *, LexerInfo *);
-static Node *parseEnumDeclOrDefn(Report *, Options *, TypeEnvironment *,
-                                 LexerInfo *);
+static Node *parseEnumDeclOrDefn(Report *, TypeEnvironment *, LexerInfo *);
 static Node *parseTypedef(Report *, Options *, TypeEnvironment *, LexerInfo *);
 static Node *parseStatement(Report *report, Options *options,
                             TypeEnvironment *env, LexerInfo *info) {
@@ -2302,7 +2296,7 @@ static Node *parseStatement(Report *report, Options *options,
       return parseReturnStatement(report, options, env, info);
     }
     case TT_ASM: {
-      Node *string = parseStringLiteral(report, options, env, info);
+      Node *string = parseStringLiteral(report, info);
       if (string == NULL) {
         return NULL;
       }
@@ -2332,7 +2326,7 @@ static Node *parseStatement(Report *report, Options *options,
     }
     case TT_ENUM: {
       unLex(info, &peek);
-      return parseEnumDeclOrDefn(report, options, env, info);
+      return parseEnumDeclOrDefn(report, env, info);
     }
     case TT_TYPEDEF: {
       unLex(info, &peek);
@@ -2440,7 +2434,7 @@ static Node *parseStatement(Report *report, Options *options,
           return parseVarDecl(report, options, env, info);
         }
         default: {
-          assert(false);  // error: not a valid enum!
+          return NULL;  // error: not a valid enum!
         }
       }
     }
@@ -2494,7 +2488,7 @@ static Node *parseFieldDecl(Report *report, Options *options,
     return NULL;
   }
 
-  NodeList *ids = parseUnscopedIdList(report, options, env, info);
+  NodeList *ids = parseUnscopedIdList(report, info);
   if (ids == NULL) {
     nodeDestroy(type);
     return NULL;
@@ -2563,8 +2557,7 @@ static NodeList *parseFields(Report *report, Options *options,
 
   return elements;
 }
-static NodeList *parseEnumFields(Report *report, Options *options,
-                                 TypeEnvironment *env, LexerInfo *info) {
+static NodeList *parseEnumFields(Report *report, LexerInfo *info) {
   NodeList *ids = nodeListCreate();
 
   TokenInfo next;
@@ -2731,8 +2724,8 @@ static Node *parseUnionOrStructDeclOrDefn(Report *report, Options *options,
     }
   }
 }
-static Node *parseEnumDeclOrDefn(Report *report, Options *options,
-                                 TypeEnvironment *env, LexerInfo *info) {
+static Node *parseEnumDeclOrDefn(Report *report, TypeEnvironment *env,
+                                 LexerInfo *info) {
   TokenInfo kwd;
   lex(info, report, &kwd);  // must be an enum to get here
 
@@ -2804,7 +2797,7 @@ static Node *parseEnumDeclOrDefn(Report *report, Options *options,
           return NULL;
         }
       }
-      NodeList *elements = parseEnumFields(report, options, env, info);
+      NodeList *elements = parseEnumFields(report, info);
       if (elements == NULL) {
         nodeDestroy(id);
         return NULL;
@@ -3411,7 +3404,7 @@ static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
     case TT_ENUM: {
       // enum or enum forward decl
       unLex(info, &peek);
-      return parseEnumDeclOrDefn(report, options, env, info);
+      return parseEnumDeclOrDefn(report, env, info);
     }
     case TT_TYPEDEF: {
       // typedef or typedef forward decl

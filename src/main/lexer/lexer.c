@@ -238,7 +238,7 @@ char const *tokenTypeToString(TokenType tt) {
     case TT_LITERALWCHAR:
       return "a wide character literal";
   }
-  assert(false);  // not a TokenType; type safety violated
+  return NULL;  // not a TokenType; type safety violated
 }
 TypeKeyword tokenTypeToTypeKeyword(TokenType type) {
   return type - TT_VOID + TK_VOID;
@@ -255,7 +255,7 @@ BinOpType tokenTypeToBitwiseBinop(TokenType type) {
     case TT_CARET:
       return BO_BITXOR;
     default:
-      assert(false);  // error - precondition violated
+      return -1;  // error - precondition violated
   }
 }
 CompOpType tokenTypeToCompop(TokenType type) {
@@ -273,7 +273,7 @@ BinOpType tokenTypeToMulBinop(TokenType type) {
     case TT_PERCENT:
       return BO_MOD;
     default:
-      assert(false);  // error - precondition violated
+      return -1;  // error - precondition violated
   }
 }
 UnOpType tokenTypeToPrefixUnop(TokenType type) {
@@ -295,7 +295,7 @@ UnOpType tokenTypeToPrefixUnop(TokenType type) {
     case TT_TILDE:
       return UO_BITNOT;
     default:
-      assert(false);  // error - precondition violated
+      return -1;  // error - precondition violated
   }
 }
 
