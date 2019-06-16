@@ -18,11 +18,11 @@
 
 #include "ast/ast.h"
 
+#include "util/container/stringBuilder.h"
+
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <stdio.h>
 
 // NodeList
 NodeList *nodeListCreate(void) { return vectorCreate(); }
@@ -628,11 +628,11 @@ Node *constCharExpNodeCreate(size_t line, size_t character,
   Node *node = constExpNodeCreate(line, character);
   node->data.constExp.type = CT_CHAR;
 
-  if (constantString[1] == '\\') {  // special character
-    switch (constantString[2]) {
+  if (constantString[0] == '\\') {  // special character
+    switch (constantString[1]) {
       case '\'':
       case '\\': {
-        node->data.constExp.value.charVal = (uint8_t)constantString[2];
+        node->data.constExp.value.charVal = (uint8_t)constantString[1];
         break;
       }
       case 'n': {
@@ -653,12 +653,12 @@ Node *constCharExpNodeCreate(size_t line, size_t character,
       }
       case 'x': {
         node->data.constExp.value.charVal = (uint8_t)(
-            (charToHex(constantString[3]) << 4) + charToHex(constantString[4]));
+            (charToHex(constantString[2]) << 4) + charToHex(constantString[3]));
         break;
       }
     }
   } else {
-    node->data.constExp.value.charVal = (uint8_t)constantString[1];
+    node->data.constExp.value.charVal = (uint8_t)constantString[0];
   }
 
   return node;
@@ -668,7 +668,54 @@ Node *constStringExpNodeCreate(size_t line, size_t character,
   Node *node = constExpNodeCreate(line, character);
   node->data.constExp.type = CT_STRING;
 
-  // TODO: write
+  TStringBuilder buffer;
+  tstringBuilderInit(&buffer);
+
+  while (*constantString != '\0') {
+    if (constantString[0] == '\\') {  // special character
+      switch (constantString[1]) {
+        case '"':
+        case '\\': {
+          tstringBuilderPush(&buffer, (uint8_t)constantString[1]);
+          constantString += 2;
+          break;
+        }
+        case 'n': {
+          tstringBuilderPush(&buffer, (uint8_t)10);
+          constantString += 2;
+          break;
+        }
+        case 'r': {
+          tstringBuilderPush(&buffer, (uint8_t)13);
+          constantString += 2;
+          break;
+        }
+        case 't': {
+          tstringBuilderPush(&buffer, (uint8_t)9);
+          constantString += 2;
+          break;
+        }
+        case '0': {
+          tstringBuilderPush(&buffer, (uint8_t)0);
+          constantString += 2;
+          break;
+        }
+        case 'x': {
+          tstringBuilderPush(&buffer,
+                             (uint8_t)((charToHex(constantString[2]) << 4) +
+                                       charToHex(constantString[3])));
+          constantString += 4;
+          break;
+        }
+      }
+    } else {
+      tstringBuilderPush(&buffer, (uint8_t)constantString[0]);
+      constantString += 1;
+    }
+  }
+
+  node->data.constExp.value.stringVal = tstringBuilderData(&buffer);
+  tstringBuilderUninit(&buffer);
 
   return node;
 }
@@ -677,11 +724,11 @@ Node *constWCharExpNodeCreate(size_t line, size_t character,
   Node *node = constExpNodeCreate(line, character);
   node->data.constExp.type = CT_WCHAR;
 
-  if (constantString[1] == '\\') {  // special character
-    switch (constantString[2]) {
+  if (constantString[0] == '\\') {  // special character
+    switch (constantString[1]) {
       case '\'':
       case '\\': {
-        node->data.constExp.value.wcharVal = (uint32_t)constantString[2];
+        node->data.constExp.value.wcharVal = (uint32_t)constantString[1];
         break;
       }
       case 'n': {
@@ -702,12 +749,12 @@ Node *constWCharExpNodeCreate(size_t line, size_t character,
       }
       case 'x': {
         node->data.constExp.value.wcharVal = (uint32_t)(
-            (charToHex(constantString[3]) << 4) + charToHex(constantString[4]));
+            (charToHex(constantString[2]) << 4) + charToHex(constantString[3]));
         break;
       }
       case 'u': {
         node->data.constExp.value.wcharVal = 0;
-        for (size_t idx = 3; idx < 3 + 8; idx++) {
+        for (size_t idx = 2; idx < 2 + 8; idx++) {
           node->data.constExp.value.wcharVal <<= 4;
           node->data.constExp.value.wcharVal |=
               (uint32_t)charToHex(constantString[idx]);
@@ -715,7 +762,7 @@ Node *constWCharExpNodeCreate(size_t line, size_t character,
       }
     }
   } else {
-    node->data.constExp.value.wcharVal = (uint32_t)constantString[1];
+    node->data.constExp.value.wcharVal = (uint32_t)constantString[0];
   }
 
   return node;
@@ -725,7 +772,64 @@ Node *constWStringExpNodeCreate(size_t line, size_t character,
   Node *node = constExpNodeCreate(line, character);
   node->data.constExp.type = CT_WSTRING;
 
-  // TODO: write
+  TWStringBuilder buffer;
+  twstringBuilderInit(&buffer);
+
+  while (*constantString != '\0') {
+    if (constantString[0] == '\\') {  // special character
+      switch (constantString[1]) {
+        case '"':
+        case '\\': {
+          twstringBuilderPush(&buffer, (uint32_t)constantString[1]);
+          constantString += 2;
+          break;
+        }
+        case 'n': {
+          twstringBuilderPush(&buffer, (uint32_t)10);
+          constantString += 2;
+          break;
+        }
+        case 'r': {
+          twstringBuilderPush(&buffer, (uint32_t)13);
+          constantString += 2;
+          break;
+        }
+        case 't': {
+          twstringBuilderPush(&buffer, (uint32_t)9);
+          constantString += 2;
+          break;
+        }
+        case '0': {
+          twstringBuilderPush(&buffer, (uint32_t)0);
+          constantString += 2;
+          break;
+        }
+        case 'x': {
+          twstringBuilderPush(&buffer,
+                              (uint32_t)((charToHex(constantString[2]) << 4) +
+                                         charToHex(constantString[3])));
+          constantString += 4;
+          break;
+        }
+        case 'u': {
+          uint32_t wchar = 0;
+          for (size_t idx = 2; idx < 2 + 8; idx++) {
+            wchar <<= 4;
+            wchar |= (uint32_t)charToHex(constantString[idx]);
+          }
+          twstringBuilderPush(&buffer, wchar);
+          constantString += 10;
+          break;
+        }
+      }
+    } else {
+      twstringBuilderPush(&buffer, (uint32_t)constantString[0]);
+      constantString += 1;
+    }
+  }
+
+  node->data.constExp.value.wstringVal = twstringBuilderData(&buffer);
+  twstringBuilderUninit(&buffer);
 
   return node;
 }

@@ -1390,19 +1390,20 @@ void nodePrint(Node const *node) {
           break;
         }
         case CT_STRING: {
-          printf("%s", node->data.constExp.value.stringVal);
+          printf("\"%s\"", node->data.constExp.value.stringVal);
           break;
         }
         case CT_CHAR: {
-          printf("%c", node->data.constExp.value.charVal);
+          printf("'%c'", node->data.constExp.value.charVal);
           break;
         }
         case CT_WSTRING: {
-          printf("%ls", (wchar_t const *)node->data.constExp.value.wstringVal);
+          printf("\"%ls\"w",
+                 (wchar_t const *)node->data.constExp.value.wstringVal);
           break;
         }
         case CT_WCHAR: {
-          printf("%lc", (wchar_t)node->data.constExp.value.wcharVal);
+          printf("'%lc'w", (wchar_t)node->data.constExp.value.wcharVal);
           break;
         }
         case CT_BOOL: {

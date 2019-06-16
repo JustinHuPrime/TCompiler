@@ -23,12 +23,14 @@
 
 StringBuilder *stringBuilderCreate(void) {
   StringBuilder *sb = malloc(sizeof(StringBuilder));
+  stringBuilderInit(sb);
+  return sb;
+}
+void stringBuilderInit(StringBuilder *sb) {
   sb->size = 0;
   sb->capacity = 1;
   sb->string = malloc(sizeof(char));
-  return sb;
 }
-
 void stringBuilderPush(StringBuilder *sb, char c) {
   if (sb->size == sb->capacity) {
     sb->capacity *= 2;
@@ -36,19 +38,78 @@ void stringBuilderPush(StringBuilder *sb, char c) {
   }
   sb->string[sb->size++] = c;
 }
-
 void stringBuilderPop(StringBuilder *sb) { sb->size--; }
-
 char *stringBuilderData(StringBuilder const *sb) {
   char *string = malloc((sb->size + 1) * sizeof(char));
   memcpy(string, sb->string, sb->size);
   string[sb->size] = '\0';
   return string;
 }
-
 void stringBuilderClear(StringBuilder *sb) { sb->size = 0; }
-
+void stringBuilderUninit(StringBuilder *sb) { free(sb->string); }
 void stringBuilderDestroy(StringBuilder *sb) {
-  free(sb->string);
+  stringBuilderUninit(sb);
+  free(sb);
+}
+
+TStringBuilder *tstringBuilderCreate(void) {
+  TStringBuilder *sb = malloc(sizeof(TStringBuilder));
+  tstringBuilderInit(sb);
+  return sb;
+}
+void tstringBuilderInit(TStringBuilder *sb) {
+  sb->size = 0;
+  sb->capacity = 1;
+  sb->string = malloc(sizeof(uint8_t));
+}
+void tstringBuilderPush(TStringBuilder *sb, uint8_t c) {
+  if (sb->size == sb->capacity) {
+    sb->capacity *= 2;
+    sb->string = realloc(sb->string, sb->capacity * sizeof(uint8_t));
+  }
+  sb->string[sb->size++] = c;
+}
+void tstringBuilderPop(TStringBuilder *sb) { sb->size--; }
+uint8_t *tstringBuilderData(TStringBuilder const *sb) {
+  uint8_t *string = malloc((sb->size + 1) * sizeof(uint8_t));
+  memcpy(string, sb->string, sb->size * sizeof(uint8_t));
+  string[sb->size] = '\0';
+  return string;
+}
+void tstringBuilderClear(TStringBuilder *sb) { sb->size = 0; }
+void tstringBuilderUninit(TStringBuilder *sb) { free(sb->string); }
+void tstringBuilderDestroy(TStringBuilder *sb) {
+  tstringBuilderUninit(sb);
+  free(sb);
+}
+
+TWStringBuilder *twstringBuilderCreate(void) {
+  TWStringBuilder *sb = malloc(sizeof(TWStringBuilder));
+  twstringBuilderInit(sb);
+  return sb;
+}
+void twstringBuilderInit(TWStringBuilder *sb) {
+  sb->size = 0;
+  sb->capacity = 1;
+  sb->string = malloc(sizeof(uint32_t));
+}
+void twstringBuilderPush(TWStringBuilder *sb, uint32_t c) {
+  if (sb->size == sb->capacity) {
+    sb->capacity *= 2;
+    sb->string = realloc(sb->string, sb->capacity * sizeof(uint32_t));
+  }
+  sb->string[sb->size++] = c;
+}
+void twstringBuilderPop(TWStringBuilder *sb) { sb->size--; }
+uint32_t *twstringBuilderData(TWStringBuilder const *sb) {
+  uint32_t *string = malloc((sb->size + 1) * sizeof(uint32_t));
+  memcpy(string, sb->string, sb->size * sizeof(uint32_t));
+  string[sb->size] = '\0';
+  return string;
+}
+void twstringBuilderClear(TWStringBuilder *sb) { sb->size = 0; }
+void twstringBuilderUninit(TWStringBuilder *sb) { free(sb->string); }
+void twstringBuilderDestroy(TWStringBuilder *sb) {
+  twstringBuilderUninit(sb);
   free(sb);
 }

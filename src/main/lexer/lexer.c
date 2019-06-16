@@ -1443,6 +1443,9 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
       case LS_CHAR_SEEN_CR: {
         switch (c) {
           case '\n': {
+            stringBuilderDestroy(buffer);
+            buffer = NULL;
+
             state = LS_CHAR_BAD_ESCAPE;
 
             lexerInfo->character = 0;
@@ -1838,8 +1841,6 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
       case LS_CHAR_BAD_ESCAPE: {
         switch (c) {
           case -2: {  // F_EOF
-            stringBuilderDestroy(buffer);
-
             reportError(
                 report, "%s:%zu:%zu: error: unterminated character literal",
                 lexerInfo->filename, tokenInfo->line, tokenInfo->character);
