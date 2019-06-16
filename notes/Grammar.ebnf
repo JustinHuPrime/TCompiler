@@ -118,8 +118,7 @@ primary_expression = scoped_identifier
                    | "(", expression, ")"
                    ;
 argument_list = [ assignment_expression, { ",", assignment_expression } ] ;
-aggregate_initializer = "[", literal_list, "]" ;
-literal_list = [ literal, { ",", literal } ] ;
+aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
 literal = int_constant
         | float_constant
         | string_constant

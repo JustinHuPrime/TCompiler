@@ -132,7 +132,9 @@ static NodeList *parseUnscopedIdList(Report *report, Options *options,
                    idNodeCreate(next.line, next.character, next.data.string));
 
     lex(info, report, &next);
-    if (next.type != TT_COMMA) break;
+    if (next.type != TT_COMMA) {
+      break;
+    }
 
     lex(info, report, &next);
   }
@@ -668,9 +670,152 @@ static Node *parseIntLiteral(Report *report, Options *options,
     }
   }
 }
+static Node *parseLiteral(Report *, Options *, TypeEnvironment *, LexerInfo *);
+static NodeList *parseLiteralList(Report *report, Options *options,
+                                  TypeEnvironment *env, LexerInfo *info) {
+  NodeList *literals = nodeListCreate();
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type != TT_RSQUARE) {
+    unLex(info, &peek);
+
+    Node *literal = parseLiteral(report, options, env, info);
+    if (literal == NULL) {
+      nodeListDestroy(literals);
+      return NULL;
+    }
+    nodeListInsert(literals, literal);
+
+    TokenInfo comma;
+    lex(info, report, &comma);
+    if (comma.type != TT_COMMA) {
+      break;
+    }
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return literals;
+}
 static Node *parseLiteral(Report *report, Options *options,
                           TypeEnvironment *env, LexerInfo *info) {
-  return NULL;  // TODO: write this
+  TokenInfo peek;
+  lex(info, report, &peek);
+
+  switch (peek.type) {
+    case TT_LITERALINT_0: {
+      return constZeroIntExpNodeCreate(peek.line, peek.character,
+                                       peek.data.string);
+    }
+    case TT_LITERALINT_B: {
+      return constBinaryIntExpNodeCreate(peek.line, peek.character,
+                                         peek.data.string);
+    }
+    case TT_LITERALINT_O: {
+      return constOctalIntExpNodeCreate(peek.line, peek.character,
+                                        peek.data.string);
+    }
+    case TT_LITERALINT_D: {
+      return constDecimalIntExpNodeCreate(peek.line, peek.character,
+                                          peek.data.string);
+    }
+    case TT_LITERALINT_H: {
+      return constHexadecimalIntExpNodeCreate(peek.line, peek.character,
+                                              peek.data.string);
+    }
+    case TT_LITERALFLOAT: {
+      return constFloatExpNodeCreate(peek.line, peek.character,
+                                     peek.data.string);
+    }
+    case TT_LITERALSTRING: {
+      return constStringExpNodeCreate(peek.line, peek.character,
+                                      peek.data.string);
+    }
+    case TT_LITERALCHAR: {
+      return constCharExpNodeCreate(peek.line, peek.character,
+                                    peek.data.string);
+    }
+    case TT_LITERALWSTRING: {
+      return constWStringExpNodeCreate(peek.line, peek.character,
+                                       peek.data.string);
+    }
+    case TT_LITERALWCHAR: {
+      return constWCharExpNodeCreate(peek.line, peek.character,
+                                     peek.data.string);
+    }
+    case TT_FALSE:
+    case TT_TRUE: {
+      return (peek.type == TT_TRUE
+                  ? constTrueNodeCreate
+                  : constFalseNodeCreate)(peek.line, peek.character);
+    }
+    case TT_SCOPED_ID: {
+      SymbolType symbolType =
+          typeEnvironmentLookup(env, report, &peek, info->filename);
+      switch (symbolType) {
+        case ST_UNDEFINED: {
+          return NULL;
+        }
+        case ST_ENUMCONST: {
+          return enumConstExpNodeCreate(peek.line, peek.character,
+                                        peek.data.string);
+        }
+        case ST_ID: {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a constant, but found an "
+                      "identifier",
+                      info->filename, peek.line, peek.character);
+          return NULL;
+        }
+        case ST_TYPE: {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a constant, but found a "
+                      "type keyword",
+                      info->filename, peek.line, peek.character);
+          return NULL;
+        }
+        default: {
+          assert(false);  // error: not a valid enum!
+        }
+      }
+      break;
+    }
+    case TT_LSQUARE: {
+      NodeList *literals = parseLiteralList(report, options, env, info);
+      if (literals == NULL) {
+        return NULL;
+      }
+
+      TokenInfo closeSquare;
+      lex(info, report, &closeSquare);
+      if (closeSquare.type != TT_RSQUARE) {
+        if (!tokenInfoIsLexerError(&closeSquare)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a close square paren to "
+                      "close the literal list, but found %s",
+                      info->filename, closeSquare.line, closeSquare.character,
+                      tokenTypeToString(closeSquare.type));
+        }
+        tokenInfoUninit(&closeSquare);
+        nodeListDestroy(literals);
+        return NULL;
+      }
+
+      return aggregateInitExpNodeCreate(peek.line, peek.character, literals);
+    }
+    default: {
+      if (!tokenInfoIsLexerError(&peek)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a constant, but found %s",
+                    info->filename, peek.line, peek.character,
+                    tokenTypeToString(peek.type));
+      }
+      tokenInfoUninit(&peek);
+      return NULL;
+    }
+  }
 }
 static Node *parseExpression(Report *, Options *, TypeEnvironment *,
                              LexerInfo *);
@@ -763,9 +908,109 @@ static Node *parseSizeof(Report *report, Options *options, TypeEnvironment *env,
     return NULL;
   }
 
-  Node *target = NULL;  // TODO: write this
-  if (target == NULL) {
-    return NULL;
+  Node *target;
+  bool isType;
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  switch (peek.type) {
+    case TT_VOID:
+    case TT_UBYTE:
+    case TT_BYTE:
+    case TT_CHAR:
+    case TT_USHORT:
+    case TT_SHORT:
+    case TT_UINT:
+    case TT_INT:
+    case TT_WCHAR:
+    case TT_ULONG:
+    case TT_LONG:
+    case TT_FLOAT:
+    case TT_DOUBLE:
+    case TT_BOOL: {
+      unLex(info, &peek);
+      target = parseType(report, options, env, info);
+      if (target == NULL) {
+        return NULL;
+      }
+      isType = true;
+      break;
+    }
+    case TT_STAR:
+    case TT_AMPERSAND:
+    case TT_PLUSPLUS:
+    case TT_MINUSMINUS:
+    case TT_PLUS:
+    case TT_MINUS:
+    case TT_BANG:
+    case TT_TILDE:
+    case TT_LITERALINT_0:
+    case TT_LITERALINT_B:
+    case TT_LITERALINT_O:
+    case TT_LITERALINT_D:
+    case TT_LITERALINT_H:
+    case TT_LITERALSTRING:
+    case TT_LITERALCHAR:
+    case TT_LITERALWSTRING:
+    case TT_LITERALWCHAR:
+    case TT_TRUE:
+    case TT_FALSE:
+    case TT_LSQUARE:
+    case TT_CAST:
+    case TT_SIZEOF:
+    case TT_LPAREN: {
+      unLex(info, &peek);
+      target = parseExpression(report, options, env, info);
+      if (target == NULL) {
+        return NULL;
+      }
+      isType = false;
+      break;
+    }
+    case TT_ID:
+    case TT_SCOPED_ID: {
+      SymbolType symbolType =
+          typeEnvironmentLookup(env, report, &peek, info->filename);
+      switch (symbolType) {
+        case ST_UNDEFINED: {
+          return NULL;
+        }
+        case ST_ENUMCONST:
+        case ST_ID: {
+          unLex(info, &peek);
+          target = parseExpression(report, options, env, info);
+          if (target == NULL) {
+            return NULL;
+          }
+          isType = false;
+          break;
+        }
+        case ST_TYPE: {
+          unLex(info, &peek);
+          target = parseType(report, options, env, info);
+          if (target == NULL) {
+            return NULL;
+          }
+          isType = true;
+          break;
+        }
+        default: {
+          assert(false);  // error: not a valid enum!
+        }
+      }
+      break;
+    }
+    default: {
+      if (!tokenInfoIsLexerError(&peek)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: expected a statement or expression, "
+                    "but found %s",
+                    info->filename, peek.line, peek.character,
+                    tokenTypeToString(peek.type));
+      }
+      tokenInfoUninit(&peek);
+      return NULL;
+    }
   }
 
   TokenInfo closeParen;
@@ -782,7 +1027,8 @@ static Node *parseSizeof(Report *report, Options *options, TypeEnvironment *env,
     return NULL;
   }
 
-  return NULL;  // TODO: write this
+  return (isType ? sizeofTypeExpNodeCreate : sizeofExpExpNodeCreate)(
+      sizeofKwd.line, sizeofKwd.character, target);
 }
 static Node *parsePrimaryExpression(Report *report, Options *options,
                                     TypeEnvironment *env, LexerInfo *info) {
@@ -893,16 +1139,7 @@ static NodeList *parseArgumentList(Report *report, Options *options,
     TokenInfo comma;
     lex(info, report, &comma);
     if (comma.type != TT_COMMA) {
-      if (!tokenInfoIsLexerError(&comma)) {
-        reportError(report,
-                    "%s:%zu:%zu: error: expected a comma after a function call "
-                    "argument, but found %s",
-                    info->filename, comma.line, comma.character,
-                    tokenTypeToString(comma.type));
-      }
-      tokenInfoUninit(&comma);
-      nodeListDestroy(args);
-      return NULL;
+      break;
     }
 
     lex(info, report, &peek);
@@ -1379,9 +1616,10 @@ static Node *parseExpression(Report *report, Options *options,
 }
 
 // statement
-static Node *parseStmt(Report *, Options *, TypeEnvironment *, LexerInfo *);
-static Node *parseIfStmt(Report *report, Options *options, TypeEnvironment *env,
-                         LexerInfo *info) {
+static Node *parseStatement(Report *, Options *, TypeEnvironment *,
+                            LexerInfo *);
+static Node *parseIfStatement(Report *report, Options *options,
+                              TypeEnvironment *env, LexerInfo *info) {
   TokenInfo ifKwd;
   lex(info, report, &ifKwd);
 
@@ -1419,7 +1657,7 @@ static Node *parseIfStmt(Report *report, Options *options, TypeEnvironment *env,
     return NULL;
   }
 
-  Node *thenExp = parseStmt(report, options, env, info);
+  Node *thenExp = parseStatement(report, options, env, info);
   if (thenExp == NULL) {
     nodeDestroy(test);
   }
@@ -1431,7 +1669,7 @@ static Node *parseIfStmt(Report *report, Options *options, TypeEnvironment *env,
     return ifStmtNodeCreate(ifKwd.line, ifKwd.character, test, thenExp, NULL);
   }
 
-  Node *elseExp = parseStmt(report, options, env, info);
+  Node *elseExp = parseStatement(report, options, env, info);
   if (elseExp == NULL) {
     nodeDestroy(thenExp);
     nodeDestroy(test);
@@ -1439,8 +1677,8 @@ static Node *parseIfStmt(Report *report, Options *options, TypeEnvironment *env,
 
   return ifStmtNodeCreate(ifKwd.line, ifKwd.character, test, thenExp, NULL);
 }
-static Node *parseWhileStmt(Report *report, Options *options,
-                            TypeEnvironment *env, LexerInfo *info) {
+static Node *parseWhileStatement(Report *report, Options *options,
+                                 TypeEnvironment *env, LexerInfo *info) {
   TokenInfo whileKwd;
   lex(info, report, &whileKwd);
 
@@ -1478,19 +1716,19 @@ static Node *parseWhileStmt(Report *report, Options *options,
     return NULL;
   }
 
-  Node *body = parseStmt(report, options, env, info);
+  Node *body = parseStatement(report, options, env, info);
   if (body == NULL) {
     nodeDestroy(test);
   }
 
   return whileStmtNodeCreate(whileKwd.line, whileKwd.character, test, body);
 }
-static Node *parseDoWhileStmt(Report *report, Options *options,
-                              TypeEnvironment *env, LexerInfo *info) {
+static Node *parseDoWhileStatement(Report *report, Options *options,
+                                   TypeEnvironment *env, LexerInfo *info) {
   TokenInfo doKwd;
   lex(info, report, &doKwd);
 
-  Node *body = parseStmt(report, options, env, info);
+  Node *body = parseStatement(report, options, env, info);
   if (body == NULL) {
     return NULL;
   }
@@ -1549,8 +1787,8 @@ static Node *parseDoWhileStmt(Report *report, Options *options,
   return doWhileStmtNodeCreate(doKwd.line, doKwd.character, test, body);
 }
 static Node *parseVarDecl(Report *, Options *, TypeEnvironment *, LexerInfo *);
-static Node *parseForStmt(Report *report, Options *options,
-                          TypeEnvironment *env, LexerInfo *info) {
+static Node *parseForStatement(Report *report, Options *options,
+                               TypeEnvironment *env, LexerInfo *info) {
   TokenInfo forKwd;
   lex(info, report, &forKwd);
 
@@ -1743,7 +1981,7 @@ static Node *parseForStmt(Report *report, Options *options,
     return NULL;
   }
 
-  Node *body = parseStmt(report, options, env, info);
+  Node *body = parseStatement(report, options, env, info);
   if (body == NULL) {
     nodeDestroy(update);
     nodeDestroy(test);
@@ -1810,7 +2048,7 @@ static Node *parseCaseCase(Report *report, Options *options,
   }
   unLex(info, &peek);
 
-  Node *statement = parseStmt(report, options, env, info);
+  Node *statement = parseStatement(report, options, env, info);
 
   return numCaseNodeCreate(firstCase.line, firstCase.character, consts,
                            statement);
@@ -1834,15 +2072,16 @@ static Node *parseDefaultCase(Report *report, Options *options,
     return NULL;
   }
 
-  Node *body = parseStmt(report, options, env, info);
+  Node *body = parseStatement(report, options, env, info);
   if (body == NULL) {
     return NULL;
   }
 
   return defaultCaseNodeCreate(defaultKwd.line, defaultKwd.character, body);
 }
-static NodeList *parseSwitchStmtCases(Report *report, Options *options,
-                                      TypeEnvironment *env, LexerInfo *info) {
+static NodeList *parseSwitchStatementCases(Report *report, Options *options,
+                                           TypeEnvironment *env,
+                                           LexerInfo *info) {
   NodeList *list = nodeListCreate();
 
   TokenInfo peek;
@@ -1872,8 +2111,8 @@ static NodeList *parseSwitchStmtCases(Report *report, Options *options,
 
   return list;
 }
-static Node *parseSwitchStmt(Report *report, Options *options,
-                             TypeEnvironment *env, LexerInfo *info) {
+static Node *parseSwitchStatement(Report *report, Options *options,
+                                  TypeEnvironment *env, LexerInfo *info) {
   TokenInfo switchKwd;
   lex(info, report, &switchKwd);
 
@@ -1926,7 +2165,7 @@ static Node *parseSwitchStmt(Report *report, Options *options,
     return NULL;
   }
 
-  NodeList *cases = parseSwitchStmtCases(report, options, env, info);
+  NodeList *cases = parseSwitchStatementCases(report, options, env, info);
   if (cases == NULL) {
     nodeDestroy(switchedOn);
   }
@@ -1950,8 +2189,8 @@ static Node *parseSwitchStmt(Report *report, Options *options,
   return switchStmtNodeCreate(switchKwd.line, switchKwd.character, switchedOn,
                               cases);
 }
-static Node *parseReturnStmt(Report *report, Options *options,
-                             TypeEnvironment *env, LexerInfo *info) {
+static Node *parseReturnStatement(Report *report, Options *options,
+                                  TypeEnvironment *env, LexerInfo *info) {
   TokenInfo returnKwd;
   lex(info, report, &returnKwd);
 
@@ -1985,42 +2224,42 @@ static Node *parseReturnStmt(Report *report, Options *options,
                                 expression);
   }
 }
-static Node *parseCompoundStmt(Report *, Options *, TypeEnvironment *,
-                               LexerInfo *);
+static Node *parseCompoundStatement(Report *, Options *, TypeEnvironment *,
+                                    LexerInfo *);
 static Node *parseUnionOrStructDeclOrDefn(Report *, Options *,
                                           TypeEnvironment *, LexerInfo *);
 static Node *parseEnumDeclOrDefn(Report *, Options *, TypeEnvironment *,
                                  LexerInfo *);
 static Node *parseTypedef(Report *, Options *, TypeEnvironment *, LexerInfo *);
-static Node *parseStmt(Report *report, Options *options, TypeEnvironment *env,
-                       LexerInfo *info) {
+static Node *parseStatement(Report *report, Options *options,
+                            TypeEnvironment *env, LexerInfo *info) {
   TokenInfo peek;
   lex(info, report, &peek);
 
   switch (peek.type) {
     case TT_LBRACE: {
       unLex(info, &peek);
-      return parseCompoundStmt(report, options, env, info);
+      return parseCompoundStatement(report, options, env, info);
     }
     case TT_IF: {
       unLex(info, &peek);
-      return parseIfStmt(report, options, env, info);
+      return parseIfStatement(report, options, env, info);
     }
     case TT_WHILE: {
       unLex(info, &peek);
-      return parseWhileStmt(report, options, env, info);
+      return parseWhileStatement(report, options, env, info);
     }
     case TT_DO: {
       unLex(info, &peek);
-      return parseDoWhileStmt(report, options, env, info);
+      return parseDoWhileStatement(report, options, env, info);
     }
     case TT_FOR: {
       unLex(info, &peek);
-      return parseForStmt(report, options, env, info);
+      return parseForStatement(report, options, env, info);
     }
     case TT_SWITCH: {
       unLex(info, &peek);
-      return parseSwitchStmt(report, options, env, info);
+      return parseSwitchStatement(report, options, env, info);
     }
     case TT_BREAK: {
       TokenInfo semi;
@@ -2060,7 +2299,7 @@ static Node *parseStmt(Report *report, Options *options, TypeEnvironment *env,
     }
     case TT_RETURN: {
       unLex(info, &peek);
-      return parseReturnStmt(report, options, env, info);
+      return parseReturnStatement(report, options, env, info);
     }
     case TT_ASM: {
       Node *string = parseStringLiteral(report, options, env, info);
@@ -2218,8 +2457,8 @@ static Node *parseStmt(Report *report, Options *options, TypeEnvironment *env,
     }
   }
 }
-static Node *parseCompoundStmt(Report *report, Options *options,
-                               TypeEnvironment *env, LexerInfo *info) {
+static Node *parseCompoundStatement(Report *report, Options *options,
+                                    TypeEnvironment *env, LexerInfo *info) {
   typeEnvironmentPush(env);
   NodeList *stmts = nodeListCreate();
   TokenInfo openBrace;
@@ -2230,7 +2469,7 @@ static Node *parseCompoundStmt(Report *report, Options *options,
   while (peek.type != TT_RBRACE) {
     unLex(info, &peek);
 
-    Node *stmt = parseStmt(report, options, env, info);
+    Node *stmt = parseStatement(report, options, env, info);
     if (stmt == NULL) {
       nodeListDestroy(stmts);
       typeEnvironmentPop(env);
@@ -2336,7 +2575,9 @@ static NodeList *parseEnumFields(Report *report, Options *options,
                    idNodeCreate(next.line, next.character, next.data.string));
 
     lex(info, report, &next);
-    if (next.type != TT_COMMA) break;
+    if (next.type != TT_COMMA) {
+      break;
+    }
 
     lex(info, report, &next);
   }
@@ -2797,7 +3038,9 @@ static NodeTripleList *parseFunctionParams(Report *report, Options *options,
 
     // deal with comma (if it isn't a comma, return early)
     lex(info, report, &peek);
-    if (peek.type != TT_COMMA) break;
+    if (peek.type != TT_COMMA) {
+      break;
+    }
 
     lex(info, report, &peek);
   }
@@ -2836,8 +3079,9 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
   switch (peek.type) {
     case TT_LBRACE: {
       unLex(info, &peek);
-      Node *compoundStmt = parseCompoundStmt(report, options, env, info);
-      if (compoundStmt == NULL) {
+      Node *compoundStatement =
+          parseCompoundStatement(report, options, env, info);
+      if (compoundStatement == NULL) {
         nodeTripleListDestroy(params);
         nodeDestroy(id);
         nodeDestroy(type);
@@ -2846,7 +3090,7 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
       }
       typeEnvironmentPop(env);
       return functionNodeCreate(type->line, type->character, type, id, params,
-                                compoundStmt);
+                                compoundStatement);
     }
     case TT_SEMI: {
       NodePairList *types = nodePairListCreate();
@@ -3000,7 +3244,9 @@ static NodePairList *parseVarIds(Report *report, Options *options,
 
     // deal with comma (if it isn't a comma, return early)
     lex(info, report, &peek);
-    if (peek.type != TT_COMMA) break;
+    if (peek.type != TT_COMMA) {
+      break;
+    }
 
     lex(info, report, &peek);
   }
