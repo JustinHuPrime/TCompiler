@@ -1030,6 +1030,8 @@ void nodeDestroy(Node *node) {
         }
         case CT_UBYTE:
         case CT_BYTE:
+        case CT_USHORT:
+        case CT_SHORT:
         case CT_UINT:
         case CT_INT:
         case CT_ULONG:

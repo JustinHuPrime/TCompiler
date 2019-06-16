@@ -176,6 +176,8 @@ typedef enum {
 typedef enum {
   CT_UBYTE,
   CT_BYTE,
+  CT_USHORT,
+  CT_SHORT,
   CT_UINT,
   CT_INT,
   CT_ULONG,
@@ -375,6 +377,8 @@ typedef struct Node {
       union {
         uint8_t ubyteVal;
         int8_t byteVal;
+        uint16_t ushortVal;
+        int16_t shortVal;
         uint32_t uintVal;
         int32_t intVal;
         uint64_t ulongVal;

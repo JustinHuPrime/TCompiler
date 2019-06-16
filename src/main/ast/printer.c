@@ -584,6 +584,14 @@ void nodePrintStructure(Node const *node) {
           printf("CONST(%hhd)", node->data.constExp.value.byteVal);
           break;
         }
+        case CT_USHORT: {
+          printf("CONST(%hu)", node->data.constExp.value.ushortVal);
+          break;
+        }
+        case CT_SHORT: {
+          printf("CONST(%hd)", node->data.constExp.value.shortVal);
+          break;
+        }
         case CT_UINT: {
           printf("CONST(%u)", node->data.constExp.value.uintVal);
           break;
@@ -1334,6 +1342,14 @@ void nodePrint(Node const *node) {
         }
         case CT_BYTE: {
           printf("%hhd", node->data.constExp.value.byteVal);
+          break;
+        }
+        case CT_USHORT: {
+          printf("%hu", node->data.constExp.value.ushortVal);
+          break;
+        }
+        case CT_SHORT: {
+          printf("%hd", node->data.constExp.value.ushortVal);
           break;
         }
         case CT_UINT: {
