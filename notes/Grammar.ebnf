@@ -70,63 +70,35 @@ return_statement = "return", [ expression ], ";" ;
 variable_declaration_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
 asm_statement = "asm", string_constant, ";" ;
 expression = assignment_expression
-           | expression, ",", assignment_expression
+           | assignment_expression, ",", expression
            ;
 assignment_expression = ternary_expression
-                      | assignment_expression, "=", ternary_expression
-                      | assignment_expression, "*=", ternary_expression
-                      | assignment_expression, "/=", ternary_expression
-                      | assignment_expression, "%=", ternary_expression
-                      | assignment_expression, "+=", ternary_expression
-                      | assignment_expression, "-=", ternary_expression
-                      | assignment_expression, "<<=", ternary_expression
-                      | assignment_expression, ">>=", ternary_expression
-                      | assignment_expression, ">>>=", ternary_expression
-                      | assignment_expression, "&=", ternary_expression
-                      | assignment_expression, "^=", ternary_expression
-                      | assignment_expression, "|=", ternary_expression
-                      | assignment_expression, "&&=", ternary_expression
-                      | assignment_expression, "||=", ternary_expression
+                      | ternary_expression, "=", assignment_expression
+                      | ternary_expression, "*=", assignment_expression
+                      | ternary_expression, "/=", assignment_expression
+                      | ternary_expression, "%=", assignment_expression
+                      | ternary_expression, "+=", assignment_expression
+                      | ternary_expression, "-=", assignment_expression
+                      | ternary_expression, "<<=", assignment_expression
+                      | ternary_expression, ">>=", assignment_expression
+                      | ternary_expression, ">>>=", assignment_expression
+                      | ternary_expression, "&=", assignment_expression
+                      | ternary_expression, "^=", assignment_expression
+                      | ternary_expression, "|=", assignment_expression
+                      | ternary_expression, "&&=", assignment_expression
+                      | ternary_expression, "||=", assignment_expression
                       ;
 ternary_expression = logical_expression
-                   | ternary_expression, "?", expression, ":", logical_expression
+                   | logical_expression, "?", expression, ":", ternary_expression
                    ;
-logical_expression = bitwise_expression
-                   | logical_expression, "&&", bitwise_expression
-                   | logical_expression, "||", bitwise_expression
-                   ;
-bitwise_expression = equality_expression
-                   | bitwise_expression, "&", equality_expression
-                   | bitwise_expression, "|", equality_expression
-                   | bitwise_expression, "^", equality_expression
-                   ;
-equality_expression = comparison_expression
-                    | equality_expression, "==", comparison_expression
-                    | equality_expression, "!=", comparison_expression
-                    ;
-comparison_expression = spaceship_expression
-                      | comparison_expression, "<", spaceship_expression
-                      | comparison_expression, ">", spaceship_expression
-                      | comparison_expression, "<=", spaceship_expression
-                      | comparison_expression, ">=", spaceship_expression
-                      ;
-spaceship_expression = shift_expression
-                     | spaceship_expression, "<=>", shift_expression
-                     ;
-shift_expression = addition_expression
-                 | shift_expression, "<<", addition_expression
-                 | shift_expression, ">>", addition_expression
-                 | shift_expression, ">>>", addition_expression
-                 ;
-addition_expression = multiplication_expression
-                    | addition_expression, "+", multiplication_expression
-                    | addition_expression, "-", multiplication_expression
-                    ;
-multiplication_expression = prefix_expression
-                          | multiplication_expression, "*", prefix_expression
-                          | multiplication_expression, "/", prefix_expression
-                          | multiplication_expression, "%", prefix_expression
-                          ;
+logical_expression = bitwise_expression, { ( "&&" | "||" ), bitwise_expression } ;
+bitwise_expression = equality_expression, { ( "&" | "|" | "^" ), equality_expression } ;
+equality_expression = comparison_expression, { ( "==" | "!=" ), comparison_expression } ;
+comparison_expression = spaceship_expression, { ( "<" | ">" | "<=" | ">=" ), spaceship_expression } ;
+spaceship_expression = shift_expression, { "<=>", shift_expression } ;
+shift_expression = addition_expression, { ( "<<" | ">>" | ">>>" ), addition_expression } ;
+addition_expression = multiplication_expression, { ( "+" | "-" ), multiplication_expression } ;
+multiplication_expression = prefix_expression, { ( "*" | "/" | "%" ), prefix_expression } ;
 prefix_expression = postfix_expression
                   | "*", prefix_expression
                   | "&", prefix_expression
@@ -137,14 +109,7 @@ prefix_expression = postfix_expression
                   | "!", prefix_expression
                   | "~", prefix_expression
                   ;
-postfix_expression = primary_expression
-                   | postfix_expression, ".", identifier
-                   | postfix_expression, "->", identifier
-                   | postfix_expression, "(", argument_list, ")"
-                   | postfix_expression, "[", expression, "]"
-                   | postfix_expression, "++" 
-                   | postfix_expression, "--"
-                   ;
+postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", argument_list, ")" | "[", expression, "]" | "++" | "--") } ;
 primary_expression = scoped_identifier
                    | identifier
                    | literal

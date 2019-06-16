@@ -1,58 +1,58 @@
 The following operators are parts of expressions, and use the following precedence:
 
-1 (postfix):
+1 (postfix, left associative):
 a.b
 a->b
 a(...)
 a[b]
 a++, a--
 
-2 (prefix):
+2 (prefix, right associative):
 *a, &a
 ++a, --a
 +a, -a
 !a, ~a
 
-3 (multiplication):
+3 (multiplication, left associative):
 a * b
 a / b
 a % b
 
-4 (addition):
+4 (addition, left associative):
 a + b
 a - b
 
-5 (shift):
+5 (shift, left associative):
 a << b
 a >> b // arithmetic, like Java
 a >>> b // logical, like Java
 
-6 (spaceship):
+6 (spaceship, left associative):
 a <=> b
 
-7 (comparison):
+7 (comparison, left associative):
 a < b
 a > b
 a <= b
 a >= b
 
-8 (equality):
+8 (equality, left associative):
 a == b
 a != b
 
-9 (bitwise):
+9 (bitwise, left associative):
 a & b
 a ^ b
 a | b
 
-10 (logical):
+10 (logical, left associative):
 a && b
 a || b
 
-11 (ternary):
+11 (ternary, right associative):
 a ? b : c
 
-12 (assignment):
+12 (assignment, right associative):
 a = b
 a *= b
 a /= b
@@ -68,5 +68,5 @@ a |= b
 a &&= b
 a ||= b
 
-13 (sequence):
+13 (sequence, right associative):
 a, b

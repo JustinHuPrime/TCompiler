@@ -672,9 +672,491 @@ static Node *parseLiteral(Report *report, Options *options,
                           TypeEnvironment *env, LexerInfo *info) {
   return NULL;  // TODO: write this
 }
+static Node *parseCast(Report *report, Options *options, TypeEnvironment *env,
+                       LexerInfo *info) {
+  return NULL;  // TODO: write this
+}
+static Node *parseSizeof(Report *report, Options *options, TypeEnvironment *env,
+                         LexerInfo *info) {
+  return NULL;  // TODO: write this
+}
+static Node *parseExpression(Report *, Options *, TypeEnvironment *,
+                             LexerInfo *);
+static Node *parsePrimaryExpression(Report *report, Options *options,
+                                    TypeEnvironment *env, LexerInfo *info) {
+  return NULL;  // TODO: write this
+}
+static Node *parseAssignmentExpression(Report *, Options *, TypeEnvironment *,
+                                       LexerInfo *);
+static NodeList *parseArgumentList(Report *report, Options *options,
+                                   TypeEnvironment *env, LexerInfo *info) {
+  return NULL;  // TODO: write this
+}
+static Node *parsePostfixExpression(Report *report, Options *options,
+                                    TypeEnvironment *env, LexerInfo *info) {
+  Node *first = parsePrimaryExpression(report, options, env, info);
+  if (first == NULL) {
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_DOT || peek.type == TT_ARROW ||
+         peek.type == TT_LPAREN || peek.type == TT_LSQUARE ||
+         peek.type == TT_PLUSPLUS || peek.type == TT_MINUSMINUS) {
+    switch (peek.type) {
+      case TT_ARROW:
+      case TT_DOT: {
+        // consume operator
+        Node *id = parseUnscopedId(report, info);
+        if (id == NULL) {
+          nodeDestroy(first);
+          return NULL;
+        }
+
+        first = (peek.type == TT_ARROW ? structPtrAccessExpNodeCreate
+                                       : structAccessExpNodeCreate)(
+            first->line, first->character, first, id);
+        break;
+      }
+      case TT_LPAREN: {
+        NodeList *args = parseArgumentList(report, options, env, info);
+        if (args == NULL) {
+          nodeDestroy(first);
+          return NULL;
+        }
+
+        TokenInfo closeParen;
+        lex(info, report, &closeParen);
+        if (closeParen.type != TT_RPAREN) {
+          if (!tokenInfoIsLexerError(&closeParen)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: expected a close paren after the "
+                        "arguments in a function call, but found %s",
+                        info->filename, closeParen.line, closeParen.character,
+                        tokenTypeToString(closeParen.type));
+          }
+          tokenInfoUninit(&closeParen);
+          nodeDestroy(first);
+          return NULL;
+        }
+
+        first = fnCallExpNodeCreate(first->line, first->character, first, args);
+        break;
+      }
+      case TT_LSQUARE: {
+        Node *index = parseExpression(report, options, env, info);
+        if (index == NULL) {
+          nodeDestroy(first);
+          return NULL;
+        }
+
+        TokenInfo closeSquare;
+        lex(info, report, &closeSquare);
+        if (closeSquare.type != TT_RSQUARE) {
+          if (!tokenInfoIsLexerError(&closeSquare)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: expected a close square bracket "
+                        "after the index in an array access, but found %s",
+                        info->filename, closeSquare.line, closeSquare.character,
+                        tokenTypeToString(closeSquare.type));
+          }
+          tokenInfoUninit(&closeSquare);
+          nodeDestroy(first);
+          return NULL;
+        }
+
+        first = binOpExpNodeCreate(first->line, first->character,
+                                   BO_ARRAYACCESS, first, index);
+        break;
+      }
+      case TT_PLUSPLUS:
+      case TT_MINUSMINUS: {
+        first = unOpExpNodeCreate(
+            first->line, first->character,
+            peek.type == TT_PLUSPLUS ? UO_POSTINC : UO_POSTDEC, first);
+        break;
+      }
+      default: {
+        assert(false);  // mutation to something that wasn't mutated!
+      }
+    }
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return first;
+}
+static Node *parsePrefixExpression(Report *report, Options *options,
+                                   TypeEnvironment *env, LexerInfo *info) {
+  TokenInfo peek;
+  lex(info, report, &peek);
+
+  switch (peek.type) {
+    case TT_ASSIGN:
+    case TT_MULASSIGN:
+    case TT_DIVASSIGN:
+    case TT_MODASSIGN:
+    case TT_ADDASSIGN:
+    case TT_SUBASSIGN:
+    case TT_LSHIFTASSIGN:
+    case TT_ARSHIFTASSIGN:
+    case TT_LRSHIFTASSIGN:
+    case TT_BITANDASSIGN:
+    case TT_BITORASSIGN: {
+      Node *target = parsePrefixExpression(report, options, env, info);
+      if (target == NULL) {
+        return NULL;
+      }
+
+      return unOpExpNodeCreate(peek.line, peek.character,
+                               tokenTypeToPrefixUnop(peek.type), target);
+    }
+    default: {
+      unLex(info, &peek);
+      return parsePostfixExpression(report, options, env, info);
+    }
+  }
+}
+static Node *parseMultiplicationExpression(Report *report, Options *options,
+                                           TypeEnvironment *env,
+                                           LexerInfo *info) {
+  Node *first = parsePrefixExpression(report, options, env, info);
+  if (first == NULL) {
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_PLUS || peek.type == TT_MINUS) {
+    // consume the operator
+
+    Node *next = parsePrefixExpression(report, options, env, info);
+    if (next == NULL) {
+      nodeDestroy(first);
+      return NULL;
+    }
+
+    first = binOpExpNodeCreate(first->line, first->character,
+                               tokenTypeToMulBinop(peek.type), first, next);
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return first;
+}
+static Node *parseAdditionExpression(Report *report, Options *options,
+                                     TypeEnvironment *env, LexerInfo *info) {
+  Node *first = parseMultiplicationExpression(report, options, env, info);
+  if (first == NULL) {
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_PLUS || peek.type == TT_MINUS) {
+    // consume the operator
+
+    Node *next = parseMultiplicationExpression(report, options, env, info);
+    if (next == NULL) {
+      nodeDestroy(first);
+      return NULL;
+    }
+
+    first =
+        binOpExpNodeCreate(first->line, first->character,
+                           peek.type == TT_PLUS ? BO_ADD : BO_SUB, first, next);
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return first;
+}
+static Node *parseShiftExpression(Report *report, Options *options,
+                                  TypeEnvironment *env, LexerInfo *info) {
+  Node *first = parseAdditionExpression(report, options, env, info);
+  if (first == NULL) {
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_LSHIFT || peek.type == TT_ARSHIFT ||
+         peek.type == TT_LRSHIFT) {
+    // consume the operator
+
+    Node *next = parseAdditionExpression(report, options, env, info);
+    if (next == NULL) {
+      nodeDestroy(first);
+      return NULL;
+    }
+
+    first = binOpExpNodeCreate(first->line, first->character,
+                               tokenTypeToShiftBinop(peek.type), first, next);
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return first;
+}
+static Node *parseSpaceshipExpression(Report *report, Options *options,
+                                      TypeEnvironment *env, LexerInfo *info) {
+  Node *first = parseShiftExpression(report, options, env, info);
+  if (first == NULL) {
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_SPACESHIP) {
+    // consume the operator
+
+    Node *next = parseShiftExpression(report, options, env, info);
+    if (next == NULL) {
+      nodeDestroy(first);
+      return NULL;
+    }
+
+    first = binOpExpNodeCreate(first->line, first->character, BO_SPACESHIP,
+                               first, next);
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return first;
+}
+static Node *parseComparisonExpression(Report *report, Options *options,
+                                       TypeEnvironment *env, LexerInfo *info) {
+  Node *first = parseSpaceshipExpression(report, options, env, info);
+  if (first == NULL) {
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_LANGLE || peek.type == TT_RANGLE ||
+         peek.type == TT_LTEQ || peek.type == TT_GTEQ) {
+    // consume the operator
+
+    Node *next = parseSpaceshipExpression(report, options, env, info);
+    if (next == NULL) {
+      nodeDestroy(first);
+      return NULL;
+    }
+
+    first = compOpExpNodeCreate(first->line, first->character,
+                                tokenTypeToCompop(peek.type), first, next);
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return first;
+}
+static Node *parseEqualityExpression(Report *report, Options *options,
+                                     TypeEnvironment *env, LexerInfo *info) {
+  Node *first = parseComparisonExpression(report, options, env, info);
+  if (first == NULL) {
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_EQ || peek.type == TT_NEQ) {
+    // consume the operator
+
+    Node *next = parseComparisonExpression(report, options, env, info);
+    if (next == NULL) {
+      nodeDestroy(first);
+      return NULL;
+    }
+
+    first =
+        compOpExpNodeCreate(first->line, first->character,
+                            peek.type == TT_EQ ? CO_EQ : CO_NEQ, first, next);
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return first;
+}
+static Node *parseBitwiseExpression(Report *report, Options *options,
+                                    TypeEnvironment *env, LexerInfo *info) {
+  Node *first = parseEqualityExpression(report, options, env, info);
+  if (first == NULL) {
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_AMPERSAND || peek.type == TT_PIPE ||
+         peek.type == TT_CARET) {
+    // consume the operator
+
+    Node *next = parseEqualityExpression(report, options, env, info);
+    if (next == NULL) {
+      nodeDestroy(first);
+      return NULL;
+    }
+
+    first = binOpExpNodeCreate(first->line, first->character,
+                               tokenTypeToBitwiseBinop(peek.type), first, next);
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return first;
+}
+static Node *parseLogicalExpression(Report *report, Options *options,
+                                    TypeEnvironment *env, LexerInfo *info) {
+  Node *first = parseBitwiseExpression(report, options, env, info);
+  if (first == NULL) {
+    return NULL;
+  }
+
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_LAND || peek.type == TT_LOR) {
+    // consume the operator
+
+    Node *next = parseBitwiseExpression(report, options, env, info);
+    if (next == NULL) {
+      nodeDestroy(first);
+      return NULL;
+    }
+
+    first = (peek.type == TT_LAND ? landExpNodeCreate : lorExpNodeCreate)(
+        first->line, first->character, first, next);
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return first;
+}
+static Node *parseTernaryExpression(Report *report, Options *options,
+                                    TypeEnvironment *env, LexerInfo *info) {
+  Node *test = parseLogicalExpression(report, options, env, info);
+  if (test == NULL) {
+    return NULL;
+  }
+
+  TokenInfo next;
+  lex(info, report, &next);
+  if (next.type != TT_QUESTION) {
+    unLex(info, &next);
+    return test;
+  }
+
+  Node *consequent = parseExpression(report, options, env, info);
+  if (consequent == NULL) {
+    nodeDestroy(test);
+    return NULL;
+  }
+
+  TokenInfo colon;
+  lex(info, report, &colon);
+  if (colon.type != TT_COLON) {
+    if (!tokenInfoIsLexerError(&colon)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: expected a colon as part of a ternary "
+                  "expression, but found %s",
+                  info->filename, colon.line, colon.character,
+                  tokenTypeToString(colon.type));
+    }
+    tokenInfoUninit(&colon);
+    nodeDestroy(consequent);
+    nodeDestroy(test);
+  }
+
+  Node *alternative = parseTernaryExpression(report, options, env, info);
+  if (alternative == NULL) {
+    nodeDestroy(consequent);
+    nodeDestroy(test);
+    return NULL;
+  }
+
+  return ternaryExpNodeCreate(test->line, test->character, test, consequent,
+                              alternative);
+}
+static Node *parseAssignmentExpression(Report *report, Options *options,
+                                       TypeEnvironment *env, LexerInfo *info) {
+  Node *lhs = parseTernaryExpression(report, options, env, info);
+  if (lhs == NULL) {
+    return NULL;
+  }
+
+  TokenInfo next;
+  lex(info, report, &next);
+
+  switch (next.type) {
+    case TT_ASSIGN:
+    case TT_MULASSIGN:
+    case TT_DIVASSIGN:
+    case TT_MODASSIGN:
+    case TT_ADDASSIGN:
+    case TT_SUBASSIGN:
+    case TT_LSHIFTASSIGN:
+    case TT_ARSHIFTASSIGN:
+    case TT_LRSHIFTASSIGN:
+    case TT_BITANDASSIGN:
+    case TT_BITORASSIGN: {
+      Node *rhs = parseAssignmentExpression(report, options, env, info);
+      if (rhs == NULL) {
+        nodeDestroy(rhs);
+        return NULL;
+      }
+
+      return binOpExpNodeCreate(lhs->line, lhs->character,
+                                tokenTypeToAssignmentBinop(next.type), lhs,
+                                rhs);
+    }
+    case TT_LORASSIGN:
+    case TT_LANDASSIGN: {
+      Node *rhs = parseAssignmentExpression(report, options, env, info);
+      if (rhs == NULL) {
+        nodeDestroy(rhs);
+        return NULL;
+      }
+
+      return (next.type == TT_LANDASSIGN ? landAssignExpNodeCreate
+                                         : lorAssignExpNodeCreate)(
+          lhs->line, lhs->character, lhs, rhs);
+    }
+    default: {
+      unLex(info, &next);
+      return lhs;
+    }
+  }
+}
 static Node *parseExpression(Report *report, Options *options,
                              TypeEnvironment *env, LexerInfo *info) {
-  return NULL;  // TODO: write this
+  Node *first = parseAssignmentExpression(report, options, env, info);
+  if (first == NULL) {
+    return NULL;
+  }
+
+  TokenInfo next;
+  lex(info, report, &next);
+  if (next.type != TT_COMMA) {
+    unLex(info, &next);
+    return first;
+  }
+
+  Node *rest = parseExpression(report, options, env, info);
+  if (rest == NULL) {
+    nodeDestroy(first);
+    return NULL;
+  }
+
+  return seqExpNodeCreate(first->line, first->character, first, rest);
 }
 
 // statement
@@ -1442,7 +1924,26 @@ static Node *parseStmt(Report *report, Options *options, TypeEnvironment *env,
     case TT_SIZEOF:
     case TT_LPAREN: {
       unLex(info, &peek);
-      return parseExpression(report, options, env, info);
+      Node *expression = parseExpression(report, options, env, info);
+
+      TokenInfo semi;
+      lex(info, report, &semi);
+
+      if (semi.type != TT_SEMI) {
+        if (!tokenInfoIsLexerError(&semi)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a semicolon after an "
+                      "expression, but found %s",
+                      info->filename, semi.line, semi.character,
+                      tokenTypeToString(semi.type));
+        }
+        tokenInfoUninit(&semi);
+        nodeDestroy(expression);
+        return NULL;
+      }
+
+      return expressionStmtNodeCreate(expression->line, expression->character,
+                                      expression);
     }
     case TT_ID:
     case TT_SCOPED_ID: {
@@ -1455,7 +1956,26 @@ static Node *parseStmt(Report *report, Options *options, TypeEnvironment *env,
         case ST_ENUMCONST:
         case ST_ID: {
           unLex(info, &peek);
-          return parseExpression(report, options, env, info);
+          Node *expression = parseExpression(report, options, env, info);
+
+          TokenInfo semi;
+          lex(info, report, &semi);
+
+          if (semi.type != TT_SEMI) {
+            if (!tokenInfoIsLexerError(&semi)) {
+              reportError(report,
+                          "%s:%zu:%zu: error: expected a semicolon after an "
+                          "expression, but found %s",
+                          info->filename, semi.line, semi.character,
+                          tokenTypeToString(semi.type));
+            }
+            tokenInfoUninit(&semi);
+            nodeDestroy(expression);
+            return NULL;
+          }
+
+          return expressionStmtNodeCreate(expression->line,
+                                          expression->character, expression);
         }
         case ST_TYPE: {
           unLex(info, &peek);

@@ -243,6 +243,61 @@ char const *tokenTypeToString(TokenType tt) {
 TypeKeyword tokenTypeToTypeKeyword(TokenType type) {
   return type - TT_VOID + TK_VOID;
 }
+BinOpType tokenTypeToAssignmentBinop(TokenType type) {
+  return type - TT_ASSIGN + BO_ASSIGN;
+}
+BinOpType tokenTypeToBitwiseBinop(TokenType type) {
+  switch (type) {
+    case TT_AMPERSAND:
+      return BO_BITAND;
+    case TT_PIPE:
+      return BO_BITOR;
+    case TT_CARET:
+      return BO_BITXOR;
+    default:
+      assert(false);  // error - precondition violated
+  }
+}
+CompOpType tokenTypeToCompop(TokenType type) {
+  return type - TT_LANGLE + CO_LT;
+}
+BinOpType tokenTypeToShiftBinop(TokenType type) {
+  return type - TT_LSHIFT + BO_LSHIFT;
+}
+BinOpType tokenTypeToMulBinop(TokenType type) {
+  switch (type) {
+    case TT_STAR:
+      return BO_MUL;
+    case TT_SLASH:
+      return BO_DIV;
+    case TT_PERCENT:
+      return BO_MOD;
+    default:
+      assert(false);  // error - precondition violated
+  }
+}
+UnOpType tokenTypeToPrefixUnop(TokenType type) {
+  switch (type) {
+    case TT_STAR:
+      return UO_DEREF;
+    case TT_AMPERSAND:
+      return UO_ADDROF;
+    case TT_PLUSPLUS:
+      return UO_PREINC;
+    case TT_MINUSMINUS:
+      return UO_PREDEC;
+    case TT_PLUS:
+      return UO_UPLUS;
+    case TT_MINUS:
+      return UO_NEG;
+    case TT_BANG:
+      return UO_LNOT;
+    case TT_TILDE:
+      return UO_BITNOT;
+    default:
+      assert(false);  // error - precondition violated
+  }
+}
 
 bool tokenInfoIsLexerError(TokenInfo const *info) {
   return info->type != TT_EOF && info->type <= TT_MULTICHAR_CHAR;

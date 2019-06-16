@@ -321,7 +321,7 @@ typedef struct Node {
 
     struct {
       struct Node *first;
-      struct Node *second;
+      struct Node *rest;
     } seqExp;
     struct {
       BinOpType op;
@@ -494,8 +494,7 @@ Node *returnStmtNodeCreate(size_t line, size_t character, Node *value);
 Node *asmStmtNodeCreate(size_t line, size_t character, Node *asmString);
 Node *expressionStmtNodeCreate(size_t line, size_t character, Node *expression);
 Node *nullStmtNodeCreate(size_t line, size_t character);
-Node *seqExpNodeCreate(size_t line, size_t character, Node *first,
-                       Node *second);
+Node *seqExpNodeCreate(size_t line, size_t character, Node *first, Node *rest);
 Node *binOpExpNodeCreate(size_t line, size_t character, BinOpType, Node *lhs,
                          Node *rhs);
 Node *unOpExpNodeCreate(size_t line, size_t character, UnOpType, Node *target);
@@ -513,7 +512,7 @@ Node *structAccessExpNodeCreate(size_t line, size_t character, Node *base,
                                 Node *elementId);
 Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *basePtr,
                                    Node *elementId);
-Node *fnCallExpNodeCreate(size_t line, size_t character, Node *functionId,
+Node *fnCallExpNodeCreate(size_t line, size_t character, Node *function,
                           NodeList *args);
 Node *idExpNodeCreate(size_t line, size_t character, char *idString);
 Node *constZeroIntExpNodeCreate(size_t line, size_t character,

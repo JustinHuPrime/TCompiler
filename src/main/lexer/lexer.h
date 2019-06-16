@@ -147,6 +147,12 @@ typedef enum {
 } TokenType;
 char const *tokenTypeToString(TokenType);
 TypeKeyword tokenTypeToTypeKeyword(TokenType);
+BinOpType tokenTypeToAssignmentBinop(TokenType);
+BinOpType tokenTypeToBitwiseBinop(TokenType);
+CompOpType tokenTypeToCompop(TokenType);
+BinOpType tokenTypeToShiftBinop(TokenType);
+BinOpType tokenTypeToMulBinop(TokenType);
+UnOpType tokenTypeToPrefixUnop(TokenType);
 
 // pod object, stores the result of a lex
 typedef struct {

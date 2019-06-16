@@ -306,7 +306,7 @@ void nodePrintStructure(Node const *node) {
       printf("SEQEXP(");
       nodePrintStructure(node->data.seqExp.first);
       printf(" ");
-      nodePrintStructure(node->data.seqExp.second);
+      nodePrintStructure(node->data.seqExp.rest);
       printf(")");
       break;
     }
@@ -1059,7 +1059,7 @@ void nodePrint(Node const *node) {
       printf("(");
       nodePrint(node->data.seqExp.first);
       printf(", ");
-      nodePrint(node->data.seqExp.second);
+      nodePrint(node->data.seqExp.rest);
       printf(")");
       break;
     }
