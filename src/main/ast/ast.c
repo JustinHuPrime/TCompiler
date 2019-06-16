@@ -278,11 +278,11 @@ Node *switchStmtNodeCreate(size_t line, size_t character, Node *onWhat,
   node->data.switchStmt.cases = cases;
   return node;
 }
-Node *numCaseNodeCreate(size_t line, size_t character, Node *constVal,
+Node *numCaseNodeCreate(size_t line, size_t character, NodeList *constVals,
                         Node *body) {
   Node *node = nodeCreate(line, character);
   node->type = NT_NUMCASE;
-  node->data.numCase.constVal = constVal;
+  node->data.numCase.constVals = constVals;
   node->data.numCase.body = body;
   return node;
 }
@@ -739,6 +739,12 @@ Node *aggregateInitExpNodeCreate(size_t line, size_t character,
   node->data.aggregateInitExp.elements = elements;
   return node;
 }
+Node *enumConstExpNodeCreate(size_t line, size_t character, char *constString) {
+  Node *node = nodeCreate(line, character);
+  node->type = NT_ENUMCONSTEXP;
+  node->data.enumConstExp.id = constString;
+  return node;
+}
 Node *constTrueNodeCreate(size_t line, size_t character) {
   Node *node = nodeCreate(line, character);
   node->type = NT_CONSTEXP;
@@ -928,7 +934,7 @@ void nodeDestroy(Node *node) {
       break;
     }
     case NT_NUMCASE: {
-      nodeDestroy(node->data.numCase.constVal);
+      nodeListDestroy(node->data.numCase.constVals);
       nodeDestroy(node->data.numCase.body);
       break;
     }
@@ -1048,6 +1054,10 @@ void nodeDestroy(Node *node) {
     }
     case NT_AGGREGATEINITEXP: {
       nodeListDestroy(node->data.aggregateInitExp.elements);
+      break;
+    }
+    case NT_ENUMCONSTEXP: {
+      free(node->data.enumConstExp.id);
       break;
     }
     case NT_CASTEXP: {

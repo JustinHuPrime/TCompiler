@@ -111,6 +111,7 @@ typedef enum {
   NT_IDEXP,
   NT_CONSTEXP,
   NT_AGGREGATEINITEXP,
+  NT_ENUMCONSTEXP,
   NT_CASTEXP,
   NT_SIZEOFTYPEEXP,
   NT_SIZEOFEXPEXP,
@@ -298,7 +299,7 @@ typedef struct Node {
       NodeList *cases;
     } switchStmt;
     struct {
-      struct Node *constVal;
+      NodeList *constVals;
       struct Node *body;
     } numCase;
     struct {
@@ -396,6 +397,9 @@ typedef struct Node {
       NodeList *elements;
     } aggregateInitExp;
     struct {
+      char *id;
+    } enumConstExp;
+    struct {
       struct Node *toWhat;
       struct Node *target;
     } castExp;
@@ -481,7 +485,8 @@ Node *forStmtNodeCreate(size_t line, size_t character, Node *initializer,
                         Node *condition, Node *update, Node *body);
 Node *switchStmtNodeCreate(size_t line, size_t character, Node *switchedOn,
                            NodeList *cases);
-Node *numCaseNodeCreate(size_t line, size_t character, Node *value, Node *body);
+Node *numCaseNodeCreate(size_t line, size_t character, NodeList *values,
+                        Node *body);
 Node *defaultCaseNodeCreate(size_t line, size_t character, Node *body);
 Node *breakStmtNodeCreate(size_t line, size_t character);
 Node *continueStmtNodeCreate(size_t line, size_t character);
@@ -533,6 +538,7 @@ Node *constWStringExpNodeCreate(size_t line, size_t character,
                                 char *constantString);
 Node *aggregateInitExpNodeCreate(size_t line, size_t character,
                                  NodeList *elements);
+Node *enumConstExpNodeCreate(size_t line, size_t character, char *constString);
 Node *constTrueNodeCreate(size_t line, size_t character);
 Node *constFalseNodeCreate(size_t line, size_t character);
 Node *castExpNodeCreate(size_t line, size_t character, Node *type,

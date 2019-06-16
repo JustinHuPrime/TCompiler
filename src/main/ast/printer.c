@@ -254,7 +254,10 @@ void nodePrintStructure(Node const *node) {
     }
     case NT_NUMCASE: {
       printf("NUMCASE(");
-      nodePrintStructure(node->data.numCase.constVal);
+      for (size_t idx = 0; idx < node->data.numCase.constVals->size; idx++) {
+        if (idx != 0) printf(" ");
+        nodePrintStructure(node->data.numCase.constVals->elements[idx]);
+      }
       printf(" ");
       nodePrintStructure(node->data.numCase.body);
       printf(")");
@@ -657,6 +660,10 @@ void nodePrintStructure(Node const *node) {
       printf(")");
       break;
     }
+    case NT_ENUMCONSTEXP: {
+      printf("ENUMCONSTEXP(%s)", node->data.idExp.id);
+      break;
+    }
     case NT_CASTEXP: {
       printf("CASTEXP(");
       nodePrintStructure(node->data.castExp.toWhat);
@@ -997,9 +1004,15 @@ void nodePrint(Node const *node) {
       break;
     }
     case NT_NUMCASE: {
-      printf("case ");
-      nodePrint(node->data.numCase.constVal);
-      printf(": ");
+      for (size_t idx = 0; idx < node->data.numCase.constVals->size; idx++) {
+        printf("case ");
+        nodePrint(node->data.numCase.constVals->elements[idx]);
+        if (idx == node->data.numCase.constVals->size - 1) {
+          printf(":\n");
+        } else {
+          printf(": ");
+        }
+      }
       nodePrint(node->data.numCase.body);
       printf("\n");
       break;
@@ -1413,6 +1426,10 @@ void nodePrint(Node const *node) {
         }
       }
       printf(">");
+      break;
+    }
+    case NT_ENUMCONSTEXP: {
+      printf("%s", node->data.enumConstExp.id);
       break;
     }
     case NT_CASTEXP: {
