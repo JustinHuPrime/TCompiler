@@ -622,20 +622,20 @@ void nodePrintStructure(Node const *node) {
           break;
         }
         case CT_STRING: {
-          printf("CONST(%s)", node->data.constExp.value.stringVal);
+          printf("CONST(\"%s\")", node->data.constExp.value.stringVal);
           break;
         }
         case CT_CHAR: {
-          printf("CONST(%c)", node->data.constExp.value.charVal);
+          printf("CONST('%c')", node->data.constExp.value.charVal);
           break;
         }
         case CT_WSTRING: {
-          printf("CONST(%ls)",
+          printf("CONST(\"%ls\"w)",
                  (wchar_t const *)node->data.constExp.value.wstringVal);
           break;
         }
         case CT_WCHAR: {
-          printf("CONST(%lc)", (wchar_t)node->data.constExp.value.wcharVal);
+          printf("CONST('%lc'w)", (wchar_t)node->data.constExp.value.wcharVal);
           break;
         }
         case CT_BOOL: {
