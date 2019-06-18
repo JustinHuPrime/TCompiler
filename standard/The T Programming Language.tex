@@ -90,4 +90,18 @@ Whitespace in T consists of either spaces, tabs, or newline characters (both lin
 
 \chapter{Syntax}
 
+The T programming language was designed to be LL(1) parsable except for the ambiguity between types and expressions, which is resolved using a lookup in the current environment to determine whether something is or is not a type.
+
+See the file \texttt{grammar.ebnf} for an EBNF specification of the syntax.
+
+A T program consists of a number of files, each of which contains one module, either a code module or a declaration module. Declaration modules declare the interface for a module, while code modules are the implementation for that module. As such, there should be a declaration file for each code file. Declaration files must have the extension \texttt{.td}, and code files must have the extension \texttt{.tc}.
+
+\section{Declaration Files}
+
+A declaration file may only contain declarations, and furthermore, may not have any initialized variables. Declarations include:
+
+\subsection{Function Declarations}
+
+\section{Code Files}
+
 \end{document}
