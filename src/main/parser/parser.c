@@ -386,10 +386,18 @@ static Node *parseDeclImport(Report *report, Options const *options,
         return NULL;
       }
     }
-    Node *parsed =
-        parseDeclFile(report, options, typeTable, dependencyStack, miMap, mnMap,
-                      decls, moduleLexerInfoMapGet(miMap, idNode->data.id.id),
-                      moduleNodeMapGet(mnMap, idNode->data.id.id));
+    LexerInfo *moduleLexerInfo =
+        moduleLexerInfoMapGet(miMap, idNode->data.id.id);
+    if (moduleLexerInfo == NULL) {
+      reportError(report, "%s:%zu:%zu: error: module '%s' does not exist",
+                  info->filename, idNode->line, idNode->character,
+                  idNode->data.id.id);
+      nodeDestroy(idNode);
+      return NULL;
+    }
+    Node *parsed = parseDeclFile(report, options, typeTable, dependencyStack,
+                                 miMap, mnMap, decls, moduleLexerInfo,
+                                 moduleNodeMapGet(mnMap, idNode->data.id.id));
     if (parsed != NULL) {
       moduleAstMapPut(decls, idNode->data.id.id, parsed);
       importedTypeTable = moduleTypeTableMapGet(typeTable, idNode->data.id.id);
@@ -460,9 +468,17 @@ static Node *parseCodeImport(Report *report, Options const *options,
   }
 
   // find and add the stab in typeTables to env
-  int retVal = moduleTypeTableMapPut(
-      &env->imports, idNode->data.id.id,
-      moduleTypeTableMapGet(typeTables, idNode->data.id.id));
+  TypeTable *typeTable = moduleTypeTableMapGet(typeTables, idNode->data.id.id);
+  if (typeTable == NULL) {
+    reportError(report, "%s:%zu:%zu: error: module '%s' does not exist",
+                info->filename, idNode->line, idNode->character,
+                idNode->data.id.id);
+    nodeDestroy(idNode);
+    return NULL;
+  }
+
+  int retVal =
+      moduleTypeTableMapPut(&env->imports, idNode->data.id.id, typeTable);
   if (retVal == HM_EEXISTS) {
     switch (optionsGet(options, optionWDuplicateImport)) {
       case O_WT_ERROR: {
