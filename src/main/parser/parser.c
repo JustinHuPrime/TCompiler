@@ -2945,7 +2945,7 @@ static bool parseFunctionParam(Report *report, Options const *options,
 
   TokenInfo peek;
   lex(info, report, &peek);
-  if (peek.type != TT_ID && peek.type != TT_EQ) {
+  if (peek.type != TT_ID && peek.type != TT_ASSIGN) {
     // end of the param
     unLex(info, &peek);
     nodeTripleListInsert(list, type, NULL, NULL);
@@ -2994,7 +2994,7 @@ static bool parseFunctionParam(Report *report, Options const *options,
 
   TokenInfo eq;
   lex(info, report, &eq);
-  if (eq.type != TT_EQ) {
+  if (eq.type != TT_ASSIGN) {
     // end of the param
     unLex(info, &eq);
     nodeTripleListInsert(list, type, id, NULL);
@@ -3384,7 +3384,7 @@ static Node *parseVarOrFunDeclOrDefn(Report *report, Options const *options,
       nodePairListInsert(elms, id, NULL);
       return varDeclNodeCreate(type->line, type->character, type, elms);
     }
-    case TT_EQ:
+    case TT_ASSIGN:
     case TT_COMMA: {
       unLex(info, &peek);
       return parseVarDeclPrefixed(report, options, env, type, id, info);
@@ -3565,6 +3565,131 @@ static Node *parseCodeFile(Report *report, Options const *options,
                         bodies, info->filename);
 }
 
+// context check
+static void declContextCheck(Node const *ast, Report *report,
+                             Options const *options) {
+  char const *filename = ast->data.file.filename;
+  NodeList *bodies = ast->data.file.bodies;
+
+  for (size_t idx = 0; idx < bodies->size; idx++) {
+    Node *body = bodies->elements[idx];
+    if (body->type == NT_FUNCTION) {
+      reportError(
+          report,
+          "%s:%zu:%zu: error: may not define a function in a declaration file",
+          filename, body->line, body->character);
+    } else if (body->type == NT_VARDECL) {
+      NodePairList *pairs = body->data.varDecl.idValuePairs;
+      for (size_t pairIdx = 0; pairIdx < pairs->size; pairIdx++) {
+        if (pairs->secondElements[pairIdx] != NULL) {
+          reportError(report,
+                      "%s:%zu:%zu: error: may not initialize a variable in a "
+                      "declaration file",
+                      filename, pairs->secondElements[pairIdx]->line,
+                      pairs->secondElements[pairIdx]->character);
+        }
+      }
+    }
+  }
+}
+static void breakContinueContextCheck(Node const *statement, Report *report,
+                                      Options const *options,
+                                      char const *filename) {
+  switch (statement->type) {
+    case NT_COMPOUNDSTMT: {
+      for (size_t idx = 0; idx < statement->data.compoundStmt.statements->size;
+           idx++) {
+        breakContinueContextCheck(
+            statement->data.compoundStmt.statements->elements[idx], report,
+            options, filename);
+      }
+      break;
+    }
+    case NT_IFSTMT: {
+      breakContinueContextCheck(statement->data.ifStmt.thenStmt, report,
+                                options, filename);
+      if (statement->data.ifStmt.elseStmt != NULL)
+        breakContinueContextCheck(statement->data.ifStmt.elseStmt, report,
+                                  options, filename);
+      break;
+    }
+    case NT_WHILESTMT:
+    case NT_DOWHILESTMT:
+    case NT_FORSTMT: {
+      break;
+    }
+    case NT_SWITCHSTMT: {
+      for (size_t idx = 0; idx < statement->data.switchStmt.cases->size;
+           idx++) {
+        Node *switchCase = statement->data.switchStmt.cases->elements[idx];
+        if (switchCase->type == NT_NUMCASE) {
+          breakContinueContextCheck(switchCase->data.numCase.body, report,
+                                    options, filename);
+        } else {
+          breakContinueContextCheck(switchCase->data.defaultCase.body, report,
+                                    options, filename);
+        }
+      }
+      break;
+    }
+    case NT_BREAKSTMT: {
+      reportError(report,
+                  "%s:%zu:%zu: error: 'break' not allowed outside of a loop",
+                  filename, statement->line, statement->character);
+      break;
+    }
+    case NT_CONTINUESTMT: {
+      reportError(report,
+                  "%s:%zu:%zu: error: 'continue' not allowed outside of a loop",
+                  filename, statement->line, statement->character);
+      break;
+    }
+    case NT_RETURNSTMT:
+    case NT_ASMSTMT:
+    case NT_VARDECL:
+    case NT_STRUCTDECL:
+    case NT_STRUCTFORWARDDECL:
+    case NT_UNIONDECL:
+    case NT_UNIONFORWARDDECL:
+    case NT_ENUMDECL:
+    case NT_ENUMFORWARDDECL:
+    case NT_TYPEDEFDECL:
+    case NT_EXPRESSIONSTMT:
+    case NT_NULLSTMT: {
+      break;
+    }
+    default: {
+      return;  // error: not a statement
+    }
+  }
+}
+static void codeContextCheck(Node const *ast, Report *report,
+                             Options const *options) {
+  char const *filename = ast->data.file.filename;
+  NodeList *bodies = ast->data.file.bodies;
+
+  for (size_t idx = 0; idx < bodies->size; idx++) {
+    Node *body = bodies->elements[idx];
+    if (body->type == NT_FUNCTION) {
+      breakContinueContextCheck(body->data.function.body, report, options,
+                                filename);
+    }
+  }
+}
+static void contextCheck(ModuleAstMapPair *asts, Report *report,
+                         Options const *options) {
+  for (size_t idx = 0; idx < asts->decls.size; idx++) {
+    if (asts->decls.keys[idx] != NULL) {
+      declContextCheck(asts->decls.values[idx], report, options);
+    }
+  }
+  for (size_t idx = 0; idx < asts->codes.size; idx++) {
+    if (asts->codes.keys[idx] != NULL) {
+      codeContextCheck(asts->codes.values[idx], report, options);
+    }
+  }
+}
+
 void parse(ModuleAstMapPair *asts, Report *report, Options const *options,
            FileList const *files) {
   moduleAstMapPairInit(asts);
@@ -3675,4 +3800,6 @@ void parse(ModuleAstMapPair *asts, Report *report, Options const *options,
 
   moduleTypeTableMapUninit(&typeTables);
   keywordMapUninit(&kwMap);
+
+  contextCheck(asts, report, options);
 }
