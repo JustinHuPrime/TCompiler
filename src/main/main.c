@@ -19,6 +19,7 @@
 #include "ast/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "typecheck/typecheck.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
@@ -96,10 +97,19 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // ModuleSymbolTableMapPair stabs;
+  ModuleSymbolTableMapPair stabs;
+  typecheck(&stabs, &report, &options, &asts);
+  if (reportState(&report) == RPT_ERR) {
+    moduleSymbolTableMapPairUninit(&stabs);
+    moduleAstMapPairUninit(&asts);
+    fileListUninit(&files);
+    optionsUninit(&options);
+    reportUninit(&report);
+    return EXIT_FAILURE;
+  }
 
   // clean up
-  // moduleSymbolTableMapPairUninit(&stabs);
+  moduleSymbolTableMapPairUninit(&stabs);
   moduleAstMapPairUninit(&asts);
   fileListUninit(&files);
   optionsUninit(&options);
