@@ -64,81 +64,111 @@ void moduleEnvronmentMapPairUninit(ModuleEnvironmentMapPair *pair) {
   moduleEnvironmentMapUninit(&pair->codes);
 }
 
+// helpers
+static Type *astToType(Node const *ast, Report *report, Options const *options,
+                       char const *filename) {
+  return NULL;  // TODO: write this
+}
+
 static void typecheckFunction(Node const *function, Report *report,
-                              Options const *options, Environment *env) {
+                              Options const *options, Environment *env,
+                              char const *filename) {
   // TODO: write this
 }
 static void typecheckVarDecl(Node const *varDecl, Report *report,
-                             Options const *options, Environment *env) {
+                             Options const *options, Environment *env,
+                             char const *filename) {
   // TODO: write this
 }
 static void typecheckStructDecl(Node const *structDecl, Report *report,
-                                Options const *options, Environment *env) {
+                                Options const *options, Environment *env,
+                                char const *filename) {
   // TODO: write this
 }
 static void typecheckStructForwardDecl(Node const *forwardDecl, Report *report,
-                                       Options const *options,
-                                       Environment *env) {
+                                       Options const *options, Environment *env,
+                                       char const *filename) {
   // TODO: write this
 }
 static void typecheckUnionDecl(Node const *unionDecl, Report *report,
-                               Options const *options, Environment *env) {
+                               Options const *options, Environment *env,
+                               char const *filename) {
   // TODO: write this
 }
 static void typecheckUnionForwardDecl(Node const *forwardDecl, Report *report,
-                                      Options const *options,
-                                      Environment *env) {
+                                      Options const *options, Environment *env,
+                                      char const *filename) {
   // TODO: write this
 }
 static void typecheckEnumDecl(Node const *enumDecl, Report *report,
-                              Options const *options, Environment *env) {
+                              Options const *options, Environment *env,
+                              char const *filename) {
   // TODO: write this
 }
 static void typecheckEnumForwardDecl(Node const *forwardDecl, Report *report,
-                                     Options const *options, Environment *env) {
+                                     Options const *options, Environment *env,
+                                     char const *filename) {
   // TODO: write this
 }
 static void typecheckTypedef(Node const *typedefDecl, Report *report,
-                             Options const *options, Environment *env) {
-  // TODO: write this
+                             Options const *options, Environment *env,
+                             char const *filename) {
+  SymbolTable *table = environmentTop(env);
+
+  SymbolInfo *info =
+      symbolTableGet(table, typedefDecl->data.typedefDecl.id->data.id.id);
+  if (info != NULL) {
+    // already exists - must be an error
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, typedefDecl->data.typedefDecl.id->line,
+                typedefDecl->data.typedefDecl.id->character,
+                typedefDecl->data.typedefDecl.id->data.id.id,
+                symbolInfoToKindString(info));
+  }
+
+  symbolTablePut(
+      table, typedefDecl->data.typedefDecl.id->data.id.id,
+      typedefSymbolInfoCreate(astToType(typedefDecl->data.typedefDecl.type,
+                                        report, options, filename)));
 }
 static void typecheckBody(Node const *body, Report *report,
-                          Options const *options, Environment *env) {
+                          Options const *options, Environment *env,
+                          char const *filename) {
   switch (body->type) {
     case NT_FUNCTION: {
-      typecheckFunction(body, report, options, env);
+      typecheckFunction(body, report, options, env, filename);
       break;
     }
     case NT_VARDECL: {
-      typecheckVarDecl(body, report, options, env);
+      typecheckVarDecl(body, report, options, env, filename);
       break;
     }
     case NT_STRUCTDECL: {
-      typecheckStructDecl(body, report, options, env);
+      typecheckStructDecl(body, report, options, env, filename);
       break;
     }
     case NT_STRUCTFORWARDDECL: {
-      typecheckStructForwardDecl(body, report, options, env);
+      typecheckStructForwardDecl(body, report, options, env, filename);
       break;
     }
     case NT_UNIONDECL: {
-      typecheckUnionDecl(body, report, options, env);
+      typecheckUnionDecl(body, report, options, env, filename);
       break;
     }
     case NT_UNIONFORWARDDECL: {
-      typecheckUnionForwardDecl(body, report, options, env);
+      typecheckUnionForwardDecl(body, report, options, env, filename);
       break;
     }
     case NT_ENUMDECL: {
-      typecheckEnumDecl(body, report, options, env);
+      typecheckEnumDecl(body, report, options, env, filename);
       break;
     }
     case NT_ENUMFORWARDDECL: {
-      typecheckEnumForwardDecl(body, report, options, env);
+      typecheckEnumForwardDecl(body, report, options, env, filename);
       break;
     }
     case NT_TYPEDEFDECL: {
-      typecheckTypedef(body, report, options, env);
+      typecheckTypedef(body, report, options, env, filename);
       break;
     }
     default: {
@@ -171,7 +201,7 @@ static Environment *typecheckDecl(ModuleSymbolTableMap *declStabs,
 
   for (size_t idx = 0; idx < ast->data.file.bodies->size; idx++) {
     Node *body = ast->data.file.bodies->elements[idx];
-    typecheckBody(body, report, options, env);
+    typecheckBody(body, report, options, env, ast->data.file.filename);
   }
 
   moduleSymbolTableMapPut(declStabs, currModule, currStab);
@@ -194,7 +224,7 @@ static Environment *typecheckCode(ModuleSymbolTableMapPair *stabs,
 
   for (size_t idx = 0; idx < ast->data.file.bodies->size; idx++) {
     Node *body = ast->data.file.bodies->elements[idx];
-    typecheckBody(body, report, options, env);
+    typecheckBody(body, report, options, env, ast->data.file.filename);
   }
 
   moduleSymbolTableMapPut(&stabs->codes, currModule, currStab);

@@ -19,12 +19,94 @@
 #ifndef TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 #define TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 
-#include "typecheck/type.h"
 #include "util/container/hashMap.h"
 #include "util/container/stack.h"
 #include "util/container/vector.h"
 #include "util/errorReport.h"
 #include "util/ternary.h"
+
+#include "util/container/vector.h"
+
+struct Type;
+
+typedef enum {
+  K_VOID,
+  K_UBYTE,
+  K_BYTE,
+  K_CHAR,
+  K_UINT,
+  K_INT,
+  K_WCHAR,
+  K_ULONG,
+  K_LONG,
+  K_FLOAT,
+  K_DOUBLE,
+  K_BOOL,
+  K_STRUCT,
+  K_UNION,
+  K_ENUM,
+  K_TYPEDEF,
+  K_CONST,
+  K_ARRAY,
+  K_PTR,
+  K_FUNCTION_PTR,
+} TypeKind;
+
+// specialization of a generic
+typedef Vector TypeVector;
+// ctor
+TypeVector *typeVectorCreate(void);
+// in place ctor
+void typeVectorInit(TypeVector *);
+// insert
+void typeVectorInsert(TypeVector *, struct Type *);
+// in place dtor
+// takes in a destructor function to apply to the elements
+void typeVectorUninit(TypeVector *);
+// dtor
+void typeVectorDestroy(TypeVector *);
+
+typedef struct Type {
+  TypeKind kind;
+  union {
+    // struct, union, enum, typedef
+    // look up the type in the stab
+    struct {
+      char const *name;
+    } reference;
+    // const, ptr
+    struct {
+      struct Type *type;
+    } modifier;
+    // arrays
+    struct {
+      struct Type *type;
+      size_t size;
+    } array;
+    // function pointer
+    struct {
+      struct Type *returnType;
+      TypeVector *argumentTypes;
+    } functionPtr;
+  } data;
+} Type;
+
+// ctor
+Type *keywordTypeCreate(TypeKind kind);
+Type *referneceTypeCreate(TypeKind kind, char const *name);
+Type *modifierTypeCreate(TypeKind kind, Type *target);
+Type *arrayTypeCreate(Type *target, size_t size);
+Type *functionTypeCreate(Type *returnType, TypeVector *argumentTypes);
+// in-place ctor
+void keywordTypeInit(Type *, TypeKind kind);
+void referneceTypeInit(Type *, TypeKind kind, char const *name);
+void modifierTypeInit(Type *, TypeKind kind, Type *target);
+void arrayTypeInit(Type *, Type *target, size_t size);
+void functionTypeInit(Type *, Type *returnType, TypeVector *argumentTypes);
+// in-place dtor
+void typeUninit(Type *);
+// dtor
+void typeDestroy(Type *);
 
 typedef enum {
   SK_VAR,
@@ -85,6 +167,8 @@ SymbolInfo *unionSymbolInfoCreate(void);
 SymbolInfo *enumSymbolInfoCreate(void);
 SymbolInfo *typedefSymbolInfoCreate(Type *);
 SymbolInfo *functionSymbolInfoCreate(Type *returnType);
+// printing
+char const *symbolInfoToKindString(SymbolInfo const *);
 // dtor
 void symbolInfoDestroy(SymbolInfo *);
 
