@@ -268,9 +268,7 @@ SymbolTable *environmentTop(Environment const *env) {
 void environmentPush(Environment *env) {
   stackPush(&env->scopes, symbolTableCreate());
 }
-void environmentPop(Environment *env) {
-  symbolTableDestroy(stackPop(&env->scopes));
-}
+SymbolTable *environmentPop(Environment *env) { return stackPop(&env->scopes); }
 void environmentUninit(Environment *env) {
   moduleTableMapUninit(&env->imports);
   stackUninit(&env->scopes, (void (*)(void *))symbolTableDestroy);

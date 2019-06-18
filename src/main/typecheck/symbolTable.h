@@ -121,7 +121,7 @@ SymbolInfo *environmentLookup(Environment const *, Report *report,
                               TokenInfo const *token, char const *filename);
 SymbolTable *environmentTop(Environment const *);
 void environmentPush(Environment *);
-void environmentPop(Environment *);
+SymbolTable *environmentPop(Environment *);
 void environmentUninit(Environment *);
 void environmentDestroy(Environment *);
 
