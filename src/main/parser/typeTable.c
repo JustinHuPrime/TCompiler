@@ -163,8 +163,7 @@ SymbolType typeEnvironmentLookup(TypeEnvironment const *env, Report *report,
   return typeEnvironmentLookupInternal(env, report, token, filename, true);
 }
 TypeTable *typeEnvironmentTop(TypeEnvironment const *env) {
-  return env->scopes.size == 0 ? env->currentModule
-                               : env->scopes.elements[env->scopes.size - 1];
+  return env->scopes.size == 0 ? env->currentModule : stackPeek(&env->scopes);
 }
 void typeEnvironmentPush(TypeEnvironment *env) {
   stackPush(&env->scopes, typeTableCreate());

@@ -21,21 +21,8 @@
 #include "util/functional.h"
 #include "util/nameUtils.h"
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-
-char const *symbolKindToString(SymbolKind kind) {
-  switch (kind) {
-    case SK_VAR:
-      return "a variable";
-    case SK_TYPE:
-      return "a type";
-    case SK_FUNCTION:
-      return "a function";
-  }
-  assert(false);  // not a valid enum - type safety violated
-}
 
 char const *typeDefinitionKindToString(TypeDefinitionKind kind) {
   switch (kind) {
@@ -48,7 +35,7 @@ char const *typeDefinitionKindToString(TypeDefinitionKind kind) {
     case TDK_TYPEDEF:
       return "a type alias";
   }
-  assert(false);  // not a valid enum - type safety violated
+  return NULL;  // not a valid enum - type safety violated
 }
 
 static SymbolInfo *symbolInfoCreate(SymbolKind kind) {
@@ -167,19 +154,17 @@ void environmentInit(Environment *env, SymbolTable *currentModule,
   moduleTableMapInit(&env->imports);
   stackInit(&env->scopes);
 }
-TernaryValue environmentIsType(Environment const *env, Report *report,
-                               TokenInfo const *token, char const *filename) {
+static SymbolInfo *environmentLookupInternal(Environment const *env,
+                                             Report *report,
+                                             TokenInfo const *token,
+                                             char const *filename,
+                                             bool reportErrors) {
   if (isScoped(token->data.string)) {
     char *moduleName;
     char *shortName;
     splitName(token->data.string, &moduleName, &shortName);
     if (strcmp(moduleName, env->currentModuleName) == 0) {
-      SymbolInfo *info = symbolTableGet(env->currentModule, shortName);
-      if (info != NULL) {
-        free(moduleName);
-        free(shortName);
-        return info->kind == SK_TYPE ? YES : NO;
-      }
+      return symbolTableGet(env->currentModule, shortName);
     } else {
       for (size_t idx = 0; idx < env->imports.capacity; idx++) {
         if (strcmp(moduleName, env->imports.keys[idx]) == 0) {
@@ -188,7 +173,7 @@ TernaryValue environmentIsType(Environment const *env, Report *report,
           if (info != NULL) {
             free(moduleName);
             free(shortName);
-            return info->kind == SK_TYPE ? YES : NO;
+            return info;
           }
         }
       }
@@ -198,22 +183,39 @@ TernaryValue environmentIsType(Environment const *env, Report *report,
       char *enumModuleName;
       char *enumName;
       splitName(moduleName, &enumModuleName, &enumName);
-      // TODO: check to see if it's a enum type
+
+      TokenInfo enumModule;
+      memcpy(&enumModule, token, sizeof(TokenInfo));
+      enumModule.data.string = enumModuleName;
+
+      SymbolInfo *enumType =
+          environmentLookupInternal(env, report, &enumModule, filename, false);
+      free(enumName);
+      free(enumModuleName);
+      tokenInfoUninit(&enumModule);
+
+      if (enumType != NULL && enumType->kind == SK_TYPE) {
+        free(moduleName);
+        free(shortName);
+        return enumType;
+      }
     }
 
     free(moduleName);
     free(shortName);
-    reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'\n",
-                filename, token->line, token->character, token->data.string);
-    return INDETERMINATE;
+    if (reportErrors) {
+      reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'",
+                  filename, token->line, token->character, token->data.string);
+    }
+    return NULL;
   } else {
     for (size_t idx = env->scopes.size; idx-- > 0;) {
       SymbolInfo *info =
           symbolTableGet(env->scopes.elements[idx], token->data.string);
-      if (info != NULL) return info->kind == SK_TYPE ? YES : NO;
+      if (info != NULL) return info;
     }
     SymbolInfo *info = symbolTableGet(env->currentModule, token->data.string);
-    if (info != NULL) return info->kind == SK_TYPE ? YES : NO;
+    if (info != NULL) return info;
 
     char const *foundModule = NULL;
     for (size_t idx = 0; idx < env->imports.capacity; idx++) {
@@ -225,27 +227,43 @@ TernaryValue environmentIsType(Environment const *env, Report *report,
             info = current;
             foundModule = env->imports.keys[idx];
           } else {
-            reportError(report,
-
-                        "%s:%zu:%zu: error: identifier '%s' is ambiguous\n",
-                        filename, token->line, token->character,
-                        token->data.string);
-            reportMessage(report, "\tcandidate module: %s\n",
-                          env->imports.keys[idx]);
-            reportMessage(report, "\tcandidate module: %s\n", foundModule);
-            return INDETERMINATE;
+            if (reportErrors) {
+              reportError(
+                  report, "%s:%zu:%zu: error: identifier '%s' is ambiguous",
+                  filename, token->line, token->character, token->data.string);
+              reportMessage(report, "\tcandidate module: %s",
+                            env->imports.keys[idx]);
+              reportMessage(report, "\tcandidate module: %s", foundModule);
+            }
+            return NULL;
           }
         }
       }
     }
     if (info != NULL) {
-      return info->kind == SK_TYPE ? YES : NO;
+      return info;
     } else {
-      reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'\n",
-                  filename, token->line, token->character, token->data.string);
-      return INDETERMINATE;
+      if (reportErrors) {
+        reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'",
+                    filename, token->line, token->character,
+                    token->data.string);
+      }
+      return NULL;
     }
   }
+}
+SymbolInfo *environmentLookup(Environment const *env, Report *report,
+                              TokenInfo const *token, char const *filename) {
+  return environmentLookupInternal(env, report, token, filename, true);
+}
+SymbolTable *environmentTop(Environment const *env) {
+  return env->scopes.size == 0 ? env->currentModule : stackPeek(&env->scopes);
+}
+void environmentPush(Environment *env) {
+  stackPush(&env->scopes, symbolTableCreate());
+}
+void environmentPop(Environment *env) {
+  symbolTableDestroy(stackPop(&env->scopes));
 }
 void environmentUninit(Environment *env) {
   moduleTableMapUninit(&env->imports);

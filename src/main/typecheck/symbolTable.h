@@ -32,7 +32,6 @@ typedef enum {
   SK_TYPE,
   SK_FUNCTION,
 } SymbolKind;
-char const *symbolKindToString(SymbolKind);
 
 typedef enum {
   TDK_STRUCT,
@@ -75,6 +74,9 @@ typedef struct {
       Type *returnType;
       Vector argumentTypeSets;  // vector of vectors of types
     } function;
+    struct {
+      Type *parentEnum;
+    } enumConst;
   } data;
 } SymbolInfo;
 // ctor
@@ -113,8 +115,11 @@ typedef struct {
 } Environment;
 void environmentInit(Environment *, SymbolTable *currentModule,
                      char const *currentModuleName);
-TernaryValue environmentIsType(Environment const *, Report *report,
-                               TokenInfo const *token, char const *filename);
+SymbolInfo *environmentLookup(Environment const *, Report *report,
+                              TokenInfo const *token, char const *filename);
+SymbolTable *environmentTop(Environment const *);
+void environmentPush(Environment *);
+void environmentPop(Environment *);
 void environmentUninit(Environment *);
 
 #endif  // TLC_SYMBOLTABLE_SYMBOLTABLE_H_
