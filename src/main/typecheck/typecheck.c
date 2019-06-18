@@ -171,7 +171,7 @@ static Environment *typecheckDecl(ModuleSymbolTableMap *declStabs,
 
   for (size_t idx = 0; idx < ast->data.file.bodies->size; idx++) {
     Node *body = ast->data.file.bodies->elements[idx];
-    typecheckBody(body, report, options, &env);
+    typecheckBody(body, report, options, env);
   }
 
   moduleSymbolTableMapPut(declStabs, currModule, currStab);
@@ -194,7 +194,7 @@ static Environment *typecheckCode(ModuleSymbolTableMapPair *stabs,
 
   for (size_t idx = 0; idx < ast->data.file.bodies->size; idx++) {
     Node *body = ast->data.file.bodies->elements[idx];
-    typecheckBody(body, report, options, &env);
+    typecheckBody(body, report, options, env);
   }
 
   moduleSymbolTableMapPut(&stabs->codes, currModule, currStab);

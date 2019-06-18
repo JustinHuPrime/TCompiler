@@ -161,14 +161,14 @@ void environmentInit(Environment *env, SymbolTable *currentModule,
   stackInit(&env->scopes);
 }
 static SymbolInfo *environmentLookupInternal(Environment const *env,
-                                             Report *report,
-                                             TokenInfo const *token,
+                                             Report *report, char const *id,
+                                             size_t line, size_t character,
                                              char const *filename,
                                              bool reportErrors) {
-  if (isScoped(token->data.string)) {
+  if (isScoped(id)) {
     char *moduleName;
     char *shortName;
-    splitName(token->data.string, &moduleName, &shortName);
+    splitName(id, &moduleName, &shortName);
     if (strcmp(moduleName, env->currentModuleName) == 0) {
       return symbolTableGet(env->currentModule, shortName);
     } else {
@@ -190,15 +190,10 @@ static SymbolInfo *environmentLookupInternal(Environment const *env,
       char *enumName;
       splitName(moduleName, &enumModuleName, &enumName);
 
-      TokenInfo enumModule;
-      memcpy(&enumModule, token, sizeof(TokenInfo));
-      enumModule.data.string = enumModuleName;
-
-      SymbolInfo *enumType =
-          environmentLookupInternal(env, report, &enumModule, filename, false);
+      SymbolInfo *enumType = environmentLookupInternal(
+          env, report, enumModuleName, line, character, filename, false);
       free(enumName);
       free(enumModuleName);
-      tokenInfoUninit(&enumModule);
 
       if (enumType != NULL && enumType->kind == SK_TYPE) {
         free(moduleName);
@@ -211,32 +206,30 @@ static SymbolInfo *environmentLookupInternal(Environment const *env,
     free(shortName);
     if (reportErrors) {
       reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'",
-                  filename, token->line, token->character, token->data.string);
+                  filename, line, character, id);
     }
     return NULL;
   } else {
     for (size_t idx = env->scopes.size; idx-- > 0;) {
-      SymbolInfo *info =
-          symbolTableGet(env->scopes.elements[idx], token->data.string);
+      SymbolInfo *info = symbolTableGet(env->scopes.elements[idx], id);
       if (info != NULL) return info;
     }
-    SymbolInfo *info = symbolTableGet(env->currentModule, token->data.string);
+    SymbolInfo *info = symbolTableGet(env->currentModule, id);
     if (info != NULL) return info;
 
     char const *foundModule = NULL;
     for (size_t idx = 0; idx < env->imports.capacity; idx++) {
       if (env->imports.keys[idx] != NULL) {
-        SymbolInfo *current =
-            symbolTableGet(env->imports.values[idx], token->data.string);
+        SymbolInfo *current = symbolTableGet(env->imports.values[idx], id);
         if (current != NULL) {
           if (info == NULL) {
             info = current;
             foundModule = env->imports.keys[idx];
           } else {
             if (reportErrors) {
-              reportError(
-                  report, "%s:%zu:%zu: error: identifier '%s' is ambiguous",
-                  filename, token->line, token->character, token->data.string);
+              reportError(report,
+                          "%s:%zu:%zu: error: identifier '%s' is ambiguous",
+                          filename, line, character, id);
               reportMessage(report, "\tcandidate module: %s",
                             env->imports.keys[idx]);
               reportMessage(report, "\tcandidate module: %s", foundModule);
@@ -251,16 +244,17 @@ static SymbolInfo *environmentLookupInternal(Environment const *env,
     } else {
       if (reportErrors) {
         reportError(report, "%s:%zu:%zu: error: undefined identifier '%s'",
-                    filename, token->line, token->character,
-                    token->data.string);
+                    filename, line, character, id);
       }
       return NULL;
     }
   }
 }
 SymbolInfo *environmentLookup(Environment const *env, Report *report,
-                              TokenInfo const *token, char const *filename) {
-  return environmentLookupInternal(env, report, token, filename, true);
+                              char const *id, size_t line, size_t character,
+                              char const *filename) {
+  return environmentLookupInternal(env, report, id, line, character, filename,
+                                   true);
 }
 SymbolTable *environmentTop(Environment const *env) {
   return env->scopes.size == 0 ? env->currentModule : stackPeek(&env->scopes);

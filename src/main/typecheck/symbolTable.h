@@ -19,7 +19,6 @@
 #ifndef TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 #define TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 
-#include "lexer/lexer.h"
 #include "typecheck/type.h"
 #include "util/container/hashMap.h"
 #include "util/container/stack.h"
@@ -118,7 +117,8 @@ Environment *environmentCreate(SymbolTable *currentModule,
 void environmentInit(Environment *, SymbolTable *currentModule,
                      char const *currentModuleName);
 SymbolInfo *environmentLookup(Environment const *, Report *report,
-                              TokenInfo const *token, char const *filename);
+                              char const *id, size_t line, size_t character,
+                              char const *filename);
 SymbolTable *environmentTop(Environment const *);
 void environmentPush(Environment *);
 SymbolTable *environmentPop(Environment *);
