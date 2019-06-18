@@ -1,8 +1,7 @@
 (*
 This grammar describes valid tokens. Note that longer tokens are preferred over shorter tokens.
-Tokens are separated by whitespace
+Ambiguity between two tokens (e.g. >> and >>>) can be resolved by inserting whitespace
 *)
-program = { whitespace }, token, { { whitespace }, token } { whitespace } ;
 token = keyword
       | punctuation
       | identifier
@@ -18,9 +17,10 @@ whitespace = " "
            ;
 keyword = "module" | "import" | "struct" | "union" | "enum" | "typedef" | "if"
         | "else" | "while" | "do" | "for" | "switch" | "case" | "default"
-        | "break" | "continue" | "return" | "asm" | "true" | "false" | "cast"
-        | "sizeof" | "void" | "ubyte" | "byte" | "char" | "uint" | "int"
-        | "wchar" | "ulong" | "long" | "float" | "double" | "bool" | "const"
+        | "break" | "continue" | "return" | "asm" | "cast" | "sizeof" | "true"
+        | "false" | "void" | "ubyte" | "byte" | "char" | "ushort" | "short"
+        | "uint" | "int" | "wchar" | "ulong" | "long" | "float" | "double"
+        | "bool" | "const"
         ;
 punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "." | "->" | "++"
             | "--" | "*" | "&" | "+" | "-" | "!" | "~" | "/" | "%" | "<<"
