@@ -51,6 +51,7 @@ void parseOptions(Options *options, Report *report, size_t argc,
 
   // default settings
   optionsSet(options, optionArch, O_AT_X86);
+  optionsSet(options, optionWDuplicateDeclSpecifier, O_WT_WARN);
   optionsSet(options, optionWDuplicateDeclaration, O_WT_IGNORE);
   optionsSet(options, optionWDuplicateFile, O_WT_ERROR);
   optionsSet(options, optionWDuplicateImport, O_WT_IGNORE);
