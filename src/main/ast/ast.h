@@ -193,6 +193,7 @@ typedef enum {
   CT_BOOL,
   CT_RANGE_ERROR,
 } ConstType;
+char const *constTypeToString(ConstType);
 // built-in type
 typedef enum {
   TK_VOID,

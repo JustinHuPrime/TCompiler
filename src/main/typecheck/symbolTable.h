@@ -34,6 +34,8 @@ typedef enum {
   K_UBYTE,
   K_BYTE,
   K_CHAR,
+  K_USHORT,
+  K_SHORT,
   K_UINT,
   K_INT,
   K_WCHAR,
@@ -96,7 +98,7 @@ Type *keywordTypeCreate(TypeKind kind);
 Type *referneceTypeCreate(TypeKind kind, char const *name);
 Type *modifierTypeCreate(TypeKind kind, Type *target);
 Type *arrayTypeCreate(Type *target, size_t size);
-Type *functionTypeCreate(Type *returnType, TypeVector *argumentTypes);
+Type *functionPtrTypeCreate(Type *returnType, TypeVector *argumentTypes);
 // in-place ctor
 void keywordTypeInit(Type *, TypeKind kind);
 void referneceTypeInit(Type *, TypeKind kind, char const *name);

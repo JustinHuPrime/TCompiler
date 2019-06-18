@@ -103,6 +103,45 @@ void nodeTripleListDestroy(NodeTripleList *list) {
   free(list);
 }
 
+char const *constTypeToString(ConstType ct) {
+  switch (ct) {
+    case CT_UBYTE:
+      return "an unsigned byte";
+    case CT_BYTE:
+      return "a signed byte";
+    case CT_USHORT:
+      return "an unsigned short";
+    case CT_SHORT:
+      return "a signed short";
+    case CT_UINT:
+      return "an unsigned int";
+    case CT_INT:
+      return "a signed int";
+    case CT_ULONG:
+      return "an unsigned long";
+    case CT_LONG:
+      return "a signed long";
+    case CT_FLOAT:
+      return "a float";
+    case CT_DOUBLE:
+      return "a double";
+    case CT_STRING:
+      return "a string";
+    case CT_CHAR:
+      return "a character";
+    case CT_WSTRING:
+      return "a wide string";
+    case CT_WCHAR:
+      return "a wide character";
+    case CT_BOOL:
+      return "a boolean";
+    case CT_RANGE_ERROR:
+      return "an overflowed integer constant";
+    default:
+      return NULL;  // error: not a valid enum
+  }
+}
+
 uint64_t const UBYTE_MAX = 255;
 uint64_t const BYTE_MAX = 127;
 uint64_t const BYTE_MIN = 128;

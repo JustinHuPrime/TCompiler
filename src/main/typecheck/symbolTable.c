@@ -57,7 +57,7 @@ Type *arrayTypeCreate(Type *target, size_t size) {
   t->data.array.size = size;
   return t;
 }
-Type *functionTypeCreate(Type *returnType, TypeVector *argumentTypes) {
+Type *functionPtrTypeCreate(Type *returnType, TypeVector *argumentTypes) {
   Type *t = typeCreate(K_FUNCTION_PTR);
   t->data.functionPtr.returnType = returnType;
   t->data.functionPtr.argumentTypes = argumentTypes;
@@ -88,6 +88,8 @@ void typeUninit(Type *t) {
     case K_UBYTE:
     case K_BYTE:
     case K_CHAR:
+    case K_USHORT:
+    case K_SHORT:
     case K_UINT:
     case K_INT:
     case K_WCHAR:
