@@ -4,9 +4,13 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{hyperref}
 \usepackage{listings}
+\usepackage{verbatim}
 
 % Make chapters display as sections
 \renewcommand{\chaptername}{Section}
+
+% Don't put two spaces after a period
+\frenchspacing
 
 \begin{document}
 \title{The T Programming Language}
@@ -16,166 +20,74 @@
 
 \part{Language}
 
-The T programming language is a C-like, module-based, procedural language that modernizes several aspects of C.
-
-% What is T?
-
-\end{document}
-
-\iffalse
-
+\setcounter{chapter}{-1} % intro is Sec. 0
 \chapter{Introduction}
 
-\part{Language}
+The T programming language is a C-like, module-based, systems-oriented, procedural language that modernizes several aspects of C. One of the major differences from C is the use of modules, known in other languages as packages. Modules are used in T to support separation of concerns, similar to how C or C++ header files can be used. Unlike the C preprocessor's \texttt{\#include} mechanism, however, the T programming language guarantees that each declaration or code file is only ever lexed and parsed once, leading to faster compilation. However, the T programming language does use the concept of declaration (header) and code (implementation) files to separate the interface of a module from its implementation details. In addition, several features from C++, like function overloading and untagged user-defined structure, union, and enumeration types have been included in the language.
 
-The T programming language is based around modules. There are two kinds of module: definition modules and code modules.
+\chapter{Lexicon}
 
-\chapter{Translation}
+The T programming language uses the basic ASCII character set for both identifiers and operators, and does not support any other character sets. T is case sensitive, like C, but unlike C, T does not support the use of digraphs to represent ASCII characters which may not be supported in other character sets.
 
-\chapter{Basic Concepts}
+There are five general categories of tokens in T, matched on a longest-match basis:
 
-\section{Data Types}
+\begin{enumerate}
+	\item \textbf{Keywords}: tokens like \texttt{if} and \texttt{struct}, which are used to introduce syntactic elements, or to represent basic language elements.
+	\item \textbf{Punctuation}: tokens like \texttt{.} and \texttt{->}, which are used as operators and as part of syntactic elements.
+	\item \textbf{Identifiers}: tokens that represent something user-defined.
+	\item \textbf{Literals}: tokens that represent a literal value.
+	\item \textbf{Whitespace}: tokens that are ignored, or used only as separators between tokens, including comments.
+\end{enumerate}
 
-All data in T is associated with a data type, which defines how that data is interpreted and limits how that data may be manipulated.
+See the file \texttt{tokens.ebnf} for a formal EBNF definition of tokens.
 
-\subsection{Basic Data Types}
+\section{Keywords}
 
-T has the following basic data types, listed in order of size:
+The following words are considered keywords in T:\texttt{\\
+module import struct union enum typedef if else while do for switch case default break continue return asm cast sizeof true false void ubyte byte char ushort short uint int wchar ulong long float double bool const}
 
-\begin{itemize}
-	\item \texttt{bool}: one byte: a boolean value that holds either true or false. In T, boolean true is represented as 0x1, and boolean false is represented as 0x0.
-	\item \texttt{ubyte}: one byte: an unsigned integral byte value, from 0 to \(2^8 - 1\).
-	\item \texttt{byte}: one byte: a 2's complement value, from \(-2^7\) to \(2^7 - 1\).
-	\item \texttt{uint}: four bytes: an unsigned integral byte value, from 0 to \(2^{32} - 1\).
-	\item \texttt{int}: four bytes: a 2's complement value, from \(-2^{31}\) to \(2^{31} - 1\).
-	\item \texttt{ulong}: eight bytes: an unsigned integral value, from 0 to \(2^{64} - 1\).
-	\item \texttt{long}: eight bytes: a 2's complement value, from \(-2^{63}\) to \(2^{63} - 1\).
-	\item \texttt{float}: four bytes: a binary32 floating point number.
-	\item \texttt{double}: eight bytes: a binary64 floating point number.
-\end{itemize}
+Keywords are reserved, and may not be used except as a keyword. Note that \texttt{true} and \texttt{false} are considered keywords, rather than literals. The distinction between these two categories in this case is entirely due to the way that these keywords are matched.
 
-\subsubsection{Derived Data Types}
+\section{Punctuation}
 
-The following data types are aliases of the basic data types. This means that the alias has exactly the same representation as the underlying type, but is considered distinct in terms of what operations may be applied to the type, and is otherwise considered a separate type. Casting between an alias and its underlying type is guaranteed to have no effect, and should be considered syntactic salt.
+The following symbols are considered punctuation in T:\\
+\verb$; , ( ) [ ] { } . -> ++ -- * & + - ! ~ / % << >> >>> <=> < > <= >= == != | ^$\\\verb$&& || ? : = *= /= %= += -= <<= >>= >>>= &= ^= |= &&= ||=$
 
-\begin{itemize}
-	\item \texttt{char}: alias of \texttt{ubyte}: represents a single-byte ASCII character.
-	\item \texttt{wchar}: alias of \texttt{uint}: represents a four-byte UTF-32 encoded character.
-\end{itemize}
-
-\subsection{Modifiers}
-
-The following modifiers may be applied to a data type, binding in a left-associative manner:
-
-\begin{itemize}
-	\item \texttt{const}: marks the data type as a constant value, making all lvalues involving this data constant lvalues. This modifier is left associative.
-	\item \texttt{volatile}: marks the data type as volatile, which makes all accesses to said data type considered sequence points, prohibiting reordering or removal.
-	\item \texttt{*}: marks the data type as a pointer to some type
-	\item \texttt{[\textit{N}]}: marks the data type as an array, of size \textit{N}
-	\item \texttt{(\textit{TYPE...})}: marks the data type as a function pointer that takes in some parameters \textit{TYPE...}.
-\end{itemize}
+Note that tokens in T are matched on a longest-match basis, so \verb|---| is considered a decrement (\verb|--|), followed by a minus (\verb|-|), which may or may not be syntactically permissible. There is no attempt to re-lex a failed match to try and find a valid match.
 
 \section{Identifiers}
 
-\section{Structs}
+Identifiers in T are split into two sub-categories: scoped and unscoped identifiers. An unscoped identifier is any sequence of alphanumeric or underscore characters that starts with an alphabetic character or an underscore (similar to the rules for identifiers in C or C++). A scoped identifier consists of a sequence of unscoped identifiers, with two colons (\verb|::|) between them, with absolutely no whitespace allowed. Unlike in C++, the scoping is considered part of the identifier, and not an operator.
 
-\section{Unions}
+On a further note, any identifier beginning with two underscores is reserved, and if such an identifier is used or defined, undefined behaviour may result.
 
-\section{Enums}
+\section{Literals}
 
-\section{Expressions}
+T supports integer literals in binary, octal, decimal, or hexadecimal, and supports an optional sign to be included with the literal. To write a binary literal, the prefix \texttt{0b} must be put after the sign, but before the actual number. Octal numbers use the prefix \texttt{0}, and hexadecimal numbers use the prefix \texttt{0x}. Note that the octal prefix of \texttt{0} is distinct from a the literal zero, so a zero written in octal would be written as \texttt{00}.
 
-Expressions in T are syntactic elements that produce some sort of value. There are two categories of expression in T: lvalue expressions and rvalue expressions. However, lvalue expressions can be further decomposed into modifiable lvalue expressions and constant lvalue expressions. Additionally, expressions also have a type associated with them, which is determined by the types of the subexpressions and primary values.
+The floating point literals in T are decimal only, and must be written as a decimal number without the use of scientific notation. NaN and infinity do not have literals in the language. These literals are IEEE 754 binary64 or binary32 numbers.
 
-Expressions consist of a primary value, or of primary values joined with operators.
-
-\subsection{Primary Values}
-
-Primary values are the basic building blocks of an expression, and have the highest precedence when evaluated.
+T also supports string literals, character literals, and the wide variants of both. These literals all support the following escape sequences:
 
 \begin{itemize}
-	\item An identifier: this is either a modifiable lvalue or constant lvalue, depending on the type that the identifier refers to. The type of the expression is the data type of the identifier.
-	\item A literal: this is one of:
-	\begin{itemize}
-		\item A numerical constant: an rvalue, whose type is the smallest numerical type that can hold the constant, considering only integers and floating point numbers, preferring integers over floating point numbers, and preferring unsigned types over signed types.
-		\item A character constant: an rvalue, whose type is the character type.
-		\item A character string constant: an rvalue, whose type is pointer to constant characters, or, if the character string contains non-ASCII characters, pointer to constant wide characters.
-		\item The boolean constant \texttt{true} or \texttt{false}: an rvalue, whose type is boolean.
-	\end{itemize}
-	\item An expression in parentheses: this expression has the same category and type as the expression that it contains.
+	\item \verb|\n|: produces ASCII character 10, a newline.
+	\item \verb|\r|: produces ASCII character 13, a carriage return.
+	\item \verb|\t|: produces a tab.
+	\item \verb|\0|: produces ASCII character 0, a null.
+	\item \verb|\\|: produces a backslash.
+	\item \verb|\x|{\textless}hexadecimal digit{\textgreater}{\textless}hexadecimal digit{\textgreater}: produces the ASCII character specified by the two hexadecimal digits, interpreted as an unsigned byte.
 \end{itemize}
 
-\subsection{Operators}
+A character literal consists of a single character, except for a backslash or a single quote, between two single quotes, one of the above escape sequences between two single quotes, or the escape sequence \verb|\'| between two single quotes, which produces a single quote. Note that multi-character literals are forbidden at the lexical level. Also note that a double quote as a character is a literal double quote within single quotes.
 
-The following operators exist in T:
+A string literal consists of a pair of double quotes, within which may be nothing, or any combination of any character except for double quotes or a backslash, the above escape sequences, or the escape sequence \verb|\"| (representing a literal double quote). Like character literals, a single quote in a string is written as a literal single quote.
 
-% TODO: figure out precedence
+The wide variants of both string and character literals are similar to the narrow versions, except that the wide variant has a \texttt{w} at the end of the literal, outside of any quotes, and both wide string and wide character literals may use the escape sequence \verb|\u|{\textless}8 hexadecimal digits{\textgreater}, which produces the UTF-32 character specified by those hexadecimal digits, when interpreted as a big-endian 32 bit integer. Note that any within such a string are interpreted as UTF-32 characters, but since the UTF-32 encodings of any ASCII characters are simple those characters, but zero-extended to fit 32 bits, there are no modifications to the existing literal escape sequences to support wide strings.
 
-\begin{itemize}
-	\item Addition: \texttt{a + b}
-	\item Subtraction: \texttt{a - b}
-	\item Multiplication: \texttt{a * b}
-	\item Division: \texttt{a / b}
-	\item Modulus: \texttt{a \% b}
-	\item Left shift: \texttt{a << b}
-	\item Right shift, zero extend: \texttt{a >> b}
-	\item Right shift, sign extend: \texttt{a >>> b}
-	\item Comparison: \texttt{a <=> b}
-	\item Less than: \texttt{a < b}
-	\item Greater than: \texttt{a > b}
-	\item Less than or equal to: \texttt{a <= b}
-	\item Greater than or equal to: \texttt{a >= b}
-	\item Equal to: \texttt{a == b}
-	\item Not equal to: \texttt{a != b}
-	\item Bitwise and: \texttt{a \& b}
-	\item Bitwise or: \texttt{a | b}
-	\item Bitwise xor: \texttt{a \^{} b}
-	\item Bitwise not: \texttt{~a}
-	\item Logical and: \texttt{a \&\& b}
-	\item Logical or: \texttt{a || b}
-	\item Logical not: \texttt{!a}
-	\item Ternary: \texttt{a ? b : c}
-	\item Comma: \texttt{a , b}
-	\item Assignment: \texttt{a = b}
-	\item Compound assignment: \texttt{a @= b}, where \texttt{@} is one of:
-	\begin{itemize}
-		\item \texttt{+}
-		\item \texttt{-}
-		\item \texttt{*}
-		\item \texttt{/}
-		\item \texttt{\%}
-		\item \texttt{<<}
-		\item \texttt{>>}
-		\item \texttt{>>>}
-		\item \texttt{\&}
-		\item \texttt{|}
-		\item \texttt{\^{}}
-		\item \texttt{\&\&}
-		\item \texttt{||}
-	\end{itemize}
-	\item Prefix increment: \texttt{++a}
-	\item Prefix decrement: \texttt{--a}
-	\item Postfix increment: \texttt{a++}
-	\item Postfix decrement: \texttt{a--}
-	\item Dereference: \texttt{*a}
-	\item Address of: \texttt{\&a}
-	\item Function call: \texttt{a(...)}
-	\item Array access: \texttt{a[b]}
-	\item Cast: \texttt{cast<t>(a)}
-	\item Member access: \texttt{a.b}
-	\item Dereferenced member access: \texttt{a->b}
-\end{itemize}
+\section{Whitespace}
 
-\subsubsection{Casting}
+Whitespace in T consists of either spaces, tabs, or newline characters (both linefeed, carriage return, and carriage return-linefeed), or comments. Comments in T are either line comments, which are formed by two slashes, and last until the end of the line or file, or block comments, which start with a slash followed by a star, and end with a star followed by a slash or the end of the file. Block comments do not nest. All whitespace is used solely to separate tokens, and is otherwise lexically meaningless, and thus, ignored.
 
-\section{Sequence Points}
+\chapter{Syntax}
 
-\chapter{Modules}
-
-\section{Definition Modules}
-
-\section{Code Modules}
-
-\part{Standard Library}
-
-\fi
+\end{document}
