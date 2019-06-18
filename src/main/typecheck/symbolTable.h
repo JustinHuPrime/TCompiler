@@ -20,7 +20,7 @@
 #define TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 
 #include "lexer/lexer.h"
-#include "symbolTable/type.h"
+#include "typecheck/type.h"
 #include "util/container/hashMap.h"
 #include "util/container/stack.h"
 #include "util/container/vector.h"

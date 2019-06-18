@@ -16,7 +16,7 @@
 
 // Implementation of the symbol table
 
-#include "symbolTable/symbolTable.h"
+#include "typecheck/symbolTable.h"
 
 #include "util/functional.h"
 #include "util/nameUtils.h"
@@ -127,7 +127,8 @@ void symbolInfoDestroy(SymbolInfo *si) {
     }
     case SK_FUNCTION: {
       typeDestroy(si->data.function.returnType);
-      typeVectorUninit(&si->data.function.argumentTypes);
+      vectorUninit(&si->data.function.argumentTypeSets,
+                   (void (*)(void *))typeVectorUninit);
       break;
     }
   }

@@ -16,7 +16,7 @@
 
 // implementation of of types
 
-#include "symbolTable/type.h"
+#include "typecheck/type.h"
 
 #include <stdlib.h>
 

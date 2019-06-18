@@ -16,7 +16,7 @@
 
 // Implementation of the type table
 
-#include "symbolTable/typeTable.h"
+#include "parser/typeTable.h"
 
 #include "util/functional.h"
 #include "util/nameUtils.h"
