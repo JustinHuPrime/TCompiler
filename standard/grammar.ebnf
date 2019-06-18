@@ -10,7 +10,7 @@ inner, ",", "{", inner, "}"
 *)
 program = { declaration_module }+, { code_module }+ ;
 declaration_module = module_name, { import }, { declaration } ;
-code_module = module_name, { import }, { function | variable_declaration_statement | declaration } ;
+code_module = module_name, { import }, { function | declaration } ;
 
 module_name = "module", scoped_identifier, ";" ;
 import = "import", scoped_identifier, ";" ;
