@@ -43,7 +43,7 @@ void fileListUninit(FileList *);
 void fileListDestroy(FileList *);
 
 // parser
-void parseFiles(FileList *, Report *report, Options *options, size_t argc,
+void parseFiles(FileList *, Report *report, Options const *options, size_t argc,
                 char const *const *argv);
 
 #endif  // TLC_UTIL_FILELIST_H_

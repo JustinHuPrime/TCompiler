@@ -141,8 +141,9 @@ static NodeList *parseUnscopedIdList(Report *report, LexerInfo *info) {
 
   return ids;
 }
-static Node *parseType(Report *, Options *, TypeEnvironment *, LexerInfo *);
-static NodeList *parseTypeList(Report *report, Options *options,
+static Node *parseType(Report *, Options const *, TypeEnvironment *,
+                       LexerInfo *);
+static NodeList *parseTypeList(Report *report, Options const *options,
                                TypeEnvironment *env, LexerInfo *info) {
   NodeList *types = nodeListCreate();
   TokenInfo peek;
@@ -183,7 +184,7 @@ static NodeList *parseTypeList(Report *report, Options *options,
   return types;
 }
 static Node *parseIntLiteral(Report *, LexerInfo *);
-static Node *parseTypeExtensions(Report *report, Options *options,
+static Node *parseTypeExtensions(Report *report, Options const *options,
                                  TypeEnvironment *env, Node *base,
                                  LexerInfo *info) {
   TokenInfo peek;
@@ -253,8 +254,8 @@ static Node *parseTypeExtensions(Report *report, Options *options,
     }
   }
 }
-static Node *parseType(Report *report, Options *options, TypeEnvironment *env,
-                       LexerInfo *info) {
+static Node *parseType(Report *report, Options const *options,
+                       TypeEnvironment *env, LexerInfo *info) {
   TokenInfo base;
   lex(info, report, &base);
 
@@ -318,12 +319,12 @@ static Node *parseModule(Report *report, LexerInfo *info) {
 }
 
 // imports
-static Node *parseDeclFile(Report *report, Options *options,
+static Node *parseDeclFile(Report *report, Options const *options,
                            ModuleTypeTableMap *typeTable,
                            Stack *dependencyStack, ModuleLexerInfoMap *miMap,
                            ModuleNodeMap *mnMap, ModuleAstMap *decls,
                            LexerInfo *lexerInfo, Node *module);
-static Node *parseDeclImport(Report *report, Options *options,
+static Node *parseDeclImport(Report *report, Options const *options,
                              ModuleTypeTableMap *typeTable,
                              TypeEnvironment *env, Stack *dependencyStack,
                              ModuleLexerInfoMap *miMap, ModuleNodeMap *mnMap,
@@ -423,7 +424,7 @@ static Node *parseDeclImport(Report *report, Options *options,
 
   return moduleNodeCreate(importToken.line, importToken.character, idNode);
 }
-static Node *parseCodeImport(Report *report, Options *options,
+static Node *parseCodeImport(Report *report, Options const *options,
                              ModuleTypeTableMap *typeTables,
                              TypeEnvironment *env, LexerInfo *info) {
   TokenInfo importToken;
@@ -485,7 +486,7 @@ static Node *parseCodeImport(Report *report, Options *options,
 
   return moduleNodeCreate(importToken.line, importToken.character, idNode);
 }
-static NodeList *parseDeclImports(Report *report, Options *options,
+static NodeList *parseDeclImports(Report *report, Options const *options,
                                   ModuleTypeTableMap *typeTables,
                                   TypeEnvironment *env, Stack *dependencyStack,
                                   ModuleLexerInfoMap *miMap,
@@ -512,7 +513,7 @@ static NodeList *parseDeclImports(Report *report, Options *options,
   unLex(info, &peek);
   return imports;
 }
-static NodeList *parseCodeImports(Report *report, Options *options,
+static NodeList *parseCodeImports(Report *report, Options const *options,
                                   ModuleTypeTableMap *typeTables,
                                   TypeEnvironment *env, LexerInfo *info) {
   NodeList *imports = nodeListCreate();
@@ -666,8 +667,9 @@ static Node *parseIntLiteral(Report *report, LexerInfo *info) {
     }
   }
 }
-static Node *parseLiteral(Report *, Options *, TypeEnvironment *, LexerInfo *);
-static NodeList *parseLiteralList(Report *report, Options *options,
+static Node *parseLiteral(Report *, Options const *, TypeEnvironment *,
+                          LexerInfo *);
+static NodeList *parseLiteralList(Report *report, Options const *options,
                                   TypeEnvironment *env, LexerInfo *info) {
   NodeList *literals = nodeListCreate();
 
@@ -695,7 +697,7 @@ static NodeList *parseLiteralList(Report *report, Options *options,
 
   return literals;
 }
-static Node *parseLiteral(Report *report, Options *options,
+static Node *parseLiteral(Report *report, Options const *options,
                           TypeEnvironment *env, LexerInfo *info) {
   TokenInfo peek;
   lex(info, report, &peek);
@@ -813,10 +815,10 @@ static Node *parseLiteral(Report *report, Options *options,
     }
   }
 }
-static Node *parseExpression(Report *, Options *, TypeEnvironment *,
+static Node *parseExpression(Report *, Options const *, TypeEnvironment *,
                              LexerInfo *);
-static Node *parseCast(Report *report, Options *options, TypeEnvironment *env,
-                       LexerInfo *info) {
+static Node *parseCast(Report *report, Options const *options,
+                       TypeEnvironment *env, LexerInfo *info) {
   TokenInfo castKwd;
   lex(info, report, &castKwd);
 
@@ -885,8 +887,8 @@ static Node *parseCast(Report *report, Options *options, TypeEnvironment *env,
 
   return castExpNodeCreate(castKwd.line, castKwd.character, type, from);
 }
-static Node *parseSizeof(Report *report, Options *options, TypeEnvironment *env,
-                         LexerInfo *info) {
+static Node *parseSizeof(Report *report, Options const *options,
+                         TypeEnvironment *env, LexerInfo *info) {
   TokenInfo sizeofKwd;
   lex(info, report, &sizeofKwd);
 
@@ -1026,7 +1028,7 @@ static Node *parseSizeof(Report *report, Options *options, TypeEnvironment *env,
   return (isType ? sizeofTypeExpNodeCreate : sizeofExpExpNodeCreate)(
       sizeofKwd.line, sizeofKwd.character, target);
 }
-static Node *parsePrimaryExpression(Report *report, Options *options,
+static Node *parsePrimaryExpression(Report *report, Options const *options,
                                     TypeEnvironment *env, LexerInfo *info) {
   TokenInfo peek;
   lex(info, report, &peek);
@@ -1114,9 +1116,9 @@ static Node *parsePrimaryExpression(Report *report, Options *options,
     }
   }
 }
-static Node *parseAssignmentExpression(Report *, Options *, TypeEnvironment *,
-                                       LexerInfo *);
-static NodeList *parseArgumentList(Report *report, Options *options,
+static Node *parseAssignmentExpression(Report *, Options const *,
+                                       TypeEnvironment *, LexerInfo *);
+static NodeList *parseArgumentList(Report *report, Options const *options,
                                    TypeEnvironment *env, LexerInfo *info) {
   NodeList *args = nodeListCreate();
 
@@ -1143,7 +1145,7 @@ static NodeList *parseArgumentList(Report *report, Options *options,
 
   return args;
 }
-static Node *parsePostfixExpression(Report *report, Options *options,
+static Node *parsePostfixExpression(Report *report, Options const *options,
                                     TypeEnvironment *env, LexerInfo *info) {
   Node *first = parsePrimaryExpression(report, options, env, info);
   if (first == NULL) {
@@ -1239,7 +1241,7 @@ static Node *parsePostfixExpression(Report *report, Options *options,
 
   return first;
 }
-static Node *parsePrefixExpression(Report *report, Options *options,
+static Node *parsePrefixExpression(Report *report, Options const *options,
                                    TypeEnvironment *env, LexerInfo *info) {
   TokenInfo peek;
   lex(info, report, &peek);
@@ -1270,7 +1272,8 @@ static Node *parsePrefixExpression(Report *report, Options *options,
     }
   }
 }
-static Node *parseMultiplicationExpression(Report *report, Options *options,
+static Node *parseMultiplicationExpression(Report *report,
+                                           Options const *options,
                                            TypeEnvironment *env,
                                            LexerInfo *info) {
   Node *first = parsePrefixExpression(report, options, env, info);
@@ -1298,7 +1301,7 @@ static Node *parseMultiplicationExpression(Report *report, Options *options,
 
   return first;
 }
-static Node *parseAdditionExpression(Report *report, Options *options,
+static Node *parseAdditionExpression(Report *report, Options const *options,
                                      TypeEnvironment *env, LexerInfo *info) {
   Node *first = parseMultiplicationExpression(report, options, env, info);
   if (first == NULL) {
@@ -1326,7 +1329,7 @@ static Node *parseAdditionExpression(Report *report, Options *options,
 
   return first;
 }
-static Node *parseShiftExpression(Report *report, Options *options,
+static Node *parseShiftExpression(Report *report, Options const *options,
                                   TypeEnvironment *env, LexerInfo *info) {
   Node *first = parseAdditionExpression(report, options, env, info);
   if (first == NULL) {
@@ -1354,7 +1357,7 @@ static Node *parseShiftExpression(Report *report, Options *options,
 
   return first;
 }
-static Node *parseSpaceshipExpression(Report *report, Options *options,
+static Node *parseSpaceshipExpression(Report *report, Options const *options,
                                       TypeEnvironment *env, LexerInfo *info) {
   Node *first = parseShiftExpression(report, options, env, info);
   if (first == NULL) {
@@ -1381,7 +1384,7 @@ static Node *parseSpaceshipExpression(Report *report, Options *options,
 
   return first;
 }
-static Node *parseComparisonExpression(Report *report, Options *options,
+static Node *parseComparisonExpression(Report *report, Options const *options,
                                        TypeEnvironment *env, LexerInfo *info) {
   Node *first = parseSpaceshipExpression(report, options, env, info);
   if (first == NULL) {
@@ -1409,7 +1412,7 @@ static Node *parseComparisonExpression(Report *report, Options *options,
 
   return first;
 }
-static Node *parseEqualityExpression(Report *report, Options *options,
+static Node *parseEqualityExpression(Report *report, Options const *options,
                                      TypeEnvironment *env, LexerInfo *info) {
   Node *first = parseComparisonExpression(report, options, env, info);
   if (first == NULL) {
@@ -1437,7 +1440,7 @@ static Node *parseEqualityExpression(Report *report, Options *options,
 
   return first;
 }
-static Node *parseBitwiseExpression(Report *report, Options *options,
+static Node *parseBitwiseExpression(Report *report, Options const *options,
                                     TypeEnvironment *env, LexerInfo *info) {
   Node *first = parseEqualityExpression(report, options, env, info);
   if (first == NULL) {
@@ -1465,7 +1468,7 @@ static Node *parseBitwiseExpression(Report *report, Options *options,
 
   return first;
 }
-static Node *parseLogicalExpression(Report *report, Options *options,
+static Node *parseLogicalExpression(Report *report, Options const *options,
                                     TypeEnvironment *env, LexerInfo *info) {
   Node *first = parseBitwiseExpression(report, options, env, info);
   if (first == NULL) {
@@ -1492,7 +1495,7 @@ static Node *parseLogicalExpression(Report *report, Options *options,
 
   return first;
 }
-static Node *parseTernaryExpression(Report *report, Options *options,
+static Node *parseTernaryExpression(Report *report, Options const *options,
                                     TypeEnvironment *env, LexerInfo *info) {
   Node *test = parseLogicalExpression(report, options, env, info);
   if (test == NULL) {
@@ -1537,7 +1540,7 @@ static Node *parseTernaryExpression(Report *report, Options *options,
   return ternaryExpNodeCreate(test->line, test->character, test, consequent,
                               alternative);
 }
-static Node *parseAssignmentExpression(Report *report, Options *options,
+static Node *parseAssignmentExpression(Report *report, Options const *options,
                                        TypeEnvironment *env, LexerInfo *info) {
   Node *lhs = parseTernaryExpression(report, options, env, info);
   if (lhs == NULL) {
@@ -1587,7 +1590,7 @@ static Node *parseAssignmentExpression(Report *report, Options *options,
     }
   }
 }
-static Node *parseExpression(Report *report, Options *options,
+static Node *parseExpression(Report *report, Options const *options,
                              TypeEnvironment *env, LexerInfo *info) {
   Node *first = parseAssignmentExpression(report, options, env, info);
   if (first == NULL) {
@@ -1611,9 +1614,9 @@ static Node *parseExpression(Report *report, Options *options,
 }
 
 // statement
-static Node *parseStatement(Report *, Options *, TypeEnvironment *,
+static Node *parseStatement(Report *, Options const *, TypeEnvironment *,
                             LexerInfo *);
-static Node *parseIfStatement(Report *report, Options *options,
+static Node *parseIfStatement(Report *report, Options const *options,
                               TypeEnvironment *env, LexerInfo *info) {
   TokenInfo ifKwd;
   lex(info, report, &ifKwd);
@@ -1672,7 +1675,7 @@ static Node *parseIfStatement(Report *report, Options *options,
 
   return ifStmtNodeCreate(ifKwd.line, ifKwd.character, test, thenExp, NULL);
 }
-static Node *parseWhileStatement(Report *report, Options *options,
+static Node *parseWhileStatement(Report *report, Options const *options,
                                  TypeEnvironment *env, LexerInfo *info) {
   TokenInfo whileKwd;
   lex(info, report, &whileKwd);
@@ -1718,7 +1721,7 @@ static Node *parseWhileStatement(Report *report, Options *options,
 
   return whileStmtNodeCreate(whileKwd.line, whileKwd.character, test, body);
 }
-static Node *parseDoWhileStatement(Report *report, Options *options,
+static Node *parseDoWhileStatement(Report *report, Options const *options,
                                    TypeEnvironment *env, LexerInfo *info) {
   TokenInfo doKwd;
   lex(info, report, &doKwd);
@@ -1781,8 +1784,9 @@ static Node *parseDoWhileStatement(Report *report, Options *options,
 
   return doWhileStmtNodeCreate(doKwd.line, doKwd.character, test, body);
 }
-static Node *parseVarDecl(Report *, Options *, TypeEnvironment *, LexerInfo *);
-static Node *parseForStatement(Report *report, Options *options,
+static Node *parseVarDecl(Report *, Options const *, TypeEnvironment *,
+                          LexerInfo *);
+static Node *parseForStatement(Report *report, Options const *options,
                                TypeEnvironment *env, LexerInfo *info) {
   TokenInfo forKwd;
   lex(info, report, &forKwd);
@@ -1987,7 +1991,7 @@ static Node *parseForStatement(Report *report, Options *options,
   return forStmtNodeCreate(forKwd.line, forKwd.character, init, test, update,
                            body);
 }
-static Node *parseCaseCase(Report *report, Options *options,
+static Node *parseCaseCase(Report *report, Options const *options,
                            TypeEnvironment *env, LexerInfo *info) {
   NodeList *consts = nodeListCreate();
 
@@ -2048,7 +2052,7 @@ static Node *parseCaseCase(Report *report, Options *options,
   return numCaseNodeCreate(firstCase.line, firstCase.character, consts,
                            statement);
 }
-static Node *parseDefaultCase(Report *report, Options *options,
+static Node *parseDefaultCase(Report *report, Options const *options,
                               TypeEnvironment *env, LexerInfo *info) {
   TokenInfo defaultKwd;
   lex(info, report, &defaultKwd);
@@ -2074,7 +2078,8 @@ static Node *parseDefaultCase(Report *report, Options *options,
 
   return defaultCaseNodeCreate(defaultKwd.line, defaultKwd.character, body);
 }
-static NodeList *parseSwitchStatementCases(Report *report, Options *options,
+static NodeList *parseSwitchStatementCases(Report *report,
+                                           Options const *options,
                                            TypeEnvironment *env,
                                            LexerInfo *info) {
   NodeList *list = nodeListCreate();
@@ -2106,7 +2111,7 @@ static NodeList *parseSwitchStatementCases(Report *report, Options *options,
 
   return list;
 }
-static Node *parseSwitchStatement(Report *report, Options *options,
+static Node *parseSwitchStatement(Report *report, Options const *options,
                                   TypeEnvironment *env, LexerInfo *info) {
   TokenInfo switchKwd;
   lex(info, report, &switchKwd);
@@ -2184,7 +2189,7 @@ static Node *parseSwitchStatement(Report *report, Options *options,
   return switchStmtNodeCreate(switchKwd.line, switchKwd.character, switchedOn,
                               cases);
 }
-static Node *parseReturnStatement(Report *report, Options *options,
+static Node *parseReturnStatement(Report *report, Options const *options,
                                   TypeEnvironment *env, LexerInfo *info) {
   TokenInfo returnKwd;
   lex(info, report, &returnKwd);
@@ -2220,13 +2225,14 @@ static Node *parseReturnStatement(Report *report, Options *options,
                                 expression);
   }
 }
-static Node *parseCompoundStatement(Report *, Options *, TypeEnvironment *,
-                                    LexerInfo *);
-static Node *parseUnionOrStructDeclOrDefn(Report *, Options *,
+static Node *parseCompoundStatement(Report *, Options const *,
+                                    TypeEnvironment *, LexerInfo *);
+static Node *parseUnionOrStructDeclOrDefn(Report *, Options const *,
                                           TypeEnvironment *, LexerInfo *);
 static Node *parseEnumDeclOrDefn(Report *, TypeEnvironment *, LexerInfo *);
-static Node *parseTypedef(Report *, Options *, TypeEnvironment *, LexerInfo *);
-static Node *parseStatement(Report *report, Options *options,
+static Node *parseTypedef(Report *, Options const *, TypeEnvironment *,
+                          LexerInfo *);
+static Node *parseStatement(Report *report, Options const *options,
                             TypeEnvironment *env, LexerInfo *info) {
   TokenInfo peek;
   lex(info, report, &peek);
@@ -2455,7 +2461,7 @@ static Node *parseStatement(Report *report, Options *options,
     }
   }
 }
-static Node *parseCompoundStatement(Report *report, Options *options,
+static Node *parseCompoundStatement(Report *report, Options const *options,
                                     TypeEnvironment *env, LexerInfo *info) {
   typeEnvironmentPush(env);
   NodeList *stmts = nodeListCreate();
@@ -2486,7 +2492,7 @@ static Node *parseCompoundStatement(Report *report, Options *options,
 }
 
 // body
-static Node *parseFieldDecl(Report *report, Options *options,
+static Node *parseFieldDecl(Report *report, Options const *options,
                             TypeEnvironment *env, LexerInfo *info) {
   Node *type = parseType(report, options, env, info);
   if (type == NULL) {
@@ -2525,7 +2531,7 @@ static Node *parseFieldDecl(Report *report, Options *options,
 
   return fieldDeclNodeCreate(type->line, type->character, type, ids);
 }
-static NodeList *parseFields(Report *report, Options *options,
+static NodeList *parseFields(Report *report, Options const *options,
                              TypeEnvironment *env, LexerInfo *info) {
   NodeList *elements = nodeListCreate();
 
@@ -2589,7 +2595,8 @@ static NodeList *parseEnumFields(Report *report, LexerInfo *info) {
 
   return ids;
 }
-static Node *parseUnionOrStructDeclOrDefn(Report *report, Options *options,
+static Node *parseUnionOrStructDeclOrDefn(Report *report,
+                                          Options const *options,
                                           TypeEnvironment *env,
                                           LexerInfo *info) {
   TokenInfo kwd;
@@ -2863,7 +2870,7 @@ static Node *parseEnumDeclOrDefn(Report *report, TypeEnvironment *env,
     }
   }
 }
-static Node *parseTypedef(Report *report, Options *options,
+static Node *parseTypedef(Report *report, Options const *options,
                           TypeEnvironment *env, LexerInfo *info) {
   TokenInfo kwd;
   lex(info, report, &kwd);  // must be typedef to get here
@@ -2928,7 +2935,7 @@ static Node *parseTypedef(Report *report, Options *options,
   return typedefNodeCreate(kwd.line, kwd.character, type, id);
 }
 // produce false on an error
-static bool parseFunctionParam(Report *report, Options *options,
+static bool parseFunctionParam(Report *report, Options const *options,
                                TypeEnvironment *env, NodeTripleList *list,
                                LexerInfo *info) {
   Node *type = parseType(report, options, env, info);
@@ -3005,7 +3012,8 @@ static bool parseFunctionParam(Report *report, Options *options,
   nodeTripleListInsert(list, type, id, literal);
   return true;
 }
-static NodeTripleList *parseFunctionParams(Report *report, Options *options,
+static NodeTripleList *parseFunctionParams(Report *report,
+                                           Options const *options,
                                            TypeEnvironment *env,
                                            LexerInfo *info) {
   NodeTripleList *list = nodeTripleListCreate();
@@ -3046,7 +3054,7 @@ static NodeTripleList *parseFunctionParams(Report *report, Options *options,
 
   return list;
 }
-static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
+static Node *parseFunctionDeclOrDefn(Report *report, Options const *options,
                                      TypeEnvironment *env, Node *type, Node *id,
                                      LexerInfo *info) {
   typeEnvironmentPush(env);
@@ -3125,8 +3133,9 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options *options,
   }
 }
 // produce false on an error
-static bool parseVarId(Report *report, Options *options, TypeEnvironment *env,
-                       NodePairList *list, LexerInfo *info) {
+static bool parseVarId(Report *report, Options const *options,
+                       TypeEnvironment *env, NodePairList *list,
+                       LexerInfo *info) {
   Node *id = parseUnscopedId(report, info);
   if (id == NULL) {
     return false;
@@ -3178,7 +3187,7 @@ static bool parseVarId(Report *report, Options *options, TypeEnvironment *env,
   nodePairListInsert(list, id, literal);
   return true;
 }
-static NodePairList *parseVarIds(Report *report, Options *options,
+static NodePairList *parseVarIds(Report *report, Options const *options,
                                  TypeEnvironment *env, Node *firstId,
                                  LexerInfo *info) {
   NodePairList *list = nodePairListCreate();
@@ -3252,7 +3261,7 @@ static NodePairList *parseVarIds(Report *report, Options *options,
 
   return list;
 }
-static Node *parseVarDeclPrefixed(Report *report, Options *options,
+static Node *parseVarDeclPrefixed(Report *report, Options const *options,
                                   TypeEnvironment *env, Node *type,
                                   Node *firstId, LexerInfo *info) {
   // currently at int foo .
@@ -3278,7 +3287,7 @@ static Node *parseVarDeclPrefixed(Report *report, Options *options,
 
   return varDeclNodeCreate(type->line, type->character, type, decls);
 }
-static Node *parseVarDecl(Report *report, Options *options,
+static Node *parseVarDecl(Report *report, Options const *options,
                           TypeEnvironment *env, LexerInfo *info) {
   Node *type = parseType(report, options, env, info);
   if (type == NULL) {
@@ -3321,7 +3330,7 @@ static Node *parseVarDecl(Report *report, Options *options,
 
   return parseVarDeclPrefixed(report, options, env, type, id, info);
 }
-static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
+static Node *parseVarOrFunDeclOrDefn(Report *report, Options const *options,
                                      TypeEnvironment *env, LexerInfo *info) {
   Node *type = parseType(report, options, env, info);
 
@@ -3394,8 +3403,8 @@ static Node *parseVarOrFunDeclOrDefn(Report *report, Options *options,
     }
   }
 }
-static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
-                       LexerInfo *info) {
+static Node *parseBody(Report *report, Options const *options,
+                       TypeEnvironment *env, LexerInfo *info) {
   TokenInfo peek;
   lex(info, report, &peek);
 
@@ -3461,7 +3470,7 @@ static Node *parseBody(Report *report, Options *options, TypeEnvironment *env,
     }
   }
 }
-static NodeList *parseBodies(Report *report, Options *options,
+static NodeList *parseBodies(Report *report, Options const *options,
                              TypeEnvironment *env, LexerInfo *info) {
   NodeList *bodies = nodeListCreate();
 
@@ -3485,7 +3494,7 @@ static NodeList *parseBodies(Report *report, Options *options,
 }
 
 // whole file
-static Node *parseDeclFile(Report *report, Options *options,
+static Node *parseDeclFile(Report *report, Options const *options,
                            ModuleTypeTableMap *typeTables,
                            Stack *dependencyStack, ModuleLexerInfoMap *miMap,
                            ModuleNodeMap *mnMap, ModuleAstMap *decls,
@@ -3520,7 +3529,7 @@ static Node *parseDeclFile(Report *report, Options *options,
   return fileNodeCreate(module->line, module->character, module, imports,
                         bodies, info->filename);
 }
-static Node *parseCodeFile(Report *report, Options *options,
+static Node *parseCodeFile(Report *report, Options const *options,
                            ModuleTypeTableMap *typeTables, LexerInfo *info) {
   Node *module = parseModule(report, info);
   if (module == NULL) {
@@ -3556,8 +3565,8 @@ static Node *parseCodeFile(Report *report, Options *options,
                         bodies, info->filename);
 }
 
-void parse(ModuleAstMapPair *asts, Report *report, Options *options,
-           FileList *files) {
+void parse(ModuleAstMapPair *asts, Report *report, Options const *options,
+           FileList const *files) {
   moduleAstMapPairInit(asts);
 
   KeywordMap kwMap;

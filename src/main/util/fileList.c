@@ -41,8 +41,8 @@ void fileListDestroy(FileList *list) {
   fileListUninit(list);
   free(list);
 }
-void parseFiles(FileList *list, Report *report, Options *options, size_t argc,
-                char const *const *argv) {
+void parseFiles(FileList *list, Report *report, Options const *options,
+                size_t argc, char const *const *argv) {
   fileListInit(list);
 
   for (size_t idx = 1; idx < argc; idx++) {

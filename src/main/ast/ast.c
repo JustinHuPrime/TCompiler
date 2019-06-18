@@ -619,6 +619,12 @@ Node *constFloatExpNodeCreate(size_t line, size_t character,
   Node *node = constExpNodeCreate(line, character);
   Sign sign = constIntExpGetSign(constantString);
 
+  constantString += sign == S_UNSIGNED ? 0 : 1;
+
+  bool signBit = sign == S_NEGATIVE;
+  uint64_t mantissa = 0;
+  uint16_t exponent = 0;
+
   // TODO: write
 
   return node;

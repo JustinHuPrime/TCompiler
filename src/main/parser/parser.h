@@ -44,6 +44,6 @@ void moduleAstMapPairUninit(ModuleAstMapPair *);
 void moduleAstMapPairDestroy(ModuleAstMapPair *);
 
 // parses the files, producing SOME_TYPE
-void parse(ModuleAstMapPair *, Report *, Options *, FileList *);
+void parse(ModuleAstMapPair *, Report *, Options const *, FileList const *);
 
 #endif  // TLC_PARSER_PARSER_H_
