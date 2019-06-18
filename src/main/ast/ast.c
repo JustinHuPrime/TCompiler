@@ -526,6 +526,7 @@ Node *constBinaryIntExpNodeCreate(size_t line, size_t character,
                                   char *constantString) {
   Node *node = constExpNodeCreate(line, character);
   Sign sign = constIntExpGetSign(constantString);
+  char *originalString = constantString;
 
   size_t acc = 0;
   bool overflow = false;
@@ -543,12 +544,14 @@ Node *constBinaryIntExpNodeCreate(size_t line, size_t character,
     }
   }
 
+  free(originalString);
   return constIntExpSetValue(node, sign, overflow, acc);
 }
 Node *constOctalIntExpNodeCreate(size_t line, size_t character,
                                  char *constantString) {
   Node *node = constExpNodeCreate(line, character);
   Sign sign = constIntExpGetSign(constantString);
+  char *originalString = constantString;
 
   size_t acc = 0;
   bool overflow = false;
@@ -566,12 +569,14 @@ Node *constOctalIntExpNodeCreate(size_t line, size_t character,
     }
   }
 
+  free(originalString);
   return constIntExpSetValue(node, sign, overflow, acc);
 }
 Node *constDecimalIntExpNodeCreate(size_t line, size_t character,
                                    char *constantString) {
   Node *node = constExpNodeCreate(line, character);
   Sign sign = constIntExpGetSign(constantString);
+  char *originalString = constantString;
 
   size_t acc = 0;
   bool overflow = false;
@@ -589,12 +594,14 @@ Node *constDecimalIntExpNodeCreate(size_t line, size_t character,
     }
   }
 
+  free(originalString);
   return constIntExpSetValue(node, sign, overflow, acc);
 }
 Node *constHexadecimalIntExpNodeCreate(size_t line, size_t character,
                                        char *constantString) {
   Node *node = constExpNodeCreate(line, character);
   Sign sign = constIntExpGetSign(constantString);
+  char *originalString = constantString;
 
   size_t acc = 0;
   bool overflow = false;
@@ -612,12 +619,14 @@ Node *constHexadecimalIntExpNodeCreate(size_t line, size_t character,
     }
   }
 
+  free(originalString);
   return constIntExpSetValue(node, sign, overflow, acc);
 }
 Node *constFloatExpNodeCreate(size_t line, size_t character,
                               char *constantString) {
   Node *node = constExpNodeCreate(line, character);
   Sign sign = constIntExpGetSign(constantString);
+  char *originalString = constantString;
 
   constantString += sign == S_UNSIGNED ? 0 : 1;
 
@@ -627,6 +636,7 @@ Node *constFloatExpNodeCreate(size_t line, size_t character,
 
   // TODO: write
 
+  free(originalString);
   return node;
 }
 Node *constCharExpNodeCreate(size_t line, size_t character,
@@ -667,12 +677,14 @@ Node *constCharExpNodeCreate(size_t line, size_t character,
     node->data.constExp.value.charVal = (uint8_t)constantString[0];
   }
 
+  free(constantString);
   return node;
 }
 Node *constStringExpNodeCreate(size_t line, size_t character,
                                char *constantString) {
   Node *node = constExpNodeCreate(line, character);
   node->data.constExp.type = CT_STRING;
+  char *originalString = constantString;
 
   TStringBuilder buffer;
   tstringBuilderInit(&buffer);
@@ -723,6 +735,7 @@ Node *constStringExpNodeCreate(size_t line, size_t character,
   node->data.constExp.value.stringVal = tstringBuilderData(&buffer);
   tstringBuilderUninit(&buffer);
 
+  free(originalString);
   return node;
 }
 Node *constWCharExpNodeCreate(size_t line, size_t character,
@@ -771,12 +784,14 @@ Node *constWCharExpNodeCreate(size_t line, size_t character,
     node->data.constExp.value.wcharVal = (uint32_t)constantString[0];
   }
 
+  free(constantString);
   return node;
 }
 Node *constWStringExpNodeCreate(size_t line, size_t character,
                                 char *constantString) {
   Node *node = constExpNodeCreate(line, character);
   node->data.constExp.type = CT_WSTRING;
+  char *originalString = constantString;
 
   TWStringBuilder buffer;
   twstringBuilderInit(&buffer);
@@ -837,6 +852,7 @@ Node *constWStringExpNodeCreate(size_t line, size_t character,
   node->data.constExp.value.wstringVal = twstringBuilderData(&buffer);
   twstringBuilderUninit(&buffer);
 
+  free(originalString);
   return node;
 }
 

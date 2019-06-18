@@ -19,7 +19,7 @@
 #include "parser/parser.h"
 
 #include "lexer/lexer.h"
-#include "symbolTable/typeTable.h"
+#include "parser/typeTable.h"
 #include "util/functional.h"
 
 #include <stdio.h>
@@ -57,7 +57,7 @@ void moduleAstMapPairUninit(ModuleAstMapPair *pair) {
   moduleAstMapUninit(&pair->codes);
 }
 void moduleAstMapPairDestroy(ModuleAstMapPair *pair) {
-  moduleAstMapPairInit(pair);
+  moduleAstMapPairUninit(pair);
   free(pair);
 }
 
@@ -3533,6 +3533,7 @@ static Node *parseCodeFile(Report *report, Options const *options,
                            ModuleTypeTableMap *typeTables, LexerInfo *info) {
   Node *module = parseModule(report, info);
   if (module == NULL) {
+    lexerInfoDestroy(info);
     return NULL;
   }
 
@@ -3545,6 +3546,7 @@ static Node *parseCodeFile(Report *report, Options const *options,
     typeEnvironmentUninit(&env);
     typeTableDestroy(currTypes);
     nodeDestroy(module);
+    lexerInfoDestroy(info);
     return NULL;
   }
   NodeList *bodies = parseBodies(report, options, &env, info);
@@ -3553,6 +3555,7 @@ static Node *parseCodeFile(Report *report, Options const *options,
     typeEnvironmentUninit(&env);
     typeTableDestroy(currTypes);
     nodeDestroy(module);
+    lexerInfoDestroy(info);
     return NULL;
   }
 
@@ -3560,9 +3563,11 @@ static Node *parseCodeFile(Report *report, Options const *options,
   moduleTypeTableMapPut(typeTables, module->data.module.id->data.id.id,
                         currTypes);
   typeEnvironmentUninit(&env);
+  const char *filename = info->filename;
+  lexerInfoDestroy(info);
 
   return fileNodeCreate(module->line, module->character, module, imports,
-                        bodies, info->filename);
+                        bodies, filename);
 }
 
 // context check
