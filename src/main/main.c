@@ -71,6 +71,8 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
+  fileListDestroy(&files);
+
   // debug stop for parse
   if (optionsGet(&options, optionDebugDump) == O_DD_PARSE_PRETTY) {
     for (size_t idx = 0; idx < asts.decls.capacity; idx++) {
@@ -98,20 +100,21 @@ int main(int argc, char *argv[]) {
   }
 
   ModuleSymbolTableMapPair stabs;
-  typecheck(&stabs, &report, &options, &asts);
+  ModuleEnvironmentMapPair envs;
+  typecheck(&stabs, &envs, &report, &options, &asts);
   if (reportState(&report) == RPT_ERR) {
+    moduleEnvronmentMapPairUninit(&envs);
     moduleSymbolTableMapPairUninit(&stabs);
     moduleAstMapPairUninit(&asts);
-    fileListUninit(&files);
     optionsUninit(&options);
     reportUninit(&report);
     return EXIT_FAILURE;
   }
 
   // clean up
+  moduleEnvronmentMapPairUninit(&envs);
   moduleSymbolTableMapPairUninit(&stabs);
   moduleAstMapPairUninit(&asts);
-  fileListUninit(&files);
   optionsUninit(&options);
   reportUninit(&report);
 

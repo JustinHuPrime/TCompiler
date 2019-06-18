@@ -147,6 +147,12 @@ void moduleTableMapDestroy(ModuleTableMap *table) {
   hashMapDestroy(table, nullDtor);
 }
 
+Environment *environmentCreate(SymbolTable *currentModule,
+                               char const *currentModuleName) {
+  Environment *env = malloc(sizeof(Environment));
+  environmentInit(env, currentModule, currentModuleName);
+  return env;
+}
 void environmentInit(Environment *env, SymbolTable *currentModule,
                      char const *currentModuleName) {
   env->currentModule = currentModule;
@@ -268,4 +274,8 @@ void environmentPop(Environment *env) {
 void environmentUninit(Environment *env) {
   moduleTableMapUninit(&env->imports);
   stackUninit(&env->scopes, (void (*)(void *))symbolTableDestroy);
+}
+void environmentDestroy(Environment *env) {
+  environmentUninit(env);
+  free(env);
 }

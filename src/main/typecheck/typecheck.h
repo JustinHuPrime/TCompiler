@@ -25,26 +25,37 @@
 #include "util/options.h"
 
 typedef HashMap ModuleSymbolTableMap;
-ModuleSymbolTableMap *moduleSymbolTableMapCreate(void);
 void moduleSymbolTableMapInit(ModuleSymbolTableMap *);
 SymbolTable *moduleSymbolTableMapGet(ModuleSymbolTableMap const *,
                                      char const *key);
 int moduleSymbolTableMapPut(ModuleSymbolTableMap *, char const *key,
                             SymbolTable *value);
 void moduleSymbolTableMapUninit(ModuleSymbolTableMap *);
-void moduleSymbolTableMapDestroy(ModuleSymbolTableMap *);
 
 // pod struct holding two ModuleSymbolTableMaps
 typedef struct {
   ModuleSymbolTableMap decls;
   ModuleSymbolTableMap codes;
 } ModuleSymbolTableMapPair;
-ModuleSymbolTableMapPair *moduleSymbolTableMapPairCreate(void);
 void moduleSymbolTableMapPairInit(ModuleSymbolTableMapPair *);
 void moduleSymbolTableMapPairUninit(ModuleSymbolTableMapPair *);
-void moduleSymbolTableMapPairDestroy(ModuleSymbolTableMapPair *);
 
-void typecheck(ModuleSymbolTableMapPair *, Report *, Options const *,
-               ModuleAstMapPair const *asts);
+typedef HashMap ModuleEnvironmentMap;
+void moduleEnvironmentMapInit(ModuleEnvironmentMap *);
+Environment *moduleEnvironmentMapGet(ModuleEnvironmentMap *, char const *key);
+int moduleEnvironmentMapPut(ModuleEnvironmentMap *, char const *key,
+                            Environment *value);
+void moduleEnvironmentMapUninit(ModuleEnvironmentMap *);
+
+// pod struct holding two ModuleEnvironmentMaps
+typedef struct {
+  ModuleEnvironmentMap decls;
+  ModuleEnvironmentMap codes;
+} ModuleEnvironmentMapPair;
+void moduleEnvronmentMapPairInit(ModuleEnvironmentMapPair *);
+void moduleEnvronmentMapPairUninit(ModuleEnvironmentMapPair *);
+
+void typecheck(ModuleSymbolTableMapPair *, ModuleEnvironmentMapPair *, Report *,
+               Options const *, ModuleAstMapPair const *asts);
 
 #endif  // TLC_TYPECHECK_UTIL_H_

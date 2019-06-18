@@ -113,6 +113,8 @@ typedef struct {
   char const *currentModuleName;  // non-owning current module name
   Stack scopes;                   // stack of local env symbol tables (owning)
 } Environment;
+Environment *environmentCreate(SymbolTable *currentModule,
+                               char const *currentModuleName);
 void environmentInit(Environment *, SymbolTable *currentModule,
                      char const *currentModuleName);
 SymbolInfo *environmentLookup(Environment const *, Report *report,
@@ -121,5 +123,6 @@ SymbolTable *environmentTop(Environment const *);
 void environmentPush(Environment *);
 void environmentPop(Environment *);
 void environmentUninit(Environment *);
+void environmentDestroy(Environment *);
 
 #endif  // TLC_SYMBOLTABLE_SYMBOLTABLE_H_
