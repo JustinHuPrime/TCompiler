@@ -46,8 +46,8 @@ statement = compound_statement
           | break_statement
           | continue_statement
           | return_statement
-          | variable_declaration_statement
           | asm_statement
+          | variable_declaration
           | struct_declaration
           | struct_forward_declaration
           | union_declaration
