@@ -1805,6 +1805,8 @@ static Node *parseForStatement(Report *report, Options const *options,
     return NULL;
   }
 
+  typeEnvironmentPush(env);
+
   Node *init;
 
   TokenInfo next;
@@ -1832,6 +1834,7 @@ static Node *parseForStatement(Report *report, Options const *options,
       unLex(info, &next);
       init = parseVarDecl(report, options, env, info);
       if (init == NULL) {
+        typeEnvironmentPop(env);
         return NULL;
       }
       break;
@@ -1862,6 +1865,7 @@ static Node *parseForStatement(Report *report, Options const *options,
       unLex(info, &next);
       init = parseExpression(report, options, env, info);
       if (init == NULL) {
+        typeEnvironmentPop(env);
         return NULL;
       }
       break;
@@ -1872,6 +1876,7 @@ static Node *parseForStatement(Report *report, Options const *options,
           typeEnvironmentLookup(env, report, &next, info->filename);
       switch (symbolType) {
         case ST_UNDEFINED: {
+          typeEnvironmentPop(env);
           return NULL;
         }
         case ST_ENUMCONST:
@@ -1879,6 +1884,7 @@ static Node *parseForStatement(Report *report, Options const *options,
           unLex(info, &next);
           init = parseExpression(report, options, env, info);
           if (init == NULL) {
+            typeEnvironmentPop(env);
             return NULL;
           }
           break;
@@ -1887,11 +1893,13 @@ static Node *parseForStatement(Report *report, Options const *options,
           unLex(info, &next);
           init = parseVarDecl(report, options, env, info);
           if (init == NULL) {
+            typeEnvironmentPop(env);
             return NULL;
           }
           break;
         }
         default: {
+          typeEnvironmentPop(env);
           return NULL;  // error: not a valid enum!
         }
       }
@@ -1906,6 +1914,7 @@ static Node *parseForStatement(Report *report, Options const *options,
                     tokenTypeToString(next.type));
       }
       tokenInfoUninit(&next);
+      typeEnvironmentPop(env);
       return NULL;
     }
   }
@@ -1923,12 +1932,14 @@ static Node *parseForStatement(Report *report, Options const *options,
     }
     tokenInfoUninit(&semi);
     nodeDestroy(init);
+    typeEnvironmentPop(env);
     return NULL;
   }
 
   Node *test = parseExpression(report, options, env, info);
   if (test == NULL) {
     nodeDestroy(init);
+    typeEnvironmentPop(env);
     return NULL;
   }
 
@@ -1944,6 +1955,7 @@ static Node *parseForStatement(Report *report, Options const *options,
     tokenInfoUninit(&semi);
     nodeDestroy(test);
     nodeDestroy(init);
+    typeEnvironmentPop(env);
     return NULL;
   }
 
@@ -1959,6 +1971,7 @@ static Node *parseForStatement(Report *report, Options const *options,
     if (update == NULL) {
       nodeDestroy(test);
       nodeDestroy(init);
+      typeEnvironmentPop(env);
       return NULL;
     }
   }
@@ -1977,6 +1990,7 @@ static Node *parseForStatement(Report *report, Options const *options,
     nodeDestroy(update);
     nodeDestroy(test);
     nodeDestroy(init);
+    typeEnvironmentPop(env);
     return NULL;
   }
 
@@ -1985,9 +1999,11 @@ static Node *parseForStatement(Report *report, Options const *options,
     nodeDestroy(update);
     nodeDestroy(test);
     nodeDestroy(init);
+    typeEnvironmentPop(env);
     return NULL;
   }
 
+  typeEnvironmentPop(env);
   return forStmtNodeCreate(forKwd.line, forKwd.character, init, test, update,
                            body);
 }
