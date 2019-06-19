@@ -187,17 +187,74 @@ static void typecheckFunction(Node const *function, Report *report,
 static void typecheckVarDecl(Node const *varDecl, Report *report,
                              Options const *options, Environment *env,
                              char const *filename) {
+  // if type is a raw type, check that it is complete
   // TODO: write this
 }
 static void typecheckStructDecl(Node const *structDecl, Report *report,
                                 Options const *options, Environment *env,
                                 char const *filename) {
+  SymbolTable *table = environmentTop(env);
+  SymbolInfo *info =
+      symbolTableGet(table, structDecl->data.structDecl.id->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE || info->data.type.kind != TDK_STRUCT)) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, structDecl->data.structDecl.id->line,
+                structDecl->data.structDecl.id->character,
+                structDecl->data.structDecl.id->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  }
+
+  if (info == NULL) {
+    info = structSymbolInfoCreate();
+    symbolTablePut(table, structDecl->data.structDecl.id->data.id.id, info);
+  }
+
+  
   // TODO: write this
 }
 static void typecheckStructForwardDecl(Node const *forwardDecl, Report *report,
                                        Options const *options, Environment *env,
                                        char const *filename) {
-  // TODO: write this
+  SymbolTable *table = environmentTop(env);
+  SymbolInfo *info =
+      symbolTableGet(table, forwardDecl->data.structForwardDecl.id->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE || info->data.type.kind != TDK_STRUCT)) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, forwardDecl->data.structForwardDecl.id->line,
+                forwardDecl->data.structForwardDecl.id->character,
+                forwardDecl->data.structForwardDecl.id->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  }
+
+  if (info != NULL) {
+    switch (optionsGet(options, optionWDuplicateDeclaration)) {
+      case O_WT_ERROR: {
+        reportError(report, "%s:%zu:%zu: error: duplicate declaration of '%s'",
+                    filename, forwardDecl->data.structForwardDecl.id->line,
+                    forwardDecl->data.structForwardDecl.id->character,
+                    forwardDecl->data.structForwardDecl.id->data.id.id);
+        return;
+      }
+      case O_WT_WARN: {
+        reportWarning(report,
+                      "%s:%zu:%zu: warning: duplicate declaration of '%s'",
+                      filename, forwardDecl->data.structForwardDecl.id->line,
+                      forwardDecl->data.structForwardDecl.id->character,
+                      forwardDecl->data.structForwardDecl.id->data.id.id);
+        break;
+      }
+      case O_WT_IGNORE: {
+        break;
+      }
+    }
+  } else {
+    symbolTablePut(table, forwardDecl->data.structForwardDecl.id->data.id.id,
+                   structSymbolInfoCreate());
+  }
 }
 static void typecheckUnionDecl(Node const *unionDecl, Report *report,
                                Options const *options, Environment *env,
@@ -207,7 +264,44 @@ static void typecheckUnionDecl(Node const *unionDecl, Report *report,
 static void typecheckUnionForwardDecl(Node const *forwardDecl, Report *report,
                                       Options const *options, Environment *env,
                                       char const *filename) {
-  // TODO: write this
+  SymbolTable *table = environmentTop(env);
+  SymbolInfo *info =
+      symbolTableGet(table, forwardDecl->data.unionForwardDecl.id->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE || info->data.type.kind != TDK_UNION)) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, forwardDecl->data.unionForwardDecl.id->line,
+                forwardDecl->data.unionForwardDecl.id->character,
+                forwardDecl->data.unionForwardDecl.id->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  }
+
+  if (info != NULL) {
+    switch (optionsGet(options, optionWDuplicateDeclaration)) {
+      case O_WT_ERROR: {
+        reportError(report, "%s:%zu:%zu: error: duplicate declaration of '%s'",
+                    filename, forwardDecl->data.unionForwardDecl.id->line,
+                    forwardDecl->data.unionForwardDecl.id->character,
+                    forwardDecl->data.unionForwardDecl.id->data.id.id);
+        return;
+      }
+      case O_WT_WARN: {
+        reportWarning(report,
+                      "%s:%zu:%zu: warning: duplicate declaration of '%s'",
+                      filename, forwardDecl->data.unionForwardDecl.id->line,
+                      forwardDecl->data.unionForwardDecl.id->character,
+                      forwardDecl->data.unionForwardDecl.id->data.id.id);
+        break;
+      }
+      case O_WT_IGNORE: {
+        break;
+      }
+    }
+  } else {
+    symbolTablePut(table, forwardDecl->data.unionForwardDecl.id->data.id.id,
+                   unionSymbolInfoCreate());
+  }
 }
 static void typecheckEnumDecl(Node const *enumDecl, Report *report,
                               Options const *options, Environment *env,
@@ -217,7 +311,44 @@ static void typecheckEnumDecl(Node const *enumDecl, Report *report,
 static void typecheckEnumForwardDecl(Node const *forwardDecl, Report *report,
                                      Options const *options, Environment *env,
                                      char const *filename) {
-  // TODO: write this
+  SymbolTable *table = environmentTop(env);
+  SymbolInfo *info =
+      symbolTableGet(table, forwardDecl->data.enumForwardDecl.id->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE || info->data.type.kind != TDK_ENUM)) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, forwardDecl->data.enumForwardDecl.id->line,
+                forwardDecl->data.enumForwardDecl.id->character,
+                forwardDecl->data.enumForwardDecl.id->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  }
+
+  if (info != NULL) {
+    switch (optionsGet(options, optionWDuplicateDeclaration)) {
+      case O_WT_ERROR: {
+        reportError(report, "%s:%zu:%zu: error: duplicate declaration of '%s'",
+                    filename, forwardDecl->data.enumForwardDecl.id->line,
+                    forwardDecl->data.enumForwardDecl.id->character,
+                    forwardDecl->data.enumForwardDecl.id->data.id.id);
+        return;
+      }
+      case O_WT_WARN: {
+        reportWarning(report,
+                      "%s:%zu:%zu: warning: duplicate declaration of '%s'",
+                      filename, forwardDecl->data.enumForwardDecl.id->line,
+                      forwardDecl->data.enumForwardDecl.id->character,
+                      forwardDecl->data.enumForwardDecl.id->data.id.id);
+        break;
+      }
+      case O_WT_IGNORE: {
+        break;
+      }
+    }
+  } else {
+    symbolTablePut(table, forwardDecl->data.enumForwardDecl.id->data.id.id,
+                   enumSymbolInfoCreate());
+  }
 }
 static void typecheckTypedef(Node const *typedefDecl, Report *report,
                              Options const *options, Environment *env,
@@ -233,6 +364,7 @@ static void typecheckTypedef(Node const *typedefDecl, Report *report,
                 typedefDecl->data.typedefDecl.id->character,
                 typedefDecl->data.typedefDecl.id->data.id.id,
                 symbolInfoToKindString(info));
+    return;
   }
 
   Type *type = astToType(typedefDecl->data.typedefDecl.type, report, options,
