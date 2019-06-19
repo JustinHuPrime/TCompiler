@@ -380,7 +380,31 @@ static void typecheckUnionForwardDecl(Node const *forwardDecl, Report *report,
 static void typecheckEnumDecl(Node const *enumDecl, Report *report,
                               Options const *options, Environment *env,
                               char const *filename) {
-  // TODO: write this
+  SymbolTable *table = environmentTop(env);
+  SymbolInfo *info =
+      symbolTableGet(table, enumDecl->data.enumDecl.id->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE || info->data.type.kind != TDK_ENUM)) {
+    reportError(
+        report, "%s:%zu:%zu: error: '%s' is already declared as %s", filename,
+        enumDecl->data.enumDecl.id->line, enumDecl->data.enumDecl.id->character,
+        enumDecl->data.enumDecl.id->data.id.id, symbolInfoToKindString(info));
+    return;
+  }
+
+  if (info == NULL) {
+    info = enumSymbolInfoCreate();
+    symbolTablePut(table, enumDecl->data.enumDecl.id->data.id.id, info);
+  }
+
+  for (size_t declIdx = 0; declIdx < enumDecl->data.enumDecl.elements->size;
+       declIdx++) {
+    Node *element = enumDecl->data.enumDecl.elements->elements[declIdx];
+    stringVectorInsert(&info->data.type.data.enumType.fields,
+                       element->data.id.id);
+  }
+
+  info->data.type.data.unionType.incomplete = false;
 }
 static void typecheckEnumForwardDecl(Node const *forwardDecl, Report *report,
                                      Options const *options, Environment *env,
