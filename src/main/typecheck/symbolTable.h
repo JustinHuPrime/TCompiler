@@ -29,6 +29,7 @@
 
 struct Type;
 struct Environment;
+struct SymbolInfo;
 
 typedef enum {
   K_VOID,
@@ -75,7 +76,7 @@ typedef struct Type {
     // struct, union, enum, typedef
     // look up the type in the stab
     struct {
-      char const *name;
+      struct SymbolInfo *referenced;
     } reference;
     // const, ptr
     struct {
@@ -96,13 +97,13 @@ typedef struct Type {
 
 // ctor
 Type *keywordTypeCreate(TypeKind kind);
-Type *referneceTypeCreate(TypeKind kind, char const *name);
+Type *referneceTypeCreate(TypeKind kind, struct SymbolInfo *referenced);
 Type *modifierTypeCreate(TypeKind kind, Type *target);
 Type *arrayTypeCreate(Type *target, size_t size);
 Type *functionPtrTypeCreate(Type *returnType, TypeVector *argumentTypes);
 // in-place ctor
 void keywordTypeInit(Type *, TypeKind kind);
-void referneceTypeInit(Type *, TypeKind kind, char const *name);
+void referneceTypeInit(Type *, TypeKind kind, struct SymbolInfo *referenced);
 void modifierTypeInit(Type *, TypeKind kind, Type *target);
 void arrayTypeInit(Type *, Type *target, size_t size);
 void functionPtrTypeInit(Type *, Type *returnType, TypeVector *argumentTypes);
@@ -132,7 +133,7 @@ typedef enum {
 char const *typeDefinitionKindToString(TypeDefinitionKind);
 
 // information for a symbol in some module
-typedef struct {
+typedef struct SymbolInfo {
   SymbolKind kind;
   union {
     struct {

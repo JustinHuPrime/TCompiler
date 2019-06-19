@@ -41,10 +41,9 @@ static Type *typeCreate(TypeKind kind) {
 }
 static void typeInit(Type *t, TypeKind kind) { t->kind = kind; }
 Type *keywordTypeCreate(TypeKind kind) { return typeCreate(kind); }
-Type *referneceTypeCreate(TypeKind kind, char const *name) {
-  // TODO: make reference types use the fully-qualified name
+Type *referneceTypeCreate(TypeKind kind, SymbolInfo *referenced) {
   Type *t = typeCreate(kind);
-  t->data.reference.name = name;
+  t->data.reference.referenced = referenced;
   return t;
 }
 Type *modifierTypeCreate(TypeKind kind, Type *target) {
@@ -65,9 +64,9 @@ Type *functionPtrTypeCreate(Type *returnType, TypeVector *argumentTypes) {
   return t;
 }
 void keywordTypeInit(Type *t, TypeKind kind) { typeInit(t, kind); }
-void referneceTypeInit(Type *t, TypeKind kind, char const *name) {
+void referneceTypeInit(Type *t, TypeKind kind, struct SymbolInfo *referenced) {
   typeInit(t, kind);
-  t->data.reference.name = name;
+  t->data.reference.referenced = referenced;
 }
 void modifierTypeInit(Type *t, TypeKind kind, Type *target) {
   typeInit(t, kind);
@@ -109,8 +108,7 @@ bool typeIsIncomplete(Type const *t, Environment const *env) {
     case K_UNION:
     case K_ENUM:
     case K_TYPEDEF: {
-      SymbolInfo *info =
-          environmentLookupMustSucceed(env, t->data.reference.name);
+      SymbolInfo *info = t->data.reference.referenced;
       switch (info->data.type.kind) {
         case TDK_STRUCT: {
           return info->data.type.data.structType.incomplete;
@@ -191,8 +189,7 @@ char *typeToString(Type const *t) {
     case K_UNION:
     case K_ENUM:
     case K_TYPEDEF: {
-      return strcat(strcpy(malloc(3 + strlen(t->data.reference.name)), "a "),
-                    t->data.reference.name);
+      return NULL;  // TODO: write this case
     }
     case K_CONST: {
       char *baseString = typeToString(t->data.modifier.type);

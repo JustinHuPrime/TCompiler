@@ -74,10 +74,10 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
     case NT_IDTYPE: {
       SymbolInfo *info = environmentLookup(env, report, ast->data.idType.id,
                                            ast->line, ast->character, filename);
-      return info == NULL ? NULL
-                          : referneceTypeCreate(
-                                info->data.type.kind - TDK_STRUCT + K_STRUCT,
-                                ast->data.idType.id);
+      return info == NULL
+                 ? NULL
+                 : referneceTypeCreate(
+                       info->data.type.kind - TDK_STRUCT + K_STRUCT, info);
     }
     case NT_CONSTTYPE: {
       if (ast->data.constType.target->type == NT_CONSTTYPE) {
