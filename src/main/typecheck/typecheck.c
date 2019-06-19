@@ -289,7 +289,51 @@ static void typecheckStructForwardDecl(Node const *forwardDecl, Report *report,
 static void typecheckUnionDecl(Node const *unionDecl, Report *report,
                                Options const *options, Environment *env,
                                char const *filename) {
-  // TODO: write this
+  SymbolTable *table = environmentTop(env);
+  SymbolInfo *info =
+      symbolTableGet(table, unionDecl->data.unionDecl.id->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE || info->data.type.kind != TDK_UNION)) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, unionDecl->data.unionDecl.id->line,
+                unionDecl->data.unionDecl.id->character,
+                unionDecl->data.unionDecl.id->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  }
+
+  if (info == NULL) {
+    info = unionSymbolInfoCreate();
+    symbolTablePut(table, unionDecl->data.unionDecl.id->data.id.id, info);
+  }
+
+  bool bad = false;
+  for (size_t declIdx = 0; declIdx < unionDecl->data.unionDecl.opts->size;
+       declIdx++) {
+    Node *fieldDecl = unionDecl->data.unionDecl.opts->elements[declIdx];
+    for (size_t fieldIdx = 0; fieldIdx < fieldDecl->data.fieldDecl.ids->size;
+         fieldIdx++) {
+      Node const *id = fieldDecl->data.fieldDecl.ids->elements[fieldIdx];
+      Type *actualFieldType = astToType(fieldDecl->data.fieldDecl.type, report,
+                                        options, env, filename);
+      if (actualFieldType == NULL) {
+        bad = true;
+        continue;
+      } else if (typeIsIncomplete(actualFieldType, env)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: incomplete type not allowed in a union",
+                    filename, fieldDecl->data.fieldDecl.type->line,
+                    fieldDecl->data.fieldDecl.type->character);
+        typeDestroy(actualFieldType);
+        bad = true;
+        continue;
+      }
+      typeVectorInsert(&info->data.type.data.unionType.fields, actualFieldType);
+      stringVectorInsert(&info->data.type.data.unionType.names, id->data.id.id);
+    }
+  }
+
+  info->data.type.data.unionType.incomplete = bad;
 }
 static void typecheckUnionForwardDecl(Node const *forwardDecl, Report *report,
                                       Options const *options, Environment *env,
