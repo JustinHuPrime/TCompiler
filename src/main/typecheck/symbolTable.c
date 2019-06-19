@@ -77,10 +77,67 @@ void arrayTypeInit(Type *t, Type *target, size_t size) {
   t->data.array.type = target;
   t->data.array.size = size;
 }
-void functionTypeInit(Type *t, Type *returnType, TypeVector *argumentTypes) {
+void functionPtrTypeInit(Type *t, Type *returnType, TypeVector *argumentTypes) {
   typeInit(t, K_FUNCTION_PTR);
   t->data.functionPtr.returnType = returnType;
   t->data.functionPtr.argumentTypes = argumentTypes;
+}
+bool typeIsIncomplete(Type *t, Environment *env) {
+  switch (t->kind) {
+    case K_VOID: {
+      return true;
+    }
+    case K_UBYTE:
+    case K_BYTE:
+    case K_CHAR:
+    case K_USHORT:
+    case K_SHORT:
+    case K_UINT:
+    case K_INT:
+    case K_WCHAR:
+    case K_ULONG:
+    case K_LONG:
+    case K_FLOAT:
+    case K_DOUBLE:
+    case K_BOOL:
+    case K_FUNCTION_PTR:
+    case K_PTR: {
+      return false;
+    }
+    case K_STRUCT:
+    case K_UNION:
+    case K_ENUM:
+    case K_TYPEDEF: {
+      SymbolInfo *info =
+          environmentLookupMustSucceed(env, t->data.reference.name);
+      switch (info->data.type.kind) {
+        case TDK_STRUCT: {
+          return info->data.type.data.structType.incomplete;
+        }
+        case TDK_UNION: {
+          return info->data.type.data.unionType.incomplete;
+        }
+        case TDK_ENUM: {
+          return info->data.type.data.enumType.incomplete;
+        }
+        case TDK_TYPEDEF: {
+          return typeIsIncomplete(info->data.type.data.typedefType.type, env);
+        }
+        default: {
+          return true;  // error - not a valid enum
+        }
+      }
+    }
+    case K_CONST: {
+      return typeIsIncomplete(t->data.modifier.type, env);
+    }
+    case K_ARRAY: {
+      return typeIsIncomplete(t->data.array.type, env);
+    }
+    default: {
+      return true;  // error: not a valid enum
+    }
+  }
 }
 void typeUninit(Type *t) {
   switch (t->kind) {
@@ -382,6 +439,10 @@ SymbolInfo *environmentLookup(Environment const *env, Report *report,
                               char const *filename) {
   return environmentLookupInternal(env, report, id, line, character, filename,
                                    true);
+}
+SymbolInfo *environmentLookupMustSucceed(Environment const *env,
+                                         char const *id) {
+  return environmentLookupInternal(env, NULL, id, 0, 0, NULL, false);
 }
 SymbolTable *environmentTop(Environment const *env) {
   return env->scopes.size == 0 ? env->currentModule : stackPeek(&env->scopes);

@@ -28,6 +28,7 @@
 #include "util/container/vector.h"
 
 struct Type;
+struct Environment;
 
 typedef enum {
   K_VOID,
@@ -104,7 +105,9 @@ void keywordTypeInit(Type *, TypeKind kind);
 void referneceTypeInit(Type *, TypeKind kind, char const *name);
 void modifierTypeInit(Type *, TypeKind kind, Type *target);
 void arrayTypeInit(Type *, Type *target, size_t size);
-void functionTypeInit(Type *, Type *returnType, TypeVector *argumentTypes);
+void functionPtrTypeInit(Type *, Type *returnType, TypeVector *argumentTypes);
+// if type is incomplete, returns true, else false
+bool typeIsIncomplete(Type *, struct Environment *);
 // in-place dtor
 void typeUninit(Type *);
 // dtor
@@ -192,7 +195,7 @@ int moduleTableMapPut(ModuleTableMap *, char const *key, SymbolTable *value);
 void moduleTableMapUninit(ModuleTableMap *);
 void moduleTableMapDestroy(ModuleTableMap *);
 
-typedef struct {
+typedef struct Environment {
   ModuleTableMap imports;         // map of symbol tables, non-owning
   SymbolTable *currentModule;     // non-owing current stab
   char const *currentModuleName;  // non-owning current module name
@@ -205,6 +208,8 @@ void environmentInit(Environment *, SymbolTable *currentModule,
 SymbolInfo *environmentLookup(Environment const *, Report *report,
                               char const *id, size_t line, size_t character,
                               char const *filename);
+SymbolInfo *environmentLookupMustSucceed(Environment const *env,
+                                         char const *id);
 SymbolTable *environmentTop(Environment const *);
 void environmentPush(Environment *);
 SymbolTable *environmentPop(Environment *);

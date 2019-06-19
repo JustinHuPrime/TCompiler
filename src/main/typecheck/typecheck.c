@@ -74,8 +74,10 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
     case NT_IDTYPE: {
       SymbolInfo *info = environmentLookup(env, report, ast->data.idType.id,
                                            ast->line, ast->character, filename);
-      return referneceTypeCreate(info->data.type.kind - TDK_STRUCT + K_STRUCT,
-                                 ast->data.idType.id);
+      return info == NULL ? NULL
+                          : referneceTypeCreate(
+                                info->data.type.kind - TDK_STRUCT + K_STRUCT,
+                                ast->data.idType.id);
     }
     case NT_CONSTTYPE: {
       if (ast->data.constType.target->type == NT_CONSTTYPE) {
@@ -211,8 +213,36 @@ static void typecheckStructDecl(Node const *structDecl, Report *report,
     symbolTablePut(table, structDecl->data.structDecl.id->data.id.id, info);
   }
 
-  
-  // TODO: write this
+  bool bad = false;
+  for (size_t declIdx = 0; declIdx < structDecl->data.structDecl.decls->size;
+       declIdx++) {
+    Node *fieldDecl = structDecl->data.structDecl.decls->elements[declIdx];
+    for (size_t fieldIdx = 0; fieldIdx < fieldDecl->data.fieldDecl.ids->size;
+         fieldIdx++) {
+      Node const *id = fieldDecl->data.fieldDecl.ids->elements[fieldIdx];
+      Type *actualFieldType = astToType(fieldDecl->data.fieldDecl.type, report,
+                                        options, env, filename);
+      if (actualFieldType == NULL) {
+        bad = true;
+        continue;
+      } else if (typeIsIncomplete(actualFieldType, env)) {
+        reportError(
+            report,
+            "%s:%zu:%zu: error: incomplete type not allowed in a struct",
+            filename, fieldDecl->data.fieldDecl.type->line,
+            fieldDecl->data.fieldDecl.type->character);
+        typeDestroy(actualFieldType);
+        bad = true;
+        continue;
+      }
+      typeVectorInsert(&info->data.type.data.structType.fields,
+                       actualFieldType);
+      stringVectorInsert(&info->data.type.data.structType.names,
+                         id->data.id.id);
+    }
+  }
+
+  info->data.type.data.structType.incomplete = bad;
 }
 static void typecheckStructForwardDecl(Node const *forwardDecl, Report *report,
                                        Options const *options, Environment *env,
