@@ -107,7 +107,11 @@ void modifierTypeInit(Type *, TypeKind kind, Type *target);
 void arrayTypeInit(Type *, Type *target, size_t size);
 void functionPtrTypeInit(Type *, Type *returnType, TypeVector *argumentTypes);
 // if type is incomplete, returns true, else false
-bool typeIsIncomplete(Type *, struct Environment *);
+bool typeIsIncomplete(Type const *, struct Environment const *);
+// equality predicate for types
+bool typeAssignable(Type const *from, Type const *to);
+// to-string
+char *typeToString(Type const *);
 // in-place dtor
 void typeUninit(Type *);
 // dtor

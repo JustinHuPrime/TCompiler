@@ -180,7 +180,125 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
     }
   }
 }
+static Type *astToTypeMustSucceed(Node const *ast, Environment const *env) {
+  return NULL;  // TODO: write this
+}
+static Type *typeOfExpression(Node const *expression, Environment const *env,
+                              bool *lValue) {
+  switch (expression->type) {
+    case NT_CONSTEXP: {
+      if (lValue != NULL) {
+        *lValue = false;
+      }
+      return keywordTypeCreate(expression->data.constExp.type - CT_UBYTE +
+                               K_UBYTE);
+    }
+    case NT_AGGREGATEINITEXP: {
+      return NULL;  // TODO: write this
+    }
+    case NT_ENUMCONSTEXP: {
+      return NULL;  // TODO: write this
+    }
+    case NT_IDEXP: {
+      return NULL;  // TODO: write this
+    }
+    case NT_CASTEXP: {
+      if (lValue != NULL) {
+        *lValue = false;
+      }
+      return astToTypeMustSucceed(expression->data.castExp.toWhat, env);
+    }
+    case NT_SIZEOFEXPEXP:
+    case NT_SIZEOFTYPEEXP: {
+      if (lValue != NULL) {
+        *lValue = false;
+      }
+      return keywordTypeCreate(K_ULONG);
+    }
+    case NT_BINOPEXP: {
+      return NULL;  // TODO: write this
+    }
+    case NT_FNCALLEXP: {
+      return NULL;  // TODO: write this
+    }
+    case NT_UNOPEXP: {
+      return NULL;  // TODO: write this
+    }
+    case NT_TERNARYEXP: {
+      return NULL;  // TODO: write this
+    }
+    case NT_COMPOPEXP:
+    case NT_LANDEXP:
+    case NT_LOREXP: {
+      if (lValue != NULL) {
+        *lValue = false;
+      }
+      return keywordTypeCreate(K_BOOL);
+    }
+    case NT_LANDASSIGNEXP:
+    case NT_LORASSIGNEXP: {
+      if (lValue != NULL) {
+        *lValue = true;
+      }
+      return keywordTypeCreate(K_BOOL);
+    }
+    case NT_SEQEXP: {
+      return typeOfExpression(expression->data.seqExp.rest, env, lValue);
+    }
+    default: {
+      return NULL;  // error - not an expression
+    }
+  }
+}
+// from and to must both be expressions
+static void checkAssignableTo(Node const *from, Node const *to, Report *report,
+                              Options const *options, Environment const *env,
+                              char const *filename) {
+  Type *fromType = typeOfExpression(from, env, NULL);
+  bool toIsLvalue;
+  Type *toType = typeOfExpression(from, env, &toIsLvalue);
 
+  if (!toIsLvalue) {
+    reportError(report, "%s:%zu:%zu: error: may not assign to an r-value",
+                filename, to->line, to->character);
+    return;
+  }
+
+  if (!typeAssignable(fromType, toType)) {
+    char *fromTypeString = typeToString(fromType);
+    char *toTypeString = typeToString(toType);
+    reportError(report, "%s:%zu:%zu: error: may not assign %s to %s", filename,
+                from->line, from->character, fromTypeString, toTypeString);
+    free(fromTypeString);
+    free(toTypeString);
+    return;
+  }
+}
+// from must be a constant expression, and to must be an id
+static void checkInitializableAs(Node const *from, Node const *to,
+                                 Report *report, Options const *options,
+                                 Environment const *env, char const *filename) {
+  SymbolInfo *info = environmentLookupMustSucceed(env, to->data.id.id);
+  Type *fromType = info->data.var.type;
+  Type *toType = typeOfExpression(from, env, NULL);
+
+  if (!typeAssignable(fromType, toType)) {
+    char *fromTypeString = typeToString(fromType);
+    reportError(report,
+                "%s:%zu:%zu: error: incompatible types: '%s' may not be "
+                "initialized as %s",
+                filename, from->line, from->character, to->data.id.id,
+                fromTypeString);
+    free(fromTypeString);
+    return;
+  }
+}
+
+// expression typechecking
+
+// statement typechecking
+
+// top level typechecking
 static void typecheckFunction(Node const *function, Report *report,
                               Options const *options, Environment *env,
                               char const *filename) {
@@ -189,8 +307,39 @@ static void typecheckFunction(Node const *function, Report *report,
 static void typecheckVarDecl(Node const *varDecl, Report *report,
                              Options const *options, Environment *env,
                              char const *filename) {
-  // if type is a raw type, check that it is complete
-  // TODO: write this
+  SymbolTable *table = environmentTop(env);
+  bool errorReported = false;
+  for (size_t idx = 0; idx < varDecl->data.varDecl.idValuePairs->size; idx++) {
+    Node *id = varDecl->data.varDecl.idValuePairs->firstElements[idx];
+    SymbolInfo *info = symbolTableGet(table, id->data.id.id);
+    if (info != NULL) {
+      reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                  filename, id->line, id->character, id->data.id.id,
+                  symbolInfoToKindString(info));
+      continue;
+    }
+    Type *type =
+        astToType(varDecl->data.varDecl.type, report, options, env, filename);
+    if (type == NULL) {
+      return;
+    } else if (typeIsIncomplete(type, env)) {
+      if (!errorReported) {
+        reportError(
+            report,
+            "%s:%zu:%zu: error: a variable may not have an incomplete type",
+            filename, varDecl->line, varDecl->character);
+        errorReported = true;
+      }
+      continue;
+    }
+
+    symbolTablePut(table, id->data.id.id, varSymbolInfoCreate(type));
+
+    checkInitializableAs(
+        varDecl->data.varDecl.idValuePairs->secondElements[idx],
+        varDecl->data.varDecl.idValuePairs->firstElements[idx], report, options,
+        env, filename);
+  }
 }
 static void typecheckStructDecl(Node const *structDecl, Report *report,
                                 Options const *options, Environment *env,

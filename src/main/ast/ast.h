@@ -178,19 +178,19 @@ typedef enum {
 typedef enum {
   CT_UBYTE,
   CT_BYTE,
+  CT_CHAR,
   CT_USHORT,
   CT_SHORT,
   CT_UINT,
   CT_INT,
+  CT_WCHAR,
   CT_ULONG,
   CT_LONG,
   CT_FLOAT,
   CT_DOUBLE,
-  CT_STRING,
-  CT_CHAR,
-  CT_WSTRING,
-  CT_WCHAR,
   CT_BOOL,
+  CT_STRING,
+  CT_WSTRING,
   CT_RANGE_ERROR,
 } ConstType;
 char const *constTypeToString(ConstType);

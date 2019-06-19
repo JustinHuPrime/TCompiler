@@ -42,6 +42,7 @@ static Type *typeCreate(TypeKind kind) {
 static void typeInit(Type *t, TypeKind kind) { t->kind = kind; }
 Type *keywordTypeCreate(TypeKind kind) { return typeCreate(kind); }
 Type *referneceTypeCreate(TypeKind kind, char const *name) {
+  // TODO: make reference types use the fully-qualified name
   Type *t = typeCreate(kind);
   t->data.reference.name = name;
   return t;
@@ -82,7 +83,7 @@ void functionPtrTypeInit(Type *t, Type *returnType, TypeVector *argumentTypes) {
   t->data.functionPtr.returnType = returnType;
   t->data.functionPtr.argumentTypes = argumentTypes;
 }
-bool typeIsIncomplete(Type *t, Environment *env) {
+bool typeIsIncomplete(Type const *t, Environment const *env) {
   switch (t->kind) {
     case K_VOID: {
       return true;
@@ -136,6 +137,79 @@ bool typeIsIncomplete(Type *t, Environment *env) {
     }
     default: {
       return true;  // error: not a valid enum
+    }
+  }
+}
+bool typeAssignable(Type const *from, Type const *to) {
+  return false;  // TODO: write this
+}
+char *typeToString(Type const *t) {
+  switch (t->kind) {
+    case K_VOID: {
+      return strcpy(malloc(7), "a void");
+    }
+    case K_UBYTE: {
+      return strcpy(malloc(17), "an unsigned byte");
+    }
+    case K_BYTE: {
+      return strcpy(malloc(7), "a byte");
+    }
+    case K_CHAR: {
+      return strcpy(malloc(12), "a character");
+    }
+    case K_USHORT: {
+      return strcpy(malloc(18), "an unsigned short");
+    }
+    case K_SHORT: {
+      return strcpy(malloc(8), "a short");
+    }
+    case K_UINT: {
+      return strcpy(malloc(16), "an unsigned int");
+    }
+    case K_INT: {
+      return strcpy(malloc(7), "an int");
+    }
+    case K_WCHAR: {
+      return strcpy(malloc(17), "a wide character");
+    }
+    case K_ULONG: {
+      return strcpy(malloc(17), "an unsigned long");
+    }
+    case K_LONG: {
+      return strcpy(malloc(7), "a long");
+    }
+    case K_FLOAT: {
+      return strcpy(malloc(8), "a float");
+    }
+    case K_DOUBLE: {
+      return strcpy(malloc(9), "a double");
+    }
+    case K_BOOL: {
+      return strcpy(malloc(7), "a bool");
+    }
+    case K_STRUCT:
+    case K_UNION:
+    case K_ENUM:
+    case K_TYPEDEF: {
+      return strcat(strcpy(malloc(3 + strlen(t->data.reference.name)), "a "),
+                    t->data.reference.name);
+    }
+    case K_CONST: {
+      char *baseString = typeToString(t->data.modifier.type);
+      return strcat(realloc(baseString, strlen(baseString) + 10), " constant");
+    }
+    case K_ARRAY: {
+      return NULL;  // TODO: write this case
+    }
+    case K_PTR: {
+      char *baseString = typeToString(t->data.modifier.type);
+      return strcat(realloc(baseString, strlen(baseString) + 9), " pointer");
+    }
+    case K_FUNCTION_PTR: {
+      return NULL;  // TODO: write this case
+    }
+    default: {
+      return NULL;  // error - not a valid enum
     }
   }
 }
