@@ -107,10 +107,14 @@ void referneceTypeInit(Type *, TypeKind kind, struct SymbolInfo *referenced);
 void modifierTypeInit(Type *, TypeKind kind, Type *target);
 void arrayTypeInit(Type *, Type *target, size_t size);
 void functionPtrTypeInit(Type *, Type *returnType, TypeVector *argumentTypes);
+// copy ctor
+Type *typeCopy(Type const *);
 // if type is incomplete, returns true, else false
 bool typeIsIncomplete(Type const *, struct Environment const *);
-// equality predicate for types
+// produce true if you can assign from to to
 bool typeAssignable(Type const *from, Type const *to);
+// produce true if you can initialize to with from
+bool typeInitializable(Type const *from, Type const *to);
 // to-string
 char *typeToString(Type const *);
 // in-place dtor

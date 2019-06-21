@@ -65,8 +65,9 @@ void moduleEnvronmentMapPairUninit(ModuleEnvironmentMapPair *pair) {
 }
 
 // helpers
-static Type *astToType(Node const *ast, Report *report, Options const *options,
-                       Environment *env, char const *filename) {
+static Type *astToTypeInternal(Node const *ast, Report *report,
+                               Options const *options, Environment const *env,
+                               char const *filename, bool reportErrors) {
   switch (ast->type) {
     case NT_KEYWORDTYPE: {
       return keywordTypeCreate(ast->data.typeKeyword.type - TK_VOID + K_VOID);
@@ -80,7 +81,7 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
                        info->data.type.kind - TDK_STRUCT + K_STRUCT, info);
     }
     case NT_CONSTTYPE: {
-      if (ast->data.constType.target->type == NT_CONSTTYPE) {
+      if (ast->data.constType.target->type == NT_CONSTTYPE && reportErrors) {
         switch (optionsGet(options, optionWDuplicateDeclSpecifier)) {
           case O_WT_ERROR: {
             reportError(report,
@@ -92,18 +93,18 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
             reportWarning(report,
                           "%s:%zu:%zu: warning: duplciate 'const' specifier",
                           filename, ast->line, ast->character);
-            return astToType(ast->data.constType.target, report, options, env,
-                             filename);
+            return astToTypeInternal(ast->data.constType.target, report,
+                                     options, env, filename, reportErrors);
           }
           case O_WT_IGNORE: {
-            return astToType(ast->data.constType.target, report, options, env,
-                             filename);
+            return astToTypeInternal(ast->data.constType.target, report,
+                                     options, env, filename, reportErrors);
           }
         }
       }
 
-      Type *subType =
-          astToType(ast->data.constType.target, report, options, env, filename);
+      Type *subType = astToTypeInternal(ast->data.constType.target, report,
+                                        options, env, filename, reportErrors);
       return subType == NULL ? NULL : modifierTypeCreate(K_PTR, subType);
     }
     case NT_ARRAYTYPE: {
@@ -116,11 +117,14 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
           break;
         }
         default: {
-          reportError(report,
-                      "%s:%zu:%zu: error: expected an unsigned integer for an "
-                      "array size, but found %s",
-                      filename, sizeConst->line, sizeConst->character,
-                      constTypeToString(sizeConst->data.constExp.type));
+          if (reportErrors) {
+            reportError(
+                report,
+                "%s:%zu:%zu: error: expected an unsigned integer for an "
+                "array size, but found %s",
+                filename, sizeConst->line, sizeConst->character,
+                constTypeToString(sizeConst->data.constExp.type));
+          }
           return NULL;
         }
       }
@@ -146,26 +150,27 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
           return NULL;  // error: mutation in const ptr
         }
       }
-      Type *subType = astToType(ast->data.arrayType.element, report, options,
-                                env, filename);
+      Type *subType = astToTypeInternal(ast->data.arrayType.element, report,
+                                        options, env, filename, reportErrors);
       return subType == NULL ? NULL : arrayTypeCreate(subType, size);
     }
     case NT_PTRTYPE: {
-      Type *subType =
-          astToType(ast->data.ptrType.target, report, options, env, filename);
+      Type *subType = astToTypeInternal(ast->data.ptrType.target, report,
+                                        options, env, filename, reportErrors);
       return subType == NULL ? NULL : modifierTypeCreate(K_PTR, subType);
     }
     case NT_FNPTRTYPE: {
-      Type *retType = astToType(ast->data.fnPtrType.returnType, report, options,
-                                env, filename);
+      Type *retType = astToTypeInternal(ast->data.fnPtrType.returnType, report,
+                                        options, env, filename, reportErrors);
       if (retType == NULL) {
         return NULL;
       }
 
       TypeVector *argTypes = typeVectorCreate();
       for (size_t idx = 0; idx < ast->data.fnPtrType.argTypes->size; idx++) {
-        Type *argType = astToType(ast->data.fnPtrType.argTypes->elements[idx],
-                                  report, options, env, filename);
+        Type *argType =
+            astToTypeInternal(ast->data.fnPtrType.argTypes->elements[idx],
+                              report, options, env, filename, reportErrors);
         if (argType == NULL) {
           typeDestroy(retType);
         }
@@ -180,9 +185,14 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
     }
   }
 }
-static Type *astToTypeMustSucceed(Node const *ast, Environment const *env) {
-  return NULL;  // TODO: write this
+static Type *astToType(Node const *ast, Report *report, Options const *options,
+                       Environment const *env, char const *filename) {
+  return astToTypeInternal(ast, report, options, env, filename, true);
 }
+static Type *astToTypeMustSucceed(Node const *ast, Environment const *env) {
+  return astToTypeInternal(ast, NULL, NULL, env, NULL, false);
+}
+// assumes that expression is well-formed - check first!
 static Type *typeOfExpression(Node const *expression, Environment const *env,
                               bool *lValue) {
   switch (expression->type) {
@@ -197,10 +207,20 @@ static Type *typeOfExpression(Node const *expression, Environment const *env,
       return NULL;  // TODO: write this
     }
     case NT_ENUMCONSTEXP: {
-      return NULL;  // TODO: write this
+      if (lValue != NULL) {
+        *lValue = false;
+      }
+      SymbolInfo *info =
+          environmentLookupMustSucceed(env, expression->data.enumConstExp.id);
+      return typeCopy(info->data.enumConst.parentEnum);
     }
     case NT_IDEXP: {
-      return NULL;  // TODO: write this
+      if (lValue != NULL) {
+        *lValue = true;
+      }
+      SymbolInfo *info =
+          environmentLookupMustSucceed(env, expression->data.idExp.id);
+      return typeCopy(info->data.var.type);
     }
     case NT_CASTEXP: {
       if (lValue != NULL) {
@@ -216,16 +236,122 @@ static Type *typeOfExpression(Node const *expression, Environment const *env,
       return keywordTypeCreate(K_ULONG);
     }
     case NT_BINOPEXP: {
-      return NULL;  // TODO: write this
+      // TODO: finish this
+      switch (expression->data.binopExp.op) {
+        case BO_ASSIGN: {
+          if (lValue != NULL) {
+            *lValue = true;
+          }
+        }
+        case BO_MULASSIGN: {
+        }
+        case BO_DIVASSIGN: {
+        }
+        case BO_MODASSIGN: {
+        }
+        case BO_ADDASSIGN: {
+        }
+        case BO_SUBASSIGN: {
+        }
+        case BO_LSHIFTASSIGN: {
+        }
+        case BO_LRSHIFTASSIGN: {
+        }
+        case BO_ARSHIFTASSIGN: {
+        }
+        case BO_BITANDASSIGN: {
+        }
+        case BO_BITXORASSIGN: {
+        }
+        case BO_BITORASSIGN: {
+        }
+        case BO_BITAND: {
+        }
+        case BO_BITOR: {
+        }
+        case BO_BITXOR: {
+        }
+        case BO_SPACESHIP: {
+        }
+        case BO_LSHIFT: {
+        }
+        case BO_LRSHIFT: {
+        }
+        case BO_ARSHIFT: {
+        }
+        case BO_ADD: {
+        }
+        case BO_SUB: {
+        }
+        case BO_MUL: {
+        }
+        case BO_DIV: {
+        }
+        case BO_MOD: {
+        }
+        case BO_ARRAYACCESS: {
+        }
+        default: {
+          return NULL;  // error - not a valid enum
+        }
+      }
     }
     case NT_FNCALLEXP: {
-      return NULL;  // TODO: write this
+      Type *functionType =
+          typeOfExpression(expression->data.fnCallExp.who, env, NULL);
+      Type *returnType = functionType->data.functionPtr.returnType;
+      typeVectorDestroy(functionType->data.functionPtr.argumentTypes);
+      free(functionType);
+      if (lValue != NULL) {
+        *lValue = false;
+      }
+      return returnType;
     }
     case NT_UNOPEXP: {
-      return NULL;  // TODO: write this
+      switch (expression->data.unOpExp.op) {
+        case UO_DEREF: {
+          Type *ptrType =
+              typeOfExpression(expression->data.unOpExp.target, env, NULL);
+          Type *returnType = ptrType->data.modifier.type;
+          free(ptrType);
+          if (lValue != NULL) {
+            *lValue = true;
+          }
+          return returnType;
+        }
+        case UO_ADDROF: {
+          if (lValue != NULL) {
+            *lValue = false;
+          }
+          return modifierTypeCreate(
+              K_PTR,
+              typeOfExpression(expression->data.unOpExp.target, env, NULL));
+        }
+        case UO_PREINC:
+        case UO_PREDEC: {
+          if (lValue != NULL) {
+            *lValue = true;
+          }
+          return typeOfExpression(expression->data.unOpExp.target, env, NULL);
+        }
+        case UO_UPLUS:
+        case UO_NEG:
+        case UO_LNOT:
+        case UO_BITNOT:
+        case UO_POSTINC:
+        case UO_POSTDEC: {
+          if (lValue != NULL) {
+            *lValue = false;
+          }
+          return typeOfExpression(expression->data.unOpExp.target, env, NULL);
+        }
+        default: {
+          return NULL;  // error - not a valid enum
+        }
+      }
     }
     case NT_TERNARYEXP: {
-      return NULL;  // TODO: write this
+      return typeOfExpression(expression->data.ternaryExp.thenExp, env, lValue);
     }
     case NT_COMPOPEXP:
     case NT_LANDEXP:

@@ -82,6 +82,53 @@ void functionPtrTypeInit(Type *t, Type *returnType, TypeVector *argumentTypes) {
   t->data.functionPtr.returnType = returnType;
   t->data.functionPtr.argumentTypes = argumentTypes;
 }
+Type *typeCopy(Type const *t) {
+  switch (t->kind) {
+    case K_VOID:
+    case K_UBYTE:
+    case K_BYTE:
+    case K_CHAR:
+    case K_USHORT:
+    case K_SHORT:
+    case K_UINT:
+    case K_INT:
+    case K_WCHAR:
+    case K_ULONG:
+    case K_LONG:
+    case K_FLOAT:
+    case K_DOUBLE:
+    case K_BOOL: {
+      return keywordTypeCreate(t->kind);
+    }
+    case K_CONST:
+    case K_PTR: {
+      return modifierTypeCreate(t->kind, typeCopy(t->data.modifier.type));
+    }
+    case K_FUNCTION_PTR: {
+      TypeVector *argTypes = typeVectorCreate();
+      for (size_t idx = 0; idx < t->data.functionPtr.argumentTypes->size;
+           idx++) {
+        typeVectorInsert(
+            argTypes,
+            typeCopy(t->data.functionPtr.argumentTypes->elements[idx]));
+      }
+      return functionPtrTypeCreate(typeCopy(t->data.functionPtr.returnType),
+                                   argTypes);
+    }
+    case K_STRUCT:
+    case K_UNION:
+    case K_ENUM:
+    case K_TYPEDEF: {
+      return referneceTypeCreate(t->kind, t->data.reference.referenced);
+    }
+    case K_ARRAY: {
+      return arrayTypeCreate(typeCopy(t->data.array.type), t->data.array.size);
+    }
+    default: {
+      return NULL;  // error - not a valid enum
+    }
+  }
+}
 bool typeIsIncomplete(Type const *t, Environment const *env) {
   switch (t->kind) {
     case K_VOID: {
@@ -139,6 +186,9 @@ bool typeIsIncomplete(Type const *t, Environment const *env) {
   }
 }
 bool typeAssignable(Type const *from, Type const *to) {
+  return false;  // TODO: write this
+}
+bool typeInitializable(Type const *from, Type const *to) {
   return false;  // TODO: write this
 }
 char *typeToString(Type const *t) {
