@@ -480,9 +480,11 @@ typedef enum {
 
   // word states
   LS_WORD,
-  LS_WORD_COLON,
+  LS_WORD_COLON_1,
+  LS_WORD_COLON_2,
   LS_SCOPED_WORD,
-  LS_SCOPED_WORD_COLON,
+  LS_SCOPED_WORD_COLON_1,
+  LS_SCOPED_WORD_COLON_2,
 
   // special states
   LS_EOF,
@@ -2603,7 +2605,7 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
         if (isAlnumOrUnderscore(c)) {
           stringBuilderPush(buffer, c);
         } else if (c == ':') {
-          state = LS_WORD_COLON;
+          state = LS_WORD_COLON_1;
 
           stringBuilderPush(buffer, c);
         } else {
@@ -2621,10 +2623,10 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_WORD
-      case LS_WORD_COLON: {
+      case LS_WORD_COLON_1: {
         switch (c) {
           case ':': {
-            state = LS_SCOPED_WORD;
+            state = LS_WORD_COLON_2;
 
             stringBuilderPush(buffer, c);
             break;
@@ -2647,11 +2649,35 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_WORD_COLON
+      case LS_WORD_COLON_2: {
+        if (isAlphaOrUnderscore(c)) {
+          state = LS_SCOPED_WORD;
+
+          stringBuilderPush(buffer, c);
+          break;
+        } else {
+          fUnget(lexerInfo->file);
+          fUnget(lexerInfo->file);
+          fUnget(lexerInfo->file);
+          lexerInfo->character -= 3;
+
+          stringBuilderPop(buffer);
+          stringBuilderPop(buffer);
+          tokenInfo->data.string = stringBuilderData(buffer);
+          stringBuilderDestroy(buffer);
+          TokenType const *keyword =
+              keywordMapGet(lexerInfo->keywords, tokenInfo->data.string);
+          if (keyword != NULL) free(tokenInfo->data.string);
+
+          tokenInfo->type = keyword != NULL ? *keyword : TT_ID;
+          return;
+        }
+      }  // LS_WORD_COLON_2
       case LS_SCOPED_WORD: {
         if (isAlnumOrUnderscore(c)) {
           stringBuilderPush(buffer, c);
         } else if (c == ':') {
-          state = LS_SCOPED_WORD_COLON;
+          state = LS_SCOPED_WORD_COLON_1;
 
           stringBuilderPush(buffer, c);
         } else {
@@ -2666,10 +2692,10 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_SCOPED_WORD
-      case LS_SCOPED_WORD_COLON: {
+      case LS_SCOPED_WORD_COLON_1: {
         switch (c) {
           case ':': {
-            state = LS_SCOPED_WORD;
+            state = LS_SCOPED_WORD_COLON_2;
 
             stringBuilderPush(buffer, c);
             break;
@@ -2689,6 +2715,27 @@ void lex(LexerInfo *lexerInfo, Report *report, TokenInfo *tokenInfo) {
         }
         break;
       }  // LS_SCOPED_WORD_COLON
+      case LS_SCOPED_WORD_COLON_2: {
+        if (isAlphaOrUnderscore(c)) {
+          state = LS_SCOPED_WORD;
+
+          stringBuilderPush(buffer, c);
+          break;
+        } else {
+          fUnget(lexerInfo->file);
+          fUnget(lexerInfo->file);
+          fUnget(lexerInfo->file);
+          lexerInfo->character -= 3;
+
+          stringBuilderPop(buffer);
+          stringBuilderPop(buffer);
+          tokenInfo->data.string = stringBuilderData(buffer);
+          stringBuilderDestroy(buffer);
+
+          tokenInfo->type = TT_SCOPED_ID;
+          return;
+        }
+      }  // LS_SCOPED_WORD_COLON_2
 
       // special states
       case LS_EOF: {
