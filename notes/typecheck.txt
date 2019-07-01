@@ -1,0 +1,4 @@
+Typecheck Algorithm:
+
+ - buildSymbolTable associates each ID with its SymbolInfo, and produces an error for any undefined IDs. The AST owns an owning SymbolTable, which owns the SymbolInfo pointed to by the ids.
+ - buildSymbolTable maintains a non-owning environment as it goes, and only checks for duplicate/missing definitions/declarations
