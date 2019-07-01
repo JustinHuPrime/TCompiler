@@ -100,10 +100,8 @@ int main(int argc, char *argv[]) {
   }
 
   ModuleSymbolTableMapPair stabs;
-  ModuleEnvironmentMapPair envs;
-  buildSymbolTables(&stabs, &envs, &report, &options, &asts);
+  buildSymbolTables(&stabs, &report, &options, &asts);
   if (reportState(&report) == RPT_ERR) {
-    moduleEnvronmentMapPairUninit(&envs);
     moduleSymbolTableMapPairUninit(&stabs);
     moduleAstMapPairUninit(&asts);
     optionsUninit(&options);
@@ -112,7 +110,6 @@ int main(int argc, char *argv[]) {
   }
 
   // clean up
-  moduleEnvronmentMapPairUninit(&envs);
   moduleSymbolTableMapPairUninit(&stabs);
   moduleAstMapPairUninit(&asts);
   optionsUninit(&options);

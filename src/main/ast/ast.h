@@ -269,12 +269,10 @@ typedef struct Node {
       struct Node *id;
       NodeTripleList *formals;  // <type, id (nullable), literal (nullable)>
       struct Node *body;
-      SymbolTable *localSymbols;
     } function;
 
     struct {
       NodeList *statements;
-      SymbolTable *localSymbols;
     } compoundStmt;
     struct {
       struct Node *condition;
@@ -294,7 +292,6 @@ typedef struct Node {
       struct Node *condition;
       struct Node *update;
       struct Node *body;
-      SymbolTable *localSymbols;
     } forStmt;
     struct {
       struct Node *onWhat;
