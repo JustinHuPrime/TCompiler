@@ -185,78 +185,61 @@ bool typeIsIncomplete(Type const *t, Environment const *env) {
     }
   }
 }
-bool typeAssignable(Type const *from, Type const *to) {
-  return false;  // TODO: write this
-}
-bool typeInitializable(Type const *from, Type const *to) {
-  return false;  // TODO: write this
-}
-char *typeToString(Type const *t) {
-  switch (t->kind) {
-    case K_VOID: {
-      return strcpy(malloc(7), "a void");
-    }
-    case K_UBYTE: {
-      return strcpy(malloc(17), "an unsigned byte");
-    }
-    case K_BYTE: {
-      return strcpy(malloc(7), "a byte");
-    }
-    case K_CHAR: {
-      return strcpy(malloc(12), "a character");
-    }
-    case K_USHORT: {
-      return strcpy(malloc(18), "an unsigned short");
-    }
-    case K_SHORT: {
-      return strcpy(malloc(8), "a short");
-    }
-    case K_UINT: {
-      return strcpy(malloc(16), "an unsigned int");
-    }
-    case K_INT: {
-      return strcpy(malloc(7), "an int");
-    }
-    case K_WCHAR: {
-      return strcpy(malloc(17), "a wide character");
-    }
-    case K_ULONG: {
-      return strcpy(malloc(17), "an unsigned long");
-    }
-    case K_LONG: {
-      return strcpy(malloc(7), "a long");
-    }
-    case K_FLOAT: {
-      return strcpy(malloc(8), "a float");
-    }
-    case K_DOUBLE: {
-      return strcpy(malloc(9), "a double");
-    }
-    case K_BOOL: {
-      return strcpy(malloc(7), "a bool");
-    }
-    case K_STRUCT:
-    case K_UNION:
-    case K_ENUM:
-    case K_TYPEDEF: {
-      return NULL;  // TODO: write this case
-    }
-    case K_CONST: {
-      char *baseString = typeToString(t->data.modifier.type);
-      return strcat(realloc(baseString, strlen(baseString) + 10), " constant");
-    }
-    case K_ARRAY: {
-      return NULL;  // TODO: write this case
-    }
-    case K_PTR: {
-      char *baseString = typeToString(t->data.modifier.type);
-      return strcat(realloc(baseString, strlen(baseString) + 9), " pointer");
-    }
-    case K_FUNCTION_PTR: {
-      return NULL;  // TODO: write this case
-    }
-    default: {
-      return NULL;  // error - not a valid enum
+bool typeEqual(Type const *t1, Type const *t2) {
+  if (t1->kind != t2->kind) {
+    return false;
+  } else {
+    switch (t1->kind) {
+      case K_VOID:
+      case K_UBYTE:
+      case K_BYTE:
+      case K_CHAR:
+      case K_USHORT:
+      case K_SHORT:
+      case K_UINT:
+      case K_INT:
+      case K_WCHAR:
+      case K_ULONG:
+      case K_LONG:
+      case K_FLOAT:
+      case K_DOUBLE:
+      case K_BOOL: {
+        return true;
+      }
+      case K_FUNCTION_PTR: {
+        if (t1->data.functionPtr.argumentTypes->size !=
+            t2->data.functionPtr.argumentTypes->size) {
+          return false;
+        }
+        for (size_t idx = 0; idx < t1->data.functionPtr.argumentTypes->size;
+             idx++) {
+          if (!typeEqual(t1->data.functionPtr.argumentTypes->elements[idx],
+                         t2->data.functionPtr.argumentTypes->elements[idx])) {
+            return false;
+          }
+        }
+
+        return typeEqual(t1->data.functionPtr.returnType,
+                         t2->data.functionPtr.returnType);
+      }
+      case K_PTR:
+      case K_CONST: {
+        return typeEqual(t1->data.modifier.type, t2->data.modifier.type);
+      }
+      case K_ARRAY: {
+        return t1->data.array.size == t2->data.array.size &&
+               typeEqual(t1->data.array.type, t2->data.array.type);
+      }
+      case K_STRUCT:
+      case K_UNION:
+      case K_ENUM:
+      case K_TYPEDEF: {
+        return t1->data.reference.referenced == t2->data.reference.referenced;
+        // this works because references reference the symbol table entry
+      }
+      default: {
+        return false;  // error: not a valid enum
+      }
     }
   }
 }

@@ -111,12 +111,8 @@ void functionPtrTypeInit(Type *, Type *returnType, TypeVector *argumentTypes);
 Type *typeCopy(Type const *);
 // if type is incomplete, returns true, else false
 bool typeIsIncomplete(Type const *, struct Environment const *);
-// produce true if you can assign from to to
-bool typeAssignable(Type const *from, Type const *to);
-// produce true if you can initialize to with from
-bool typeInitializable(Type const *from, Type const *to);
-// to-string
-char *typeToString(Type const *);
+// determines if two types are completely equal
+bool typeEqual(Type const *, Type const *);
 // in-place dtor
 void typeUninit(Type *);
 // dtor
