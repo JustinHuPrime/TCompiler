@@ -168,6 +168,7 @@ Node *fileNodeCreate(size_t line, size_t character, Node *module,
   node->data.file.imports = imports;
   node->data.file.bodies = bodies;
   node->data.file.filename = filename;
+  node->data.file.symbols = NULL;
   return node;
 }
 
@@ -986,6 +987,9 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.file.module);
       nodeListDestroy(node->data.file.imports);
       nodeListDestroy(node->data.file.bodies);
+      if (node->data.file.symbols != NULL) {
+        symbolTableDestroy(node->data.file.symbols);
+      }
       break;
     }
     case NT_MODULE: {
@@ -1056,8 +1060,9 @@ void nodeDestroy(Node *node) {
     }
     case NT_COMPOUNDSTMT: {
       nodeListDestroy(node->data.compoundStmt.statements);
-      if (node->data.compoundStmt.localSymbols != NULL)
+      if (node->data.compoundStmt.localSymbols != NULL) {
         symbolTableDestroy(node->data.compoundStmt.localSymbols);
+      }
       break;
     }
     case NT_IFSTMT: {
@@ -1081,8 +1086,9 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.forStmt.condition);
       nodeDestroy(node->data.forStmt.update);
       nodeDestroy(node->data.forStmt.body);
-      if (node->data.forStmt.localSymbols != NULL)
+      if (node->data.forStmt.localSymbols != NULL) {
         symbolTableDestroy(node->data.forStmt.localSymbols);
+      }
       break;
     }
     case NT_SWITCHSTMT: {

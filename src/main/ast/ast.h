@@ -220,6 +220,7 @@ typedef struct Node {
       NodeList *imports;
       NodeList *bodies;
       char const *filename;
+      SymbolTable *symbols;
     } file;
 
     struct {
