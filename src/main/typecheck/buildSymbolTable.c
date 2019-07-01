@@ -42,6 +42,28 @@ void moduleSymbolTableMapPairUninit(ModuleSymbolTableMapPair *pair) {
   moduleSymbolTableMapUninit(&pair->codes);
 }
 
+void moduleEnvironmentMapInit(ModuleEnvironmentMap *map) { hashMapInit(map); }
+Environment *moduleEnvironmentMapGet(ModuleEnvironmentMap *map,
+                                     char const *key) {
+  return hashMapGet(map, key);
+}
+int moduleEnvironmentMapPut(ModuleEnvironmentMap *map, char const *key,
+                            Environment *value) {
+  return hashMapPut(map, key, value, (void (*)(void *))environmentDestroy);
+}
+void moduleEnvironmentMapUninit(ModuleEnvironmentMap *map) {
+  hashMapUninit(map, (void (*)(void *))environmentDestroy);
+}
+
+void moduleEnvronmentMapPairInit(ModuleEnvironmentMapPair *pair) {
+  moduleEnvironmentMapInit(&pair->decls);
+  moduleEnvironmentMapInit(&pair->codes);
+}
+void moduleEnvronmentMapPairUninit(ModuleEnvironmentMapPair *pair) {
+  moduleEnvironmentMapUninit(&pair->decls);
+  moduleEnvironmentMapUninit(&pair->codes);
+}
+
 // helpers
 static Type *astToType(Node const *ast, Report *report, Options const *options,
                        Environment const *env, char const *filename) {
@@ -628,19 +650,25 @@ static Environment *buildStabCode(ModuleSymbolTableMapPair *stabs,
   return env;
 }
 
-void buildSymbolTables(ModuleSymbolTableMapPair *stabs, Report *report,
+void buildSymbolTables(ModuleSymbolTableMapPair *stabs,
+                       ModuleEnvironmentMapPair *envs, Report *report,
                        Options const *options, ModuleAstMapPair const *asts) {
   moduleSymbolTableMapPairInit(stabs);
 
   for (size_t idx = 0; idx < asts->decls.size; idx++) {
     if (asts->decls.keys[idx] != NULL) {
-      buildStabDecl(&stabs->decls, report, options, &asts->decls,
-                    asts->decls.values[idx]);
+      Node *ast = asts->decls.values[idx];
+      moduleEnvironmentMapPut(
+          &envs->decls, ast->data.file.module->data.module.id->data.id.id,
+          buildStabDecl(&stabs->decls, report, options, &asts->decls, ast));
     }
   }
   for (size_t idx = 0; idx < asts->codes.size; idx++) {
     if (asts->codes.keys[idx] != NULL) {
-      buildStabCode(stabs, report, options, asts->decls.values[idx]);
+      Node *ast = asts->decls.values[idx];
+      moduleEnvironmentMapPut(&envs->decls,
+                              ast->data.file.module->data.module.id->data.id.id,
+                              buildStabCode(stabs, report, options, ast));
     }
   }
 }

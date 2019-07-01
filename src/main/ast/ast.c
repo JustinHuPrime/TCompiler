@@ -257,6 +257,7 @@ Node *functionNodeCreate(size_t line, size_t character, Node *returnType,
   node->data.function.id = id;
   node->data.function.formals = formals;
   node->data.function.body = body;
+  node->data.function.localSymbols = NULL;
   return node;
 }
 Node *varDeclNodeCreate(size_t line, size_t character, Node *type,
@@ -272,6 +273,7 @@ Node *compoundStmtNodeCreate(size_t line, size_t character,
   Node *node = nodeCreate(line, character);
   node->type = NT_COMPOUNDSTMT;
   node->data.compoundStmt.statements = statements;
+  node->data.compoundStmt.localSymbols = NULL;
   return node;
 }
 Node *ifStmtNodeCreate(size_t line, size_t character, Node *condition,
@@ -307,6 +309,7 @@ Node *forStmtNodeCreate(size_t line, size_t character, Node *initialize,
   node->data.forStmt.condition = condition;
   node->data.forStmt.update = update;
   node->data.forStmt.body = body;
+  node->data.forStmt.localSymbols = NULL;
   return node;
 }
 Node *switchStmtNodeCreate(size_t line, size_t character, Node *onWhat,
@@ -1041,6 +1044,9 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.function.id);
       nodeTripleListDestroy(node->data.function.formals);
       nodeDestroy(node->data.function.body);
+      if (node->data.function.localSymbols != NULL) {
+        symbolTableDestroy(node->data.function.localSymbols);
+      }
       break;
     }
     case NT_VARDECL: {
@@ -1050,6 +1056,8 @@ void nodeDestroy(Node *node) {
     }
     case NT_COMPOUNDSTMT: {
       nodeListDestroy(node->data.compoundStmt.statements);
+      if (node->data.compoundStmt.localSymbols != NULL)
+        symbolTableDestroy(node->data.compoundStmt.localSymbols);
       break;
     }
     case NT_IFSTMT: {
@@ -1073,6 +1081,8 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.forStmt.condition);
       nodeDestroy(node->data.forStmt.update);
       nodeDestroy(node->data.forStmt.body);
+      if (node->data.forStmt.localSymbols != NULL)
+        symbolTableDestroy(node->data.forStmt.localSymbols);
       break;
     }
     case NT_SWITCHSTMT: {
