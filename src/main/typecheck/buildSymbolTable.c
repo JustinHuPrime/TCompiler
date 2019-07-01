@@ -16,7 +16,7 @@
 
 // Implementation of type checking
 
-#include "typecheck/typecheck.h"
+#include "typecheck/buildSymbolTable.h"
 
 #include <stdlib.h>
 
@@ -65,9 +65,8 @@ void moduleEnvronmentMapPairUninit(ModuleEnvironmentMapPair *pair) {
 }
 
 // helpers
-static Type *astToTypeInternal(Node const *ast, Report *report,
-                               Options const *options, Environment const *env,
-                               char const *filename, bool reportErrors) {
+static Type *astToType(Node const *ast, Report *report, Options const *options,
+                       Environment const *env, char const *filename) {
   switch (ast->type) {
     case NT_KEYWORDTYPE: {
       return keywordTypeCreate(ast->data.typeKeyword.type - TK_VOID + K_VOID);
@@ -81,7 +80,7 @@ static Type *astToTypeInternal(Node const *ast, Report *report,
                        info->data.type.kind - TDK_STRUCT + K_STRUCT, info);
     }
     case NT_CONSTTYPE: {
-      if (ast->data.constType.target->type == NT_CONSTTYPE && reportErrors) {
+      if (ast->data.constType.target->type == NT_CONSTTYPE) {
         switch (optionsGet(options, optionWDuplicateDeclSpecifier)) {
           case O_WT_ERROR: {
             reportError(report,
@@ -93,18 +92,18 @@ static Type *astToTypeInternal(Node const *ast, Report *report,
             reportWarning(report,
                           "%s:%zu:%zu: warning: duplciate 'const' specifier",
                           filename, ast->line, ast->character);
-            return astToTypeInternal(ast->data.constType.target, report,
-                                     options, env, filename, reportErrors);
+            return astToType(ast->data.constType.target, report, options, env,
+                             filename);
           }
           case O_WT_IGNORE: {
-            return astToTypeInternal(ast->data.constType.target, report,
-                                     options, env, filename, reportErrors);
+            return astToType(ast->data.constType.target, report, options, env,
+                             filename);
           }
         }
       }
 
-      Type *subType = astToTypeInternal(ast->data.constType.target, report,
-                                        options, env, filename, reportErrors);
+      Type *subType =
+          astToType(ast->data.constType.target, report, options, env, filename);
       return subType == NULL ? NULL : modifierTypeCreate(K_PTR, subType);
     }
     case NT_ARRAYTYPE: {
@@ -117,14 +116,11 @@ static Type *astToTypeInternal(Node const *ast, Report *report,
           break;
         }
         default: {
-          if (reportErrors) {
-            reportError(
-                report,
-                "%s:%zu:%zu: error: expected an unsigned integer for an "
-                "array size, but found %s",
-                filename, sizeConst->line, sizeConst->character,
-                constTypeToString(sizeConst->data.constExp.type));
-          }
+          reportError(report,
+                      "%s:%zu:%zu: error: expected an unsigned integer for an "
+                      "array size, but found %s",
+                      filename, sizeConst->line, sizeConst->character,
+                      constTypeToString(sizeConst->data.constExp.type));
           return NULL;
         }
       }
@@ -150,27 +146,26 @@ static Type *astToTypeInternal(Node const *ast, Report *report,
           return NULL;  // error: mutation in const ptr
         }
       }
-      Type *subType = astToTypeInternal(ast->data.arrayType.element, report,
-                                        options, env, filename, reportErrors);
+      Type *subType = astToType(ast->data.arrayType.element, report, options,
+                                env, filename);
       return subType == NULL ? NULL : arrayTypeCreate(subType, size);
     }
     case NT_PTRTYPE: {
-      Type *subType = astToTypeInternal(ast->data.ptrType.target, report,
-                                        options, env, filename, reportErrors);
+      Type *subType =
+          astToType(ast->data.ptrType.target, report, options, env, filename);
       return subType == NULL ? NULL : modifierTypeCreate(K_PTR, subType);
     }
     case NT_FNPTRTYPE: {
-      Type *retType = astToTypeInternal(ast->data.fnPtrType.returnType, report,
-                                        options, env, filename, reportErrors);
+      Type *retType = astToType(ast->data.fnPtrType.returnType, report, options,
+                                env, filename);
       if (retType == NULL) {
         return NULL;
       }
 
       TypeVector *argTypes = typeVectorCreate();
       for (size_t idx = 0; idx < ast->data.fnPtrType.argTypes->size; idx++) {
-        Type *argType =
-            astToTypeInternal(ast->data.fnPtrType.argTypes->elements[idx],
-                              report, options, env, filename, reportErrors);
+        Type *argType = astToType(ast->data.fnPtrType.argTypes->elements[idx],
+                                  report, options, env, filename);
         if (argType == NULL) {
           typeDestroy(retType);
         }
@@ -185,252 +180,43 @@ static Type *astToTypeInternal(Node const *ast, Report *report,
     }
   }
 }
-static Type *astToType(Node const *ast, Report *report, Options const *options,
-                       Environment const *env, char const *filename) {
-  return astToTypeInternal(ast, report, options, env, filename, true);
-}
-static Type *astToTypeMustSucceed(Node const *ast, Environment const *env) {
-  return astToTypeInternal(ast, NULL, NULL, env, NULL, false);
-}
-// assumes that expression is well-formed - check first!
-static Type *typeOfExpression(Node const *expression, Environment const *env,
-                              bool *lValue) {
-  switch (expression->type) {
-    case NT_CONSTEXP: {
-      if (lValue != NULL) {
-        *lValue = false;
-      }
-      return keywordTypeCreate(expression->data.constExp.type - CT_UBYTE +
-                               K_UBYTE);
-    }
-    case NT_AGGREGATEINITEXP: {
-      return NULL;  // TODO: write this
-    }
-    case NT_ENUMCONSTEXP: {
-      if (lValue != NULL) {
-        *lValue = false;
-      }
-      SymbolInfo *info =
-          environmentLookupMustSucceed(env, expression->data.enumConstExp.id);
-      return typeCopy(info->data.enumConst.parentEnum);
-    }
-    case NT_IDEXP: {
-      if (lValue != NULL) {
-        *lValue = true;
-      }
-      SymbolInfo *info =
-          environmentLookupMustSucceed(env, expression->data.idExp.id);
-      return typeCopy(info->data.var.type);
-    }
-    case NT_CASTEXP: {
-      if (lValue != NULL) {
-        *lValue = false;
-      }
-      return astToTypeMustSucceed(expression->data.castExp.toWhat, env);
-    }
-    case NT_SIZEOFEXPEXP:
-    case NT_SIZEOFTYPEEXP: {
-      if (lValue != NULL) {
-        *lValue = false;
-      }
-      return keywordTypeCreate(K_ULONG);
-    }
-    case NT_BINOPEXP: {
-      // TODO: finish this
-      switch (expression->data.binopExp.op) {
-        case BO_ASSIGN: {
-          if (lValue != NULL) {
-            *lValue = true;
-          }
-        }
-        case BO_MULASSIGN: {
-        }
-        case BO_DIVASSIGN: {
-        }
-        case BO_MODASSIGN: {
-        }
-        case BO_ADDASSIGN: {
-        }
-        case BO_SUBASSIGN: {
-        }
-        case BO_LSHIFTASSIGN: {
-        }
-        case BO_LRSHIFTASSIGN: {
-        }
-        case BO_ARSHIFTASSIGN: {
-        }
-        case BO_BITANDASSIGN: {
-        }
-        case BO_BITXORASSIGN: {
-        }
-        case BO_BITORASSIGN: {
-        }
-        case BO_BITAND: {
-        }
-        case BO_BITOR: {
-        }
-        case BO_BITXOR: {
-        }
-        case BO_SPACESHIP: {
-        }
-        case BO_LSHIFT: {
-        }
-        case BO_LRSHIFT: {
-        }
-        case BO_ARSHIFT: {
-        }
-        case BO_ADD: {
-        }
-        case BO_SUB: {
-        }
-        case BO_MUL: {
-        }
-        case BO_DIV: {
-        }
-        case BO_MOD: {
-        }
-        case BO_ARRAYACCESS: {
-        }
-        default: {
-          return NULL;  // error - not a valid enum
-        }
-      }
-    }
-    case NT_FNCALLEXP: {
-      Type *functionType =
-          typeOfExpression(expression->data.fnCallExp.who, env, NULL);
-      Type *returnType = functionType->data.functionPtr.returnType;
-      typeVectorDestroy(functionType->data.functionPtr.argumentTypes);
-      free(functionType);
-      if (lValue != NULL) {
-        *lValue = false;
-      }
-      return returnType;
-    }
-    case NT_UNOPEXP: {
-      switch (expression->data.unOpExp.op) {
-        case UO_DEREF: {
-          Type *ptrType =
-              typeOfExpression(expression->data.unOpExp.target, env, NULL);
-          Type *returnType = ptrType->data.modifier.type;
-          free(ptrType);
-          if (lValue != NULL) {
-            *lValue = true;
-          }
-          return returnType;
-        }
-        case UO_ADDROF: {
-          if (lValue != NULL) {
-            *lValue = false;
-          }
-          return modifierTypeCreate(
-              K_PTR,
-              typeOfExpression(expression->data.unOpExp.target, env, NULL));
-        }
-        case UO_PREINC:
-        case UO_PREDEC: {
-          if (lValue != NULL) {
-            *lValue = true;
-          }
-          return typeOfExpression(expression->data.unOpExp.target, env, NULL);
-        }
-        case UO_UPLUS:
-        case UO_NEG:
-        case UO_LNOT:
-        case UO_BITNOT:
-        case UO_POSTINC:
-        case UO_POSTDEC: {
-          if (lValue != NULL) {
-            *lValue = false;
-          }
-          return typeOfExpression(expression->data.unOpExp.target, env, NULL);
-        }
-        default: {
-          return NULL;  // error - not a valid enum
-        }
-      }
-    }
-    case NT_TERNARYEXP: {
-      return typeOfExpression(expression->data.ternaryExp.thenExp, env, lValue);
-    }
-    case NT_COMPOPEXP:
-    case NT_LANDEXP:
-    case NT_LOREXP: {
-      if (lValue != NULL) {
-        *lValue = false;
-      }
-      return keywordTypeCreate(K_BOOL);
-    }
-    case NT_LANDASSIGNEXP:
-    case NT_LORASSIGNEXP: {
-      if (lValue != NULL) {
-        *lValue = true;
-      }
-      return keywordTypeCreate(K_BOOL);
-    }
-    case NT_SEQEXP: {
-      return typeOfExpression(expression->data.seqExp.rest, env, lValue);
-    }
-    default: {
-      return NULL;  // error - not an expression
-    }
-  }
-}
-// from and to must both be expressions
-static void checkAssignableTo(Node const *from, Node const *to, Report *report,
-                              Options const *options, Environment const *env,
-                              char const *filename) {
-  Type *fromType = typeOfExpression(from, env, NULL);
-  bool toIsLvalue;
-  Type *toType = typeOfExpression(from, env, &toIsLvalue);
 
-  if (!toIsLvalue) {
-    reportError(report, "%s:%zu:%zu: error: may not assign to an r-value",
-                filename, to->line, to->character);
-    return;
-  }
+// expression
 
-  if (!typeAssignable(fromType, toType)) {
-    char *fromTypeString = typeToString(fromType);
-    char *toTypeString = typeToString(toType);
-    reportError(report, "%s:%zu:%zu: error: may not assign %s to %s", filename,
-                from->line, from->character, fromTypeString, toTypeString);
-    free(fromTypeString);
-    free(toTypeString);
-    return;
-  }
-}
-// from must be a constant expression, and to must be an id
-static void checkInitializableAs(Node const *from, Node const *to,
-                                 Report *report, Options const *options,
-                                 Environment const *env, char const *filename) {
-  SymbolInfo *info = environmentLookupMustSucceed(env, to->data.id.id);
-  Type *fromType = info->data.var.type;
-  Type *toType = typeOfExpression(from, env, NULL);
+// statement
 
-  if (!typeAssignable(fromType, toType)) {
-    char *fromTypeString = typeToString(fromType);
-    reportError(report,
-                "%s:%zu:%zu: error: incompatible types: '%s' may not be "
-                "initialized as %s",
-                filename, from->line, from->character, to->data.id.id,
-                fromTypeString);
-    free(fromTypeString);
-    return;
-  }
-}
-
-// expression typechecking
-
-// statement typechecking
-
-// top level typechecking
-static void typecheckFunction(Node const *function, Report *report,
+// top level
+static void buildStabFunction(Node const *function, Report *report,
                               Options const *options, Environment *env,
                               char const *filename) {
+  SymbolTable *table = environmentTop(env);
+  SymbolInfo *info =
+      symbolTableGet(table, function->data.function.id->data.id.id);
   // TODO: write this
 }
-static void typecheckVarDecl(Node const *varDecl, Report *report,
+static void buildStabFunDecl(Node const *funDecl, Report *report,
+                             Options const *options, Environment *env,
+                             char const *filename) {
+  SymbolTable *table = environmentTop(env);
+  SymbolInfo *info =
+      symbolTableGet(table, funDecl->data.funDecl.id->data.id.id);
+  Type *returnType = astToType(funDecl->data.funDecl.returnType, report,
+                               options, env, filename);
+  if (returnType == NULL) {
+    return;
+  }
+
+  if (info == NULL) {
+    info = functionSymbolInfoCreate(returnType);
+  } else {
+    // check that returnType === info->data.function.returnType
+    if (!typeEqual(returnType, info->data.function.returnType)) {
+      // error - overload set w/ different return type
+    }
+  }
+  // TODO: write this
+}
+static void buildStabVarDecl(Node const *varDecl, Report *report,
                              Options const *options, Environment *env,
                              char const *filename) {
   SymbolTable *table = environmentTop(env);
@@ -460,14 +246,9 @@ static void typecheckVarDecl(Node const *varDecl, Report *report,
     }
 
     symbolTablePut(table, id->data.id.id, varSymbolInfoCreate(type));
-
-    checkInitializableAs(
-        varDecl->data.varDecl.idValuePairs->secondElements[idx],
-        varDecl->data.varDecl.idValuePairs->firstElements[idx], report, options,
-        env, filename);
   }
 }
-static void typecheckStructDecl(Node const *structDecl, Report *report,
+static void buildStabStructDecl(Node const *structDecl, Report *report,
                                 Options const *options, Environment *env,
                                 char const *filename) {
   SymbolTable *table = environmentTop(env);
@@ -480,6 +261,12 @@ static void typecheckStructDecl(Node const *structDecl, Report *report,
                 structDecl->data.structDecl.id->character,
                 structDecl->data.structDecl.id->data.id.id,
                 symbolInfoToKindString(info));
+    return;
+  } else if (!info->data.type.data.structType.incomplete) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already defined", filename,
+                structDecl->data.structDecl.id->line,
+                structDecl->data.structDecl.id->character,
+                structDecl->data.structDecl.id->data.id.id);
     return;
   }
 
@@ -519,7 +306,7 @@ static void typecheckStructDecl(Node const *structDecl, Report *report,
 
   info->data.type.data.structType.incomplete = bad;
 }
-static void typecheckStructForwardDecl(Node const *forwardDecl, Report *report,
+static void buildStabStructForwardDecl(Node const *forwardDecl, Report *report,
                                        Options const *options, Environment *env,
                                        char const *filename) {
   SymbolTable *table = environmentTop(env);
@@ -561,7 +348,7 @@ static void typecheckStructForwardDecl(Node const *forwardDecl, Report *report,
                    structSymbolInfoCreate());
   }
 }
-static void typecheckUnionDecl(Node const *unionDecl, Report *report,
+static void buildStabUnionDecl(Node const *unionDecl, Report *report,
                                Options const *options, Environment *env,
                                char const *filename) {
   SymbolTable *table = environmentTop(env);
@@ -574,6 +361,12 @@ static void typecheckUnionDecl(Node const *unionDecl, Report *report,
                 unionDecl->data.unionDecl.id->character,
                 unionDecl->data.unionDecl.id->data.id.id,
                 symbolInfoToKindString(info));
+    return;
+  } else if (!info->data.type.data.unionType.incomplete) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already defined", filename,
+                unionDecl->data.unionDecl.id->line,
+                unionDecl->data.unionDecl.id->character,
+                unionDecl->data.unionDecl.id->data.id.id);
     return;
   }
 
@@ -610,7 +403,7 @@ static void typecheckUnionDecl(Node const *unionDecl, Report *report,
 
   info->data.type.data.unionType.incomplete = bad;
 }
-static void typecheckUnionForwardDecl(Node const *forwardDecl, Report *report,
+static void buildStabUnionForwardDecl(Node const *forwardDecl, Report *report,
                                       Options const *options, Environment *env,
                                       char const *filename) {
   SymbolTable *table = environmentTop(env);
@@ -652,7 +445,7 @@ static void typecheckUnionForwardDecl(Node const *forwardDecl, Report *report,
                    unionSymbolInfoCreate());
   }
 }
-static void typecheckEnumDecl(Node const *enumDecl, Report *report,
+static void buildStabEnumDecl(Node const *enumDecl, Report *report,
                               Options const *options, Environment *env,
                               char const *filename) {
   SymbolTable *table = environmentTop(env);
@@ -664,6 +457,12 @@ static void typecheckEnumDecl(Node const *enumDecl, Report *report,
         report, "%s:%zu:%zu: error: '%s' is already declared as %s", filename,
         enumDecl->data.enumDecl.id->line, enumDecl->data.enumDecl.id->character,
         enumDecl->data.enumDecl.id->data.id.id, symbolInfoToKindString(info));
+    return;
+  } else if (!info->data.type.data.enumType.incomplete) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already defined", filename,
+                enumDecl->data.enumDecl.id->line,
+                enumDecl->data.enumDecl.id->character,
+                enumDecl->data.enumDecl.id->data.id.id);
     return;
   }
 
@@ -681,7 +480,7 @@ static void typecheckEnumDecl(Node const *enumDecl, Report *report,
 
   info->data.type.data.unionType.incomplete = false;
 }
-static void typecheckEnumForwardDecl(Node const *forwardDecl, Report *report,
+static void buildStabEnumForwardDecl(Node const *forwardDecl, Report *report,
                                      Options const *options, Environment *env,
                                      char const *filename) {
   SymbolTable *table = environmentTop(env);
@@ -723,7 +522,7 @@ static void typecheckEnumForwardDecl(Node const *forwardDecl, Report *report,
                    enumSymbolInfoCreate());
   }
 }
-static void typecheckTypedef(Node const *typedefDecl, Report *report,
+static void buildStabTypedef(Node const *typedefDecl, Report *report,
                              Options const *options, Environment *env,
                              char const *filename) {
   SymbolTable *table = environmentTop(env);
@@ -747,44 +546,48 @@ static void typecheckTypedef(Node const *typedefDecl, Report *report,
                    typedefSymbolInfoCreate(type));
   }
 }
-static void typecheckBody(Node const *body, Report *report,
+static void buildStabBody(Node const *body, Report *report,
                           Options const *options, Environment *env,
                           char const *filename) {
   switch (body->type) {
     case NT_FUNCTION: {
-      typecheckFunction(body, report, options, env, filename);
+      buildStabFunction(body, report, options, env, filename);
+      break;
+    }
+    case NT_FUNDECL: {
+      buildStabFunDecl(body, report, options, env, filename);
       break;
     }
     case NT_VARDECL: {
-      typecheckVarDecl(body, report, options, env, filename);
+      buildStabVarDecl(body, report, options, env, filename);
       break;
     }
     case NT_STRUCTDECL: {
-      typecheckStructDecl(body, report, options, env, filename);
+      buildStabStructDecl(body, report, options, env, filename);
       break;
     }
     case NT_STRUCTFORWARDDECL: {
-      typecheckStructForwardDecl(body, report, options, env, filename);
+      buildStabStructForwardDecl(body, report, options, env, filename);
       break;
     }
     case NT_UNIONDECL: {
-      typecheckUnionDecl(body, report, options, env, filename);
+      buildStabUnionDecl(body, report, options, env, filename);
       break;
     }
     case NT_UNIONFORWARDDECL: {
-      typecheckUnionForwardDecl(body, report, options, env, filename);
+      buildStabUnionForwardDecl(body, report, options, env, filename);
       break;
     }
     case NT_ENUMDECL: {
-      typecheckEnumDecl(body, report, options, env, filename);
+      buildStabEnumDecl(body, report, options, env, filename);
       break;
     }
     case NT_ENUMFORWARDDECL: {
-      typecheckEnumForwardDecl(body, report, options, env, filename);
+      buildStabEnumForwardDecl(body, report, options, env, filename);
       break;
     }
     case NT_TYPEDEFDECL: {
-      typecheckTypedef(body, report, options, env, filename);
+      buildStabTypedef(body, report, options, env, filename);
       break;
     }
     default: {
@@ -795,7 +598,7 @@ static void typecheckBody(Node const *body, Report *report,
 }
 
 // file level stuff
-static Environment *typecheckDecl(ModuleSymbolTableMap *declStabs,
+static Environment *buildStabDecl(ModuleSymbolTableMap *declStabs,
                                   Report *report, Options const *options,
                                   ModuleAstMap const *asts, Node const *ast) {
   SymbolTable *currStab = symbolTableCreate();
@@ -808,7 +611,7 @@ static Environment *typecheckDecl(ModuleSymbolTableMap *declStabs,
 
     SymbolTable *importedTable = moduleSymbolTableMapGet(declStabs, importedId);
     if (importedTable == NULL) {
-      typecheckDecl(declStabs, report, options, asts,
+      buildStabDecl(declStabs, report, options, asts,
                     moduleAstMapGet(asts, importedId));
       importedTable = moduleSymbolTableMapGet(declStabs, importedId);
     }
@@ -817,13 +620,13 @@ static Environment *typecheckDecl(ModuleSymbolTableMap *declStabs,
 
   for (size_t idx = 0; idx < ast->data.file.bodies->size; idx++) {
     Node *body = ast->data.file.bodies->elements[idx];
-    typecheckBody(body, report, options, env, ast->data.file.filename);
+    buildStabBody(body, report, options, env, ast->data.file.filename);
   }
 
   moduleSymbolTableMapPut(declStabs, currModule, currStab);
   return env;
 }
-static Environment *typecheckCode(ModuleSymbolTableMapPair *stabs,
+static Environment *buildStabCode(ModuleSymbolTableMapPair *stabs,
                                   Report *report, Options const *options,
                                   Node const *ast) {
   SymbolTable *currStab = symbolTableCreate();
@@ -840,16 +643,16 @@ static Environment *typecheckCode(ModuleSymbolTableMapPair *stabs,
 
   for (size_t idx = 0; idx < ast->data.file.bodies->size; idx++) {
     Node *body = ast->data.file.bodies->elements[idx];
-    typecheckBody(body, report, options, env, ast->data.file.filename);
+    buildStabBody(body, report, options, env, ast->data.file.filename);
   }
 
   moduleSymbolTableMapPut(&stabs->codes, currModule, currStab);
   return env;
 }
 
-void typecheck(ModuleSymbolTableMapPair *stabs, ModuleEnvironmentMapPair *envs,
-               Report *report, Options const *options,
-               ModuleAstMapPair const *asts) {
+void buildSymbolTables(ModuleSymbolTableMapPair *stabs,
+                       ModuleEnvironmentMapPair *envs, Report *report,
+                       Options const *options, ModuleAstMapPair const *asts) {
   moduleSymbolTableMapPairInit(stabs);
 
   for (size_t idx = 0; idx < asts->decls.size; idx++) {
@@ -857,7 +660,7 @@ void typecheck(ModuleSymbolTableMapPair *stabs, ModuleEnvironmentMapPair *envs,
       Node *ast = asts->decls.values[idx];
       moduleEnvironmentMapPut(
           &envs->decls, ast->data.file.module->data.module.id->data.id.id,
-          typecheckDecl(&stabs->decls, report, options, &asts->decls, ast));
+          buildStabDecl(&stabs->decls, report, options, &asts->decls, ast));
     }
   }
   for (size_t idx = 0; idx < asts->codes.size; idx++) {
@@ -865,7 +668,7 @@ void typecheck(ModuleSymbolTableMapPair *stabs, ModuleEnvironmentMapPair *envs,
       Node *ast = asts->decls.values[idx];
       moduleEnvironmentMapPut(&envs->decls,
                               ast->data.file.module->data.module.id->data.id.id,
-                              typecheckCode(stabs, report, options, ast));
+                              buildStabCode(stabs, report, options, ast));
     }
   }
 }

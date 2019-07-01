@@ -55,7 +55,7 @@ typedef struct {
 void moduleEnvronmentMapPairInit(ModuleEnvironmentMapPair *);
 void moduleEnvronmentMapPairUninit(ModuleEnvironmentMapPair *);
 
-void typecheck(ModuleSymbolTableMapPair *, ModuleEnvironmentMapPair *, Report *,
-               Options const *, ModuleAstMapPair const *asts);
+void buildSymbolTables(ModuleSymbolTableMapPair *, ModuleEnvironmentMapPair *,
+                       Report *, Options const *, ModuleAstMapPair const *asts);
 
 #endif  // TLC_TYPECHECK_UTIL_H_

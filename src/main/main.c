@@ -19,7 +19,7 @@
 #include "ast/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
-#include "typecheck/typecheck.h"
+#include "typecheck/buildSymbolTable.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
 
   ModuleSymbolTableMapPair stabs;
   ModuleEnvironmentMapPair envs;
-  typecheck(&stabs, &envs, &report, &options, &asts);
+  buildSymbolTables(&stabs, &envs, &report, &options, &asts);
   if (reportState(&report) == RPT_ERR) {
     moduleEnvronmentMapPairUninit(&envs);
     moduleSymbolTableMapPairUninit(&stabs);
