@@ -464,12 +464,6 @@ Node *fnCallExpNodeCreate(size_t line, size_t character, Node *who,
   node->data.fnCallExp.args = args;
   return node;
 }
-Node *idExpNodeCreate(size_t line, size_t character, char *id) {
-  Node *node = nodeCreate(line, character);
-  node->type = NT_IDEXP;
-  node->data.idExp.id = id;
-  return node;
-}
 
 // Constant parsing
 typedef enum {
@@ -906,12 +900,6 @@ Node *aggregateInitExpNodeCreate(size_t line, size_t character,
   node->data.aggregateInitExp.elements = elements;
   return node;
 }
-Node *enumConstExpNodeCreate(size_t line, size_t character, char *constString) {
-  Node *node = nodeCreate(line, character);
-  node->type = NT_ENUMCONSTEXP;
-  node->data.enumConstExp.id = constString;
-  return node;
-}
 Node *constTrueNodeCreate(size_t line, size_t character) {
   Node *node = nodeCreate(line, character);
   node->type = NT_CONSTEXP;
@@ -952,12 +940,6 @@ Node *typeKeywordNodeCreate(size_t line, size_t character, TypeKeyword type) {
   node->data.typeKeyword.type = type;
   return node;
 }
-Node *idTypeNodeCreate(size_t line, size_t character, char *id) {
-  Node *node = nodeCreate(line, character);
-  node->type = NT_IDTYPE;
-  node->data.idType.id = id;
-  return node;
-}
 Node *constTypeNodeCreate(size_t line, size_t character, Node *target) {
   Node *node = nodeCreate(line, character);
   node->type = NT_CONSTTYPE;
@@ -990,6 +972,7 @@ Node *idNodeCreate(size_t line, size_t character, char *id) {
   Node *node = nodeCreate(line, character);
   node->type = NT_ID;
   node->data.id.id = id;
+  node->data.id.symbol = NULL;
   return node;
 }
 
@@ -1061,8 +1044,9 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.function.id);
       nodeTripleListDestroy(node->data.function.formals);
       nodeDestroy(node->data.function.body);
-      if (node->data.function.localSymbols != NULL)
+      if (node->data.function.localSymbols != NULL) {
         symbolTableDestroy(node->data.function.localSymbols);
+      }
       break;
     }
     case NT_VARDECL: {
@@ -1116,9 +1100,9 @@ void nodeDestroy(Node *node) {
       break;
     }
     case NT_BREAKSTMT:
+    case NT_CONTINUESTMT: {
       break;
-    case NT_CONTINUESTMT:
-      break;
+    }
     case NT_RETURNSTMT: {
       nodeDestroy(node->data.returnStmt.value);
       break;
@@ -1131,8 +1115,9 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.expressionStmt.expression);
       break;
     }
-    case NT_NULLSTMT:
+    case NT_NULLSTMT: {
       break;
+    }
     case NT_SEQEXP: {
       nodeDestroy(node->data.seqExp.first);
       nodeDestroy(node->data.seqExp.rest);
@@ -1193,10 +1178,6 @@ void nodeDestroy(Node *node) {
       nodeListDestroy(node->data.fnCallExp.args);
       break;
     }
-    case NT_IDEXP: {
-      free(node->data.idExp.id);
-      break;
-    }
     case NT_CONSTEXP: {
       switch (node->data.constExp.type) {
         case CT_STRING: {
@@ -1220,17 +1201,14 @@ void nodeDestroy(Node *node) {
         case CT_CHAR:
         case CT_WCHAR:
         case CT_BOOL:
-        case CT_RANGE_ERROR:
+        case CT_RANGE_ERROR: {
           break;
+        }
       }
       break;
     }
     case NT_AGGREGATEINITEXP: {
       nodeListDestroy(node->data.aggregateInitExp.elements);
-      break;
-    }
-    case NT_ENUMCONSTEXP: {
-      free(node->data.enumConstExp.id);
       break;
     }
     case NT_CASTEXP: {
@@ -1246,10 +1224,7 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.sizeofExpExp.target);
       break;
     }
-    case NT_KEYWORDTYPE:
-      break;
-    case NT_IDTYPE: {
-      free(node->data.idType.id);
+    case NT_KEYWORDTYPE: {
       break;
     }
     case NT_CONSTTYPE: {

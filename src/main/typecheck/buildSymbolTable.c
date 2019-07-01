@@ -71,8 +71,8 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
     case NT_KEYWORDTYPE: {
       return keywordTypeCreate(ast->data.typeKeyword.type - TK_VOID + K_VOID);
     }
-    case NT_IDTYPE: {
-      SymbolInfo *info = environmentLookup(env, report, ast->data.idType.id,
+    case NT_ID: {
+      SymbolInfo *info = environmentLookup(env, report, ast->data.id.id,
                                            ast->line, ast->character, filename);
       return info == NULL
                  ? NULL

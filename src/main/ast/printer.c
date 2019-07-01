@@ -573,10 +573,6 @@ void nodePrintStructure(Node const *node) {
       printf(")");
       break;
     }
-    case NT_IDEXP: {
-      printf("ID(%s)", node->data.idExp.id);
-      break;
-    }
     case NT_CONSTEXP: {
       switch (node->data.constExp.type) {
         case CT_UBYTE: {
@@ -660,10 +656,6 @@ void nodePrintStructure(Node const *node) {
       printf(")");
       break;
     }
-    case NT_ENUMCONSTEXP: {
-      printf("ENUMCONSTEXP(%s)", node->data.idExp.id);
-      break;
-    }
     case NT_CASTEXP: {
       printf("CASTEXP(");
       nodePrintStructure(node->data.castExp.toWhat);
@@ -743,10 +735,6 @@ void nodePrintStructure(Node const *node) {
           break;
         }
       }
-      break;
-    }
-    case NT_IDTYPE: {
-      printf("IDTYPE(%s)", node->data.idType.id);
       break;
     }
     case NT_CONSTTYPE: {
@@ -1343,10 +1331,6 @@ void nodePrint(Node const *node) {
       printf("))");
       break;
     }
-    case NT_IDEXP: {
-      printf("%s", node->data.idExp.id);
-      break;
-    }
     case NT_CONSTEXP: {
       switch (node->data.constExp.type) {
         case CT_UBYTE: {
@@ -1429,10 +1413,6 @@ void nodePrint(Node const *node) {
       printf(">");
       break;
     }
-    case NT_ENUMCONSTEXP: {
-      printf("%s", node->data.enumConstExp.id);
-      break;
-    }
     case NT_CASTEXP: {
       printf("cast[");
       nodePrint(node->data.castExp.toWhat);
@@ -1512,10 +1492,6 @@ void nodePrint(Node const *node) {
           break;
         }
       }
-      break;
-    }
-    case NT_IDTYPE: {
-      printf("%s", node->data.idType.id);
       break;
     }
     case NT_CONSTTYPE: {

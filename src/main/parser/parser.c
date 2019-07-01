@@ -269,7 +269,7 @@ static Node *parseType(Report *report, Options const *options,
              base.type == TT_SCOPED_ID) {  // must be a type ID to get here
     return parseTypeExtensions(
         report, options, env,
-        idTypeNodeCreate(base.line, base.character, base.data.string), info);
+        idNodeCreate(base.line, base.character, base.data.string), info);
   } else {
     if (!tokenInfoIsLexerError(&base)) {
       reportError(report, "%s:%zu:%zu: error: expected a type, but found '%s'",
@@ -628,8 +628,8 @@ static Node *parseIntOrEnumLiteral(Report *report, TypeEnvironment *env,
           return NULL;
         }
         case ST_ENUMCONST: {
-          return enumConstExpNodeCreate(constant.line, constant.character,
-                                        constant.data.string);
+          return idNodeCreate(constant.line, constant.character,
+                              constant.data.string);
         }
         default: {
           return NULL;  // error: not a valid enum
@@ -773,8 +773,7 @@ static Node *parseLiteral(Report *report, Options const *options,
           return NULL;
         }
         case ST_ENUMCONST: {
-          return enumConstExpNodeCreate(peek.line, peek.character,
-                                        peek.data.string);
+          return idNodeCreate(peek.line, peek.character, peek.data.string);
         }
         case ST_ID: {
           reportError(report,
@@ -1067,7 +1066,7 @@ static Node *parsePrimaryExpression(Report *report, Options const *options,
           return NULL;
         }
         case ST_ID: {
-          return idExpNodeCreate(peek.line, peek.character, peek.data.string);
+          return idNodeCreate(peek.line, peek.character, peek.data.string);
         }
         case ST_ENUMCONST: {
           unLex(info, &peek);

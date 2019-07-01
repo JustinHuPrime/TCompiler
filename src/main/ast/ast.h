@@ -109,15 +109,12 @@ typedef enum {
   NT_STRUCTACCESSEXP,
   NT_STRUCTPTRACCESSEXP,
   NT_FNCALLEXP,
-  NT_IDEXP,
   NT_CONSTEXP,
   NT_AGGREGATEINITEXP,
-  NT_ENUMCONSTEXP,
   NT_CASTEXP,
   NT_SIZEOFTYPEEXP,
   NT_SIZEOFEXPEXP,
   NT_KEYWORDTYPE,
-  NT_IDTYPE,
   NT_CONSTTYPE,
   NT_ARRAYTYPE,
   NT_PTRTYPE,
@@ -376,9 +373,6 @@ typedef struct Node {
       NodeList *args;
     } fnCallExp;
     struct {
-      char *id;
-    } idExp;
-    struct {
       ConstType type;
       union {
         uint8_t ubyteVal;
@@ -402,9 +396,6 @@ typedef struct Node {
       NodeList *elements;
     } aggregateInitExp;
     struct {
-      char *id;
-    } enumConstExp;
-    struct {
       struct Node *toWhat;
       struct Node *target;
     } castExp;
@@ -418,9 +409,6 @@ typedef struct Node {
     struct {
       TypeKeyword type;
     } typeKeyword;
-    struct {
-      char *id;
-    } idType;
     struct {
       struct Node *target;
     } constType;
@@ -438,6 +426,7 @@ typedef struct Node {
 
     struct {
       char *id;
+      SymbolInfo *symbol;
     } id;
   } data;
 } Node;
@@ -519,7 +508,6 @@ Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *basePtr,
                                    Node *elementId);
 Node *fnCallExpNodeCreate(size_t line, size_t character, Node *function,
                           NodeList *args);
-Node *idExpNodeCreate(size_t line, size_t character, char *idString);
 Node *constZeroIntExpNodeCreate(size_t line, size_t character,
                                 char *constantString);
 Node *constBinaryIntExpNodeCreate(size_t line, size_t character,
@@ -542,7 +530,6 @@ Node *constWStringExpNodeCreate(size_t line, size_t character,
                                 char *constantString);
 Node *aggregateInitExpNodeCreate(size_t line, size_t character,
                                  NodeList *elements);
-Node *enumConstExpNodeCreate(size_t line, size_t character, char *constString);
 Node *constTrueNodeCreate(size_t line, size_t character);
 Node *constFalseNodeCreate(size_t line, size_t character);
 Node *castExpNodeCreate(size_t line, size_t character, Node *type,
@@ -550,7 +537,6 @@ Node *castExpNodeCreate(size_t line, size_t character, Node *type,
 Node *sizeofTypeExpNodeCreate(size_t line, size_t character, Node *target);
 Node *sizeofExpExpNodeCreate(size_t line, size_t character, Node *target);
 Node *typeKeywordNodeCreate(size_t line, size_t character, TypeKeyword type);
-Node *idTypeNodeCreate(size_t line, size_t character, char *idString);
 Node *constTypeNodeCreate(size_t line, size_t character, Node *target);
 Node *arrayTypeNodeCreate(size_t line, size_t character, Node *target,
                           Node *size);
