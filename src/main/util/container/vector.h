@@ -55,4 +55,21 @@ void stringVectorUninit(StringVector *, bool freeStrings);
 // dtor
 void stringVectorDestroy(StringVector *, bool freeStrings);
 
+// vector of bools
+typedef struct {
+  size_t size;
+  size_t capacity;
+  bool *elements;
+} BoolVector;
+// ctor
+BoolVector *boolVectorCreate(void);
+// in place ctor
+void boolVectorInit(BoolVector *);
+// insert
+void boolVectorInsert(BoolVector *, bool);
+// in place dtor
+void boolVectorUninit(BoolVector *);
+// dtor
+void boolVectorDestroy(BoolVector *);
+
 #endif  // TLC_UTIL_CONTAINER_VECTOR_H_

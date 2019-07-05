@@ -58,3 +58,33 @@ void stringVectorUninit(StringVector *v, bool freeStrings) {
 void stringVectorDestroy(StringVector *v, bool freeStrings) {
   vectorDestroy(v, freeStrings ? free : nullDtor);
 }
+
+// ctor
+BoolVector *boolVectorCreate(void) {
+  BoolVector *vector = malloc(sizeof(BoolVector));
+  boolVectorInit(vector);
+  return vector;
+}
+// in place ctor
+void boolVectorInit(BoolVector *vector) {
+  vector->size = 0;
+  vector->capacity = 1;
+  vector->elements = malloc(sizeof(bool));
+}
+// insert
+void boolVectorInsert(BoolVector *vector, bool b) {
+  if (vector->size == vector->capacity) {
+    vector->capacity *= 2;
+    vector->elements =
+        realloc(vector->elements, vector->capacity * sizeof(bool));
+  }
+  vector->elements[vector->size++] = b;
+}
+// in place dtor
+void boolVectorUninit(BoolVector *vector) { free(vector->elements); }
+// dtor
+void boolVectorDestroy(BoolVector *vector) {
+  boolVectorUninit(vector);
+  free(vector);
+  return;
+}
