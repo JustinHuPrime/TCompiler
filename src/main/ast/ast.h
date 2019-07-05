@@ -268,7 +268,8 @@ typedef struct Node {
     struct {
       struct Node *returnType;
       struct Node *id;
-      NodeTripleList *formals;  // <type, id (nullable), literal (nullable)>
+      NodeTripleList *formals;  // <type, id (nullable), literal (nullable,
+                                // may be present if id is not null)>
       struct Node *body;
       SymbolTable *localSymbols;
     } function;
