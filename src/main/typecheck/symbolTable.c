@@ -286,6 +286,30 @@ void typeDestroy(Type *t) {
   free(t);
 }
 
+OverloadSetElement *overloadSetElementCreate(void) {
+  OverloadSetElement *elm = malloc(sizeof(OverloadSetElement));
+  typeVectorInit(&elm->argumentTypes);
+  return elm;
+}
+void overloadSetElementDestroy(OverloadSetElement *elm) {
+  if (elm->returnType != NULL) {
+    typeDestroy(elm->returnType);
+  }
+  typeVectorUninit(&elm->argumentTypes);
+}
+
+void overloadSetInit(OverloadSet *set) { vectorInit(set); }
+void overloadSetInsert(OverloadSet *set, OverloadSetElement *elm) {
+  vectorInsert(set, elm);
+}
+OverloadSetElement *overloadSetLookup(OverloadSet *set, TypeVector *argTypes) {
+  // TODO: write this;
+  return NULL;
+}
+void overloadSetUninit(OverloadSet *set) {
+  vectorUninit(set, (void (*)(void *))overloadSetElementDestroy);
+}
+
 char const *typeDefinitionKindToString(TypeDefinitionKind kind) {
   switch (kind) {
     case TDK_STRUCT:
@@ -339,10 +363,9 @@ SymbolInfo *typedefSymbolInfoCreate(Type *what) {
   si->data.type.data.typedefType.type = what;
   return si;
 }
-SymbolInfo *functionSymbolInfoCreate(Type *returnType) {
+SymbolInfo *functionSymbolInfoCreate(void) {
   SymbolInfo *si = symbolInfoCreate(SK_FUNCTION);
-  si->data.function.returnType = returnType;
-  vectorInit(&si->data.function.argumentTypeSets);
+  overloadSetInit(&si->data.function.overloadSet);
   return si;
 }
 char const *symbolInfoToKindString(SymbolInfo const *si) {
@@ -401,9 +424,7 @@ void symbolInfoDestroy(SymbolInfo *si) {
       break;
     }
     case SK_FUNCTION: {
-      typeDestroy(si->data.function.returnType);
-      vectorUninit(&si->data.function.argumentTypeSets,
-                   (void (*)(void *))typeVectorUninit);
+      overloadSetUninit(&si->data.function.overloadSet);
       break;
     }
   }

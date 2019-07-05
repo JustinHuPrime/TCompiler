@@ -118,6 +118,29 @@ void typeUninit(Type *);
 // dtor
 void typeDestroy(Type *);
 
+// POD struct containing data for an overload set instance
+typedef struct {
+  Type *returnType;
+  TypeVector argumentTypes;
+  size_t numOptional;
+  bool defined;
+} OverloadSetElement;
+// ctor
+OverloadSetElement *overloadSetElementCreate(void);
+// dtor
+void overloadSetElementDestroy(OverloadSetElement *);
+
+// a 'set' of overload options
+typedef Vector OverloadSet;
+// in-place ctor
+void overloadSetInit(OverloadSet *);
+// add
+void overloadSetInsert(OverloadSet *, OverloadSetElement *);
+// lookup
+OverloadSetElement *overloadSetLookup(OverloadSet *, TypeVector *);
+// dtor
+void overloadSetUninit(OverloadSet *);
+
 typedef enum {
   SK_VAR,
   SK_TYPE,
@@ -162,8 +185,7 @@ typedef struct SymbolInfo {
       } data;
     } type;
     struct {
-      Type *returnType;
-      Vector argumentTypeSets;  // vector of vectors of types
+      OverloadSet overloadSet;
     } function;
     struct {
       Type *parentEnum;
@@ -176,7 +198,7 @@ SymbolInfo *structSymbolInfoCreate(void);
 SymbolInfo *unionSymbolInfoCreate(void);
 SymbolInfo *enumSymbolInfoCreate(void);
 SymbolInfo *typedefSymbolInfoCreate(Type *);
-SymbolInfo *functionSymbolInfoCreate(Type *returnType);
+SymbolInfo *functionSymbolInfoCreate(void);
 // printing
 char const *symbolInfoToKindString(SymbolInfo const *);
 // dtor
