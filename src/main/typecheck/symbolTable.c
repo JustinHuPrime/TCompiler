@@ -289,6 +289,7 @@ void typeDestroy(Type *t) {
 OverloadSetElement *overloadSetElementCreate(void) {
   OverloadSetElement *elm = malloc(sizeof(OverloadSetElement));
   typeVectorInit(&elm->argumentTypes);
+  elm->returnType = NULL;
   return elm;
 }
 OverloadSetElement *overloadSetElementCopy(OverloadSetElement const *from) {
@@ -317,8 +318,40 @@ void overloadSetInit(OverloadSet *set) { vectorInit(set); }
 void overloadSetInsert(OverloadSet *set, OverloadSetElement *elm) {
   vectorInsert(set, elm);
 }
-OverloadSetElement *overloadSetLookup(OverloadSet *set, TypeVector *argTypes) {
-  // TODO: write this;
+OverloadSetElement *overloadSetLookupCollision(OverloadSet *set,
+                                               TypeVector const *argTypes,
+                                               size_t numOptional) {
+  for (size_t candidateIdx = 0; candidateIdx < set->size; candidateIdx++) {
+    // select n args, where n is the larger of the required argument sizes.
+    // if that minimum is within both the possible number of args for the
+    // candidate and the lookup, try to match types if they all match, return
+    // match, else, keep looking
+    OverloadSetElement *candidate = set->elements[candidateIdx];
+    size_t candidateRequired =
+        candidate->argumentTypes.size - candidate->numOptional;
+    size_t thisRequired = argTypes->size - numOptional;
+    size_t maxRequired =
+        candidateRequired > thisRequired ? candidateRequired : thisRequired;
+    bool candidateLonger = candidateRequired > thisRequired;
+    if (candidateLonger ? argTypes->size >= maxRequired
+                        : candidate->argumentTypes.size >= maxRequired) {
+      bool match = true;
+      for (size_t idx = 0; idx < maxRequired; idx++) {
+        if (!typeEqual(
+                (candidateLonger ? candidate->argumentTypes.elements
+                                 : argTypes->elements)[idx],
+                (candidateLonger ? argTypes->elements
+                                 : candidate->argumentTypes.elements)[idx])) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        return candidate;
+      }
+    }
+  }
+
   return NULL;
 }
 void overloadSetUninit(OverloadSet *set) {

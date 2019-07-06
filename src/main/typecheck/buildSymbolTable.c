@@ -142,8 +142,17 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
 // top level
 static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
                              Environment *env, char const *filename) {
+  // must not be declared/defined as a non-function, must not allow a function
+  // with the same input args and name to be declared/defined
+  // TODO: write this
+}
+static void buildStabFunDecl(Node *fnDecl, Report *report,
+                             Options const *options, Environment *env,
+                             char const *filename) {
   // INVARIANT: env has no scopes
-  Node *name = fn->data.function.id;
+  // must not be declared as a non-function, must check if a function with the
+  // same input args and name is declared/defined
+  Node *name = fnDecl->data.funDecl.id;
   SymbolInfo *info = symbolTableGet(env->currentModule, name->data.id.id);
   if (info != NULL && info->kind != SK_FUNCTION) {
     // already declared/defined as a non-function - error!
@@ -156,8 +165,8 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
     info = functionSymbolInfoCreate();
     OverloadSetElement *overload = overloadSetElementCreate();
 
-    Type *returnType =
-        astToType(fn->data.function.returnType, report, options, env, filename);
+    Type *returnType = astToType(fnDecl->data.funDecl.returnType, report,
+                                 options, env, filename);
     if (returnType == NULL) {
       overloadSetElementDestroy(overload);
       symbolInfoDestroy(info);
@@ -165,8 +174,8 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
     }
     overload->returnType = returnType;
 
-    for (size_t idx = 0; idx < fn->data.function.formals->size; idx++) {
-      Type *argType = astToType(fn->data.function.formals->firstElements[idx],
+    for (size_t idx = 0; idx < fnDecl->data.funDecl.params->size; idx++) {
+      Type *argType = astToType(fnDecl->data.funDecl.params->firstElements[idx],
                                 report, options, env, filename);
       if (argType == NULL) {
         overloadSetElementDestroy(overload);
@@ -176,58 +185,125 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
       typeVectorInsert(&overload->argumentTypes, argType);
     }
 
-    overload->defined = true;
-    // overload->numOptional
+    overload->defined = false;
+    overload->numOptional = 0;
+    for (size_t idx = 0; idx < fnDecl->data.funDecl.params->size; idx++) {
+      if (fnDecl->data.funDecl.params->secondElements[idx] != NULL) {
+        overload->numOptional = fnDecl->data.funDecl.params->size - idx;
+        break;
+      }
+    }
 
     overloadSetInsert(&info->data.function.overloadSet, overload);
     symbolTablePut(env->currentModule, name->data.id.id, info);
   } else {
     // is already declared/defined.
     OverloadSetElement *overload = overloadSetElementCreate();
-    Type *returnType =
-        astToType(fn->data.function.returnType, report, options, env, filename);
+    Type *returnType = astToType(fnDecl->data.funDecl.returnType, report,
+                                 options, env, filename);
     if (returnType == NULL) {
       overloadSetElementDestroy(overload);
       return;
     }
     overload->returnType = returnType;
 
-    TypeVector *args = typeVectorCreate();
-    for (size_t idx = 0; idx < fn->data.function.formals->size; idx++) {
-      Type *argType = astToType(fn->data.function.formals->firstElements[idx],
+    for (size_t idx = 0; idx < fnDecl->data.funDecl.params->size; idx++) {
+      Type *argType = astToType(fnDecl->data.funDecl.params->firstElements[idx],
                                 report, options, env, filename);
       if (argType == NULL) {
-        typeVectorDestroy(args);
         overloadSetElementDestroy(overload);
         return;
       }
-      typeVectorInsert(args, argType);
+      typeVectorInsert(&overload->argumentTypes, argType);
     }
 
-    // Type *matchedReturnType = functionSymbolInfoGetMatch(info, args);
+    overload->defined = false;
+    overload->numOptional = 0;
+    for (size_t idx = 0; idx < fnDecl->data.funDecl.params->size; idx++) {
+      if (fnDecl->data.funDecl.params->secondElements[idx] != NULL) {
+        overload->numOptional = fnDecl->data.funDecl.params->size - idx;
+        break;
+      }
+    }
 
-    // for (size_t candidateIdx = 0;
-    //      candidateIdx < info->data.function.argumentTypeSets.size;
-    //      candidateIdx++) {
-    //   TypeVector *candidateArgs =
-    //       info->data.function.argumentTypeSets.elements[candidateIdx];
-    //   if (candidateArgs->size == args->size) {
-    //     // possible match b/w candidate args and function args
-    //   }
-    // }
+    OverloadSetElement *matched = overloadSetLookupCollision(
+        &info->data.function.overloadSet, &overload->argumentTypes,
+        overload->numOptional);
+
+    if (matched == NULL) {
+      // new declaration
+      overloadSetInsert(&info->data.function.overloadSet, overload);
+    } else {
+      bool allArgsSame =
+          matched->argumentTypes.size == overload->argumentTypes.size;
+      if (allArgsSame) {
+        for (size_t idx = 0; idx < overload->argumentTypes.size; idx++) {
+          if (!typeEqual(overload->argumentTypes.elements[idx],
+                         matched->argumentTypes.elements[idx])) {
+            allArgsSame = false;
+            break;
+          }
+        }
+      }
+      bool exactMatch = matched->numOptional == overload->numOptional &&
+                        typeEqual(matched->returnType, overload->returnType) &&
+                        allArgsSame;
+
+      // maybe a repeat, maybe a collision
+      // if exact match, including return type -> repeat - check options for
+      // error or no
+      // else -> collision - if all argument types are different - check options
+      // for error or no, else error - definite collision
+
+      if (exactMatch) {
+        switch (optionsGet(options, optionWDuplicateDeclaration)) {
+          case O_WT_ERROR: {
+            reportError(
+                report, "%s:%zu:%zu: error: duplicate definition of '%s'",
+                filename, fnDecl->line, fnDecl->character, name->data.id.id);
+            break;
+          }
+          case O_WT_WARN: {
+            reportWarning(
+                report, "%s:%zu:%zu: warning: duplicate definition of '%s'",
+                filename, fnDecl->line, fnDecl->character, name->data.id.id);
+            break;
+          }
+          case O_WT_IGNORE: {
+            break;
+          }
+        }
+      } else if (allArgsSame) {
+        reportError(report,
+                    "%s:%zu:%zu: error: return type or default argument "
+                    "conflicts for duplciated declarations of '%s'",
+                    filename, fnDecl->line, fnDecl->character,
+                    name->data.id.id);
+      } else {
+        switch (optionsGet(options, optionWOverloadAmbiguity)) {
+          case O_WT_ERROR: {
+            reportError(report,
+                        "%s:%zu:%zu: error: overload set allows ambiguous "
+                        "calls through use of default arguments",
+                        filename, fnDecl->line, fnDecl->character);
+            break;
+          }
+          case O_WT_WARN: {
+            reportWarning(report,
+                          "%s:%zu:%zu: warning: overload set allows ambiguous "
+                          "calls through use of default arguments",
+                          filename, fnDecl->line, fnDecl->character);
+            break;
+          }
+          case O_WT_IGNORE: {
+            break;
+          }
+        }
+      }
+    }
   }
 
   name->data.id.symbol = info;
-  // must not be declared/defined as a non-function, must not allow a function
-  // with the same input args and name to be declared/defined
-  // TODO: write this
-}
-static void buildStabFunDecl(Node *fnDecl, Report *report,
-                             Options const *options, Environment *env,
-                             char const *filename) {
-  // must not be declared as a non-function, must check if a function with the
-  // same input args and name is declared/defined
-  // TODO: write this
 }
 static void buildStabVarDecl(Node *varDecl, Report *report,
                              Options const *options, Environment *env,

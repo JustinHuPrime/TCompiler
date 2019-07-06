@@ -138,7 +138,13 @@ void overloadSetInit(OverloadSet *);
 // add
 void overloadSetInsert(OverloadSet *, OverloadSetElement *);
 // lookup
-OverloadSetElement *overloadSetLookup(OverloadSet *, TypeVector *);
+OverloadSetElement *overloadSetLookupCollision(OverloadSet *,
+                                               TypeVector const *argTypes,
+                                               size_t numOptional);
+OverloadSetElement *overloadSetLookupDefinition(OverloadSet *,
+                                                TypeVector const *argTypes);
+OverloadSetElement *overloadSetLookupCall(OverloadSet *,
+                                          TypeVector const *argTypes);
 // dtor
 void overloadSetUninit(OverloadSet *);
 
