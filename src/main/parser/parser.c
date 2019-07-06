@@ -282,7 +282,7 @@ static Node *parseType(Report *report, Options const *options,
 }
 
 // module
-static Node *parseModule(Report *report, LexerInfo *info) {
+static Node *parseDeclModule(Report *report, LexerInfo *info) {
   TokenInfo moduleToken;
   lex(info, report, &moduleToken);
   if (moduleToken.type != TT_MODULE) {
@@ -317,31 +317,43 @@ static Node *parseModule(Report *report, LexerInfo *info) {
 
   return moduleNodeCreate(moduleToken.line, moduleToken.character, idNode);
 }
+static Node *parseCodeModule(Report *report,
+                             ModuleTypeTableMap const *typeTables,
+                             TypeEnvironment *env, LexerInfo *info) {
+  // TODO: write this
+  Node *module = parseDeclModule(report, info);
+  if (module == NULL) {
+    return NULL;
+  }
+  char const *moduleName = module->data.module.id->data.id.id;
+
+  TypeTable *declTable = moduleTypeTableMapGet(typeTables, moduleName);
+  if (declTable == NULL) {
+    reportError(report,
+                "%s:%zu:%zu: error: module '%s' does not have a corresponding "
+                "declaration file",
+                info->filename, module->line, module->character, moduleName);
+    nodeDestroy(module);
+    return NULL;
+  }
+
+  typeEnvironmentInit(env, typeTableCopy(declTable),
+                      module->data.module.id->data.id.id);
+
+  return NULL;
+}
 
 // imports
-static Node *parseDeclFile(Report *report, Options const *options,
-                           ModuleTypeTableMap *typeTable,
-                           Stack *dependencyStack, ModuleLexerInfoMap *miMap,
-                           ModuleNodeMap *mnMap, ModuleAstMap *decls,
-                           LexerInfo *lexerInfo, Node *module);
+static Node *parseDeclFile(Report *, Options const *, ModuleTypeTableMap *,
+                           Stack *, ModuleLexerInfoMap *, ModuleNodeMap *,
+                           ModuleAstMap *, LexerInfo *, Node *);
 static Node *parseDeclImport(Report *report, Options const *options,
-                             ModuleTypeTableMap *typeTable,
+                             ModuleTypeTableMap *typeTables,
                              TypeEnvironment *env, Stack *dependencyStack,
                              ModuleLexerInfoMap *miMap, ModuleNodeMap *mnMap,
                              ModuleAstMap *decls, LexerInfo *info) {
   TokenInfo importToken;
   lex(info, report, &importToken);
-  if (importToken.type != TT_IMPORT) {
-    if (!tokenInfoIsLexerError(&importToken)) {
-      reportError(report,
-                  "%s:%zu:%zu: error: expected first thing in file to be a "
-                  "module declaration, but found %s",
-                  info->filename, importToken.line, importToken.character,
-                  tokenTypeToString(importToken.type));
-    }
-    tokenInfoUninit(&importToken);
-    return NULL;
-  }
 
   Node *idNode = parseAnyId(report, info);
   if (idNode == NULL) return NULL;
@@ -352,7 +364,7 @@ static Node *parseDeclImport(Report *report, Options const *options,
     if (!tokenInfoIsLexerError(&semiToken)) {
       reportError(report,
                   "%s:%zu:%zu: error: expected a semicolon to terminate "
-                  "the module declaration, but found %s",
+                  "the import declaration, but found %s",
                   info->filename, semiToken.line, semiToken.character,
                   tokenTypeToString(semiToken.type));
     }
@@ -363,13 +375,13 @@ static Node *parseDeclImport(Report *report, Options const *options,
 
   // find and add the stab in typeTables to env
   TypeTable *importedTypeTable =
-      moduleTypeTableMapGet(typeTable, idNode->data.id.id);
+      moduleTypeTableMapGet(typeTables, idNode->data.id.id);
   if (importedTypeTable == NULL) {
     for (size_t idx = 0; idx < dependencyStack->size; idx++) {
       if (strcmp(idNode->data.id.id, dependencyStack->elements[idx]) == 0) {
         // circular dep between current and all later elements in the stack
         reportError(report,
-                    "%s:%zu:%zu: error: circular dependency on module '%s'",
+                    "%s:%zu:%zu: error: circular dependency on module '%s':",
                     info->filename, importToken.line, importToken.character,
                     (char const *)dependencyStack->elements[idx]);
         reportMessage(report,
@@ -395,12 +407,12 @@ static Node *parseDeclImport(Report *report, Options const *options,
       nodeDestroy(idNode);
       return NULL;
     }
-    Node *parsed = parseDeclFile(report, options, typeTable, dependencyStack,
+    Node *parsed = parseDeclFile(report, options, typeTables, dependencyStack,
                                  miMap, mnMap, decls, moduleLexerInfo,
                                  moduleNodeMapGet(mnMap, idNode->data.id.id));
     if (parsed != NULL) {
       moduleAstMapPut(decls, idNode->data.id.id, parsed);
-      importedTypeTable = moduleTypeTableMapGet(typeTable, idNode->data.id.id);
+      importedTypeTable = moduleTypeTableMapGet(typeTables, idNode->data.id.id);
     } else {
       nodeDestroy(idNode);
       return NULL;
@@ -3562,20 +3574,17 @@ static Node *parseDeclFile(Report *report, Options const *options,
 }
 static Node *parseCodeFile(Report *report, Options const *options,
                            ModuleTypeTableMap *typeTables, LexerInfo *info) {
-  Node *module = parseModule(report, info);
+  TypeEnvironment env;
+  Node *module = parseCodeModule(report, typeTables, &env, info);
   if (module == NULL) {
     lexerInfoDestroy(info);
     return NULL;
   }
 
-  TypeTable *currTypes = typeTableCreate();  // env setup
-  TypeEnvironment env;
-  typeEnvironmentInit(&env, currTypes, module->data.module.id->data.id.id);
-
   NodeList *imports = parseCodeImports(report, options, typeTables, &env, info);
   if (imports == NULL) {
+    typeTableDestroy(env.currentModule);
     typeEnvironmentUninit(&env);
-    typeTableDestroy(currTypes);
     nodeDestroy(module);
     lexerInfoDestroy(info);
     return NULL;
@@ -3583,16 +3592,15 @@ static Node *parseCodeFile(Report *report, Options const *options,
   NodeList *bodies = parseBodies(report, options, &env, info);
   if (bodies == NULL) {
     nodeListDestroy(imports);
+    typeTableDestroy(env.currentModule);
     typeEnvironmentUninit(&env);
-    typeTableDestroy(currTypes);
     nodeDestroy(module);
     lexerInfoDestroy(info);
     return NULL;
   }
 
   // env cleanup
-  moduleTypeTableMapPut(typeTables, module->data.module.id->data.id.id,
-                        currTypes);
+  typeTableDestroy(env.currentModule);
   typeEnvironmentUninit(&env);
   const char *filename = info->filename;
   lexerInfoDestroy(info);
@@ -3792,7 +3800,7 @@ void parse(ModuleAstMapPair *asts, Report *report, Options const *options,
       reportError(report, "%s: error: no such file",
                   (char *)files->decls.elements[idx]);
     }
-    Node *module = parseModule(report, li);
+    Node *module = parseDeclModule(report, li);
     if (module == NULL) {  // didn't find it, file can't be parsed.
       reportError(report, "%s: error: no module declaration found",
                   (char const *)files->decls.elements[idx]);

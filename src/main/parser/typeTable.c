@@ -25,6 +25,12 @@
 #include <string.h>
 
 TypeTable *typeTableCreate(void) { return hashMapCreate(); }
+TypeTable *typeTableCopy(TypeTable *from) {
+  TypeTable *to = malloc(sizeof(TypeTable));
+  memcpy(to, from, sizeof(TypeTable));  // shallow copy is okay - keys held
+                                        // weakly, value is integer
+  return to;
+}
 SymbolType typeTableGet(TypeTable const *table, char const *key) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wbad-function-cast"

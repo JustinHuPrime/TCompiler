@@ -32,6 +32,7 @@ typedef enum { ST_UNDEFINED = 0, ST_ID, ST_TYPE, ST_ENUMCONST } SymbolType;
 // specialsization of a generic
 typedef HashMap TypeTable;
 TypeTable *typeTableCreate(void);
+TypeTable *typeTableCopy(TypeTable *);
 SymbolType typeTableGet(TypeTable const *, char const *key);
 void typeTableSet(TypeTable *, char const *key, SymbolType value);
 void typeTableDestroy(TypeTable *);
