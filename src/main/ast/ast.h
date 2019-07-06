@@ -292,9 +292,9 @@ typedef struct Node {
       struct Node *condition;
     } doWhileStmt;
     struct {
-      struct Node *initialize;
+      struct Node *initialize;  // nullable
       struct Node *condition;
-      struct Node *update;
+      struct Node *update;  // nullable
       struct Node *body;
       SymbolTable *localSymbols;
     } forStmt;

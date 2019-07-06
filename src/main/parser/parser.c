@@ -3712,16 +3712,62 @@ static void codeContextCheck(Node const *ast, Report *report,
     }
   }
 }
+static void commonContextCheck(Node const *ast, Report *report,
+                               Options const *options) {
+  char const *filename = ast->data.file.filename;
+  NodeList *bodies = ast->data.file.bodies;
+
+  for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
+    Node *body = bodies->elements[bodyIdx];
+    if (body->type == NT_FUNDECL) {
+      NodePairList *params = body->data.funDecl.params;
+      size_t idx = 0;
+      for (; idx < params->size; idx++) {  // find first optional
+        if (params->secondElements[idx] != NULL) {
+          break;
+        }
+      }
+      for (idx++; idx < params->size; idx++) {  // find non-optional after it
+        if (params->secondElements[idx] == NULL) {
+          Node *param = params->firstElements[idx];
+          reportError(report,
+                      "%s:%zu:%zu: error: optional arguments must be the last "
+                      "arguments to the function",
+                      filename, param->line, param->character);
+        }
+      }
+    } else if (body->type == NT_FUNCTION) {
+      NodeTripleList *params = body->data.function.formals;
+      size_t idx = 0;
+      for (; idx < params->size; idx++) {  // find first optional
+        if (params->thirdElements[idx] != NULL) {
+          break;
+        }
+      }
+      for (idx++; idx < params->size; idx++) {  // find non-optional after it
+        if (params->thirdElements[idx] == NULL) {
+          Node *param = params->firstElements[idx];
+          reportError(report,
+                      "%s:%zu:%zu: error: optional arguments must be the last "
+                      "arguments to the function",
+                      filename, param->line, param->character);
+        }
+      }
+    }
+  }
+}
 static void contextCheck(ModuleAstMapPair *asts, Report *report,
                          Options const *options) {
   for (size_t idx = 0; idx < asts->decls.size; idx++) {
     if (asts->decls.keys[idx] != NULL) {
       declContextCheck(asts->decls.values[idx], report, options);
+      commonContextCheck(asts->decls.values[idx], report, options);
     }
   }
   for (size_t idx = 0; idx < asts->codes.size; idx++) {
     if (asts->codes.keys[idx] != NULL) {
       codeContextCheck(asts->codes.values[idx], report, options);
+      commonContextCheck(asts->codes.values[idx], report, options);
     }
   }
 }
