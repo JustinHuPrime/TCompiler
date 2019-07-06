@@ -34,6 +34,8 @@ All warning options have three forms, a `-W...=error` form, a `-W...=warn` form,
 
 * `duplicate-import`: duplicated imports in a module. Defaults to ignore. If not an error, later imports have no effect.
 
+* `overload-ambiguity`: an overload set whose members may be ambiguous when called using default arguments. Defaults to error. Functions whose arguments are always ambiguous (i.e. takes the same arguments when including defaulted arguments) always results in an error.
+
 * `unrecognized-file`: unrecognized file extensions. Default to error. If not an error, unrecognized files are skipped.
 
 #### Debug Options
