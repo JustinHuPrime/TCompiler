@@ -142,7 +142,7 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
 // top level
 static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
                              Environment *env, char const *filename) {
-  // env has no scopes
+  // INVARIANT: env has no scopes
   Node *name = fn->data.function.id;
   SymbolInfo *info = symbolTableGet(env->currentModule, name->data.id.id);
   if (info != NULL && info->kind != SK_FUNCTION) {
@@ -367,10 +367,11 @@ static void buildStabDecl(Node *ast, Report *report, Options const *options,
 }
 static void buildStabCode(Node *ast, Report *report, Options const *options,
                           ModuleAstMap const *decls) {
-  ast->data.file.symbols = symbolTableCreate();
+  char const *moduleName = ast->data.file.module->data.module.id->data.id.id;
+  ast->data.file.symbols =
+      symbolTableCopy(moduleAstMapGet(decls, moduleName)->data.file.symbols);
   Environment env;
-  environmentInit(&env, ast->data.file.symbols,
-                  ast->data.file.module->data.module.id->data.id.id);
+  environmentInit(&env, ast->data.file.symbols, moduleName);
 
   // add all imports to env
   for (size_t idx = 0; idx < ast->data.file.imports->size; idx++) {

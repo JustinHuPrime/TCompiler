@@ -291,6 +291,21 @@ OverloadSetElement *overloadSetElementCreate(void) {
   typeVectorInit(&elm->argumentTypes);
   return elm;
 }
+OverloadSetElement *overloadSetElementCopy(OverloadSetElement const *from) {
+  OverloadSetElement *to = malloc(sizeof(OverloadSetElement));
+
+  to->defined = from->defined;
+  to->numOptional = from->numOptional;
+  to->returnType = typeCopy(from->returnType);
+  to->argumentTypes.capacity = from->argumentTypes.capacity;
+  to->argumentTypes.size = from->argumentTypes.size;
+  for (size_t idx = 0; idx < to->argumentTypes.size; idx++) {
+    to->argumentTypes.elements[idx] =
+        typeCopy(from->argumentTypes.elements[idx]);
+  }
+
+  return to;
+}
 void overloadSetElementDestroy(OverloadSetElement *elm) {
   if (elm->returnType != NULL) {
     typeDestroy(elm->returnType);
@@ -368,6 +383,99 @@ SymbolInfo *functionSymbolInfoCreate(void) {
   overloadSetInit(&si->data.function.overloadSet);
   return si;
 }
+SymbolInfo *symbolInfoCopy(SymbolInfo const *from) {
+  SymbolInfo *to = malloc(sizeof(SymbolInfo));
+
+  to->kind = from->kind;
+  switch (to->kind) {
+    case SK_VAR: {
+      to->data.var.type = typeCopy(from->data.var.type);
+      break;
+    }
+    case SK_TYPE: {
+      to->data.type.kind = from->data.type.kind;
+      switch (to->data.type.kind) {
+        case TDK_STRUCT: {
+          TypeVector *toFields = &to->data.type.data.structType.fields;
+          TypeVector const *fromFields =
+              &from->data.type.data.structType.fields;
+          toFields->capacity = fromFields->capacity;
+          toFields->size = fromFields->size;
+          toFields->elements = malloc(toFields->capacity * sizeof(void *));
+          for (size_t idx = 0; idx < toFields->size; idx++) {
+            toFields->elements[idx] = typeCopy(fromFields->elements[idx]);
+          }
+          TypeVector *toNames = &to->data.type.data.structType.names;
+          TypeVector const *fromNames = &from->data.type.data.structType.names;
+          toNames->capacity = fromNames->capacity;
+          toNames->size = fromNames->size;
+          toNames->elements = malloc(toNames->capacity * sizeof(void *));
+          for (size_t idx = 0; idx < toNames->size; idx++) {
+            toNames->elements[idx] = typeCopy(fromNames->elements[idx]);
+          }
+          to->data.type.data.structType.incomplete =
+              from->data.type.data.structType.incomplete;
+          break;
+        }
+        case TDK_UNION: {
+          TypeVector *toFields = &to->data.type.data.unionType.fields;
+          TypeVector const *fromFields = &from->data.type.data.unionType.fields;
+          toFields->capacity = fromFields->capacity;
+          toFields->size = fromFields->size;
+          toFields->elements = malloc(toFields->capacity * sizeof(void *));
+          for (size_t idx = 0; idx < toFields->size; idx++) {
+            toFields->elements[idx] = typeCopy(fromFields->elements[idx]);
+          }
+          StringVector *toNames = &to->data.type.data.unionType.names;
+          StringVector const *fromNames = &from->data.type.data.unionType.names;
+          toNames->capacity = fromNames->capacity;
+          toNames->size = fromNames->size;
+          toNames->elements = malloc(toNames->capacity * sizeof(void *));
+          for (size_t idx = 0; idx < toNames->size; idx++) {
+            toNames->elements[idx] = typeCopy(fromNames->elements[idx]);
+          }
+          to->data.type.data.unionType.incomplete =
+              from->data.type.data.unionType.incomplete;
+          break;
+        }
+        case TDK_ENUM: {
+          StringVector *toFields = &to->data.type.data.enumType.fields;
+          StringVector const *fromFields =
+              &from->data.type.data.enumType.fields;
+          toFields->capacity = fromFields->capacity;
+          toFields->size = fromFields->size;
+          toFields->elements = malloc(toFields->capacity * sizeof(void *));
+          for (size_t idx = 0; idx < toFields->size; idx++) {
+            toFields->elements[idx] = typeCopy(fromFields->elements[idx]);
+          }
+          to->data.type.data.enumType.incomplete =
+              from->data.type.data.enumType.incomplete;
+          break;
+        }
+        case TDK_TYPEDEF: {
+          to->data.type.data.typedefType.type =
+              typeCopy(from->data.type.data.typedefType.type);
+          break;
+        }
+      }
+      break;
+    }
+    case SK_FUNCTION: {
+      OverloadSet *toOverloads = &to->data.function.overloadSet;
+      OverloadSet const *fromOverloads = &from->data.function.overloadSet;
+      toOverloads->capacity = fromOverloads->capacity;
+      toOverloads->size = fromOverloads->size;
+      toOverloads->elements = malloc(toOverloads->size * sizeof(void *));
+      for (size_t idx = 0; idx < toOverloads->size; idx++) {
+        toOverloads->elements[idx] =
+            overloadSetElementCopy(fromOverloads->elements[idx]);
+      }
+      break;
+    }
+  }
+
+  return to;
+}
 char const *symbolInfoToKindString(SymbolInfo const *si) {
   switch (si->kind) {
     case SK_VAR: {
@@ -432,6 +540,22 @@ void symbolInfoDestroy(SymbolInfo *si) {
 }
 
 SymbolTable *symbolTableCreate(void) { return hashMapCreate(); }
+SymbolTable *symbolTableCopy(SymbolTable const *from) {
+  SymbolTable *to = malloc(sizeof(SymbolTable));
+  to->capacity = from->capacity;
+  to->size = from->size;
+  to->keys = calloc(to->capacity, sizeof(char const *));
+  to->values = malloc(to->capacity * sizeof(void *));
+
+  for (size_t idx = 0; idx < to->size; idx++) {
+    if (from->keys[idx] != NULL) {
+      to->keys[idx] = from->keys[idx];
+      to->values[idx] = symbolInfoCopy(from->values[idx]);
+    }
+  }
+
+  return to;
+}
 SymbolInfo *symbolTableGet(SymbolTable const *table, char const *key) {
   return hashMapGet(table, key);
 }

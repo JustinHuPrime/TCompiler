@@ -127,6 +127,7 @@ typedef struct {
 } OverloadSetElement;
 // ctor
 OverloadSetElement *overloadSetElementCreate(void);
+OverloadSetElement *overloadSetElementCopy(OverloadSetElement const *);
 // dtor
 void overloadSetElementDestroy(OverloadSetElement *);
 
@@ -199,6 +200,7 @@ SymbolInfo *unionSymbolInfoCreate(void);
 SymbolInfo *enumSymbolInfoCreate(void);
 SymbolInfo *typedefSymbolInfoCreate(Type *);
 SymbolInfo *functionSymbolInfoCreate(void);
+SymbolInfo *symbolInfoCopy(SymbolInfo const *);
 // printing
 char const *symbolInfoToKindString(SymbolInfo const *);
 // dtor
@@ -208,6 +210,7 @@ void symbolInfoDestroy(SymbolInfo *);
 // specialsization of a generic
 typedef HashMap SymbolTable;
 SymbolTable *symbolTableCreate(void);
+SymbolTable *symbolTableCopy(SymbolTable const *);
 SymbolInfo *symbolTableGet(SymbolTable const *, char const *key);
 int symbolTablePut(SymbolTable *, char const *key, SymbolInfo *value);
 void symbolTableDestroy(SymbolTable *);
