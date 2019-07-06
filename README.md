@@ -12,6 +12,10 @@ This repo is the source code for the T Language Compiler, `tlc`.
 
 Note that if a later option conflicts with an earlier option, the later option will apply to all files, even those before the eariler option.
 
+#### Informational Options
+
+* `--version`: overrides all other options, displays version and copyright information, and causes the compiler to immediately exit normally.
+
 #### Architecture
 
 * `--arch=x86`: sets the architecture to target to x86_64. Default.

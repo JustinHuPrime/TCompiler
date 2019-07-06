@@ -24,10 +24,33 @@
 #include "util/fileList.h"
 #include "util/options.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+static bool versionRequested(size_t argc, char *argv[]) {
+  for (size_t idx = 0; idx < argc; idx++) {
+    if (strcmp(argv[idx], "--version") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
 
 int main(int argc, char *argv[]) {
+  if (versionRequested((size_t)argc, argv)) {
+    printf(
+        "T Language Compiler (tlc) version 0.0.1\n"
+        "Copyright 2019 Justin Hu\n"
+        "This software is licensed under the Apache License, Version 2.0.\n"
+        "See the \"LICENSE\" file for copying conditions.\n"
+        "This software is distributed on an \"AS IS\" BASIS, WITHOUT "
+        "WARRANTIES OR\n"
+        "CONDITIONS OF ANY KIND\n");
+    return EXIT_SUCCESS;
+  }
+
   Report report;
   reportInit(&report);
 
