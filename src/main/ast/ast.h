@@ -301,6 +301,7 @@ typedef struct Node {
     struct {
       struct Node *onWhat;
       NodeList *cases;
+      SymbolTable *localSymbols;
     } switchStmt;
     struct {
       NodeList *constVals;

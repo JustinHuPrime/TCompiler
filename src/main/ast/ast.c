@@ -319,6 +319,7 @@ Node *switchStmtNodeCreate(size_t line, size_t character, Node *onWhat,
   node->type = NT_SWITCHSTMT;
   node->data.switchStmt.onWhat = onWhat;
   node->data.switchStmt.cases = cases;
+  node->data.switchStmt.localSymbols = NULL;
   return node;
 }
 Node *numCaseNodeCreate(size_t line, size_t character, NodeList *constVals,
@@ -1094,6 +1095,9 @@ void nodeDestroy(Node *node) {
     case NT_SWITCHSTMT: {
       nodeDestroy(node->data.switchStmt.onWhat);
       nodeListDestroy(node->data.switchStmt.cases);
+      if (node->data.switchStmt.localSymbols != NULL) {
+        symbolTableDestroy(node->data.forStmt.localSymbols);
+      }
       break;
     }
     case NT_NUMCASE: {
