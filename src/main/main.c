@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
     return PARSE_ERROR;
   }
 
-  fileListDestroy(&files);
+  fileListUninit(&files);
 
   // debug stop for parse
   if (optionsGet(&options, optionDebugDump) == O_DD_PARSE_PRETTY) {
