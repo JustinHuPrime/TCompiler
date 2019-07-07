@@ -27,13 +27,14 @@ declaration = function_declaration
             ;
 function_declaration = type, identifier, "(", [ type, [ identifier ], [ "=", literal ], { ",", type, [ identifier ], [ "=", literal ] } ], ")", ";" ;
 variable_declaration = type, identifier, [ "=", literal ], { ",", identifier, [ "=", literal ] }, ";" ;
-struct_declaration = "struct", identifier, "{", { variable_declaration }+, "}", ";" ;
+struct_declaration = "struct", identifier, "{", { field_declaration }+, "}", ";" ;
 struct_forward_declaration = "struct", identifier, ";" ;
-union_declaration = "union", identifier, "{", { variable_declaration }+, "}", ";" ;
+union_declaration = "union", identifier, "{", { field_declaration }+, "}", ";" ;
 union_forward_declaration = "union", identifier, ";" ;
 enum_declaration = "enum", identifier, "{", identifier, { ",", identifier }, [ "," ], "}", ";", ;
 enum_forward_declaration = "enum", identifier, ";" ;
 typedef_declaration = "typedef", type, identifier, ";" ;
+field_declaration = type, identifier, { ",", identifier }, ";" ;
 
 function = type, identifier, "(", [ type, [ identifier, [ "=", literal ] ] ], { ",", type, [ identifier, [ "=", literal ] ] } ], ")", compound_statement ;
 
