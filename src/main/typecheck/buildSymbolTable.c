@@ -182,7 +182,7 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
   SymbolInfo *info = symbolTableGet(env->currentModule, name->data.id.id);
   if (info != NULL && info->kind != SK_FUNCTION) {
     // already declared/defined as a non-function - error!
-    reportError(report, "%s:%zu:%zu: error: '%s' already defined as %s",
+    reportError(report, "%s:%zu:%zu: error: '%s' already declared as %s",
                 filename, name->line, name->character, name->data.id.id,
                 symbolInfoToKindString(info));
     return;
@@ -293,7 +293,7 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
   SymbolInfo *info = symbolTableGet(env->currentModule, name->data.id.id);
   if (info != NULL && info->kind != SK_FUNCTION) {
     // already declared/defined as a non-function - error!
-    reportError(report, "%s:%zu:%zu: error: '%s' already defined as %s",
+    reportError(report, "%s:%zu:%zu: error: '%s' already declared as %s",
                 filename, name->line, name->character, name->data.id.id,
                 symbolInfoToKindString(info));
     return;
@@ -355,14 +355,14 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
         switch (optionsGet(options, optionWDuplicateDeclaration)) {
           case O_WT_ERROR: {
             reportError(
-                report, "%s:%zu:%zu: error: duplicate definition of '%s'",
+                report, "%s:%zu:%zu: error: duplicate declaration of '%s'",
                 filename, fnDecl->line, fnDecl->character, name->data.id.id);
             overloadSetElementDestroy(overload);
             return;
           }
           case O_WT_WARN: {
             reportWarning(
-                report, "%s:%zu:%zu: warning: duplicate definition of '%s'",
+                report, "%s:%zu:%zu: warning: duplicate declaration of '%s'",
                 filename, fnDecl->line, fnDecl->character, name->data.id.id);
             break;
           }
@@ -408,47 +408,203 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
 }
 static void buildStabVarDecl(Node *varDecl, Report *report,
                              Options const *options, Environment *env,
-                             char const *filename) {
-  // mu
+                             char const *filename, bool isDecl) {
   // must not allow a var with the same name to be defined/declared twice
-  // TODO: write this
+  Type *varType =
+      astToType(varDecl->data.varDecl.type, report, options, env, filename);
+  if (varType == NULL) {
+    return;
+  }
+  for (size_t nameIdx = 0; nameIdx < varDecl->data.varDecl.idValuePairs->size;
+       nameIdx++) {
+    Node *name = varDecl->data.varDecl.idValuePairs->firstElements[nameIdx];
+    SymbolInfo *info = symbolTableGet(environmentTop(env), name->data.id.id);
+    if (info != NULL && info->kind != SK_VAR) {
+      // already declared as a non-var - error!
+      reportError(report, "%s:%zu:%zu: error: '%s' already declared as %s",
+                  filename, name->line, name->character, name->data.id.id,
+                  symbolInfoToKindString(info));
+      continue;
+    } else if (info == NULL) {
+      // new variable to declare
+      info = varSymbolInfoCreate(typeCopy(varType), !isDecl);
+      symbolTablePut(environmentTop(env), name->data.id.id, info);
+    } else {
+      if (isDecl) {
+        // redeclaration - check opts
+        switch (optionsGet(options, optionWDuplicateDeclaration)) {
+          case O_WT_ERROR: {
+            reportError(
+                report, "%s:%zu:%zu: error: duplciate declaration of '%s'",
+                filename, name->line, name->character, name->data.id.id);
+            continue;
+          }
+          case O_WT_WARN: {
+            reportWarning(
+                report, "%s:%zu:%zu: warning: duplciate declaration of '%s'",
+                filename, name->line, name->character, name->data.id.id);
+            continue;
+          }
+          case O_WT_IGNORE: {
+            continue;
+          }
+        }
+      } else {
+        // binding declaration - only allowed if not previously bound
+        if (info->data.var.bound) {
+          reportError(report,
+                      "%s:%zu:%zu: error: '%s' has already been declared",
+                      filename, name->line, name->character, name->data.id.id);
+          continue;
+        }
+      }
+    }
+
+    name->data.id.symbol = info;
+  }
+
+  typeDestroy(varType);
+  return;
 }
-static void buildStabStructDecl(Node *structDecl, Report *report,
-                                Options const *options, Environment *env,
-                                char const *filename) {
+static void buildStabStructOrUnionDecl(Node *decl, bool isStruct,
+                                       Report *report, Options const *options,
+                                       Environment *env, char const *filename) {
   // must not allow anything that isn't a struct with the same name to be
   // declared/defined, must not allow a struct with the same name to be defined
-  // TODO: write this
+  Node *name = isStruct ? decl->data.structDecl.id : decl->data.unionDecl.id;
+  SymbolInfo *info = symbolTableGet(environmentTop(env), name->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE ||
+       info->data.type.kind != (isStruct ? TDK_STRUCT : TDK_UNION))) {
+    // already declared as a non-struct - error!
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, name->line, name->character, name->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  } else if (info == NULL) {
+    // new struct declaration
+    info = (isStruct ? structSymbolInfoCreate : unionSymbolInfoCreate)();
+    symbolTablePut(environmentTop(env), name->data.id.id, info);
+  } else if (!(isStruct ? info->data.type.data.structType.incomplete
+                        : info->data.type.data.unionType.incomplete)) {
+    // already declared
+    reportError(report, "%s:%zu:%zu: error: '%s' is already defined", filename,
+                name->line, name->character, name->data.id.id);
+    return;
+  }
+
+  NodeList *fields =
+      isStruct ? decl->data.structDecl.decls : decl->data.unionDecl.opts;
+  for (size_t declIdx = 0; declIdx < fields->size; declIdx++) {
+    Node *field = fields->elements[declIdx];
+    Type *actualFieldType =
+        astToType(field->data.fieldDecl.type, report, options, env, filename);
+    if (actualFieldType == NULL) {
+      continue;
+    } else if (typeIsIncomplete(actualFieldType, env)) {
+      reportError(
+          report,
+          isStruct
+              ? "%s:%zu:%zu: error: incomplete type not allowed in a struct"
+              : "%s:%zu:%zu: error: incomplete type not allowed in a union",
+          filename, field->data.fieldDecl.type->line,
+          field->data.fieldDecl.type->character);
+      continue;
+    }
+    for (size_t fieldIdx = 0; fieldIdx < field->data.fieldDecl.ids->size;
+         fieldIdx++) {
+      Node *id = field->data.fieldDecl.ids->elements[fieldIdx];
+      typeVectorInsert(isStruct ? &info->data.type.data.structType.fields
+                                : &info->data.type.data.unionType.fields,
+                       typeCopy(actualFieldType));
+      stringVectorInsert(isStruct ? &info->data.type.data.structType.names
+                                  : &info->data.type.data.unionType.names,
+                         id->data.id.id);
+    }
+  }
+
+  if (isStruct) {
+    info->data.type.data.structType.incomplete = false;
+  } else {
+    info->data.type.data.unionType.incomplete = false;
+  }
+  name->data.id.symbol = info;
 }
-static void buildStabStructForwardDecl(Node *structForwardDecl, Report *report,
-                                       Options const *options, Environment *env,
-                                       char const *filename) {
+static void buildStabStructOrUnionForwardDecl(Node *forwardDecl, bool isStruct,
+                                              Report *report,
+                                              Options const *options,
+                                              Environment *env,
+                                              char const *filename) {
   // must not allow anything that isn't a struct with the same name to be
   // declared/defined, must check if a struct with the same name is
   // declared/defined
-  // TODO: write this
-}
-static void buildStabUnionDecl(Node *unionDecl, Report *report,
-                               Options const *options, Environment *env,
-                               char const *filename) {
-  // must not allow anything that isn't a struct with the same name to be
-  // declared/defined, must not allow a union with the same name to be defined
-  // TODO: write this
-}
-static void buildStabUnionForwardDecl(Node *unionForwardDecl, Report *report,
-                                      Options const *options, Environment *env,
-                                      char const *filename) {
-  // must not allow anything that isn't a struct with the same name to be
-  // declared/defined, must check if a struct with the same name is
-  // declared/defined
-  // TODO: write this
+  Node *name = isStruct ? forwardDecl->data.structForwardDecl.id
+                        : forwardDecl->data.unionForwardDecl.id;
+  SymbolInfo *info = symbolTableGet(environmentTop(env), name->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE ||
+       info->data.type.kind != (isStruct ? TDK_STRUCT : TDK_UNION))) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, name->line, name->character, name->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  } else if (info != NULL) {
+    switch (optionsGet(options, optionWDuplicateDeclaration)) {
+      case O_WT_ERROR: {
+        reportError(report, "%s:%zu:%zu: error: duplicate declaration of '%s'",
+                    filename, name->line, name->character, name->data.id.id);
+        return;
+      }
+      case O_WT_WARN: {
+        reportWarning(report,
+                      "%s:%zu:%zu: warning: duplicate declaration of '%s'",
+                      filename, name->line, name->character, name->data.id.id);
+        break;
+      }
+      case O_WT_IGNORE: {
+        break;
+      }
+    }
+  } else {
+    info = (isStruct ? structSymbolInfoCreate : unionSymbolInfoCreate)();
+    symbolTablePut(environmentTop(env), name->data.id.id, info);
+  }
+
+  name->data.id.symbol = info;
 }
 static void buildStabEnumDecl(Node *enumDecl, Report *report,
                               Options const *options, Environment *env,
                               char const *filename) {
   // must not allow anything that isn't an enum with the same name to be
   // declared/defined, must not allow an enum with the same name to be defined
-  // TODO: write this
+  Node *name = enumDecl->data.enumDecl.id;
+  SymbolInfo *info = symbolTableGet(environmentTop(env), name->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE || info->data.type.kind != TDK_ENUM)) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, name->line, name->character, name->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  } else if (info == NULL) {
+    // new enum declaration
+    info = enumSymbolInfoCreate();
+    symbolTablePut(environmentTop(env), name->data.id.id, info);
+  } else if (!info->data.type.data.enumType.incomplete) {
+    // already declared
+    reportError(report, "%s:%zu:%zu: error: '%s' is already defined", filename,
+                name->line, name->character, name->data.id.id);
+    return;
+  }
+
+  NodeList *constants = enumDecl->data.enumDecl.elements;
+  for (size_t idx = 0; idx < constants->size; idx++) {
+    Node *constant = constants->elements[idx];
+    stringVectorInsert(&info->data.type.data.enumType.fields,
+                       constant->data.id.id);
+  }
+
+  info->data.type.data.enumType.incomplete = false;
+  name->data.id.symbol = info;
 }
 static void buildStabEnumForwardDecl(Node *enumForwardDecl, Report *report,
                                      Options const *options, Environment *env,
@@ -456,12 +612,65 @@ static void buildStabEnumForwardDecl(Node *enumForwardDecl, Report *report,
   // must not allow anything that isn't an enum with the same name to be
   // declared/defined, must check if an enum with the same name is
   // declared/defined
-  // TODO: write this
+  Node *name = enumForwardDecl->data.enumForwardDecl.id;
+  SymbolInfo *info = symbolTableGet(environmentTop(env), name->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE || info->data.type.kind != TDK_ENUM)) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, name->line, name->character, name->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  } else if (info != NULL) {
+    switch (optionsGet(options, optionWDuplicateDeclaration)) {
+      case O_WT_ERROR: {
+        reportError(report, "%s:%zu:%zu: error: duplicate declaration of '%s'",
+                    filename, name->line, name->character, name->data.id.id);
+        return;
+      }
+      case O_WT_WARN: {
+        reportWarning(report,
+                      "%s:%zu:%zu: warning: duplicate declaration of '%s'",
+                      filename, name->line, name->character, name->data.id.id);
+        break;
+      }
+      case O_WT_IGNORE: {
+        break;
+      }
+    }
+  } else {
+    info = enumSymbolInfoCreate();
+    symbolTablePut(environmentTop(env), name->data.id.id, info);
+  }
+
+  name->data.id.symbol = info;
 }
 static void buildStabTypeDefDecl(Node *typedefDecl, Report *report,
                                  Options const *options, Environment *env,
                                  char const *filename) {
-  // TODO: write this
+  Node *name = typedefDecl->data.typedefDecl.id;
+  SymbolInfo *info = symbolTableGet(environmentTop(env), name->data.id.id);
+  if (info != NULL &&
+      (info->kind != SK_TYPE || info->data.type.kind != TDK_ENUM)) {
+    reportError(report, "%s:%zu:%zu: error: '%s' is already declared as %s",
+                filename, name->line, name->character, name->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  } else if (info != NULL) {
+    // already exists - must be an error
+    reportError(report, "%s:%zu:%zu: error: '%s' is already defined", filename,
+                name->line, name->character, name->data.id.id);
+    return;
+  } else {
+    Type *type = astToType(typedefDecl->data.typedefDecl.type, report, options,
+                           env, filename);
+    if (type == NULL) {
+      return;
+    }
+
+    info = typedefSymbolInfoCreate(type);
+    name->data.id.symbol = info;
+    symbolTablePut(environmentTop(env), name->data.id.id, info);
+  }
 }
 static void buildStabBody(Node *body, Report *report, Options const *options,
                           Environment *env, char const *filename, bool isDecl) {
@@ -475,23 +684,20 @@ static void buildStabBody(Node *body, Report *report, Options const *options,
       return;
     }
     case NT_VARDECL: {
-      buildStabVarDecl(body, report, options, env, filename);
+      buildStabVarDecl(body, report, options, env, filename, isDecl);
       return;
     }
+    case NT_UNIONDECL:
     case NT_STRUCTDECL: {
-      buildStabStructDecl(body, report, options, env, filename);
+      buildStabStructOrUnionDecl(body, body->type == NT_STRUCTDECL, report,
+                                 options, env, filename);
       return;
     }
-    case NT_STRUCTFORWARDDECL: {
-      buildStabStructForwardDecl(body, report, options, env, filename);
-      return;
-    }
-    case NT_UNIONDECL: {
-      buildStabUnionDecl(body, report, options, env, filename);
-      return;
-    }
+    case NT_STRUCTFORWARDDECL:
     case NT_UNIONFORWARDDECL: {
-      buildStabUnionForwardDecl(body, report, options, env, filename);
+      buildStabStructOrUnionForwardDecl(body,
+                                        body->type == NT_STRUCTFORWARDDECL,
+                                        report, options, env, filename);
       return;
     }
     case NT_ENUMDECL: {

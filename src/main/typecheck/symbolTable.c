@@ -400,9 +400,10 @@ static SymbolInfo *symbolInfoCreate(SymbolKind kind) {
   si->kind = kind;
   return si;
 }
-SymbolInfo *varSymbolInfoCreate(Type *type) {
+SymbolInfo *varSymbolInfoCreate(Type *type, bool bound) {
   SymbolInfo *si = symbolInfoCreate(SK_VAR);
   si->data.var.type = type;
+  si->data.var.bound = bound;
   return si;
 }
 SymbolInfo *structSymbolInfoCreate(void) {

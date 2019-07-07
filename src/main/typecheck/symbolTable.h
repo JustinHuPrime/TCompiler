@@ -170,6 +170,7 @@ typedef struct SymbolInfo {
   SymbolKind kind;
   union {
     struct {
+      bool bound;
       Type *type;
     } var;
     struct {
@@ -203,7 +204,7 @@ typedef struct SymbolInfo {
   } data;
 } SymbolInfo;
 // ctor
-SymbolInfo *varSymbolInfoCreate(Type *);
+SymbolInfo *varSymbolInfoCreate(Type *, bool bound);
 SymbolInfo *structSymbolInfoCreate(void);
 SymbolInfo *unionSymbolInfoCreate(void);
 SymbolInfo *enumSymbolInfoCreate(void);
