@@ -921,6 +921,7 @@ Node *castExpNodeCreate(size_t line, size_t character, Node *toWhat,
   Node *node = nodeCreate(line, character);
   node->type = NT_CASTEXP;
   node->data.castExp.toWhat = toWhat;
+  node->data.castExp.toType = NULL;
   node->data.castExp.target = target;
   return node;
 }
@@ -928,12 +929,14 @@ Node *sizeofTypeExpNodeCreate(size_t line, size_t character, Node *target) {
   Node *node = nodeCreate(line, character);
   node->type = NT_SIZEOFTYPEEXP;
   node->data.sizeofTypeExp.target = target;
+  node->data.sizeofTypeExp.targetType = NULL;
   return node;
 }
 Node *sizeofExpExpNodeCreate(size_t line, size_t character, Node *target) {
   Node *node = nodeCreate(line, character);
   node->type = NT_SIZEOFEXPEXP;
   node->data.sizeofExpExp.target = target;
+  node->data.sizeofExpExp.targetType = NULL;
   return node;
 }
 Node *keywordTypeNodeCreate(size_t line, size_t character, TypeKeyword type) {
@@ -1224,14 +1227,23 @@ void nodeDestroy(Node *node) {
     case NT_CASTEXP: {
       nodeDestroy(node->data.castExp.toWhat);
       nodeDestroy(node->data.castExp.target);
+      if (node->data.castExp.toType != NULL) {
+        typeDestroy(node->data.castExp.toType);
+      }
       break;
     }
     case NT_SIZEOFTYPEEXP: {
       nodeDestroy(node->data.sizeofTypeExp.target);
+      if (node->data.sizeofTypeExp.targetType != NULL) {
+        typeDestroy(node->data.sizeofTypeExp.targetType);
+      }
       break;
     }
     case NT_SIZEOFEXPEXP: {
       nodeDestroy(node->data.sizeofExpExp.target);
+      if (node->data.sizeofExpExp.targetType != NULL) {
+        typeDestroy(node->data.sizeofExpExp.targetType);
+      }
       break;
     }
     case NT_KEYWORDTYPE: {

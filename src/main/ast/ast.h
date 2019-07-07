@@ -400,13 +400,16 @@ typedef struct Node {
     } aggregateInitExp;
     struct {
       struct Node *toWhat;
+      Type *toType;
       struct Node *target;
     } castExp;
     struct {
       struct Node *target;
+      Type *targetType;
     } sizeofTypeExp;
     struct {
       struct Node *target;
+      Type *targetType;
     } sizeofExpExp;
 
     struct {

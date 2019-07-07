@@ -141,8 +141,128 @@ static void buildStabExpression(Node *expression, Report *report,
                                 char const *filename) {
   if (expression == NULL) {
     return;
+  } else {
+    switch (expression->type) {
+      case NT_SEQEXP: {
+        buildStabExpression(expression->data.seqExp.first, report, options, env,
+                            filename);
+        buildStabExpression(expression->data.seqExp.rest, report, options, env,
+                            filename);
+        break;
+      }
+      case NT_BINOPEXP: {
+        buildStabExpression(expression->data.binOpExp.lhs, report, options, env,
+                            filename);
+        buildStabExpression(expression->data.binOpExp.rhs, report, options, env,
+                            filename);
+        break;
+      }
+      case NT_UNOPEXP: {
+        buildStabExpression(expression->data.unOpExp.target, report, options,
+                            env, filename);
+        break;
+      }
+      case NT_COMPOPEXP: {
+        buildStabExpression(expression->data.compOpExp.lhs, report, options,
+                            env, filename);
+        buildStabExpression(expression->data.compOpExp.rhs, report, options,
+                            env, filename);
+        break;
+      }
+      case NT_LANDASSIGNEXP: {
+        buildStabExpression(expression->data.landAssignExp.lhs, report, options,
+                            env, filename);
+        buildStabExpression(expression->data.landAssignExp.rhs, report, options,
+                            env, filename);
+        break;
+      }
+      case NT_LORASSIGNEXP: {
+        buildStabExpression(expression->data.lorAssignExp.lhs, report, options,
+                            env, filename);
+        buildStabExpression(expression->data.lorAssignExp.rhs, report, options,
+                            env, filename);
+        break;
+      }
+      case NT_TERNARYEXP: {
+        buildStabExpression(expression->data.ternaryExp.condition, report,
+                            options, env, filename);
+        buildStabExpression(expression->data.ternaryExp.thenExp, report,
+                            options, env, filename);
+        buildStabExpression(expression->data.ternaryExp.elseExp, report,
+                            options, env, filename);
+        break;
+      }
+      case NT_LANDEXP: {
+        buildStabExpression(expression->data.landExp.lhs, report, options, env,
+                            filename);
+        buildStabExpression(expression->data.landExp.rhs, report, options, env,
+                            filename);
+        break;
+      }
+      case NT_LOREXP: {
+        buildStabExpression(expression->data.lorExp.lhs, report, options, env,
+                            filename);
+        buildStabExpression(expression->data.lorExp.rhs, report, options, env,
+                            filename);
+        break;
+      }
+      case NT_STRUCTACCESSEXP: {
+        buildStabExpression(expression->data.structAccessExp.base, report,
+                            options, env, filename);
+        break;
+      }
+      case NT_STRUCTPTRACCESSEXP: {
+        buildStabExpression(expression->data.structPtrAccessExp.base, report,
+                            options, env, filename);
+        break;
+      }
+      case NT_FNCALLEXP: {
+        buildStabExpression(expression->data.fnCallExp.who, report, options,
+                            env, filename);
+        NodeList *args = expression->data.fnCallExp.args;
+        for (size_t idx = 0; idx < args->size; idx++) {
+          buildStabExpression(args->elements[idx], report, options, env,
+                              filename);
+        }
+        break;
+      }
+      case NT_AGGREGATEINITEXP: {
+        NodeList *elements = expression->data.aggregateInitExp.elements;
+        for (size_t idx = 0; idx < elements->size; idx++) {
+          buildStabExpression(elements->elements[idx], report, options, env,
+                              filename);
+        }
+        break;
+      }
+      case NT_CASTEXP: {
+        expression->data.castExp.toType = astToType(
+            expression->data.castExp.toWhat, report, options, env, filename);
+        buildStabExpression(expression->data.castExp.target, report, options,
+                            env, filename);
+        break;
+      }
+      case NT_SIZEOFTYPEEXP: {
+        expression->data.sizeofTypeExp.targetType =
+            astToType(expression->data.sizeofTypeExp.target, report, options,
+                      env, filename);
+        break;
+      }
+      case NT_SIZEOFEXPEXP: {
+        buildStabExpression(expression->data.sizeofExpExp.target, report,
+                            options, env, filename);
+        break;
+      }
+      case NT_ID: {
+        expression->data.id.symbol = environmentLookup(
+            env, report, expression->data.id.id, expression->line,
+            expression->character, filename);
+        break;
+      }
+      default: {
+        break;  // nothing to build a stab for
+      }
+    }
   }
-  // TODO: write this
 }
 
 // statement
