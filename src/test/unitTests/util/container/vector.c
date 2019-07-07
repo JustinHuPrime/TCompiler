@@ -18,7 +18,7 @@
 
 #include "util/container/vector.h"
 
-#include "tests.h"
+#include "unitTests/tests.h"
 #include "util/functional.h"
 
 void vectorTest(TestStatus *status) {

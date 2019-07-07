@@ -14,36 +14,15 @@
 //
 // This file is part of the T Language Compiler.
 
-// A list of all test modules
+// Tests for hashes
 
-#ifndef TLC_TEST_TESTS_H_
-#define TLC_TEST_TESTS_H_
+#include "util/hash.h"
 
-#include "engine.h"
+#include "unitTests/tests.h"
 
-// in lexer/lexer.c
-void keywordMapTest(TestStatus *);
-void lexerTest(TestStatus *);
-
-// in util/errorReport.c
-void errorReportTest(TestStatus *);
-
-// in util/fileList.c
-void fileListTest(TestStatus *);
-
-// in util/file.c
-void fileTest(TestStatus *);
-
-// in util/hash.c
-void hashTest(TestStatus *);
-
-// in util/hashMap.c
-void hashMapTest(TestStatus *);
-
-// in util/stringBuilder.c
-void stringBuilderTest(TestStatus *);
-
-// in util/vector.c
-void vectorTest(TestStatus *);
-
-#endif  // TLC_TEST_AST_CONSTEXPPARSETEST_H_
+void hashTest(TestStatus *status) {
+  test(status, "[util] [hash] [djb2] djb2 has produces correct value",
+       djb2("a1b2") == 6382611557UL);
+  test(status, "[util] [hash] [djb2add] djb2add has produces correct value",
+       djb2add("a1b2") == 6384983435UL);
+}

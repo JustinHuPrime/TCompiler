@@ -18,7 +18,7 @@
 
 #include "util/container/stringBuilder.h"
 
-#include "tests.h"
+#include "unitTests/tests.h"
 
 #include <stdlib.h>
 #include <string.h>

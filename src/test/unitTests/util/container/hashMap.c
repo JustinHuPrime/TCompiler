@@ -18,7 +18,7 @@
 
 #include "util/container/hashMap.h"
 
-#include "tests.h"
+#include "unitTests/tests.h"
 #include "util/functional.h"
 
 void hashMapTest(TestStatus *status) {

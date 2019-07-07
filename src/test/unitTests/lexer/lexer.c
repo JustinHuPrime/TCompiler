@@ -18,7 +18,7 @@
 
 #include "lexer/lexer.h"
 
-#include "tests.h"
+#include "unitTests/tests.h"
 #include "util/functional.h"
 #include "util/hash.h"
 

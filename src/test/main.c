@@ -17,7 +17,7 @@
 // Calls all test modules and reports the stats
 
 #include "engine.h"
-#include "tests.h"
+#include "unitTests/tests.h"
 
 int main(void) {
   TestStatus *status = testStatusCreate();
