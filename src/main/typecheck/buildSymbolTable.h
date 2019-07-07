@@ -14,16 +14,15 @@
 //
 // This file is part of the T Language Compiler.
 
-// Type checking
+// Symbol table building
 
-#ifndef TLC_TYPECHECK_UTIL_H_
-#define TLC_TYPECHECK_UTIL_H_
+#ifndef TLC_TYPECHECK_BUILDSYMBOLTABLE_H_
+#define TLC_TYPECHECK_BUILDSYMBOLTABLE_H_
 
 #include "parser/parser.h"
-#include "typecheck/symbolTable.h"
 #include "util/errorReport.h"
 #include "util/options.h"
 
 void buildSymbolTables(Report *, Options const *, ModuleAstMapPair const *asts);
 
-#endif  // TLC_TYPECHECK_UTIL_H_
+#endif  // TLC_TYPECHECK_BUILDSYMBOLTABLE_H_

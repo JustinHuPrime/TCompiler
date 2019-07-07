@@ -14,7 +14,7 @@
 //
 // This file is part of the T Language Compiler.
 
-// Implementation of type checking
+// Implementation of symbol table building
 
 #include "typecheck/buildSymbolTable.h"
 
