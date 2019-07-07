@@ -312,7 +312,7 @@ void nodePrintStructure(Node const *node) {
     }
     case NT_BINOPEXP: {
       printf("BINOPEXP(");
-      switch (node->data.binopExp.op) {
+      switch (node->data.binOpExp.op) {
         case BO_ASSIGN: {
           printf("ASSIGN");
           break;
@@ -415,9 +415,9 @@ void nodePrintStructure(Node const *node) {
         }
       }
       printf(" ");
-      nodePrintStructure(node->data.binopExp.lhs);
+      nodePrintStructure(node->data.binOpExp.lhs);
       printf(" ");
-      nodePrintStructure(node->data.binopExp.rhs);
+      nodePrintStructure(node->data.binOpExp.rhs);
       printf(")");
       break;
     }
@@ -677,7 +677,7 @@ void nodePrintStructure(Node const *node) {
       break;
     }
     case NT_KEYWORDTYPE: {
-      switch (node->data.typeKeyword.type) {
+      switch (node->data.keywordType.type) {
         case TK_VOID: {
           printf("KEYWORDTYPE(void)");
           break;
@@ -1052,17 +1052,17 @@ void nodePrint(Node const *node) {
       break;
     }
     case NT_BINOPEXP: {
-      if (node->data.binopExp.op == BO_ARRAYACCESS) {
+      if (node->data.binOpExp.op == BO_ARRAYACCESS) {
         printf("(");
-        nodePrint(node->data.binopExp.lhs);
+        nodePrint(node->data.binOpExp.lhs);
         printf("[");
-        nodePrint(node->data.binopExp.rhs);
+        nodePrint(node->data.binOpExp.rhs);
         printf("])");
         break;
       }
       printf("(");
-      nodePrint(node->data.binopExp.lhs);
-      switch (node->data.binopExp.op) {
+      nodePrint(node->data.binOpExp.lhs);
+      switch (node->data.binOpExp.op) {
         case BO_ASSIGN: {
           printf(" = ");
           break;
@@ -1159,10 +1159,11 @@ void nodePrint(Node const *node) {
           printf(" %% ");
           break;
         }
-        case BO_ARRAYACCESS:
-          assert(false);  // already dealt with, so can't come here again.
+        case BO_ARRAYACCESS: {
+          return;
+        }
       }
-      nodePrint(node->data.binopExp.rhs);
+      nodePrint(node->data.binOpExp.rhs);
       printf(")");
       break;
     }
@@ -1202,8 +1203,9 @@ void nodePrint(Node const *node) {
           break;
         }
         case UO_POSTINC:
-        case UO_POSTDEC:
+        case UO_POSTDEC: {
           break;
+        }
       }
       nodePrint(node->data.unOpExp.target);
       switch (node->data.unOpExp.op) {
@@ -1222,8 +1224,9 @@ void nodePrint(Node const *node) {
         case UO_UPLUS:
         case UO_NEG:
         case UO_LNOT:
-        case UO_BITNOT:
+        case UO_BITNOT: {
           break;
+        }
       }
       break;
     }
@@ -1434,7 +1437,7 @@ void nodePrint(Node const *node) {
       break;
     }
     case NT_KEYWORDTYPE: {
-      switch (node->data.typeKeyword.type) {
+      switch (node->data.keywordType.type) {
         case TK_VOID: {
           printf("void");
           break;

@@ -331,7 +331,7 @@ typedef struct Node {
       BinOpType op;
       struct Node *lhs;
       struct Node *rhs;
-    } binopExp;
+    } binOpExp;
     struct {
       UnOpType op;
       struct Node *target;
@@ -410,7 +410,7 @@ typedef struct Node {
 
     struct {
       TypeKeyword type;
-    } typeKeyword;
+    } keywordType;
     struct {
       struct Node *target;
     } constType;
@@ -538,7 +538,7 @@ Node *castExpNodeCreate(size_t line, size_t character, Node *type,
                         Node *target);
 Node *sizeofTypeExpNodeCreate(size_t line, size_t character, Node *target);
 Node *sizeofExpExpNodeCreate(size_t line, size_t character, Node *target);
-Node *typeKeywordNodeCreate(size_t line, size_t character, TypeKeyword type);
+Node *keywordTypeNodeCreate(size_t line, size_t character, TypeKeyword type);
 Node *constTypeNodeCreate(size_t line, size_t character, Node *target);
 Node *arrayTypeNodeCreate(size_t line, size_t character, Node *target,
                           Node *size);

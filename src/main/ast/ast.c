@@ -380,9 +380,9 @@ Node *binOpExpNodeCreate(size_t line, size_t character, BinOpType op, Node *lhs,
                          Node *rhs) {
   Node *node = nodeCreate(line, character);
   node->type = NT_BINOPEXP;
-  node->data.binopExp.op = op;
-  node->data.binopExp.lhs = lhs;
-  node->data.binopExp.rhs = rhs;
+  node->data.binOpExp.op = op;
+  node->data.binOpExp.lhs = lhs;
+  node->data.binOpExp.rhs = rhs;
   return node;
 }
 Node *unOpExpNodeCreate(size_t line, size_t character, UnOpType op,
@@ -935,10 +935,10 @@ Node *sizeofExpExpNodeCreate(size_t line, size_t character, Node *target) {
   node->data.sizeofExpExp.target = target;
   return node;
 }
-Node *typeKeywordNodeCreate(size_t line, size_t character, TypeKeyword type) {
+Node *keywordTypeNodeCreate(size_t line, size_t character, TypeKeyword type) {
   Node *node = nodeCreate(line, character);
   node->type = NT_KEYWORDTYPE;
-  node->data.typeKeyword.type = type;
+  node->data.keywordType.type = type;
   return node;
 }
 Node *constTypeNodeCreate(size_t line, size_t character, Node *target) {
@@ -1130,8 +1130,8 @@ void nodeDestroy(Node *node) {
       break;
     }
     case NT_BINOPEXP: {
-      nodeDestroy(node->data.binopExp.lhs);
-      nodeDestroy(node->data.binopExp.rhs);
+      nodeDestroy(node->data.binOpExp.lhs);
+      nodeDestroy(node->data.binOpExp.rhs);
       break;
     }
     case NT_UNOPEXP: {

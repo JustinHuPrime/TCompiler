@@ -23,7 +23,7 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
                        Environment const *env, char const *filename) {
   switch (ast->type) {
     case NT_KEYWORDTYPE: {
-      return keywordTypeCreate(ast->data.typeKeyword.type - TK_VOID + K_VOID);
+      return keywordTypeCreate(ast->data.keywordType.type - TK_VOID + K_VOID);
     }
     case NT_ID: {
       SymbolInfo *info = environmentLookup(env, report, ast->data.id.id,

@@ -262,7 +262,7 @@ static Node *parseType(Report *report, Options const *options,
   if (tokenInfoIsTypeKeyword(&base)) {
     return parseTypeExtensions(
         report, options, env,
-        typeKeywordNodeCreate(base.line, base.character,
+        keywordTypeNodeCreate(base.line, base.character,
                               tokenTypeToTypeKeyword(base.type)),
         info);
   } else if (base.type == TT_ID ||
