@@ -30,8 +30,17 @@
 #include <string.h>
 
 static bool versionRequested(size_t argc, char *argv[]) {
-  for (size_t idx = 0; idx < argc; idx++) {
+  for (size_t idx = 1; idx < argc; idx++) {
     if (strcmp(argv[idx], "--version") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+static bool helpRequested(size_t argc, char *argv[]) {
+  for (size_t idx = 1; idx < argc; idx++) {
+    if (strcmp(argv[idx], "--help") == 0 || strcmp(argv[idx], "-h") == 0 ||
+        strcmp(argv[idx], "-?") == 0) {
       return true;
     }
   }
@@ -56,6 +65,22 @@ int main(int argc, char *argv[]) {
         "This software is distributed on an \"AS IS\" BASIS, WITHOUT "
         "WARRANTIES OR\n"
         "CONDITIONS OF ANY KIND\n");
+    return SUCCESS;
+  } else if (helpRequested((size_t)argc, argv)) {
+    printf(
+        "Usage: tlc [options] file...\n"
+        "For more information, see the 'README.md' file.\n"
+        "\n"
+        "Options:\n"
+        "  --help, -h, -?  Display this information\n"
+        "  --version       Display version, copyright, and warranty "
+        "information\n"
+        "  --arch=...        Set the target architecture\n"
+        "  -W=...            Configure warning options\n"
+        "  --debug-dump=...  Configure debug information\n"
+        "\n"
+        "Please report bugs at "
+        "<https://github.com/JustinHuPrime/TCompiler/issues>\n");
     return SUCCESS;
   }
 
