@@ -76,3 +76,4 @@ void test(TestStatus *status, char const *name, bool condition) {
     testStatusFail(status, name);
   }
 }
+void dropLine(void) { fprintf(stderr, "\x1B[1A\x1B[2K"); }

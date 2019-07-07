@@ -49,5 +49,7 @@ void testStatusUninit(TestStatus *);
 // wrapper function that passes or fails a test depending on the condition
 // Note that the test name should be a constant c-string
 void test(TestStatus *, char const *name, bool condition);
+// prints ANSI escape to suppress previous line of output
+void dropLine(void);
 
 #endif  // TLC_TEST_ENGINE_H_

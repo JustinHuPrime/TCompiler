@@ -992,12 +992,15 @@ void lexerTest(TestStatus *status) {
   free(tokenInfo.data.string);
   lex(info, report, &tokenInfo);
   lex(info, report, &tokenInfo);
+  dropLine();
   test(status, "[lexer] [lex] invalid characters are caught",
        tokenInfo.type == TT_INVALID);
   lex(info, report, &tokenInfo);
+  dropLine();
   test(status, "[lexer] [lex] bad escape in string is caught",
        tokenInfo.type == TT_INVALID_ESCAPE);
   lex(info, report, &tokenInfo);
+  dropLine();
   test(status, "[lexer] [lex] bad escape in char is caught",
        tokenInfo.type == TT_INVALID_ESCAPE);
 

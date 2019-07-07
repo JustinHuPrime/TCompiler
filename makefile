@@ -83,13 +83,13 @@ LIBS :=
 debug: OPTIONS := $(OPTIONS) $(DEBUGOPTIONS)
 debug: $(EXENAME) $(TEXENAME)
 	@echo "Running tests"
-	@./$(TEXENAME) 2> /dev/null
+	@./$(TEXENAME)
 	@echo "Done building debug!"
 
 release: OPTIONS := $(OPTIONS) $(RELEASEOPTIONS)
 release: $(EXENAME) $(TEXENAME)
 	@echo "Running tests"
-	@./$(TEXENAME) 2> /dev/null
+	@./$(TEXENAME)
 	@echo "Done building release!"
 
 

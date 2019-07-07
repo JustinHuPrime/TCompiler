@@ -35,6 +35,7 @@ void fileListTest(TestStatus *status) {
 
   // ctor
   parseFiles(&fileList, &report, &options, 1, NULL);
+  dropLine();
   test(status, "[util] [fileList] [ctor] empty list produces no code files",
        fileList.codes.size == 0);
   test(status, "[util] [fileList] [ctor] empty list produces no decl files",
@@ -57,6 +58,7 @@ void fileListTest(TestStatus *status) {
   reportInit(&report);
 
   parseFiles(&fileList, &report, &options, 3, badExt);
+  dropLine();
   test(status, "[util] [fileList] [ctor] badExt is caught",
        reportState(&report) == RPT_ERR);
   test(status, "[util] [fileList] [ctor] further files are processed correctly",
@@ -67,6 +69,7 @@ void fileListTest(TestStatus *status) {
   reportInit(&report);
 
   parseFiles(&fileList, &report, &options, 3, badDup);
+  dropLine();
   test(status, "[util] [fileList] [ctor] duplicate is caught",
        reportState(&report) == RPT_ERR);
   test(status, "[util] [fileList] [ctor] first file is processed correctly",
