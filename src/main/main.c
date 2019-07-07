@@ -38,6 +38,14 @@ static bool versionRequested(size_t argc, char *argv[]) {
   return false;
 }
 
+typedef enum {
+  SUCCESS = EXIT_SUCCESS,
+  OPTION_ERROR,
+  FILE_ERROR,
+  PARSE_ERROR,
+  BUILD_STAB_ERROR,
+} ReturnValue;
+
 int main(int argc, char *argv[]) {
   if (versionRequested((size_t)argc, argv)) {
     printf(
@@ -48,7 +56,7 @@ int main(int argc, char *argv[]) {
         "This software is distributed on an \"AS IS\" BASIS, WITHOUT "
         "WARRANTIES OR\n"
         "CONDITIONS OF ANY KIND\n");
-    return EXIT_SUCCESS;
+    return SUCCESS;
   }
 
   Report report;
@@ -61,7 +69,7 @@ int main(int argc, char *argv[]) {
   if (reportState(&report) == RPT_ERR) {
     optionsUninit(&options);
     reportUninit(&report);
-    return EXIT_FAILURE;
+    return OPTION_ERROR;
   }
 
   // Sort the given files, and validate them
@@ -72,7 +80,7 @@ int main(int argc, char *argv[]) {
     fileListUninit(&files);
     optionsUninit(&options);
     reportUninit(&report);
-    return EXIT_FAILURE;
+    return FILE_ERROR;
   }
 
   // debug stop for lex
@@ -91,7 +99,7 @@ int main(int argc, char *argv[]) {
     fileListUninit(&files);
     optionsUninit(&options);
     reportUninit(&report);
-    return EXIT_FAILURE;
+    return PARSE_ERROR;
   }
 
   fileListDestroy(&files);
@@ -127,7 +135,7 @@ int main(int argc, char *argv[]) {
     moduleAstMapPairUninit(&asts);
     optionsUninit(&options);
     reportUninit(&report);
-    return EXIT_FAILURE;
+    return BUILD_STAB_ERROR;
   }
 
   // clean up
@@ -135,5 +143,5 @@ int main(int argc, char *argv[]) {
   optionsUninit(&options);
   reportUninit(&report);
 
-  return EXIT_SUCCESS;
+  return SUCCESS;
 }

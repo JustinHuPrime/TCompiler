@@ -140,11 +140,148 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
 // statement
 
 // top level
+static OverloadSetElement *astToOverloadSetElement(
+    Report *report, Options const *options, Environment const *env,
+    char const *filename, Node const *returnTypeNode, size_t numArgs,
+    Node **argTypes, Node **argDefaults, bool defined) {
+  OverloadSetElement *overload = overloadSetElementCreate();
+
+  Type *returnType = astToType(returnTypeNode, report, options, env, filename);
+  if (returnType == NULL) {
+    overloadSetElementDestroy(overload);
+    return NULL;
+  }
+  overload->returnType = returnType;
+
+  for (size_t idx = 0; idx < numArgs; idx++) {
+    Type *argType = astToType(argTypes[idx], report, options, env, filename);
+    if (argType == NULL) {
+      overloadSetElementDestroy(overload);
+      return NULL;
+    }
+    typeVectorInsert(&overload->argumentTypes, argType);
+  }
+
+  overload->defined = defined;
+  overload->numOptional = 0;
+  for (size_t idx = 0; idx < numArgs; idx++) {
+    if (argDefaults[idx] != NULL) {
+      overload->numOptional = numArgs - idx;
+      break;
+    }
+  }
+
+  return overload;
+}
 static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
                              Environment *env, char const *filename) {
+  // INVARIANT: env has no scopes
   // must not be declared/defined as a non-function, must not allow a function
   // with the same input args and name to be declared/defined
-  // TODO: write this
+  Node *name = fn->data.function.id;
+  SymbolInfo *info = symbolTableGet(env->currentModule, name->data.id.id);
+  if (info != NULL && info->kind != SK_FUNCTION) {
+    // already declared/defined as a non-function - error!
+    reportError(report, "%s:%zu:%zu: error: '%s' already defined as %s",
+                filename, name->line, name->character, name->data.id.id,
+                symbolInfoToKindString(info));
+    return;
+  } else if (info == NULL) {
+    // not declared/defined - do that now
+    OverloadSetElement *overload = astToOverloadSetElement(
+        report, options, env, filename, fn->data.function.returnType,
+        fn->data.function.formals->size,
+        fn->data.function.formals->firstElements,
+        fn->data.function.formals->thirdElements, true);
+    if (overload == NULL) {
+      return;
+    }
+
+    info = functionSymbolInfoCreate();
+    overloadSetInsert(&info->data.function.overloadSet, overload);
+    symbolTablePut(env->currentModule, name->data.id.id, info);
+  } else {
+    // is already declared/defined.
+
+    // if found match, then return type must be the same, default args
+    // must not be given, and function must not previously have been defined.
+    // otherwise, all's well, this is a new declaration. Make sure the
+    // declaration doesn't conflict (see below), and add the
+
+    OverloadSetElement *overload = astToOverloadSetElement(
+        report, options, env, filename, fn->data.function.returnType,
+        fn->data.function.formals->size,
+        fn->data.function.formals->firstElements,
+        fn->data.function.formals->thirdElements, true);
+    if (overload == NULL) {
+      return;
+    }
+
+    OverloadSetElement *matched = overloadSetLookupDefinition(
+        &info->data.function.overloadSet, &overload->argumentTypes);
+
+    if (matched == NULL) {
+      // new declaration + definition: insert as if declared and defined
+      OverloadSetElement *declMatched = overloadSetLookupCollision(
+          &info->data.function.overloadSet, &overload->argumentTypes,
+          overload->numOptional);
+      if (declMatched == NULL) {
+        overloadSetInsert(&info->data.function.overloadSet, overload);
+      } else {
+        // never an exact match here
+        switch (optionsGet(options, optionWOverloadAmbiguity)) {
+          case O_WT_ERROR: {
+            reportError(report,
+                        "%s:%zu:%zu: error: overload set allows ambiguous "
+                        "calls through use of default arguments",
+                        filename, fn->line, fn->character);
+            overloadSetElementDestroy(overload);
+            return;
+          }
+          case O_WT_WARN: {
+            reportWarning(report,
+                          "%s:%zu:%zu: warning: overload set allows ambiguous "
+                          "calls through use of default arguments",
+                          filename, fn->line, fn->character);
+            break;
+          }
+          case O_WT_IGNORE: {
+            break;
+          }
+        }
+        overloadSetInsert(&info->data.function.overloadSet, overload);
+      }
+    } else if (matched->defined) {
+      reportError(report, "%s:%zu:%zu: error: duplicate definition of '%s'",
+                  filename, fn->line, fn->character, name->data.id.id);
+      overloadSetElementDestroy(overload);
+      return;
+    } else if (!typeEqual(matched->returnType, overload->returnType)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: return type of '%s' changed between "
+                  "declaration and definition",
+                  filename, fn->line, fn->character, name->data.id.id);
+      overloadSetElementDestroy(overload);
+      return;
+    } else if (overload->numOptional != 0) {
+      reportError(report,
+                  "%s:%zu:%zu: error: may not redeclare default arguments in "
+                  "function definition",
+                  filename, fn->line, fn->character);
+      overloadSetElementDestroy(overload);
+      return;
+    } else {
+      overloadSetElementDestroy(overload);
+      matched->defined = true;
+    }
+  }
+
+  name->data.id.symbol = info;
+
+  environmentPush(env);
+  // TODO: add local params
+  // TODO: check inside of function
+  fn->data.function.localSymbols = environmentPop(env);
 }
 static void buildStabFunDecl(Node *fnDecl, Report *report,
                              Options const *options, Environment *env,
@@ -162,68 +299,27 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
     return;
   } else if (info == NULL) {
     // not declared/defined - do that now
-    info = functionSymbolInfoCreate();
-    OverloadSetElement *overload = overloadSetElementCreate();
-
-    Type *returnType = astToType(fnDecl->data.funDecl.returnType, report,
-                                 options, env, filename);
-    if (returnType == NULL) {
-      overloadSetElementDestroy(overload);
-      symbolInfoDestroy(info);
+    OverloadSetElement *overload = astToOverloadSetElement(
+        report, options, env, filename, fnDecl->data.funDecl.returnType,
+        fnDecl->data.funDecl.params->size,
+        fnDecl->data.funDecl.params->firstElements,
+        fnDecl->data.funDecl.params->secondElements, false);
+    if (overload == NULL) {
       return;
     }
-    overload->returnType = returnType;
 
-    for (size_t idx = 0; idx < fnDecl->data.funDecl.params->size; idx++) {
-      Type *argType = astToType(fnDecl->data.funDecl.params->firstElements[idx],
-                                report, options, env, filename);
-      if (argType == NULL) {
-        overloadSetElementDestroy(overload);
-        symbolInfoDestroy(info);
-        return;
-      }
-      typeVectorInsert(&overload->argumentTypes, argType);
-    }
-
-    overload->defined = false;
-    overload->numOptional = 0;
-    for (size_t idx = 0; idx < fnDecl->data.funDecl.params->size; idx++) {
-      if (fnDecl->data.funDecl.params->secondElements[idx] != NULL) {
-        overload->numOptional = fnDecl->data.funDecl.params->size - idx;
-        break;
-      }
-    }
-
+    info = functionSymbolInfoCreate();
     overloadSetInsert(&info->data.function.overloadSet, overload);
     symbolTablePut(env->currentModule, name->data.id.id, info);
   } else {
     // is already declared/defined.
-    OverloadSetElement *overload = overloadSetElementCreate();
-    Type *returnType = astToType(fnDecl->data.funDecl.returnType, report,
-                                 options, env, filename);
-    if (returnType == NULL) {
-      overloadSetElementDestroy(overload);
+    OverloadSetElement *overload = astToOverloadSetElement(
+        report, options, env, filename, fnDecl->data.funDecl.returnType,
+        fnDecl->data.funDecl.params->size,
+        fnDecl->data.funDecl.params->firstElements,
+        fnDecl->data.funDecl.params->secondElements, false);
+    if (overload == NULL) {
       return;
-    }
-    overload->returnType = returnType;
-
-    for (size_t idx = 0; idx < fnDecl->data.funDecl.params->size; idx++) {
-      Type *argType = astToType(fnDecl->data.funDecl.params->firstElements[idx],
-                                report, options, env, filename);
-      if (argType == NULL) {
-        overloadSetElementDestroy(overload);
-        return;
-      }
-      typeVectorInsert(&overload->argumentTypes, argType);
-    }
-
-    overload->defined = false;
-    overload->numOptional = 0;
-    for (size_t idx = 0; idx < fnDecl->data.funDecl.params->size; idx++) {
-      if (fnDecl->data.funDecl.params->secondElements[idx] != NULL) {
-        overload->numOptional = fnDecl->data.funDecl.params->size - idx;
-        break;
-      }
     }
 
     OverloadSetElement *matched = overloadSetLookupCollision(
@@ -261,7 +357,8 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
             reportError(
                 report, "%s:%zu:%zu: error: duplicate definition of '%s'",
                 filename, fnDecl->line, fnDecl->character, name->data.id.id);
-            break;
+            overloadSetElementDestroy(overload);
+            return;
           }
           case O_WT_WARN: {
             reportWarning(
@@ -279,6 +376,8 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
                     "conflicts for duplciated declarations of '%s'",
                     filename, fnDecl->line, fnDecl->character,
                     name->data.id.id);
+        overloadSetElementDestroy(overload);
+        return;
       } else {
         switch (optionsGet(options, optionWOverloadAmbiguity)) {
           case O_WT_ERROR: {
@@ -286,7 +385,8 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
                         "%s:%zu:%zu: error: overload set allows ambiguous "
                         "calls through use of default arguments",
                         filename, fnDecl->line, fnDecl->character);
-            break;
+            overloadSetElementDestroy(overload);
+            return;
           }
           case O_WT_WARN: {
             reportWarning(report,
@@ -299,6 +399,7 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
             break;
           }
         }
+        overloadSetInsert(&info->data.function.overloadSet, overload);
       }
     }
   }

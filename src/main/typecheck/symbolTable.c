@@ -354,6 +354,27 @@ OverloadSetElement *overloadSetLookupCollision(OverloadSet *set,
 
   return NULL;
 }
+OverloadSetElement *overloadSetLookupDefinition(OverloadSet *set,
+                                                TypeVector const *argTypes) {
+  for (size_t candidateIdx = 0; candidateIdx < set->size; candidateIdx++) {
+    OverloadSetElement *candidate = set->elements[candidateIdx];
+    if (candidate->argumentTypes.size == argTypes->size) {
+      bool match = true;
+      for (size_t argIdx = 0; argIdx < argTypes->size; argIdx++) {
+        if (!typeEqual(candidate->argumentTypes.elements[argIdx],
+                       argTypes->elements[argIdx])) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        return candidate;
+      }
+    }
+  }
+
+  return NULL;
+}
 void overloadSetUninit(OverloadSet *set) {
   vectorUninit(set, (void (*)(void *))overloadSetElementDestroy);
 }
