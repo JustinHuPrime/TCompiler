@@ -136,13 +136,146 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
 }
 
 // expression
+static void buildStabExpression(Node *expression, Report *report,
+                                Options const *options, Environment *env,
+                                char const *filename) {
+  if (expression == NULL) {
+    return;
+  }
+  // TODO: write this
+}
 
 // statement
-static void buildStabStmt(Node const *statement, Report *report,
+static void buildStabVarDecl(Node *, Report *, Options const *, Environment *,
+                             char const *, bool);
+static void buildStabStructOrUnionDecl(Node *, bool, Report *, Options const *,
+                                       Environment *, char const *);
+static void buildStabStructOrUnionForwardDecl(Node *, bool, Report *,
+                                              Options const *, Environment *,
+                                              char const *);
+static void buildStabEnumDecl(Node *, Report *, Options const *, Environment *,
+                              char const *);
+static void buildStabEnumForwardDecl(Node *, Report *, Options const *,
+                                     Environment *, char const *);
+static void buildStabTypedefDecl(Node *, Report *, Options const *,
+                                 Environment *, char const *);
+static void buildStabStmt(Node *statement, Report *report,
                           Options const *options, Environment *env,
                           char const *filename) {
-  switch (statement->type) {}
-  // TODO: write this
+  if (statement == NULL) {
+    return;
+  } else {
+    switch (statement->type) {
+      case NT_COMPOUNDSTMT: {
+        environmentPush(env);
+        NodeList *statements = statement->data.compoundStmt.statements;
+        for (size_t idx = 0; idx < statements->size; idx++) {
+          buildStabStmt(statements->elements[idx], report, options, env,
+                        filename);
+        }
+        statement->data.compoundStmt.localSymbols = environmentPop(env);
+        break;
+      }
+      case NT_IFSTMT: {
+        buildStabExpression(statement->data.ifStmt.condition, report, options,
+                            env, filename);
+        buildStabStmt(statement->data.ifStmt.thenStmt, report, options, env,
+                      filename);
+        buildStabStmt(statement->data.ifStmt.elseStmt, report, options, env,
+                      filename);
+        break;
+      }
+      case NT_WHILESTMT: {
+        buildStabExpression(statement->data.whileStmt.condition, report,
+                            options, env, filename);
+        buildStabStmt(statement->data.whileStmt.body, report, options, env,
+                      filename);
+        break;
+      }
+      case NT_DOWHILESTMT: {
+        buildStabStmt(statement->data.doWhileStmt.condition, report, options,
+                      env, filename);
+        buildStabExpression(statement->data.doWhileStmt.condition, report,
+                            options, env, filename);
+        break;
+      }
+      case NT_FORSTMT: {
+        environmentPush(env);
+        if (statement->data.forStmt.initialize->type == NT_VARDECL) {
+          buildStabVarDecl(statement->data.forStmt.initialize, report, options,
+                           env, filename, true);
+        } else {
+          buildStabExpression(statement->data.forStmt.initialize, report,
+                              options, env, filename);
+        }
+        buildStabExpression(statement->data.forStmt.condition, report, options,
+                            env, filename);
+        buildStabExpression(statement->data.forStmt.update, report, options,
+                            env, filename);
+        buildStabStmt(statement->data.forStmt.body, report, options, env,
+                      filename);
+        statement->data.forStmt.localSymbols = environmentPop(env);
+        break;
+      }
+      case NT_SWITCHSTMT: {
+        buildStabExpression(statement->data.switchStmt.onWhat, report, options,
+                            env, filename);
+        environmentPush(env);
+        NodeList *cases = statement->data.switchStmt.cases;
+        for (size_t idx = 0; idx < cases->size; idx++) {
+          Node *switchCase = cases->elements[idx];
+          buildStabStmt(switchCase->type == NT_NUMCASE
+                            ? switchCase->data.numCase.body
+                            : switchCase->data.defaultCase.body,
+                        report, options, env, filename);
+        }
+        statement->data.switchStmt.localSymbols = environmentPop(env);
+        break;
+      }
+      case NT_RETURNSTMT: {
+        buildStabExpression(statement->data.returnStmt.value, report, options,
+                            env, filename);
+        break;
+      }
+      case NT_EXPRESSIONSTMT: {
+        buildStabExpression(statement->data.expressionStmt.expression, report,
+                            options, env, filename);
+        break;
+      }
+      case NT_VARDECL: {
+        buildStabVarDecl(statement, report, options, env, filename, true);
+        break;
+      }
+      case NT_STRUCTDECL:
+      case NT_UNIONDECL: {
+        buildStabStructOrUnionDecl(statement, statement->type == NT_STRUCTDECL,
+                                   report, options, env, filename);
+        break;
+      }
+      case NT_STRUCTFORWARDDECL:
+      case NT_UNIONFORWARDDECL: {
+        buildStabStructOrUnionForwardDecl(
+            statement, statement->type == NT_STRUCTFORWARDDECL, report, options,
+            env, filename);
+        break;
+      }
+      case NT_ENUMDECL: {
+        buildStabEnumDecl(statement, report, options, env, filename);
+        break;
+      }
+      case NT_ENUMFORWARDDECL: {
+        buildStabEnumForwardDecl(statement, report, options, env, filename);
+        break;
+      }
+      case NT_TYPEDEFDECL: {
+        buildStabTypedefDecl(statement, report, options, env, filename);
+        break;
+      }
+      default: {
+        break;  // no expressions to deal with
+      }
+    }
+  }
 }
 
 // top level
@@ -674,7 +807,7 @@ static void buildStabEnumForwardDecl(Node *enumForwardDecl, Report *report,
 
   name->data.id.symbol = info;
 }
-static void buildStabTypeDefDecl(Node *typedefDecl, Report *report,
+static void buildStabTypedefDecl(Node *typedefDecl, Report *report,
                                  Options const *options, Environment *env,
                                  char const *filename) {
   Node *name = typedefDecl->data.typedefDecl.id;
@@ -739,7 +872,7 @@ static void buildStabBody(Node *body, Report *report, Options const *options,
       return;
     }
     case NT_TYPEDEFDECL: {
-      buildStabTypeDefDecl(body, report, options, env, filename);
+      buildStabTypedefDecl(body, report, options, env, filename);
       return;
     }
     default: {
