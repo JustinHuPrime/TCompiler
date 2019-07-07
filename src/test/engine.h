@@ -32,23 +32,19 @@ typedef struct {
   char const **messages;
 } TestStatus;
 
-// constructor
-TestStatus *testStatusCreate(void);
-
+// in-place constructor
+void testStatusInit(TestStatus *);
 // adds a test pass
 void testStatusPass(TestStatus *);
 // adds a test failure, with the name of the failed test
 // Note that the test name should be a constant c-string
 void testStatusFail(TestStatus *, char const *name);
-
 // displays the test status to stdout
 void testStatusDisplay(TestStatus *);
-
 // return status for the testing process
 int testStatusStatus(TestStatus *);
-
-// destructor
-void testStatusDestroy(TestStatus *);
+// in-place destructor
+void testStatusUninit(TestStatus *);
 
 // wrapper function that passes or fails a test depending on the condition
 // Note that the test name should be a constant c-string

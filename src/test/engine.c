@@ -20,14 +20,12 @@
 
 #include <stdlib.h>
 
-TestStatus *testStatusCreate(void) {
-  TestStatus *status = malloc(sizeof(TestStatus));
+void testStatusInit(TestStatus *status) {
   status->numTests = 0;
   status->numPassed = 0;
   status->numMessages = 0;
   status->messagesCapacity = 1;
   status->messages = malloc(sizeof(char const *));
-  return status;
 }
 void testStatusPass(TestStatus *status) {
   status->numTests++;
@@ -70,10 +68,7 @@ void testStatusDisplay(TestStatus *status) {
 int testStatusStatus(TestStatus *status) {
   return status->numTests != status->numPassed;
 }
-void testStatusDestroy(TestStatus *status) {
-  free(status->messages);
-  free(status);
-}
+void testStatusUninit(TestStatus *status) { free(status->messages); }
 void test(TestStatus *status, char const *name, bool condition) {
   if (condition) {
     testStatusPass(status);

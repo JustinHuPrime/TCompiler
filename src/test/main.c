@@ -20,21 +20,22 @@
 #include "unitTests/tests.h"
 
 int main(void) {
-  TestStatus *status = testStatusCreate();
+  TestStatus status;
+  testStatusInit(&status);
 
-  keywordMapTest(status);
-  lexerTest(status);
-  errorReportTest(status);
-  fileListTest(status);
-  fileTest(status);
-  hashTest(status);
-  hashMapTest(status);
-  stringBuilderTest(status);
-  vectorTest(status);
+  keywordMapTest(&status);
+  lexerTest(&status);
+  errorReportTest(&status);
+  fileListTest(&status);
+  fileTest(&status);
+  hashTest(&status);
+  hashMapTest(&status);
+  stringBuilderTest(&status);
+  vectorTest(&status);
 
-  testStatusDisplay(status);
+  testStatusDisplay(&status);
 
-  int retVal = testStatusStatus(status);
-  testStatusDestroy(status);
+  int retVal = testStatusStatus(&status);
+  testStatusUninit(&status);
   return retVal;
 }
