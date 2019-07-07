@@ -20,6 +20,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "typecheck/buildSymbolTable.h"
+#include "typecheck/typecheck.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
@@ -53,6 +54,7 @@ typedef enum {
   FILE_ERROR,
   PARSE_ERROR,
   BUILD_STAB_ERROR,
+  TYPECHECK_ERROR,
 } ReturnValue;
 
 int main(int argc, char *argv[]) {
@@ -160,6 +162,14 @@ int main(int argc, char *argv[]) {
     optionsUninit(&options);
     reportUninit(&report);
     return BUILD_STAB_ERROR;
+  }
+
+  typecheck(&report, &options, &asts);
+  if (reportState(&report) == RPT_ERR) {
+    moduleAstMapPairUninit(&asts);
+    optionsUninit(&options);
+    reportUninit(&report);
+    return TYPECHECK_ERROR;
   }
 
   // clean up
