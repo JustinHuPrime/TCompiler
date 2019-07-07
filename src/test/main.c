@@ -23,6 +23,12 @@ int main(void) {
   TestStatus status;
   testStatusInit(&status);
 
+  constExpParseIntTest(&status);
+  constExpParseFloatTest(&status);
+  constExpParseStringTest(&status);
+  constExpParseCharTest(&status);
+  constExpParseWStringTest(&status);
+  constExpParseWCharTest(&status);
   keywordMapTest(&status);
   lexerTest(&status);
   errorReportTest(&status);
