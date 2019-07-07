@@ -300,6 +300,8 @@ OverloadSetElement *overloadSetElementCopy(OverloadSetElement const *from) {
   to->returnType = typeCopy(from->returnType);
   to->argumentTypes.capacity = from->argumentTypes.capacity;
   to->argumentTypes.size = from->argumentTypes.size;
+  to->argumentTypes.elements =
+      malloc(to->argumentTypes.capacity * sizeof(void *));
   for (size_t idx = 0; idx < to->argumentTypes.size; idx++) {
     to->argumentTypes.elements[idx] =
         typeCopy(from->argumentTypes.elements[idx]);
@@ -600,10 +602,10 @@ SymbolTable *symbolTableCopy(SymbolTable const *from) {
   to->size = from->size;
   to->keys = calloc(to->capacity, sizeof(char const *));
   to->values = malloc(to->capacity * sizeof(void *));
+  memcpy(to->keys, from->keys, to->capacity * sizeof(char const *));
 
   for (size_t idx = 0; idx < to->size; idx++) {
-    if (from->keys[idx] != NULL) {
-      to->keys[idx] = from->keys[idx];
+    if (to->keys[idx] != NULL) {
       to->values[idx] = symbolInfoCopy(from->values[idx]);
     }
   }

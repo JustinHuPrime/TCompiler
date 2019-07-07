@@ -320,7 +320,6 @@ static Node *parseDeclModule(Report *report, LexerInfo *info) {
 static Node *parseCodeModule(Report *report,
                              ModuleTypeTableMap const *typeTables,
                              TypeEnvironment *env, LexerInfo *info) {
-  // TODO: write this
   Node *module = parseDeclModule(report, info);
   if (module == NULL) {
     return NULL;
@@ -339,8 +338,7 @@ static Node *parseCodeModule(Report *report,
 
   typeEnvironmentInit(env, typeTableCopy(declTable),
                       module->data.module.id->data.id.id);
-
-  return NULL;
+  return module;
 }
 
 // imports
@@ -3376,7 +3374,6 @@ static Node *parseVarDecl(Report *report, Options const *options,
 static Node *parseVarOrFunDeclOrDefn(Report *report, Options const *options,
                                      TypeEnvironment *env, LexerInfo *info) {
   Node *type = parseType(report, options, env, info);
-
   if (type == NULL) {
     return NULL;
   }
@@ -3417,7 +3414,6 @@ static Node *parseVarOrFunDeclOrDefn(Report *report, Options const *options,
 
   TokenInfo peek;
   lex(info, report, &peek);
-
   switch (peek.type) {
     case TT_LPAREN: {
       return parseFunctionDeclOrDefn(report, options, env, type, id, info);

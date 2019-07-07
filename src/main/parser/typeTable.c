@@ -27,8 +27,13 @@
 TypeTable *typeTableCreate(void) { return hashMapCreate(); }
 TypeTable *typeTableCopy(TypeTable *from) {
   TypeTable *to = malloc(sizeof(TypeTable));
-  memcpy(to, from, sizeof(TypeTable));  // shallow copy is okay - keys held
-                                        // weakly, value is integer
+  to->size = from->size;
+  to->capacity = from->capacity;
+  to->keys = calloc(to->capacity, sizeof(char const *));
+  to->values = malloc(to->capacity * sizeof(void *));
+  memcpy(to->keys, from->keys, to->capacity * sizeof(char const *));
+  memcpy(to->values, from->values, to->capacity * sizeof(void *));
+  // shallow copy is okay - keys held weakly, value is integer
   return to;
 }
 SymbolType typeTableGet(TypeTable const *table, char const *key) {
