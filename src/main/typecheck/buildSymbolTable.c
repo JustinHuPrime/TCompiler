@@ -138,8 +138,33 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
 // expression
 
 // statement
+static void buildStabStmt(Node const *statement, Report *report,
+                          Options const *options, Environment *env,
+                          char const *filename) {
+  switch (statement->type) {}
+  // TODO: write this
+}
 
 // top level
+static void buildStabParameter(Node const *type, Node *name, Report *report,
+                               Options const *options, Environment *env,
+                               char const *filename) {
+  Type *paramType = astToType(type, report, options, env, filename);
+  if (paramType == NULL) {
+    return;
+  }
+  SymbolInfo *info = symbolTableGet(environmentTop(env), name->data.id.id);
+
+  if (info != NULL) {
+    // duplicate name - can't be anything else
+    reportError(report, "%s:%zu:%zu: error: '%s' has already been declared",
+                filename, name->line, name->character, name->data.id.id);
+  } else {
+    info = varSymbolInfoCreate(paramType, true);
+    name->data.id.symbol = info;
+    symbolTablePut(environmentTop(env), name->data.id.id, info);
+  }
+}
 static OverloadSetElement *astToOverloadSetElement(
     Report *report, Options const *options, Environment const *env,
     char const *filename, Node const *returnTypeNode, size_t numArgs,
@@ -279,8 +304,13 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
   name->data.id.symbol = info;
 
   environmentPush(env);
-  // TODO: add local params
-  // TODO: check inside of function
+  NodeTripleList *formals = fn->data.function.formals;
+  for (size_t idx = 0; idx < formals->size; idx++) {
+    buildStabParameter(formals->firstElements[idx],
+                       formals->secondElements[idx], report, options, env,
+                       filename);
+  }
+  buildStabStmt(fn->data.function.body, report, options, env, filename);
   fn->data.function.localSymbols = environmentPop(env);
 }
 static void buildStabFunDecl(Node *fnDecl, Report *report,
