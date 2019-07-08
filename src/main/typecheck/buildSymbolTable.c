@@ -458,6 +458,7 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
   // with the same input args and name to be declared/defined
   Node *name = fn->data.function.id;
   SymbolInfo *info = symbolTableGet(env->currentModule, name->data.id.id);
+  OverloadSetElement *overload;
   if (info != NULL && info->kind != SK_FUNCTION) {
     // already declared/defined as a non-function - error!
     reportError(report, "%s:%zu:%zu: error: '%s' already declared as %s",
@@ -466,7 +467,7 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
     return;
   } else if (info == NULL) {
     // not declared/defined - do that now
-    OverloadSetElement *overload = astToOverloadSetElement(
+    overload = astToOverloadSetElement(
         report, options, env, filename, fn->data.function.returnType,
         fn->data.function.formals->size,
         fn->data.function.formals->firstElements,
@@ -486,7 +487,7 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
     // otherwise, all's well, this is a new declaration. Make sure the
     // declaration doesn't conflict (see below), and add the
 
-    OverloadSetElement *overload = astToOverloadSetElement(
+    overload = astToOverloadSetElement(
         report, options, env, filename, fn->data.function.returnType,
         fn->data.function.formals->size,
         fn->data.function.formals->firstElements,
@@ -551,9 +552,11 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
     } else {
       overloadSetElementDestroy(overload);
       matched->defined = true;
+      overload = matched;
     }
   }
 
+  fn->data.function.overload = overload;
   name->data.id.symbol = info;
 
   environmentPush(env);
@@ -574,6 +577,7 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
   // same input args and name is declared/defined
   Node *name = fnDecl->data.funDecl.id;
   SymbolInfo *info = symbolTableGet(env->currentModule, name->data.id.id);
+  OverloadSetElement *overload;
   if (info != NULL && info->kind != SK_FUNCTION) {
     // already declared/defined as a non-function - error!
     reportError(report, "%s:%zu:%zu: error: '%s' already declared as %s",
@@ -582,7 +586,7 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
     return;
   } else if (info == NULL) {
     // not declared/defined - do that now
-    OverloadSetElement *overload = astToOverloadSetElement(
+    overload = astToOverloadSetElement(
         report, options, env, filename, fnDecl->data.funDecl.returnType,
         fnDecl->data.funDecl.params->size,
         fnDecl->data.funDecl.params->firstElements,
@@ -596,7 +600,7 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
     symbolTablePut(env->currentModule, name->data.id.id, info);
   } else {
     // is already declared/defined.
-    OverloadSetElement *overload = astToOverloadSetElement(
+    overload = astToOverloadSetElement(
         report, options, env, filename, fnDecl->data.funDecl.returnType,
         fnDecl->data.funDecl.params->size,
         fnDecl->data.funDecl.params->firstElements,
@@ -647,9 +651,13 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
             reportWarning(
                 report, "%s:%zu:%zu: warning: duplicate declaration of '%s'",
                 filename, fnDecl->line, fnDecl->character, name->data.id.id);
+            overloadSetElementDestroy(overload);
+            overload = matched;
             break;
           }
           case O_WT_IGNORE: {
+            overloadSetElementDestroy(overload);
+            overload = matched;
             break;
           }
         }
@@ -687,6 +695,7 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
     }
   }
 
+  fnDecl->data.funDecl.overload = overload;
   name->data.id.symbol = info;
 }
 static void buildStabVarDecl(Node *varDecl, Report *report,
