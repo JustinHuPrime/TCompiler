@@ -113,6 +113,10 @@ Type *typeCopy(Type const *);
 bool typeIsIncomplete(Type const *, struct Environment const *);
 // determines if two types are completely equal
 bool typeEqual(Type const *, Type const *);
+// can a thing of the second type be assigned to a thing of the first type
+// assumes first type is an lvalue
+bool typeAssignable(Type const *to, Type const *from);
+char *typeToString(Type const *);
 // in-place dtor
 void typeUninit(Type *);
 // dtor
