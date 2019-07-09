@@ -235,7 +235,6 @@ typedef struct Node {
       struct Node *returnType;
       struct Node *id;
       NodePairList *params;  // <type, literal>
-      OverloadSetElement *overload;
     } fnDecl;
     struct {
       struct Node *type;
@@ -274,7 +273,6 @@ typedef struct Node {
                                 // may be present if id is not null)>
       struct Node *body;
       SymbolTable *localSymbols;
-      OverloadSetElement *overload;
     } function;
 
     struct {
@@ -436,6 +434,7 @@ typedef struct Node {
     struct {
       char *id;
       SymbolInfo *symbol;
+      OverloadSetElement *overload;  // nullable
     } id;
   } data;
 } Node;

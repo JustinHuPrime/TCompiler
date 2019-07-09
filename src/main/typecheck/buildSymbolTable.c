@@ -556,8 +556,8 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
     }
   }
 
-  fn->data.function.overload = overload;
   name->data.id.symbol = info;
+  name->data.id.overload = overload;
 
   environmentPush(env);
   NodeTripleList *formals = fn->data.function.formals;
@@ -692,8 +692,8 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
     }
   }
 
-  fnDecl->data.fnDecl.overload = overload;
   name->data.id.symbol = info;
+  name->data.id.overload = overload;
 }
 static void buildStabVarDecl(Node *varDecl, Report *report,
                              Options const *options, Environment *env,

@@ -981,6 +981,7 @@ Node *idNodeCreate(size_t line, size_t character, char *id) {
   node->type = NT_ID;
   node->data.id.id = id;
   node->data.id.symbol = NULL;
+  node->data.id.overload = NULL;
   return node;
 }
 

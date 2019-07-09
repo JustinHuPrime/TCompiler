@@ -29,7 +29,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
 
 // statements
 static void typecheckStmt(Node *statement, Report *report,
-                          Options const *options, char const *filename) {
+                          Options const *options, char const *filename,
+                          Type const *expectedReturnType) {
   // TODO: write this
 }
 
@@ -37,7 +38,7 @@ static void typecheckStmt(Node *statement, Report *report,
 static void typecheckFnDecl(Node *fnDecl, Report *report,
                             Options const *options, char const *filename) {
   NodePairList *params = fnDecl->data.fnDecl.params;
-  OverloadSetElement *overload = fnDecl->data.fnDecl.overload;
+  OverloadSetElement *overload = fnDecl->data.fnDecl.id->data.id.overload;
   for (size_t idx = 0; idx < params->size; idx++) {
     Node *defaultArg = params->secondElements[idx];
     if (defaultArg != NULL) {
@@ -66,9 +67,9 @@ static void typecheckFnDecl(Node *fnDecl, Report *report,
 static void typecheckFunction(Node *function, Report *report,
                               Options const *options, char const *filename) {
   NodeTripleList *params = function->data.function.formals;
-  OverloadSetElement *overload = function->data.function.overload;
+  OverloadSetElement *overload = function->data.function.id->data.id.overload;
   for (size_t idx = 0; idx < params->size; idx++) {
-    Node *defaultArg = params->secondElements[idx];
+    Node *defaultArg = params->thirdElements[idx];
     if (defaultArg != NULL) {
       Type *paramType =
           typecheckExpression(defaultArg, report, options, filename);
@@ -78,12 +79,12 @@ static void typecheckFunction(Node *function, Report *report,
                                  paramType)) {
         char *lhsType = typeToString(overload->argumentTypes.elements[idx]);
         char *rhsType = typeToString(paramType);
-        reportError(
-            report,
-            "%s:%zu:%zu: error: cannot initialize an argument of type %s "
-            "with a value of type %s",
-            filename, defaultArg->line, defaultArg->character, lhsType,
-            rhsType);
+        Node *param = params->secondElements[idx];
+        reportError(report,
+                    "%s:%zu:%zu: error: cannot initialize '%s' (%s) "
+                    "with a value of type %s",
+                    filename, defaultArg->line, defaultArg->character,
+                    param->data.id.id, lhsType, rhsType);
         free(lhsType);
         free(rhsType);
       }
@@ -91,6 +92,9 @@ static void typecheckFunction(Node *function, Report *report,
       typeDestroy(paramType);
     }
   }
+
+  typecheckStmt(function->data.function.body, report, options, filename,
+                overload->returnType);
   // TODO: write this
 }
 
