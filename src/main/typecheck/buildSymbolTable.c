@@ -640,24 +640,21 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
 
       if (exactMatch) {
         switch (optionsGet(options, optionWDuplicateDeclaration)) {
+          overloadSetElementDestroy(overload);
+          overload = matched;
           case O_WT_ERROR: {
             reportError(
                 report, "%s:%zu:%zu: error: duplicate declaration of '%s'",
                 filename, fnDecl->line, fnDecl->character, name->data.id.id);
-            overloadSetElementDestroy(overload);
             return;
           }
           case O_WT_WARN: {
             reportWarning(
                 report, "%s:%zu:%zu: warning: duplicate declaration of '%s'",
                 filename, fnDecl->line, fnDecl->character, name->data.id.id);
-            overloadSetElementDestroy(overload);
-            overload = matched;
             break;
           }
           case O_WT_IGNORE: {
-            overloadSetElementDestroy(overload);
-            overload = matched;
             break;
           }
         }
