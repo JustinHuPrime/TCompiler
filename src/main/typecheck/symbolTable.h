@@ -23,7 +23,6 @@
 #include "util/container/stack.h"
 #include "util/container/vector.h"
 #include "util/errorReport.h"
-#include "util/ternary.h"
 
 #include "util/container/vector.h"
 
