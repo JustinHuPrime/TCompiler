@@ -3214,7 +3214,7 @@ static bool parseVarId(Report *report, Options const *options,
 
   TokenInfo peek;
   lex(info, report, &peek);
-  if (peek.type != TT_EQ) {
+  if (peek.type != TT_ASSIGN) {
     // end of the decl
     unLex(info, &peek);
     nodePairListInsert(list, id, NULL);
@@ -3276,22 +3276,8 @@ static NodePairList *parseVarIds(Report *report, Options const *options,
 
   TokenInfo peek;
   lex(info, report, &peek);
-  while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_ID ||
-         peek.type == TT_SCOPED_ID) {
-    if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
-      SymbolType isType =
-          typeEnvironmentLookup(env, report, &peek, info->filename);
-      if (isType == ST_UNDEFINED) {
-        unLex(info, &peek);
-        nodePairListDestroy(list);
-        return NULL;
-      } else if (isType == ST_ID) {
-        break;
-      }
-    }
+  while (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
     unLex(info, &peek);
-
-    // is the start of a type!
     if (!parseVarId(report, options, env, list, info)) {
       nodePairListDestroy(list);
       return NULL;
