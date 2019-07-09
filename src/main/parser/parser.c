@@ -3157,7 +3157,7 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options const *options,
       free(params);
 
       typeEnvironmentPop(env);
-      return funDeclNodeCreate(type->line, type->character, type, id, types);
+      return fnDeclNodeCreate(type->line, type->character, type, id, types);
     }
     default: {
       if (!tokenInfoIsLexerError(&peek)) {
@@ -3727,7 +3727,7 @@ static void commonContextCheck(Node const *ast, Report *report,
   for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
     Node *body = bodies->elements[bodyIdx];
     if (body->type == NT_FUNDECL) {
-      NodePairList *params = body->data.funDecl.params;
+      NodePairList *params = body->data.fnDecl.params;
       size_t idx = 0;
       for (; idx < params->size; idx++) {  // find first optional
         if (params->secondElements[idx] != NULL) {

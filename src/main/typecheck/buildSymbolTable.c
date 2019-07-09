@@ -575,7 +575,7 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
   // INVARIANT: env has no scopes
   // must not be declared as a non-function, must check if a function with the
   // same input args and name is declared/defined
-  Node *name = fnDecl->data.funDecl.id;
+  Node *name = fnDecl->data.fnDecl.id;
   SymbolInfo *info = symbolTableGet(env->currentModule, name->data.id.id);
   OverloadSetElement *overload;
   if (info != NULL && info->kind != SK_FUNCTION) {
@@ -587,10 +587,10 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
   } else if (info == NULL) {
     // not declared/defined - do that now
     overload = astToOverloadSetElement(
-        report, options, env, filename, fnDecl->data.funDecl.returnType,
-        fnDecl->data.funDecl.params->size,
-        fnDecl->data.funDecl.params->firstElements,
-        fnDecl->data.funDecl.params->secondElements, false);
+        report, options, env, filename, fnDecl->data.fnDecl.returnType,
+        fnDecl->data.fnDecl.params->size,
+        fnDecl->data.fnDecl.params->firstElements,
+        fnDecl->data.fnDecl.params->secondElements, false);
     if (overload == NULL) {
       return;
     }
@@ -601,10 +601,10 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
   } else {
     // is already declared/defined.
     overload = astToOverloadSetElement(
-        report, options, env, filename, fnDecl->data.funDecl.returnType,
-        fnDecl->data.funDecl.params->size,
-        fnDecl->data.funDecl.params->firstElements,
-        fnDecl->data.funDecl.params->secondElements, false);
+        report, options, env, filename, fnDecl->data.fnDecl.returnType,
+        fnDecl->data.fnDecl.params->size,
+        fnDecl->data.fnDecl.params->firstElements,
+        fnDecl->data.fnDecl.params->secondElements, false);
     if (overload == NULL) {
       return;
     }
@@ -692,7 +692,7 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
     }
   }
 
-  fnDecl->data.funDecl.overload = overload;
+  fnDecl->data.fnDecl.overload = overload;
   name->data.id.symbol = info;
 }
 static void buildStabVarDecl(Node *varDecl, Report *report,

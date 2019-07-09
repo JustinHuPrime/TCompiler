@@ -71,15 +71,15 @@ void nodePrintStructure(Node const *node) {
     }
     case NT_FUNDECL: {
       printf("FUNDECL(");
-      nodePrintStructure(node->data.funDecl.returnType);
+      nodePrintStructure(node->data.fnDecl.returnType);
       printf(" ");
-      nodePrintStructure(node->data.funDecl.id);
-      for (size_t idx = 0; idx < node->data.funDecl.params->size; idx++) {
+      nodePrintStructure(node->data.fnDecl.id);
+      for (size_t idx = 0; idx < node->data.fnDecl.params->size; idx++) {
         printf(" ");
-        nodePrintStructure(node->data.funDecl.params->firstElements[idx]);
-        if (node->data.funDecl.params->secondElements[idx] != NULL) {
+        nodePrintStructure(node->data.fnDecl.params->firstElements[idx]);
+        if (node->data.fnDecl.params->secondElements[idx] != NULL) {
           printf(" ");
-          nodePrintStructure(node->data.funDecl.params->secondElements[idx]);
+          nodePrintStructure(node->data.fnDecl.params->secondElements[idx]);
         }
       }
       printf(")");
@@ -808,17 +808,17 @@ void nodePrint(Node const *node) {
       break;
     }
     case NT_FUNDECL: {
-      nodePrint(node->data.funDecl.returnType);
+      nodePrint(node->data.fnDecl.returnType);
       printf(" ");
-      nodePrint(node->data.funDecl.id);
+      nodePrint(node->data.fnDecl.id);
       printf("(");
-      for (size_t idx = 0; idx < node->data.funDecl.params->size; idx++) {
-        nodePrint(node->data.funDecl.params->firstElements[idx]);
-        if (node->data.funDecl.params->secondElements[idx] != NULL) {
+      for (size_t idx = 0; idx < node->data.fnDecl.params->size; idx++) {
+        nodePrint(node->data.fnDecl.params->firstElements[idx]);
+        if (node->data.fnDecl.params->secondElements[idx] != NULL) {
           printf(" = ");
-          nodePrint(node->data.funDecl.params->secondElements[idx]);
+          nodePrint(node->data.fnDecl.params->secondElements[idx]);
         }
-        if (idx != node->data.funDecl.params->size - 1) {
+        if (idx != node->data.fnDecl.params->size - 1) {
           printf(", ");
         }
       }

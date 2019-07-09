@@ -236,7 +236,7 @@ typedef struct Node {
       struct Node *id;
       NodePairList *params;  // <type, literal>
       OverloadSetElement *overload;
-    } funDecl;
+    } fnDecl;
     struct {
       struct Node *type;
       NodeList *ids;
@@ -458,7 +458,7 @@ Node *fileNodeCreate(size_t line, size_t character, Node *module,
                      char const *filename);
 Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);
 Node *importNodeCreate(size_t line, size_t character, Node *importId);
-Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
+Node *fnDeclNodeCreate(size_t line, size_t character, Node *returnType,
                         Node *functionId, NodePairList *args);
 Node *fieldDeclNodeCreate(size_t line, size_t character, Node *varType,
                           NodeList *ids);

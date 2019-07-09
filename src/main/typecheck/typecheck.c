@@ -36,8 +36,8 @@ static void typecheckStmt(Node *statement, Report *report,
 // top level
 static void typecheckFnDecl(Node *fnDecl, Report *report,
                             Options const *options, char const *filename) {
-  NodePairList *params = fnDecl->data.funDecl.params;
-  OverloadSetElement *overload = fnDecl->data.funDecl.overload;
+  NodePairList *params = fnDecl->data.fnDecl.params;
+  OverloadSetElement *overload = fnDecl->data.fnDecl.overload;
   for (size_t idx = 0; idx < params->size; idx++) {
     Node *defaultArg = params->secondElements[idx];
     if (defaultArg != NULL) {
@@ -49,11 +49,12 @@ static void typecheckFnDecl(Node *fnDecl, Report *report,
                                  paramType)) {
         char *lhsType = typeToString(overload->argumentTypes.elements[idx]);
         char *rhsType = typeToString(paramType);
-        reportError(report,
-                    "%s:%zu:%zu: error: cannot initialize a value of type %s "
-                    "with a value of type %s",
-                    filename, defaultArg->line, defaultArg->character, lhsType,
-                    rhsType);
+        reportError(
+            report,
+            "%s:%zu:%zu: error: cannot initialize an argument of type %s "
+            "with a value of type %s",
+            filename, defaultArg->line, defaultArg->character, lhsType,
+            rhsType);
         free(lhsType);
         free(rhsType);
       }
@@ -64,6 +65,32 @@ static void typecheckFnDecl(Node *fnDecl, Report *report,
 }
 static void typecheckFunction(Node *function, Report *report,
                               Options const *options, char const *filename) {
+  NodeTripleList *params = function->data.function.formals;
+  OverloadSetElement *overload = function->data.function.overload;
+  for (size_t idx = 0; idx < params->size; idx++) {
+    Node *defaultArg = params->secondElements[idx];
+    if (defaultArg != NULL) {
+      Type *paramType =
+          typecheckExpression(defaultArg, report, options, filename);
+      if (paramType == NULL) {
+        continue;
+      } else if (!typeAssignable(overload->argumentTypes.elements[idx],
+                                 paramType)) {
+        char *lhsType = typeToString(overload->argumentTypes.elements[idx]);
+        char *rhsType = typeToString(paramType);
+        reportError(
+            report,
+            "%s:%zu:%zu: error: cannot initialize an argument of type %s "
+            "with a value of type %s",
+            filename, defaultArg->line, defaultArg->character, lhsType,
+            rhsType);
+        free(lhsType);
+        free(rhsType);
+      }
+
+      typeDestroy(paramType);
+    }
+  }
   // TODO: write this
 }
 

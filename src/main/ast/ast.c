@@ -184,13 +184,13 @@ Node *importNodeCreate(size_t line, size_t character, Node *id) {
   node->data.import.id = id;
   return node;
 }
-Node *funDeclNodeCreate(size_t line, size_t character, Node *returnType,
+Node *fnDeclNodeCreate(size_t line, size_t character, Node *returnType,
                         Node *id, NodePairList *params) {
   Node *node = nodeCreate(line, character);
   node->type = NT_FUNDECL;
-  node->data.funDecl.returnType = returnType;
-  node->data.funDecl.id = id;
-  node->data.funDecl.params = params;
+  node->data.fnDecl.returnType = returnType;
+  node->data.fnDecl.id = id;
+  node->data.fnDecl.params = params;
   return node;
 }
 Node *fieldDeclNodeCreate(size_t line, size_t character, Node *type,
@@ -1008,9 +1008,9 @@ void nodeDestroy(Node *node) {
       break;
     }
     case NT_FUNDECL: {
-      nodeDestroy(node->data.funDecl.returnType);
-      nodeDestroy(node->data.funDecl.id);
-      nodePairListDestroy(node->data.funDecl.params);
+      nodeDestroy(node->data.fnDecl.returnType);
+      nodeDestroy(node->data.fnDecl.id);
+      nodePairListDestroy(node->data.fnDecl.params);
       break;
     }
     case NT_FIELDDECL: {
