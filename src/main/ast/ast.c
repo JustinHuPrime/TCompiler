@@ -187,7 +187,7 @@ Node *importNodeCreate(size_t line, size_t character, Node *id) {
 Node *fnDeclNodeCreate(size_t line, size_t character, Node *returnType,
                        Node *id, NodePairList *params) {
   Node *node = nodeCreate(line, character);
-  node->type = NT_FUNDECL;
+  node->type = NT_FNDECL;
   node->data.fnDecl.returnType = returnType;
   node->data.fnDecl.id = id;
   node->data.fnDecl.params = params;
@@ -1008,7 +1008,7 @@ void nodeDestroy(Node *node) {
       nodeDestroy(node->data.import.id);
       break;
     }
-    case NT_FUNDECL: {
+    case NT_FNDECL: {
       nodeDestroy(node->data.fnDecl.returnType);
       nodeDestroy(node->data.fnDecl.id);
       nodePairListDestroy(node->data.fnDecl.params);

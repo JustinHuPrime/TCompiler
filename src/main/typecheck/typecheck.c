@@ -105,7 +105,7 @@ static void typecheckDecl(Node *ast, Report *report, Options const *options) {
 
   for (size_t idx = 0; idx < bodies->size; idx++) {
     Node *body = bodies->elements[idx];
-    if (body->type == NT_FUNDECL) {
+    if (body->type == NT_FNDECL) {
       typecheckFnDecl(body, report, options, filename);
     }
   }
@@ -116,7 +116,7 @@ static void typecheckCode(Node *ast, Report *report, Options const *options) {
 
   for (size_t idx = 0; idx < bodies->size; idx++) {
     Node *body = bodies->elements[idx];
-    if (body->type == NT_FUNDECL) {
+    if (body->type == NT_FNDECL) {
       typecheckFnDecl(body, report, options, filename);
     } else if (body->type == NT_FUNCTION) {
       typecheckFunction(body, report, options, filename);

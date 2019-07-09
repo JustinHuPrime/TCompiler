@@ -63,7 +63,15 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
     case NT_ARRAYTYPE: {
       Node const *sizeConst = ast->data.arrayType.size;
       switch (sizeConst->data.constExp.type) {
-        case CT_UBYTE:
+        case CT_UBYTE: {
+          if (sizeConst->data.constExp.value.ubyteVal == 0) {
+            reportError(report,
+                        "%s:%zu:%zu: error: expected a non-zero array length",
+                        filename, sizeConst->line, sizeConst->character);
+            return NULL;
+          }
+          break;
+        }
         case CT_USHORT:
         case CT_UINT:
         case CT_ULONG: {
@@ -451,8 +459,8 @@ static OverloadSetElement *astToOverloadSetElement(
 
   return overload;
 }
-static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
-                             Environment *env, char const *filename) {
+static void buildStabFnDefn(Node *fn, Report *report, Options const *options,
+                            Environment *env, char const *filename) {
   // INVARIANT: env has no scopes
   // must not be declared/defined as a non-function, must not allow a function
   // with the same input args and name to be declared/defined
@@ -569,9 +577,9 @@ static void buildStabFunDefn(Node *fn, Report *report, Options const *options,
   buildStabStmt(fn->data.function.body, report, options, env, filename);
   fn->data.function.localSymbols = environmentPop(env);
 }
-static void buildStabFunDecl(Node *fnDecl, Report *report,
-                             Options const *options, Environment *env,
-                             char const *filename) {
+static void buildStabFnDecl(Node *fnDecl, Report *report,
+                            Options const *options, Environment *env,
+                            char const *filename) {
   // INVARIANT: env has no scopes
   // must not be declared as a non-function, must check if a function with the
   // same input args and name is declared/defined
@@ -965,11 +973,11 @@ static void buildStabBody(Node *body, Report *report, Options const *options,
                           Environment *env, char const *filename, bool isDecl) {
   switch (body->type) {
     case NT_FUNCTION: {
-      buildStabFunDefn(body, report, options, env, filename);
+      buildStabFnDefn(body, report, options, env, filename);
       return;
     }
-    case NT_FUNDECL: {
-      buildStabFunDecl(body, report, options, env, filename);
+    case NT_FNDECL: {
+      buildStabFnDecl(body, report, options, env, filename);
       return;
     }
     case NT_VARDECL: {
@@ -1076,7 +1084,7 @@ void buildSymbolTables(Report *report, Options const *options,
   for (size_t idx = 0; idx < asts->codes.size; idx++) {
     // all codes that are valid haven't been processed by this loop.
     if (asts->codes.keys[idx] != NULL) {
-      buildStabCode(asts->decls.values[idx], report, options, &asts->decls);
+      buildStabCode(asts->codes.values[idx], report, options, &asts->decls);
     }
   }
 }

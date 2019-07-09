@@ -3252,6 +3252,10 @@ static NodePairList *parseVarIds(Report *report, Options const *options,
     }
     case TT_COMMA: {
       nodePairListInsert(list, firstId, NULL);
+      break;
+    }
+    case TT_SEMI: {
+      nodePairListInsert(list, firstId, NULL);
       unLex(info, &next);
       break;
     }
@@ -3374,8 +3378,8 @@ static Node *parseVarDecl(Report *report, Options const *options,
 
   return parseVarDeclPrefixed(report, options, env, type, id, info);
 }
-static Node *parseVarOrFunDeclOrDefn(Report *report, Options const *options,
-                                     TypeEnvironment *env, LexerInfo *info) {
+static Node *parseVarOrFnDeclOrDefn(Report *report, Options const *options,
+                                    TypeEnvironment *env, LexerInfo *info) {
   Node *type = parseType(report, options, env, info);
   if (type == NULL) {
     return NULL;
@@ -3498,7 +3502,7 @@ static Node *parseBody(Report *report, Options const *options,
     case TT_BOOL: {
       // type, introducing a function decl/defn or variable decl/defn
       unLex(info, &peek);
-      return parseVarOrFunDeclOrDefn(report, options, env, info);
+      return parseVarOrFnDeclOrDefn(report, options, env, info);
     }
     default: {
       if (!tokenInfoIsLexerError(&peek)) {
@@ -3726,7 +3730,7 @@ static void commonContextCheck(Node const *ast, Report *report,
 
   for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
     Node *body = bodies->elements[bodyIdx];
-    if (body->type == NT_FUNDECL) {
+    if (body->type == NT_FNDECL) {
       NodePairList *params = body->data.fnDecl.params;
       size_t idx = 0;
       for (; idx < params->size; idx++) {  // find first optional

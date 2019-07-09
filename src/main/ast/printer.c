@@ -54,7 +54,7 @@ void nodePrintStructure(Node const *node) {
         printf(" ");
         nodePrintStructure(node->data.file.bodies->elements[idx]);
       }
-      printf(")");
+      printf(")\n");
       break;
     }
     case NT_MODULE: {
@@ -69,8 +69,8 @@ void nodePrintStructure(Node const *node) {
       printf(")");
       break;
     }
-    case NT_FUNDECL: {
-      printf("FUNDECL(");
+    case NT_FNDECL: {
+      printf("FNDECL(");
       nodePrintStructure(node->data.fnDecl.returnType);
       printf(" ");
       nodePrintStructure(node->data.fnDecl.id);
@@ -807,7 +807,7 @@ void nodePrint(Node const *node) {
       printf(";\n");
       break;
     }
-    case NT_FUNDECL: {
+    case NT_FNDECL: {
       nodePrint(node->data.fnDecl.returnType);
       printf(" ");
       nodePrint(node->data.fnDecl.id);
