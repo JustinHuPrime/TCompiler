@@ -36,6 +36,8 @@ All warning options have three forms, a `-W...=error` form, a `-W...=warn` form,
 
 * `overload-ambiguity`: an overload set whose members may be ambiguous when called using default arguments. Defaults to error. Functions whose arguments are always ambiguous (i.e. takes the same arguments when including defaulted arguments) always results in an error.
 
+* `void-return`: returning void in a non-void function. Defaults to error. May not be an error if inline assembly is used to setup the return value.
+
 * `unrecognized-file`: unrecognized file extensions. Default to error. If not an error, unrecognized files are skipped.
 
 #### Debug Options

@@ -59,6 +59,7 @@ extern char const *optionWDuplicateDeclaration;
 extern char const *optionWDuplicateFile;
 extern char const *optionWDuplicateImport;
 extern char const *optionWOverloadAmbiguity;
+extern char const *optionWVoidReturn;
 extern char const *optionWUnrecognizedFile;
 
 typedef enum {
