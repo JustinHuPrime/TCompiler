@@ -188,6 +188,7 @@ typedef enum {
   CT_BOOL,
   CT_STRING,
   CT_WSTRING,
+  CT_NULL,
   CT_RANGE_ERROR,
 } ConstType;
 char const *constTypeToString(ConstType);
@@ -540,6 +541,7 @@ Node *aggregateInitExpNodeCreate(size_t line, size_t character,
                                  NodeList *elements);
 Node *constTrueNodeCreate(size_t line, size_t character);
 Node *constFalseNodeCreate(size_t line, size_t character);
+Node *constNullNodeCreate(size_t line, size_t character);
 Node *castExpNodeCreate(size_t line, size_t character, Node *type,
                         Node *target);
 Node *sizeofTypeExpNodeCreate(size_t line, size_t character, Node *target);

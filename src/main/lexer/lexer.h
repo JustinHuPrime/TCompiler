@@ -59,6 +59,7 @@ typedef enum {
   TT_ASM,
   TT_TRUE,
   TT_FALSE,
+  TT_NULL,
   TT_CAST,
   TT_SIZEOF,
   TT_VOID,

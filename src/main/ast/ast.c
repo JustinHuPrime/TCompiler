@@ -903,17 +903,20 @@ Node *aggregateInitExpNodeCreate(size_t line, size_t character,
   return node;
 }
 Node *constTrueNodeCreate(size_t line, size_t character) {
-  Node *node = nodeCreate(line, character);
-  node->type = NT_CONSTEXP;
+  Node *node = constExpNodeCreate(line, character);
   node->data.constExp.type = CT_BOOL;
   node->data.constExp.value.boolVal = true;
   return node;
 }
 Node *constFalseNodeCreate(size_t line, size_t character) {
-  Node *node = nodeCreate(line, character);
-  node->type = NT_CONSTEXP;
+  Node *node = constExpNodeCreate(line, character);
   node->data.constExp.type = CT_BOOL;
   node->data.constExp.value.boolVal = false;
+  return node;
+}
+Node *constNullNodeCreate(size_t line, size_t character) {
+  Node *node = constExpNodeCreate(line, character);
+  node->data.constExp.type = CT_NULL;
   return node;
 }
 Node *castExpNodeCreate(size_t line, size_t character, Node *toWhat,
@@ -1214,6 +1217,7 @@ void nodeDestroy(Node *node) {
         case CT_CHAR:
         case CT_WCHAR:
         case CT_BOOL:
+        case CT_NULL:
         case CT_RANGE_ERROR: {
           break;
         }

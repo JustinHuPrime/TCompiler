@@ -639,6 +639,10 @@ void nodePrintStructure(Node const *node) {
                                                    : "CONST(false)");
           break;
         }
+        case CT_NULL: {
+          printf("CONST(null)");
+          break;
+        }
         case CT_RANGE_ERROR: {
           printf("RANGE_ERROR");
           break;
@@ -1395,6 +1399,10 @@ void nodePrint(Node const *node) {
         }
         case CT_BOOL: {
           printf(node->data.constExp.value.boolVal ? "true" : "false");
+          break;
+        }
+        case CT_NULL: {
+          printf("null");
           break;
         }
         case CT_RANGE_ERROR: {

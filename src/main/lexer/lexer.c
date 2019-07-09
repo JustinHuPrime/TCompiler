@@ -83,6 +83,8 @@ char const *tokenTypeToString(TokenType tt) {
       return "the keyword 'true'";
     case TT_FALSE:
       return "the keyword 'false'";
+    case TT_NULL:
+      return "the keyword 'null'";
     case TT_CAST:
       return "the keyword 'cast'";
     case TT_SIZEOF:
@@ -322,21 +324,21 @@ void tokenInfoUninit(TokenInfo *info) {
 static char const *const KEYWORDS[] = {
     "module", "import",   "struct", "union", "enum",   "typedef", "if",
     "else",   "while",    "do",     "for",   "switch", "case",    "default",
-    "break",  "continue", "return", "asm",   "true",   "false",   "cast",
-    "sizeof", "void",     "ubyte",  "byte",  "char",   "ushort",  "short",
-    "uint",   "int",      "wchar",  "ulong", "long",   "float",   "double",
-    "bool",   "const",
+    "break",  "continue", "return", "asm",   "true",   "false",   "null",
+    "cast",   "sizeof",   "void",   "ubyte", "byte",   "char",    "ushort",
+    "short",  "uint",     "int",    "wchar", "ulong",  "long",    "float",
+    "double", "bool",     "const",
 };
 static TokenType const KEYWORD_TOKENS[] = {
     TT_MODULE, TT_IMPORT,  TT_STRUCT, TT_UNION,    TT_ENUM,   TT_TYPEDEF,
     TT_IF,     TT_ELSE,    TT_WHILE,  TT_DO,       TT_FOR,    TT_SWITCH,
     TT_CASE,   TT_DEFAULT, TT_BREAK,  TT_CONTINUE, TT_RETURN, TT_ASM,
-    TT_TRUE,   TT_FALSE,   TT_CAST,   TT_SIZEOF,   TT_VOID,   TT_UBYTE,
-    TT_BYTE,   TT_CHAR,    TT_USHORT, TT_SHORT,    TT_UINT,   TT_INT,
-    TT_WCHAR,  TT_ULONG,   TT_LONG,   TT_FLOAT,    TT_DOUBLE, TT_BOOL,
-    TT_CONST,
+    TT_TRUE,   TT_FALSE,   TT_NULL,   TT_CAST,     TT_SIZEOF, TT_VOID,
+    TT_UBYTE,  TT_BYTE,    TT_CHAR,   TT_USHORT,   TT_SHORT,  TT_UINT,
+    TT_INT,    TT_WCHAR,   TT_ULONG,  TT_LONG,     TT_FLOAT,  TT_DOUBLE,
+    TT_BOOL,   TT_CONST,
 };
-static size_t const NUM_KEYWORDS = 37;
+static size_t const NUM_KEYWORDS = 38;
 
 KeywordMap *keywordMapCreate(void) {
   KeywordMap *map = malloc(sizeof(KeywordMap));
@@ -2900,6 +2902,11 @@ static void lexDumpOne(Report *report, KeywordMap *keywords,
       }
       case TT_FALSE: {
         printf("%s:%zu:%zu: FALSE\n", filename, tokenInfo.line,
+               tokenInfo.character);
+        break;
+      }
+      case TT_NULL: {
+        printf("%s:%zu:%zu: NULL\n", filename, tokenInfo.line,
                tokenInfo.character);
         break;
       }

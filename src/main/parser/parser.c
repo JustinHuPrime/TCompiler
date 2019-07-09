@@ -775,6 +775,9 @@ static Node *parseLiteral(Report *report, Options const *options,
                   ? constTrueNodeCreate
                   : constFalseNodeCreate)(peek.line, peek.character);
     }
+    case TT_NULL: {
+      return constNullNodeCreate(peek.line, peek.character);
+    }
     case TT_SCOPED_ID: {
       SymbolType symbolType =
           typeEnvironmentLookup(env, report, &peek, info->filename);
