@@ -329,12 +329,14 @@ static void buildStabStmt(Node *statement, Report *report,
       }
       case NT_FORSTMT: {
         environmentPush(env);
-        if (statement->data.forStmt.initialize->type == NT_VARDECL) {
-          buildStabVarDecl(statement->data.forStmt.initialize, report, options,
-                           env, filename, true);
-        } else {
-          buildStabExpression(statement->data.forStmt.initialize, report,
-                              options, env, filename);
+        if (statement->data.forStmt.initialize != NULL) {
+          if (statement->data.forStmt.initialize->type == NT_VARDECL) {
+            buildStabVarDecl(statement->data.forStmt.initialize, report,
+                             options, env, filename, true);
+          } else {
+            buildStabExpression(statement->data.forStmt.initialize, report,
+                                options, env, filename);
+          }
         }
         buildStabExpression(statement->data.forStmt.condition, report, options,
                             env, filename);
