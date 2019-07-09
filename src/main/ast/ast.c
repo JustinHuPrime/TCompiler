@@ -185,7 +185,7 @@ Node *importNodeCreate(size_t line, size_t character, Node *id) {
   return node;
 }
 Node *fnDeclNodeCreate(size_t line, size_t character, Node *returnType,
-                        Node *id, NodePairList *params) {
+                       Node *id, NodePairList *params) {
   Node *node = nodeCreate(line, character);
   node->type = NT_FUNDECL;
   node->data.fnDecl.returnType = returnType;

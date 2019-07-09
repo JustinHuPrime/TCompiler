@@ -639,9 +639,9 @@ static void buildStabFunDecl(Node *fnDecl, Report *report,
       // for error or no, else error - definite collision
 
       if (exactMatch) {
+        overloadSetElementDestroy(overload);
+        overload = matched;
         switch (optionsGet(options, optionWDuplicateDeclaration)) {
-          overloadSetElementDestroy(overload);
-          overload = matched;
           case O_WT_ERROR: {
             reportError(
                 report, "%s:%zu:%zu: error: duplicate declaration of '%s'",

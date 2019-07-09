@@ -243,6 +243,12 @@ bool typeEqual(Type const *t1, Type const *t2) {
     }
   }
 }
+bool typeAssignable(Type const *to, Type const *from) {
+  return false;  // TODO: write this
+}
+char *typeToString(Type const *type) {
+  return NULL;  // TODO: write this
+}
 void typeUninit(Type *t) {
   switch (t->kind) {
     case K_VOID:

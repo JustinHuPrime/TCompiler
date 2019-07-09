@@ -459,7 +459,7 @@ Node *fileNodeCreate(size_t line, size_t character, Node *module,
 Node *moduleNodeCreate(size_t line, size_t character, Node *moduleId);
 Node *importNodeCreate(size_t line, size_t character, Node *importId);
 Node *fnDeclNodeCreate(size_t line, size_t character, Node *returnType,
-                        Node *functionId, NodePairList *args);
+                       Node *functionId, NodePairList *args);
 Node *fieldDeclNodeCreate(size_t line, size_t character, Node *varType,
                           NodeList *ids);
 Node *structDeclNodeCreate(size_t line, size_t character, Node *structId,
