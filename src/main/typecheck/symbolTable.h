@@ -115,6 +115,9 @@ bool typeEqual(Type const *, Type const *);
 // can a thing of the second type be assigned to a thing of the first type
 // assumes first type is an lvalue
 bool typeAssignable(Type const *to, Type const *from);
+// common predicates
+bool typeIsBoolean(Type const *);
+bool typeIsIntegral(Type const *);
 char *typeToString(Type const *);
 // in-place dtor
 void typeUninit(Type *);

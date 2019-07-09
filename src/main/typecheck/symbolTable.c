@@ -249,6 +249,12 @@ bool typeAssignable(Type const *to, Type const *from) {
 char *typeToString(Type const *type) {
   return NULL;  // TODO: write this
 }
+bool typeIsBoolean(Type const *type) {
+  return false;  // TODO: write this
+}
+bool typeIsIntegral(Type const *type) {
+  return false;  // TODO: write this
+}
 void typeUninit(Type *t) {
   switch (t->kind) {
     case K_VOID:
