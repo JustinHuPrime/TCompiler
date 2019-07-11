@@ -39,6 +39,7 @@ void optionsUninit(Options *options) { hashMapUninit(options, nullDtor); }
 void optionsDestroy(Options *options) { hashMapDestroy(options, nullDtor); }
 
 char const *optionArch = "arch";
+char const *optionWConstReturn = "const-return";
 char const *optionWDuplicateDeclSpecifier = "duplicate-decl-specifier";
 char const *optionWDuplicateDeclaration = "duplicate-declaration";
 char const *optionWDuplicateFile = "duplicate-file";
@@ -53,6 +54,7 @@ void parseOptions(Options *options, Report *report, size_t argc,
 
   // default settings
   optionsSet(options, optionArch, O_AT_X86);
+  optionsSet(options, optionWConstReturn, O_WT_WARN);
   optionsSet(options, optionWDuplicateDeclSpecifier, O_WT_WARN);
   optionsSet(options, optionWDuplicateDeclaration, O_WT_IGNORE);
   optionsSet(options, optionWDuplicateFile, O_WT_ERROR);
@@ -70,6 +72,12 @@ void parseOptions(Options *options, Report *report, size_t argc,
       optionsSet(options, optionArch, O_AT_X86);
     } else if (strcmp(argv[idx], "--arch=sep") == 0) {
       optionsSet(options, optionArch, O_AT_SEP);
+    } else if (strcmp(argv[idx], "-Wconst-return=error") == 0) {
+      optionsSet(options, optionWConstReturn, O_WT_ERROR);
+    } else if (strcmp(argv[idx], "-Wconst-return=warn") == 0) {
+      optionsSet(options, optionWConstReturn, O_WT_WARN);
+    } else if (strcmp(argv[idx], "-Wconst-return=ignore") == 0) {
+      optionsSet(options, optionWConstReturn, O_WT_IGNORE);
     } else if (strcmp(argv[idx], "-Wduplicate-decl-specifier=error") == 0) {
       optionsSet(options, optionWDuplicateDeclSpecifier, O_WT_ERROR);
     } else if (strcmp(argv[idx], "-Wduplicate-decl-specifier=warn") == 0) {

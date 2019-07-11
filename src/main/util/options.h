@@ -54,6 +54,7 @@ typedef enum {
   O_WT_WARN,
   O_WT_IGNORE,
 } OptionsWarningType;
+extern char const *optionWConstReturn;
 extern char const *optionWDuplicateDeclSpecifier;
 extern char const *optionWDuplicateDeclaration;
 extern char const *optionWDuplicateFile;

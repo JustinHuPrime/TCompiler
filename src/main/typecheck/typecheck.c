@@ -24,7 +24,7 @@
 static Type *typecheckExpression(Node *expression, Report *report,
                                  Options const *options, char const *filename) {
   // TODO: write this
-  return NULL;
+  switch (expression->type) {}
 }
 
 // statements
@@ -233,6 +233,30 @@ static void typecheckFnDecl(Node *fnDecl, Report *report,
                             Options const *options, char const *filename) {
   NodePairList *params = fnDecl->data.fnDecl.params;
   OverloadSetElement *overload = fnDecl->data.fnDecl.id->data.id.overload;
+  if (overload->returnType->kind == K_CONST) {
+    // const return type
+    switch (optionsGet(options, optionWConstReturn)) {
+      case O_WT_ERROR: {
+        reportError(
+            report,
+            "%s:%zu:%zu: error: function declared as returing a constant value",
+            filename, fnDecl->data.fnDecl.returnType->line,
+            fnDecl->data.fnDecl.returnType->character);
+        break;
+      }
+      case O_WT_WARN: {
+        reportWarning(report,
+                      "%s:%zu:%zu: warning: function declared as returing a "
+                      "constant value",
+                      filename, fnDecl->data.fnDecl.returnType->line,
+                      fnDecl->data.fnDecl.returnType->character);
+        break;
+      }
+      case O_WT_IGNORE: {
+        break;
+      }
+    }
+  }
   for (size_t idx = 0; idx < params->size; idx++) {
     Node *defaultArg = params->secondElements[idx];
     if (defaultArg != NULL) {
@@ -261,6 +285,30 @@ static void typecheckFunction(Node *function, Report *report,
                               Options const *options, char const *filename) {
   NodeTripleList *params = function->data.function.formals;
   OverloadSetElement *overload = function->data.function.id->data.id.overload;
+  if (overload->returnType->kind == K_CONST) {
+    // const return type
+    switch (optionsGet(options, optionWConstReturn)) {
+      case O_WT_ERROR: {
+        reportError(
+            report,
+            "%s:%zu:%zu: error: function declared as returing a constant value",
+            filename, function->data.function.returnType->line,
+            function->data.function.returnType->character);
+        break;
+      }
+      case O_WT_WARN: {
+        reportWarning(report,
+                      "%s:%zu:%zu: warning: function declared as returing a "
+                      "constant value",
+                      filename, function->data.function.returnType->line,
+                      function->data.function.returnType->character);
+        break;
+      }
+      case O_WT_IGNORE: {
+        break;
+      }
+    }
+  }
   for (size_t idx = 0; idx < params->size; idx++) {
     Node *defaultArg = params->thirdElements[idx];
     if (defaultArg != NULL) {
