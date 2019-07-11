@@ -63,6 +63,11 @@ Type *functionPtrTypeCreate(Type *returnType, TypeVector *argumentTypes) {
   t->data.functionPtr.argumentTypes = argumentTypes;
   return t;
 }
+Type *aggregateInitTypeCreate(TypeVector *elementTypes) {
+  Type *t = typeCreate(K_AGGREGATE_INIT);
+  t->data.aggregateInit.elementTypes = elementTypes;
+  return t;
+}
 void keywordTypeInit(Type *t, TypeKind kind) { typeInit(t, kind); }
 void referneceTypeInit(Type *t, TypeKind kind, struct SymbolInfo *referenced) {
   typeInit(t, kind);
@@ -81,6 +86,10 @@ void functionPtrTypeInit(Type *t, Type *returnType, TypeVector *argumentTypes) {
   typeInit(t, K_FUNCTION_PTR);
   t->data.functionPtr.returnType = returnType;
   t->data.functionPtr.argumentTypes = argumentTypes;
+}
+void aggregateInitTypeInit(Type *t, TypeVector *elementTypes) {
+  typeInit(t, K_AGGREGATE_INIT);
+  t->data.aggregateInit.elementTypes = elementTypes;
 }
 Type *typeCopy(Type const *t) {
   switch (t->kind) {
@@ -289,6 +298,10 @@ void typeUninit(Type *t) {
     case K_FUNCTION_PTR: {
       typeDestroy(t->data.functionPtr.returnType);
       typeVectorDestroy(t->data.functionPtr.argumentTypes);
+      break;
+    }
+    case K_AGGREGATE_INIT: {
+      typeVectorDestroy(t->data.aggregateInit.elementTypes);
       break;
     }
   }

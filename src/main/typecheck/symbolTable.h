@@ -53,6 +53,7 @@ typedef enum {
   K_ARRAY,
   K_PTR,
   K_FUNCTION_PTR,
+  K_AGGREGATE_INIT,
 } TypeKind;
 
 // specialization of a generic
@@ -91,6 +92,9 @@ typedef struct Type {
       struct Type *returnType;
       TypeVector *argumentTypes;
     } functionPtr;
+    struct {
+      TypeVector *elementTypes;
+    } aggregateInit;
   } data;
 } Type;
 
@@ -100,12 +104,14 @@ Type *referneceTypeCreate(TypeKind kind, struct SymbolInfo *referenced);
 Type *modifierTypeCreate(TypeKind kind, Type *target);
 Type *arrayTypeCreate(Type *target, size_t size);
 Type *functionPtrTypeCreate(Type *returnType, TypeVector *argumentTypes);
+Type *aggregateInitTypeCreate(TypeVector *elementTypes);
 // in-place ctor
 void keywordTypeInit(Type *, TypeKind kind);
 void referneceTypeInit(Type *, TypeKind kind, struct SymbolInfo *referenced);
 void modifierTypeInit(Type *, TypeKind kind, Type *target);
 void arrayTypeInit(Type *, Type *target, size_t size);
 void functionPtrTypeInit(Type *, Type *returnType, TypeVector *argumentTypes);
+void aggregateInitTypeInit(Type *, TypeVector *elementTypes);
 // copy ctor
 Type *typeCopy(Type const *);
 // if type is incomplete, returns true, else false
