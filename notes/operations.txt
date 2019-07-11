@@ -68,5 +68,5 @@ a |= b
 a &&= b
 a ||= b
 
-13 (sequence, right associative):
+13 (sequence, left associative):
 a, b

@@ -152,9 +152,9 @@ static void buildStabExpression(Node *expression, Report *report,
   } else {
     switch (expression->type) {
       case NT_SEQEXP: {
-        buildStabExpression(expression->data.seqExp.first, report, options, env,
-                            filename);
-        buildStabExpression(expression->data.seqExp.rest, report, options, env,
+        buildStabExpression(expression->data.seqExp.prefix, report, options,
+                            env, filename);
+        buildStabExpression(expression->data.seqExp.last, report, options, env,
                             filename);
         break;
       }

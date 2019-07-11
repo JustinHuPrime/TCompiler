@@ -370,11 +370,12 @@ Node *nullStmtNodeCreate(size_t line, size_t character) {
   node->type = NT_NULLSTMT;
   return node;
 }
-Node *seqExpNodeCreate(size_t line, size_t character, Node *first, Node *rest) {
+Node *seqExpNodeCreate(size_t line, size_t character, Node *prefix,
+                       Node *last) {
   Node *node = nodeCreate(line, character);
   node->type = NT_SEQEXP;
-  node->data.seqExp.first = first;
-  node->data.seqExp.rest = rest;
+  node->data.seqExp.prefix = prefix;
+  node->data.seqExp.last = last;
   return node;
 }
 Node *binOpExpNodeCreate(size_t line, size_t character, BinOpType op, Node *lhs,
@@ -1136,8 +1137,8 @@ void nodeDestroy(Node *node) {
       break;
     }
     case NT_SEQEXP: {
-      nodeDestroy(node->data.seqExp.first);
-      nodeDestroy(node->data.seqExp.rest);
+      nodeDestroy(node->data.seqExp.prefix);
+      nodeDestroy(node->data.seqExp.last);
       break;
     }
     case NT_BINOPEXP: {

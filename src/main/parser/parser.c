@@ -1625,20 +1625,24 @@ static Node *parseExpression(Report *report, Options const *options,
     return NULL;
   }
 
-  TokenInfo next;
-  lex(info, report, &next);
-  if (next.type != TT_COMMA) {
-    unLex(info, &next);
-    return first;
-  }
+  TokenInfo peek;
+  lex(info, report, &peek);
+  while (peek.type == TT_COMMA) {
+    // consume the operator
 
-  Node *rest = parseExpression(report, options, env, info);
-  if (rest == NULL) {
-    nodeDestroy(first);
-    return NULL;
-  }
+    Node *next = parseAssignmentExpression(report, options, env, info);
+    if (next == NULL) {
+      nodeDestroy(first);
+      return NULL;
+    }
 
-  return seqExpNodeCreate(first->line, first->character, first, rest);
+    first = seqExpNodeCreate(first->line, first->character, first, next);
+
+    lex(info, report, &peek);
+  }
+  unLex(info, &peek);
+
+  return first;
 }
 
 // statement

@@ -326,8 +326,8 @@ typedef struct Node {
     } expressionStmt;
 
     struct {
-      struct Node *first;
-      struct Node *rest;
+      struct Node *prefix;
+      struct Node *last;
     } seqExp;
     struct {
       BinOpType op;

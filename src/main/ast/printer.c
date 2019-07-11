@@ -304,9 +304,9 @@ void nodePrintStructure(Node const *node) {
     }
     case NT_SEQEXP: {
       printf("SEQEXP(");
-      nodePrintStructure(node->data.seqExp.first);
+      nodePrintStructure(node->data.seqExp.prefix);
       printf(" ");
-      nodePrintStructure(node->data.seqExp.rest);
+      nodePrintStructure(node->data.seqExp.last);
       printf(")");
       break;
     }
@@ -1049,9 +1049,9 @@ void nodePrint(Node const *node) {
     }
     case NT_SEQEXP: {
       printf("(");
-      nodePrint(node->data.seqExp.first);
+      nodePrint(node->data.seqExp.prefix);
       printf(", ");
-      nodePrint(node->data.seqExp.rest);
+      nodePrint(node->data.seqExp.last);
       printf(")");
       break;
     }
