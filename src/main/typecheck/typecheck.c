@@ -24,7 +24,96 @@
 static Type *typecheckExpression(Node *expression, Report *report,
                                  Options const *options, char const *filename) {
   // TODO: write this
-  switch (expression->type) {}
+  switch (expression->type) {
+    case NT_SEQEXP: {
+      Type *prefix = typecheckExpression(expression->data.seqExp.prefix, report,
+                                         options, filename);
+      Type *last = typecheckExpression(expression->data.seqExp.last, report,
+                                       options, filename);
+      if (prefix != NULL) {
+        typeDestroy(prefix);
+      }
+      return last;
+    }
+    case NT_BINOPEXP: {
+      break;
+    }
+    case NT_UNOPEXP: {
+      break;
+    }
+    case NT_COMPOPEXP: {
+      break;
+    }
+    case NT_LANDASSIGNEXP: {
+      break;
+    }
+    case NT_LORASSIGNEXP: {
+      break;
+    }
+    case NT_TERNARYEXP: {
+      Type *condition = typecheckExpression(
+          expression->data.ternaryExp.condition, report, options, filename);
+      Type *thenExp = typecheckExpression(expression->data.ternaryExp.thenExp,
+                                          report, options, filename);
+      Type *elseExp = typecheckExpression(expression->data.ternaryExp.elseExp,
+                                          report, options, filename);
+      bool bad = false;
+      if (!typeIsBoolean(condition)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: condition in a ternary expression must "
+                    "be assignable to a boolean value",
+                    filename, expression->data.ternaryExp.condition->line,
+                    expression->data.ternaryExp.condition->character);
+        bad = true;
+      }
+
+      Type *expType = typeTernaryExpMerge(thenExp, elseExp);
+      if (expType == NULL) {
+        reportError(report,
+                    "%s:%zu:%zu: error: conflicting types in branches of "
+                    "ternary expression",
+                    filename, expression->line, expression->character);
+        bad = true;
+      }
+      break;
+    }
+    case NT_LANDEXP: {
+      break;
+    }
+    case NT_LOREXP: {
+      break;
+    }
+    case NT_STRUCTACCESSEXP: {
+      break;
+    }
+    case NT_STRUCTPTRACCESSEXP: {
+      break;
+    }
+    case NT_FNCALLEXP: {
+      break;
+    }
+    case NT_CONSTEXP: {
+      break;
+    }
+    case NT_AGGREGATEINITEXP: {
+      break;
+    }
+    case NT_CASTEXP: {
+      break;
+    }
+    case NT_SIZEOFTYPEEXP: {
+      break;
+    }
+    case NT_SIZEOFEXPEXP: {
+      break;
+    }
+    case NT_ID: {
+      break;
+    }
+    default: {
+      return NULL;  // not well formed, parse-wise
+    }
+  }
 }
 
 // statements
