@@ -329,7 +329,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
             typecheckExpression(element, report, options, filename, NULL);
         if (elementType == NULL && elementTypes != NULL) {
           typeVectorDestroy(elementTypes);
-          elementTypes == NULL;
+          elementTypes = NULL;
         } else if (elementTypes != NULL) {
           typeVectorInsert(elementTypes, elementType);
         }

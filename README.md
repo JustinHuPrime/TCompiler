@@ -18,9 +18,15 @@ Note that if a later option conflicts with an earlier option, the later option w
 
 #### Architecture
 
-* `--arch=x86`: sets the architecture to target to x86_64. Default.
+* `--arch=x86`: sets the target architecture to x86_64. Default.
+
+<!--
+* `--arch=y86`: sets the target architecture to y86 assembly (used in UBC's CPSC 313).
+
+* `--arch=sm213`: sets the target architecture to sm213 assembly (used in UBC's CPSC 213).
 
 * `--arch=sep`: sets the architecture to target to sep.
+-->
 
 #### Warnings
 

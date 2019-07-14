@@ -45,7 +45,7 @@ void optionsDestroy(Options *);
 
 typedef enum {
   O_AT_X86 = 1,
-  O_AT_SEP,
+  // O_AT_SEP,
 } OptionsArchType;
 extern char const *optionArch;
 

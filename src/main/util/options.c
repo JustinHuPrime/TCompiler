@@ -70,8 +70,8 @@ void parseOptions(Options *options, Report *report, size_t argc,
       continue;
     } else if (strcmp(argv[idx], "--arch=x86") == 0) {
       optionsSet(options, optionArch, O_AT_X86);
-    } else if (strcmp(argv[idx], "--arch=sep") == 0) {
-      optionsSet(options, optionArch, O_AT_SEP);
+      // } else if (strcmp(argv[idx], "--arch=sep") == 0) {
+      //   optionsSet(options, optionArch, O_AT_SEP);
     } else if (strcmp(argv[idx], "-Wconst-return=error") == 0) {
       optionsSet(options, optionWConstReturn, O_WT_ERROR);
     } else if (strcmp(argv[idx], "-Wconst-return=warn") == 0) {
