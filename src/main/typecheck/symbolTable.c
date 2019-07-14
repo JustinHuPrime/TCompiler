@@ -26,6 +26,9 @@
 
 TypeVector *typeVectorCreate(void) { return vectorCreate(); }
 void typeVectorInit(TypeVector *v) { vectorInit(v); }
+TypeVector *typeVectorCopy(TypeVector *v) {
+  return vectorCopy(v, (void *(*)(void *))typeCopy);
+}
 void typeVectorInsert(TypeVector *v, struct Type *t) { vectorInsert(v, t); }
 void typeVectorUninit(TypeVector *v) {
   vectorUninit(v, (void (*)(void *))typeDestroy);
@@ -254,6 +257,12 @@ bool typeEqual(Type const *t1, Type const *t2) {
 }
 bool typeAssignable(Type const *to, Type const *from) {
   return false;  // TODO: write this
+}
+bool typeCastable(Type const *to, Type const *from) {
+  return false;  // TODO: write this
+}
+Type *typeTernaryExpMerge(Type const *lhs, Type const *rhs) {
+  return NULL;  // TODO: write this
 }
 char *typeToString(Type const *type) {
   return NULL;  // TODO: write this
@@ -770,10 +779,6 @@ SymbolInfo *environmentLookup(Environment const *env, Report *report,
                               char const *filename) {
   return environmentLookupInternal(env, report, id, line, character, filename,
                                    true);
-}
-SymbolInfo *environmentLookupMustSucceed(Environment const *env,
-                                         char const *id) {
-  return environmentLookupInternal(env, NULL, id, 0, 0, NULL, false);
 }
 SymbolTable *environmentTop(Environment const *env) {
   return env->scopes.size == 0 ? env->currentModule : stackPeek(&env->scopes);

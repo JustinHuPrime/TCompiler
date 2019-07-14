@@ -62,6 +62,8 @@ typedef Vector TypeVector;
 TypeVector *typeVectorCreate(void);
 // in place ctor
 void typeVectorInit(TypeVector *);
+// copy ctor
+TypeVector *typeVectorCopy(TypeVector *);
 // insert
 void typeVectorInsert(TypeVector *, struct Type *);
 // in place dtor
@@ -92,6 +94,7 @@ typedef struct Type {
       struct Type *returnType;
       TypeVector *argumentTypes;
     } functionPtr;
+    // special type for aggregate init expression
     struct {
       TypeVector *elementTypes;
     } aggregateInit;
@@ -121,9 +124,13 @@ bool typeEqual(Type const *, Type const *);
 // can a thing of the second type be assigned to a thing of the first type
 // assumes first type is an lvalue
 bool typeAssignable(Type const *to, Type const *from);
+// can a thing of the second type be cast to a thing of the first type
+bool typeCastable(Type const *to, Type const *from);
 // common predicates
 bool typeIsBoolean(Type const *);
 bool typeIsIntegral(Type const *);
+// merge types from conditional branches
+Type *typeTernaryExpMerge(Type const *, Type const *);
 char *typeToString(Type const *);
 // in-place dtor
 void typeUninit(Type *);
@@ -260,8 +267,6 @@ void environmentInit(Environment *, SymbolTable *currentModule,
 SymbolInfo *environmentLookup(Environment const *, Report *report,
                               char const *id, size_t line, size_t character,
                               char const *filename);
-SymbolInfo *environmentLookupMustSucceed(Environment const *env,
-                                         char const *id);
 SymbolTable *environmentTop(Environment const *);
 void environmentPush(Environment *);
 SymbolTable *environmentPop(Environment *);
