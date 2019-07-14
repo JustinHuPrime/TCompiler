@@ -438,12 +438,27 @@ static OverloadSetElement *astToOverloadSetElement(
   if (returnType == NULL) {
     overloadSetElementDestroy(overload);
     return NULL;
+  } else if (typeIsIncomplete(returnType, env)) {
+    reportError(
+        report,
+        "%s:%zu:%zu: error: function declared as returning an incomplete type",
+        filename, returnTypeNode->line, returnTypeNode->character);
+    overloadSetElementDestroy(overload);
+    return NULL;
   }
   overload->returnType = returnType;
 
   for (size_t idx = 0; idx < numArgs; idx++) {
-    Type *argType = astToType(argTypes[idx], report, options, env, filename);
+    Node *arg = argTypes[idx];
+    Type *argType = astToType(arg, report, options, env, filename);
     if (argType == NULL) {
+      overloadSetElementDestroy(overload);
+      return NULL;
+    } else if (typeIsIncomplete(argType, env)) {
+      reportError(report,
+                  "%s:%zu:%zu: error: function declared as taking a parameter "
+                  "of an incomplete type",
+                  filename, arg->line, arg->character);
       overloadSetElementDestroy(overload);
       return NULL;
     }
@@ -712,6 +727,11 @@ static void buildStabVarDecl(Node *varDecl, Report *report,
   Type *varType =
       astToType(varDecl->data.varDecl.type, report, options, env, filename);
   if (varType == NULL) {
+    return;
+  } else if (typeIsIncomplete(varType, env)) {
+    reportError(report,
+                "%s:%zu:%zu: error: variable of incomplete type declared",
+                filename, varDecl->line, varDecl->character);
     return;
   }
   for (size_t nameIdx = 0; nameIdx < varDecl->data.varDecl.idValuePairs->size;
