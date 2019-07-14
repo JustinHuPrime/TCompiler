@@ -21,6 +21,7 @@
 #include "util/functional.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 Vector *vectorCreate(void) {
   Vector *vector = malloc(sizeof(Vector));
@@ -31,6 +32,16 @@ void vectorInit(Vector *vector) {
   vector->size = 0;
   vector->capacity = 1;
   vector->elements = malloc(sizeof(void *));
+}
+Vector *vectorCopy(Vector *v, void *(*elmCopy)(void *)) {
+  Vector *vector = malloc(sizeof(Vector));
+  vector->size = v->size;
+  vector->capacity = v->capacity;
+  vector->elements = malloc(vector->capacity * sizeof(void *));
+  for (size_t idx = 0; idx < vector->size; idx++) {
+    vector->elements[idx] = elmCopy(v->elements[idx]);
+  }
+  return vector;
 }
 void vectorInsert(Vector *vector, void *element) {
   if (vector->size == vector->capacity) {

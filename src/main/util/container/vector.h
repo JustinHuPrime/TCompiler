@@ -33,6 +33,8 @@ typedef struct {
 Vector *vectorCreate(void);
 // in place ctor
 void vectorInit(Vector *);
+// copy ctor
+Vector *vectorCopy(Vector *, void *(*elmCopy)(void *));
 // insert
 void vectorInsert(Vector *, void *);
 // in place dtor
