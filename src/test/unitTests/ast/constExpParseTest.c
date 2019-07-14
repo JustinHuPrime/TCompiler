@@ -492,8 +492,8 @@ void constExpParseFloatTest(TestStatus *status) {
       "[ast] [constantExp] [float] [accuracy] parsing pi produces type double.",
       node->data.constExp.type == CT_DOUBLE);
   test(status,
-       "[ast] [constantExp] [float] [zero] parsing pi produces value "
-       "+1.5707963267948966e1",
+       "[ast] [constantExp] [float] [accuracy] parsing pi produces value "
+       "+1.5707963267948966 * 2^1",
        node->data.constExp.value.doubleBits == 0x400921FB54442D18);
   nodeDestroy(node);
 }
