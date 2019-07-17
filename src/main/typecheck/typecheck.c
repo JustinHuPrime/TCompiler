@@ -21,17 +21,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+// helpers
+static bool expressionIsLvalue(Node *expression) {
+  return false;  // TODO: write this
+}
+
 // expressions
 static Type *typecheckExpression(Node *expression, Report *report,
                                  Options const *options, char const *filename,
-                                 TypeVector const *argTypes) {
-  // TODO: write this
+                                 TypeVector const *argTypes, bool directCall) {
   switch (expression->type) {
     case NT_SEQEXP: {
       Type *prefix = typecheckExpression(expression->data.seqExp.prefix, report,
-                                         options, filename, NULL);
+                                         options, filename, NULL, false);
       Type *last = typecheckExpression(expression->data.seqExp.last, report,
-                                       options, filename, argTypes);
+                                       options, filename, argTypes, false);
       if (prefix != NULL) {
         typeDestroy(prefix);
       }
@@ -39,15 +43,150 @@ static Type *typecheckExpression(Node *expression, Report *report,
     }
     case NT_BINOPEXP: {
       // TODO: write this
-      return NULL;
+      switch (expression->data.binOpExp.op) {
+        case BO_ASSIGN: {
+          return NULL;
+        }
+        case BO_MULASSIGN: {
+          return NULL;
+        }
+        case BO_DIVASSIGN: {
+          return NULL;
+        }
+        case BO_MODASSIGN: {
+          return NULL;
+        }
+        case BO_ADDASSIGN: {
+          return NULL;
+        }
+        case BO_SUBASSIGN: {
+          return NULL;
+        }
+        case BO_LSHIFTASSIGN: {
+          return NULL;
+        }
+        case BO_LRSHIFTASSIGN: {
+          return NULL;
+        }
+        case BO_ARSHIFTASSIGN: {
+          return NULL;
+        }
+        case BO_BITANDASSIGN: {
+          return NULL;
+        }
+        case BO_BITXORASSIGN: {
+          return NULL;
+        }
+        case BO_BITORASSIGN: {
+          return NULL;
+        }
+        case BO_BITAND: {
+          return NULL;
+        }
+        case BO_BITOR: {
+          return NULL;
+        }
+        case BO_BITXOR: {
+          return NULL;
+        }
+        case BO_SPACESHIP: {
+          return NULL;
+        }
+        case BO_LSHIFT: {
+          return NULL;
+        }
+        case BO_LRSHIFT: {
+          return NULL;
+        }
+        case BO_ARSHIFT: {
+          return NULL;
+        }
+        case BO_ADD: {
+          return NULL;
+        }
+        case BO_SUB: {
+          return NULL;
+        }
+        case BO_MUL: {
+          return NULL;
+        }
+        case BO_DIV: {
+          return NULL;
+        }
+        case BO_MOD: {
+          return NULL;
+        }
+        case BO_ARRAYACCESS: {
+          return NULL;
+        }
+        default: {
+          return NULL;  // invalid enum
+        }
+      }
     }
     case NT_UNOPEXP: {
       // TODO: write this
-      return NULL;
+      switch (expression->data.unOpExp.op) {
+        case UO_DEREF: {
+          return NULL;
+        }
+        case UO_ADDROF: {
+          return NULL;
+        }
+        case UO_PREINC: {
+          return NULL;
+        }
+        case UO_PREDEC: {
+          return NULL;
+        }
+        case UO_UPLUS: {
+          return NULL;
+        }
+        case UO_NEG: {
+          return NULL;
+        }
+        case UO_LNOT: {
+          return NULL;
+        }
+        case UO_BITNOT: {
+          return NULL;
+        }
+        case UO_POSTINC: {
+          return NULL;
+        }
+        case UO_POSTDEC: {
+          return NULL;
+        }
+        default: {
+          return NULL;  // invalid enum
+        }
+      }
     }
     case NT_COMPOPEXP: {
       // TODO: write this
-      return NULL;
+      switch (expression->data.compOpExp.op) {
+        case CO_EQ: {
+          return NULL;
+        }
+        case CO_NEQ: {
+          return NULL;
+        }
+        case CO_LT: {
+          return NULL;
+        }
+        case CO_GT: {
+          return NULL;
+        }
+        case CO_LTEQ: {
+          return NULL;
+        }
+        case CO_GTEQ: {
+          return NULL;
+        }
+        default: {
+          return NULL;  // invalid enum
+        }
+      }
     }
     case NT_LANDASSIGNEXP: {
       // TODO: write this
@@ -60,11 +199,13 @@ static Type *typecheckExpression(Node *expression, Report *report,
     case NT_TERNARYEXP: {
       Type *condition =
           typecheckExpression(expression->data.ternaryExp.condition, report,
-                              options, filename, NULL);
-      Type *thenExp = typecheckExpression(expression->data.ternaryExp.thenExp,
-                                          report, options, filename, argTypes);
-      Type *elseExp = typecheckExpression(expression->data.ternaryExp.elseExp,
-                                          report, options, filename, argTypes);
+                              options, filename, NULL, false);
+      Type *thenExp =
+          typecheckExpression(expression->data.ternaryExp.thenExp, report,
+                              options, filename, argTypes, false);
+      Type *elseExp =
+          typecheckExpression(expression->data.ternaryExp.elseExp, report,
+                              options, filename, argTypes, false);
       bool bad = false;
       if (!typeIsBoolean(condition)) {
         reportError(report,
@@ -107,8 +248,10 @@ static Type *typecheckExpression(Node *expression, Report *report,
                                                  : expression->data.lorExp.lhs;
       Node *rhs = expression->type == NT_LANDEXP ? expression->data.landExp.rhs
                                                  : expression->data.lorExp.rhs;
-      Type *lhsType = typecheckExpression(lhs, report, options, filename, NULL);
-      Type *rhsType = typecheckExpression(rhs, report, options, filename, NULL);
+      Type *lhsType =
+          typecheckExpression(lhs, report, options, filename, NULL, false);
+      Type *rhsType =
+          typecheckExpression(rhs, report, options, filename, NULL, false);
       bool bad = false;
       if (!typeIsBoolean(lhsType)) {
         reportError(report,
@@ -136,7 +279,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
     }
     case NT_STRUCTACCESSEXP: {
       Type *lhs = typecheckExpression(expression->data.structAccessExp.base,
-                                      report, options, filename, NULL);
+                                      report, options, filename, NULL, false);
       if (lhs == NULL) {
         return NULL;
       } else if (lhs->kind != K_STRUCT && lhs->kind != K_UNION) {
@@ -178,7 +321,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
     }
     case NT_STRUCTPTRACCESSEXP: {
       Type *lhs = typecheckExpression(expression->data.structPtrAccessExp.base,
-                                      report, options, filename, NULL);
+                                      report, options, filename, NULL, false);
       if (lhs == NULL) {
         return NULL;
       } else if (lhs->kind != K_PTR) {
@@ -230,7 +373,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
       TypeVector *actualArgTypes = typeVectorCreate();
       for (size_t idx = 0; idx < args->size; idx++) {
         Type *argType = typecheckExpression(args->elements[idx], report,
-                                            options, filename, NULL);
+                                            options, filename, NULL, false);
         if (argType == NULL && actualArgTypes != NULL) {
           typeVectorDestroy(actualArgTypes);
           actualArgTypes = NULL;
@@ -240,8 +383,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
         }
       }
 
-      Type *fnType = typecheckExpression(expression->data.fnCallExp.who, report,
-                                         options, filename, actualArgTypes);
+      Type *fnType =
+          typecheckExpression(expression->data.fnCallExp.who, report, options,
+                              filename, actualArgTypes, true);
       typeVectorDestroy(actualArgTypes);
       if (fnType == NULL) {
         return NULL;  // no valid function
@@ -252,9 +396,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     "non-function",
                     filename, expression->line, expression->character);
         return NULL;
-      } else {
-        return typeCopy(fnType->data.functionPtr.returnType);
       }
+
+      return typeCopy(fnType->data.functionPtr.returnType);
     }
     case NT_CONSTEXP: {
       switch (expression->data.constExp.type) {
@@ -325,8 +469,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
 
       for (size_t idx = 0; idx < elements->size; idx++) {
         Node *element = elements->elements[idx];
-        Type *elementType =
-            typecheckExpression(element, report, options, filename, NULL);
+        Type *elementType = typecheckExpression(element, report, options,
+                                                filename, NULL, false);
         if (elementType == NULL && elementTypes != NULL) {
           typeVectorDestroy(elementTypes);
           elementTypes = NULL;
@@ -342,8 +486,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
       }
     }
     case NT_CASTEXP: {
-      Type *targetType = typecheckExpression(expression->data.castExp.target,
-                                             report, options, filename, NULL);
+      Type *targetType =
+          typecheckExpression(expression->data.castExp.target, report, options,
+                              filename, NULL, false);
       if (targetType == NULL) {
         return NULL;
       }
@@ -362,8 +507,13 @@ static Type *typecheckExpression(Node *expression, Report *report,
         return typeCopy(expression->data.castExp.toType);
       }
     }
-    case NT_SIZEOFTYPEEXP:
+    case NT_SIZEOFTYPEEXP: {
+      return keywordTypeCreate(TK_ULONG);
+    }
     case NT_SIZEOFEXPEXP: {
+      expression->data.sizeofExpExp.targetType =
+          typecheckExpression(expression->data.sizeofExpExp.target, report,
+                              options, filename, NULL, false);
       return keywordTypeCreate(TK_ULONG);
     }
     case NT_ID: {
@@ -376,8 +526,10 @@ static Type *typecheckExpression(Node *expression, Report *report,
         if (overloadSet->size == 1) {
           OverloadSetElement *elm = overloadSet->elements[0];
           expression->data.id.overload = elm;
-          return functionPtrTypeCreate(typeCopy(elm->returnType),
-                                       typeVectorCopy(&elm->argumentTypes));
+          return modifierTypeCreate(
+              K_CONST,
+              functionPtrTypeCreate(typeCopy(elm->returnType),
+                                    typeVectorCopy(&elm->argumentTypes)));
         } else {
           reportError(report,
                       "%s:%zu:%zu: error: cannot determine appropriate "
@@ -387,6 +539,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
         }
       } else if (info->kind == SK_FUNCTION) {
         // TODO: figure out overload in set
+        // use directCall - if direct, match w/
         return NULL;
       } else {
         return NULL;  // not a valid expression - parse error
@@ -416,8 +569,9 @@ static void typecheckStmt(Node *statement, Report *report,
         break;
       }
       case NT_IFSTMT: {
-        Type *conditionType = typecheckExpression(
-            statement->data.ifStmt.condition, report, options, filename, NULL);
+        Type *conditionType =
+            typecheckExpression(statement->data.ifStmt.condition, report,
+                                options, filename, NULL, false);
         if (conditionType != NULL) {
           if (!typeIsBoolean(conditionType)) {
             reportError(report,
@@ -437,7 +591,7 @@ static void typecheckStmt(Node *statement, Report *report,
       case NT_WHILESTMT: {
         Type *conditionType =
             typecheckExpression(statement->data.whileStmt.condition, report,
-                                options, filename, NULL);
+                                options, filename, NULL, false);
         if (conditionType != NULL) {
           if (!typeIsBoolean(conditionType)) {
             reportError(report,
@@ -457,7 +611,7 @@ static void typecheckStmt(Node *statement, Report *report,
                       filename, expectedReturnType);
         Type *conditionType =
             typecheckExpression(statement->data.doWhileStmt.condition, report,
-                                options, filename, NULL);
+                                options, filename, NULL, false);
         if (conditionType != NULL) {
           if (!typeIsBoolean(conditionType)) {
             reportError(report,
@@ -478,14 +632,15 @@ static void typecheckStmt(Node *statement, Report *report,
           } else {
             Type *exprType =
                 typecheckExpression(statement->data.forStmt.initialize, report,
-                                    options, filename, NULL);
+                                    options, filename, NULL, false);
             if (exprType != NULL) {
               typeDestroy(exprType);
             }
           }
         }
-        Type *conditionType = typecheckExpression(
-            statement->data.forStmt.condition, report, options, filename, NULL);
+        Type *conditionType =
+            typecheckExpression(statement->data.forStmt.condition, report,
+                                options, filename, NULL, false);
         if (conditionType != NULL) {
           if (!typeIsBoolean(conditionType)) {
             reportError(report,
@@ -497,8 +652,9 @@ static void typecheckStmt(Node *statement, Report *report,
           typeDestroy(conditionType);
         }
         if (statement->data.forStmt.update != NULL) {
-          Type *exprType = typecheckExpression(statement->data.forStmt.update,
-                                               report, options, filename, NULL);
+          Type *exprType =
+              typecheckExpression(statement->data.forStmt.update, report,
+                                  options, filename, NULL, false);
           if (exprType != NULL) {
             typeDestroy(exprType);
           }
@@ -508,8 +664,9 @@ static void typecheckStmt(Node *statement, Report *report,
         break;
       }
       case NT_SWITCHSTMT: {
-        Type *switchedOnType = typecheckExpression(
-            statement->data.switchStmt.onWhat, report, options, filename, NULL);
+        Type *switchedOnType =
+            typecheckExpression(statement->data.switchStmt.onWhat, report,
+                                options, filename, NULL, false);
         if (switchedOnType != NULL) {
           if (!typeIsIntegral(switchedOnType)) {
             reportError(report,
@@ -534,7 +691,7 @@ static void typecheckStmt(Node *statement, Report *report,
         if (statement->data.returnStmt.value != NULL) {
           Type *returnType =
               typecheckExpression(statement->data.returnStmt.value, report,
-                                  options, filename, NULL);
+                                  options, filename, NULL, false);
           if (returnType != NULL) {
             if (expectedReturnType->kind == K_VOID) {
               char *returnTypeString = typeToString(returnType);
@@ -586,7 +743,7 @@ static void typecheckStmt(Node *statement, Report *report,
       case NT_EXPRESSIONSTMT: {
         Type *exprType =
             typecheckExpression(statement->data.expressionStmt.expression,
-                                report, options, filename, NULL);
+                                report, options, filename, NULL, false);
         if (exprType != NULL) {
           typeDestroy(exprType);
         }
@@ -635,8 +792,8 @@ static void typecheckFnDecl(Node *fnDecl, Report *report,
   for (size_t idx = 0; idx < params->size; idx++) {
     Node *defaultArg = params->secondElements[idx];
     if (defaultArg != NULL) {
-      Type *paramType =
-          typecheckExpression(defaultArg, report, options, filename, NULL);
+      Type *paramType = typecheckExpression(defaultArg, report, options,
+                                            filename, NULL, false);
       if (paramType == NULL) {
         continue;
       } else if (!typeAssignable(overload->argumentTypes.elements[idx],
@@ -687,8 +844,8 @@ static void typecheckFunction(Node *function, Report *report,
   for (size_t idx = 0; idx < params->size; idx++) {
     Node *defaultArg = params->thirdElements[idx];
     if (defaultArg != NULL) {
-      Type *paramType =
-          typecheckExpression(defaultArg, report, options, filename, NULL);
+      Type *paramType = typecheckExpression(defaultArg, report, options,
+                                            filename, NULL, false);
       if (paramType == NULL) {
         continue;
       } else if (!typeAssignable(overload->argumentTypes.elements[idx],
@@ -720,8 +877,8 @@ static void typecheckVarDecl(Node *varDecl, Report *report,
     if (initValue != NULL) {
       Node *name = idValuePairs->firstElements[idx];
       SymbolInfo *info = name->data.id.symbol;
-      Type *initType =
-          typecheckExpression(initValue, report, options, filename, NULL);
+      Type *initType = typecheckExpression(initValue, report, options, filename,
+                                           NULL, false);
       if (initType == NULL) {
         continue;
       } else if (!typeAssignable(info->data.var.type, initType)) {
