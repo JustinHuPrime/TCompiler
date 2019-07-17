@@ -45,7 +45,29 @@ static Type *typecheckExpression(Node *expression, Report *report,
       // TODO: write this
       switch (expression->data.binOpExp.op) {
         case BO_ASSIGN: {
-          return NULL;
+          Type *to = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                         options, filename, NULL, false);
+          if (to == NULL) {
+            return NULL;  // can't go further
+          }
+          
+          Type *from = typecheckExpression(
+              expression->data.binOpExp.rhs, report, options, filename,
+              to->kind == K_FUNCTION_PTR ? to->data.functionPtr.argumentTypes
+                                         : NULL,
+              false);
+          if (!typeAssignable(to, from)) {
+            char *fromString = typeToString(from);
+            char *toString = typeToString(to);
+            reportError(report,
+                        "%s:%zu:%zu: error: cannot assign a value of type '%s' "
+                        "to a value of type '%s'",
+                        filename, expression->line, expression->character,
+                        fromString, toString);
+            free(fromString);
+            free(toString);
+          }
+          return to;
         }
         case BO_MULASSIGN: {
           return NULL;
@@ -381,6 +403,10 @@ static Type *typecheckExpression(Node *expression, Report *report,
         if (actualArgTypes != NULL) {
           typeVectorInsert(actualArgTypes, argType);
         }
+      }
+
+      if (actualArgTypes == NULL) {
+        return NULL;  // bad args - can't proceed further
       }
 
       Type *fnType =
