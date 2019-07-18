@@ -263,7 +263,18 @@ static Type *typecheckExpression(Node *expression, Report *report,
           return target;
         }
         case UO_BITNOT: {
-          return NULL;
+          if (!typeIsIntegral(target)) {
+            char *typeString = typeToString(target);
+            reportError(report,
+                        "%s:%zu:%zu: error: may not apply a bitwise not to a "
+                        "value of type '%s'",
+                        filename, expression->line, expression->character,
+                        typeString);
+            free(typeString);
+            typeDestroy(target);
+            return NULL;
+          }
+          return target;
         }
         default: {
           return NULL;  // invalid enum
