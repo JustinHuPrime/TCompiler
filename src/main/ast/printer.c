@@ -440,10 +440,6 @@ void nodePrintStructure(Node const *node) {
           printf("PREDEC");
           break;
         }
-        case UO_UPLUS: {
-          printf("UPLUS");
-          break;
-        }
         case UO_NEG: {
           printf("NEG");
           break;
@@ -1190,10 +1186,6 @@ void nodePrint(Node const *node) {
           printf("--");
           break;
         }
-        case UO_UPLUS: {
-          printf("+");
-          break;
-        }
         case UO_NEG: {
           printf("-");
           break;
@@ -1225,7 +1217,6 @@ void nodePrint(Node const *node) {
         case UO_ADDROF:
         case UO_PREINC:
         case UO_PREDEC:
-        case UO_UPLUS:
         case UO_NEG:
         case UO_LNOT:
         case UO_BITNOT: {

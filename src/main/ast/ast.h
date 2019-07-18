@@ -164,7 +164,6 @@ typedef enum {
   UO_ADDROF,
   UO_PREINC,
   UO_PREDEC,
-  UO_UPLUS,
   UO_NEG,
   UO_LNOT,
   UO_BITNOT,

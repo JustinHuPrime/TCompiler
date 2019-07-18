@@ -171,7 +171,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
               Type *retVal = target->data.modifier.type;
               free(target);
               return retVal;
-            } else if (target->kind == K_CONST) {
+            } else {
               Type *retVal = target->data.modifier.type->data.modifier.type;
               free(target->data.modifier.type);
               free(target);
@@ -201,9 +201,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
           return NULL;
         }
         case UO_PREDEC: {
-          return NULL;
-        }
-        case UO_UPLUS: {
           return NULL;
         }
         case UO_NEG: {

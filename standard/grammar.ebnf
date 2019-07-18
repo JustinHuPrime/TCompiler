@@ -105,7 +105,6 @@ prefix_expression = postfix_expression
                   | "&", prefix_expression
                   | "++", prefix_expression
                   | "--", prefix_expression
-                  | "+", prefix_expression
                   | "-", prefix_expression
                   | "!", prefix_expression
                   | "~", prefix_expression

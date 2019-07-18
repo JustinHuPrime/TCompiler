@@ -288,8 +288,6 @@ UnOpType tokenTypeToPrefixUnop(TokenType type) {
       return UO_PREINC;
     case TT_MINUSMINUS:
       return UO_PREDEC;
-    case TT_PLUS:
-      return UO_UPLUS;
     case TT_MINUS:
       return UO_NEG;
     case TT_BANG:
