@@ -271,10 +271,32 @@ char *typeToString(Type const *type) {
   return NULL;  // TODO: write this
 }
 bool typeIsBoolean(Type const *type) {
-  return false;  // TODO: write this
+  return type->kind == K_BOOL ||
+         (type->kind == K_CONST && typeIsBoolean(type->data.modifier.type));
 }
 bool typeIsIntegral(Type const *type) {
-  return false;  // TODO: write this
+  switch (type->kind) {
+    case K_UBYTE:
+    case K_BYTE:
+    case K_USHORT:
+    case K_SHORT:
+    case K_UINT:
+    case K_INT:
+    case K_ULONG:
+    case K_LONG: {
+      return true;
+    }
+    case K_CONST: {
+      return typeIsIntegral(type->data.modifier.type);
+    }
+    default: { return false; }
+  }
+}
+bool typeIsSignedIntegral(Type const *type) {
+  return type->kind == K_BYTE || type->kind == K_SHORT || type->kind == K_INT ||
+         type->kind == K_LONG ||
+         (type->kind == K_CONST &&
+          typeIsSignedIntegral(type->data.modifier.type));
 }
 void typeUninit(Type *t) {
   switch (t->kind) {

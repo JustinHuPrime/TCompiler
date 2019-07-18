@@ -197,11 +197,35 @@ static Type *typecheckExpression(Node *expression, Report *report,
             return modifierTypeCreate(K_PTR, target);
           }
         }
-        case UO_PREINC: {
-          return NULL;
-        }
+        case UO_PREINC:
         case UO_PREDEC: {
-          return NULL;
+          Type *target =
+              typecheckExpression(expression->data.unOpExp.target, report,
+                                  options, filename, NULL, false);
+          if (target == NULL) {
+            return NULL;
+          }
+          if (!expressionIsLvalue(expression->data.unOpExp.target) ||
+              target->kind == K_CONST) {
+            reportError(
+                report,
+                "%s:%zu:%zu: error: cannot modify target of increment operator",
+                filename, expression->line, expression->character);
+            typeDestroy(target);
+            return NULL;
+          } else if (!typeIsIntegral(target) && target->kind != K_PTR &&
+                     target->kind != K_FUNCTION_PTR) {
+            char *typeString = typeToString(target);
+            reportError(
+                report,
+                "%s:%zu:%zu: error: cannot increment a value of type '%s'",
+                filename, expression->line, expression->character, typeString);
+            free(typeString);
+            typeDestroy(target);
+            return NULL;
+          }
+
+          return target;
         }
         case UO_NEG: {
           return NULL;

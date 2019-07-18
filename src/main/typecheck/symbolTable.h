@@ -131,6 +131,7 @@ bool typeCastable(Type const *to, Type const *from);
 // common predicates
 bool typeIsBoolean(Type const *);
 bool typeIsIntegral(Type const *);
+bool typeIsSignedIntegral(Type const *);
 // merge types from conditional branches
 Type *typeTernaryExpMerge(Type const *, Type const *);
 char *typeToString(Type const *);
