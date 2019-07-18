@@ -267,6 +267,9 @@ bool typeCastable(Type const *to, Type const *from) {
 Type *typeTernaryExpMerge(Type const *lhs, Type const *rhs) {
   return NULL;  // TODO: write this
 }
+Type *typeArithmeticExpMerge(Type const *lhs, Type const *rhs) {
+  return NULL;  // TODO: write this
+}
 char *typeToString(Type const *type) {
   return NULL;  // TODO: write this
 }
@@ -297,6 +300,27 @@ bool typeIsSignedIntegral(Type const *type) {
          type->kind == K_LONG ||
          (type->kind == K_CONST &&
           typeIsSignedIntegral(type->data.modifier.type));
+}
+bool typeIsFloat(Type const *type) {
+  return type->kind == K_FLOAT || type->kind == K_DOUBLE ||
+         (type->kind == K_CONST && typeIsFloat(type->data.modifier.type));
+}
+bool typeIsValuePointer(Type const *type) {
+  return type->kind == K_PTR || (type->kind == K_CONST &&
+                                 typeIsValuePointer(type->data.modifier.type));
+}
+bool typeIsFunctionPointer(Type const *type) {
+  return type->kind == K_FUNCTION_PTR ||
+         (type->kind == K_CONST &&
+          typeIsValuePointer(type->data.modifier.type));
+}
+bool typeIsPointer(Type const *type) {
+  return type->kind == K_PTR || type->kind == K_FUNCTION_PTR ||
+         (type->kind == K_CONST && typeIsPointer(type->data.modifier.type));
+}
+Type *typeGetNonConst(Type *type) {
+  return type->kind == K_CONST ? typeGetNonConst(type->data.modifier.type)
+                               : type;
 }
 void typeUninit(Type *t) {
   switch (t->kind) {

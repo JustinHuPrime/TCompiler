@@ -132,8 +132,16 @@ bool typeCastable(Type const *to, Type const *from);
 bool typeIsBoolean(Type const *);
 bool typeIsIntegral(Type const *);
 bool typeIsSignedIntegral(Type const *);
+bool typeIsFloat(Type const *);
+bool typeIsValuePointer(Type const *);
+bool typeIsFunctionPointer(Type const *);
+bool typeIsPointer(Type const *);
 // merge types from conditional branches
 Type *typeTernaryExpMerge(Type const *, Type const *);
+// merge types from arithmetic branches
+Type *typeArithmeticExpMerge(Type const *, Type const *);
+// strip constness off of start of type, non-destructivel
+Type *typeGetNonConst(Type *);
 char *typeToString(Type const *);
 // in-place dtor
 void typeUninit(Type *);

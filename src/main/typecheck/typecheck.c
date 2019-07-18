@@ -53,9 +53,21 @@ static Type *typecheckExpression(Node *expression, Report *report,
 
           Type *from = typecheckExpression(
               expression->data.binOpExp.rhs, report, options, filename,
-              to->kind == K_FUNCTION_PTR ? to->data.functionPtr.argumentTypes
-                                         : NULL,
-              false);
+              typeIsFunctionPointer(to) ? to->data.functionPtr.argumentTypes
+                                        : NULL,
+              false);  // TODO: deal with const here
+          if (from == NULL) {
+            typeDestroy(to);
+            return NULL;
+          }
+          if (!expressionIsLvalue(expression->data.binOpExp.lhs)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: attempted to assign to non-lvalue",
+                        filename, expression->line, expression->character);
+            typeDestroy(to);
+            typeDestroy(from);
+            return NULL;
+          }
           if (!typeAssignable(to, from)) {
             char *fromString = typeToString(from);
             char *toString = typeToString(to);
@@ -66,7 +78,11 @@ static Type *typecheckExpression(Node *expression, Report *report,
                         fromString, toString);
             free(fromString);
             free(toString);
+            typeDestroy(to);
+            typeDestroy(from);
+            return NULL;
           }
+          typeDestroy(from);
           return to;
         }
         case BO_MULASSIGN: {
@@ -148,18 +164,16 @@ static Type *typecheckExpression(Node *expression, Report *report,
     }
     case NT_UNOPEXP: {
       // TODO: write this
+      Type *target =
+          typecheckExpression(expression->data.unOpExp.target, report, options,
+                              filename, NULL, false);
+      if (target == NULL) {
+        return NULL;
+      }
       switch (expression->data.unOpExp.op) {
         case UO_DEREF: {
-          Type *target =
-              typecheckExpression(expression->data.unOpExp.target, report,
-                                  options, filename, NULL, false);
-          if (target == NULL) {
-            return NULL;
-          }
           // must be pointer or const pointer
-          if (!(target->kind == K_PTR ||
-                (target->kind == K_CONST &&
-                 target->data.modifier.type->kind == K_PTR))) {
+          if (!typeIsPointer(target)) {
             reportError(
                 report,
                 "%s:%zu:%zu: error: attempted to dereference a non-pointer",
@@ -167,7 +181,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
             typeDestroy(target);
             return NULL;
           } else {
-            if (target->kind == K_PTR) {
+            if (typeIsValuePointer(target)) {
+              // TODO: deal with const here
               Type *retVal = target->data.modifier.type;
               free(target);
               return retVal;
@@ -180,12 +195,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
           }
         }
         case UO_ADDROF: {
-          Type *target =
-              typecheckExpression(expression->data.unOpExp.target, report,
-                                  options, filename, NULL, false);
-          if (target == NULL) {
-            return NULL;
-          }
           if (!expressionIsLvalue(expression->data.unOpExp.target)) {
             reportError(
                 report,
@@ -198,48 +207,62 @@ static Type *typecheckExpression(Node *expression, Report *report,
           }
         }
         case UO_PREINC:
-        case UO_PREDEC: {
-          Type *target =
-              typecheckExpression(expression->data.unOpExp.target, report,
-                                  options, filename, NULL, false);
-          if (target == NULL) {
-            return NULL;
-          }
+        case UO_PREDEC:
+        case UO_POSTDEC:
+        case UO_POSTINC: {
           if (!expressionIsLvalue(expression->data.unOpExp.target) ||
               target->kind == K_CONST) {
             reportError(
                 report,
-                "%s:%zu:%zu: error: cannot modify target of increment operator",
-                filename, expression->line, expression->character);
+                "%s:%zu:%zu: error: cannot modify target of %s operator",
+                filename, expression->line, expression->character,
+                expression->data.unOpExp.op == UO_PREINC ||
+                        expression->data.unOpExp.op == UO_POSTINC
+                    ? "increment"
+                    : "decrement");
             typeDestroy(target);
             return NULL;
-          } else if (!typeIsIntegral(target) && target->kind != K_PTR &&
-                     target->kind != K_FUNCTION_PTR) {
+          } else if (!typeIsIntegral(target) && !typeIsPointer(target)) {
+            char *typeString = typeToString(target);
+            reportError(report,
+                        "%s:%zu:%zu: error: cannot %s a value of type '%s'",
+                        filename, expression->line, expression->character,
+                        expression->data.unOpExp.op == UO_PREINC ||
+                                expression->data.unOpExp.op == UO_POSTINC
+                            ? "increment"
+                            : "decrement",
+                        typeString);
+            free(typeString);
+            typeDestroy(target);
+            return NULL;
+          }
+          return target;
+        }
+        case UO_NEG: {
+          if (!typeIsSignedIntegral(target) && !typeIsFloat(target)) {
             char *typeString = typeToString(target);
             reportError(
-                report,
-                "%s:%zu:%zu: error: cannot increment a value of type '%s'",
+                report, "%s:%zu:%zu: error: cannot negate a value of type '%s'",
                 filename, expression->line, expression->character, typeString);
             free(typeString);
+            typeDestroy(target);
+            return NULL;
+          }
+          return target;
+        }
+        case UO_LNOT: {
+          if (!typeIsBoolean(target)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: attempted to apply a logical not "
+                        "to a non-boolean",
+                        filename, expression->line, expression->character);
             typeDestroy(target);
             return NULL;
           }
 
           return target;
         }
-        case UO_NEG: {
-          return NULL;
-        }
-        case UO_LNOT: {
-          return NULL;
-        }
         case UO_BITNOT: {
-          return NULL;
-        }
-        case UO_POSTINC: {
-          return NULL;
-        }
-        case UO_POSTDEC: {
           return NULL;
         }
         default: {
@@ -430,13 +453,14 @@ static Type *typecheckExpression(Node *expression, Report *report,
         return NULL;
       }
 
-      if (lhs->kind != K_PTR) {
+      if (!typeIsValuePointer(lhs)) {
         reportError(report, "%s:%zu:%zu: error: not a pointer", filename,
                     expression->line, expression->character);
         typeDestroy(lhs);
         return NULL;
       } else if (lhs->data.modifier.type->kind != K_STRUCT &&
                  lhs->data.modifier.type->kind != K_UNION) {
+        // TODO: handle pointers to consts
         reportError(report,
                     "%s:%zu:%zu: error: attempted to access a field of "
                     "something that is not a struct and not a union",
@@ -499,7 +523,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
       typeVectorDestroy(actualArgTypes);
       if (fnType == NULL) {
         return NULL;  // no valid function
-      } else if (fnType->kind != K_FUNCTION_PTR) {
+      } else if (!typeIsFunctionPointer(fnType)) {
         typeDestroy(fnType);
         reportError(report,
                     "%s:%zu:%zu: error: attempted to make a function call on a "
