@@ -258,6 +258,9 @@ bool typeEqual(Type const *t1, Type const *t2) {
 bool typeAssignable(Type const *to, Type const *from) {
   return false;  // TODO: write this
 }
+bool typeComparable(Type const *a, Type const *b) {
+  return false;  // TODO: write this
+}
 bool typeCastable(Type const *to, Type const *from) {
   return false;  // TODO: write this
 }

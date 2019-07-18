@@ -50,7 +50,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
           if (to == NULL) {
             return NULL;  // can't go further
           }
-          
+
           Type *from = typecheckExpression(
               expression->data.binOpExp.rhs, report, options, filename,
               to->kind == K_FUNCTION_PTR ? to->data.functionPtr.argumentTypes
@@ -150,10 +150,52 @@ static Type *typecheckExpression(Node *expression, Report *report,
       // TODO: write this
       switch (expression->data.unOpExp.op) {
         case UO_DEREF: {
-          return NULL;
+          Type *target =
+              typecheckExpression(expression->data.unOpExp.target, report,
+                                  options, filename, NULL, false);
+          if (target == NULL) {
+            return NULL;
+          }
+          // must be pointer or const pointer
+          if (!(target->kind == K_PTR ||
+                (target->kind == K_CONST &&
+                 target->data.modifier.type->kind == K_PTR))) {
+            reportError(
+                report,
+                "%s:%zu:%zu: error: attempted to dereference a non-pointer",
+                filename, expression->line, expression->character);
+            typeDestroy(target);
+            return NULL;
+          } else {
+            if (target->kind == K_PTR) {
+              Type *retVal = target->data.modifier.type;
+              free(target);
+              return retVal;
+            } else if (target->kind == K_CONST) {
+              Type *retVal = target->data.modifier.type->data.modifier.type;
+              free(target->data.modifier.type);
+              free(target);
+              return retVal;
+            }
+          }
         }
         case UO_ADDROF: {
-          return NULL;
+          Type *target =
+              typecheckExpression(expression->data.unOpExp.target, report,
+                                  options, filename, NULL, false);
+          if (target == NULL) {
+            return NULL;
+          }
+          if (!expressionIsLvalue(expression->data.unOpExp.target)) {
+            reportError(
+                report,
+                "%s:%zu:%zu: error: cannot take the address of a non-lvalue",
+                filename, expression->line, expression->character);
+            typeDestroy(target);
+            return NULL;
+          } else {
+            return modifierTypeCreate(K_PTR, target);
+          }
         }
         case UO_PREINC: {
           return NULL;
@@ -185,29 +227,33 @@ static Type *typecheckExpression(Node *expression, Report *report,
       }
     }
     case NT_COMPOPEXP: {
-      // TODO: write this
-      switch (expression->data.compOpExp.op) {
-        case CO_EQ: {
-          return NULL;
+      Type *lhs = typecheckExpression(expression->data.compOpExp.lhs, report,
+                                      options, filename, NULL, false);
+      Type *rhs = typecheckExpression(expression->data.compOpExp.rhs, report,
+                                      options, filename, NULL, false);
+      if (lhs == NULL || rhs == NULL) {
+        if (lhs != NULL) {
+          typeDestroy(lhs);
         }
-        case CO_NEQ: {
-          return NULL;
+        if (rhs != NULL) {
+          typeDestroy(rhs);
         }
-        case CO_LT: {
-          return NULL;
-        }
-        case CO_GT: {
-          return NULL;
-        }
-        case CO_LTEQ: {
-          return NULL;
-        }
-        case CO_GTEQ: {
-          return NULL;
-        }
-        default: {
-          return NULL;  // invalid enum
-        }
+        return NULL;
+      }
+
+      if (!typeComparable(lhs, rhs)) {
+        char *lhsString = typeToString(lhs);
+        char *rhsString = typeToString(rhs);
+        reportError(report,
+                    "%s:%zu:%zu: error: cannot compare a value of type '%s' "
+                    "with a value of type '%s'",
+                    filename, expression->line, expression->character,
+                    lhsString, rhsString);
+        free(lhsString);
+        free(rhsString);
+        return NULL;
+      } else {
+        return keywordTypeCreate(K_BOOL);
       }
     }
     case NT_LANDASSIGNEXP: {
@@ -228,6 +274,18 @@ static Type *typecheckExpression(Node *expression, Report *report,
       Type *elseExp =
           typecheckExpression(expression->data.ternaryExp.elseExp, report,
                               options, filename, argTypes, false);
+      if (condition == NULL || thenExp == NULL || elseExp == NULL) {
+        if (condition != NULL) {
+          typeDestroy(condition);
+        }
+        if (thenExp != NULL) {
+          typeDestroy(thenExp);
+        }
+        if (elseExp != NULL) {
+          typeDestroy(elseExp);
+        }
+        return NULL;
+      }
       bool bad = false;
       if (!typeIsBoolean(condition)) {
         reportError(report,
@@ -246,15 +304,10 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     filename, expression->line, expression->character);
         bad = true;
       }
-      if (condition != NULL) {
-        typeDestroy(condition);
-      }
-      if (thenExp != NULL) {
-        typeDestroy(thenExp);
-      }
-      if (elseExp != NULL) {
-        typeDestroy(thenExp);
-      }
+      typeDestroy(condition);
+      typeDestroy(thenExp);
+      typeDestroy(elseExp);
+
       if (bad) {
         if (expType != NULL) {
           typeDestroy(expType);
@@ -274,6 +327,16 @@ static Type *typecheckExpression(Node *expression, Report *report,
           typecheckExpression(lhs, report, options, filename, NULL, false);
       Type *rhsType =
           typecheckExpression(rhs, report, options, filename, NULL, false);
+      if (lhsType == NULL || rhsType == NULL) {
+        // get out - can't go further.
+        if (lhsType != NULL) {
+          typeDestroy(lhsType);
+        }
+        if (rhsType != NULL) {
+          typeDestroy(rhsType);
+        }
+        return NULL;
+      }
       bool bad = false;
       if (!typeIsBoolean(lhsType)) {
         reportError(report,
@@ -291,12 +354,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     expression->type == NT_LANDEXP ? "and" : "or");
         bad = true;
       }
-      if (lhsType != NULL) {
-        typeDestroy(lhsType);
-      }
-      if (rhsType != NULL) {
-        typeDestroy(rhsType);
-      }
+      typeDestroy(lhsType);
+      typeDestroy(rhsType);
       return bad ? NULL : keywordTypeCreate(K_BOOL);
     }
     case NT_STRUCTACCESSEXP: {
@@ -304,7 +363,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
                                       report, options, filename, NULL, false);
       if (lhs == NULL) {
         return NULL;
-      } else if (lhs->kind != K_STRUCT && lhs->kind != K_UNION) {
+      }
+
+      if (lhs->kind != K_STRUCT && lhs->kind != K_UNION) {
         reportError(report,
                     "%s:%zu:%zu: error: attempted to access a field of "
                     "something that is not a struct and not a union",
@@ -346,7 +407,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
                                       report, options, filename, NULL, false);
       if (lhs == NULL) {
         return NULL;
-      } else if (lhs->kind != K_PTR) {
+      }
+
+      if (lhs->kind != K_PTR) {
         reportError(report, "%s:%zu:%zu: error: not a pointer", filename,
                     expression->line, expression->character);
         typeDestroy(lhs);
@@ -565,7 +628,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
         }
       } else if (info->kind == SK_FUNCTION) {
         // TODO: figure out overload in set
-        // use directCall - if direct, match w/
+        // use directCall - if direct, match w/ default args, else match exact
+        // arg string
         return NULL;
       } else {
         return NULL;  // not a valid expression - parse error

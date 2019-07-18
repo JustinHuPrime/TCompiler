@@ -124,6 +124,8 @@ bool typeEqual(Type const *, Type const *);
 // can a thing of the second type be assigned to a thing of the first type
 // assumes first type is an lvalue
 bool typeAssignable(Type const *to, Type const *from);
+// can a these two types be compared
+bool typeComparable(Type const *, Type const *);
 // can a thing of the second type be cast to a thing of the first type
 bool typeCastable(Type const *to, Type const *from);
 // common predicates
