@@ -595,44 +595,21 @@ static Type *typecheckExpression(Node *expression, Report *report,
     }
     case NT_CONSTEXP: {
       switch (expression->data.constExp.type) {
-        case CT_UBYTE: {
-          return keywordTypeCreate(K_UBYTE);
-        }
-        case CT_BYTE: {
-          return keywordTypeCreate(K_BYTE);
-        }
-        case CT_CHAR: {
-          return keywordTypeCreate(K_CHAR);
-        }
-        case CT_USHORT: {
-          return keywordTypeCreate(K_USHORT);
-        }
-        case CT_SHORT: {
-          return keywordTypeCreate(K_SHORT);
-        }
-        case CT_UINT: {
-          return keywordTypeCreate(K_UINT);
-        }
-        case CT_INT: {
-          return keywordTypeCreate(K_INT);
-        }
-        case CT_WCHAR: {
-          return keywordTypeCreate(K_WCHAR);
-        }
-        case CT_ULONG: {
-          return keywordTypeCreate(K_ULONG);
-        }
-        case CT_LONG: {
-          return keywordTypeCreate(K_LONG);
-        }
-        case CT_FLOAT: {
-          return keywordTypeCreate(K_FLOAT);
-        }
-        case CT_DOUBLE: {
-          return keywordTypeCreate(K_DOUBLE);
-        }
+        case CT_UBYTE:
+        case CT_BYTE:
+        case CT_CHAR:
+        case CT_USHORT:
+        case CT_SHORT:
+        case CT_UINT:
+        case CT_INT:
+        case CT_WCHAR:
+        case CT_ULONG:
+        case CT_LONG:
+        case CT_FLOAT:
+        case CT_DOUBLE:
         case CT_BOOL: {
-          return keywordTypeCreate(K_BOOL);
+          return keywordTypeCreate(expression->data.constExp.type - CT_UBYTE +
+                                   K_BYTE);
         }
         case CT_STRING: {
           return modifierTypeCreate(
