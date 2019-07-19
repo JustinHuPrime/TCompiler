@@ -1,0 +1,5 @@
+language: c
+compiler: gcc
+
+before script: make clean
+script: make release
