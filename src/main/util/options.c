@@ -45,6 +45,7 @@ char const *optionWDuplicateDeclaration = "duplicate-declaration";
 char const *optionWDuplicateFile = "duplicate-file";
 char const *optionWDuplicateImport = "duplicate-import";
 char const *optionWOverloadAmbiguity = "overload-ambiguity";
+char const *optionWReservedId = "reserved-id";
 char const *optionWVoidReturn = "void-return";
 char const *optionWUnrecognizedFile = "unrecognized-file";
 char const *optionDebugDump = "debug-dump";
@@ -60,6 +61,7 @@ void parseOptions(Options *options, Report *report, size_t argc,
   optionsSet(options, optionWDuplicateFile, O_WT_ERROR);
   optionsSet(options, optionWDuplicateImport, O_WT_IGNORE);
   optionsSet(options, optionWOverloadAmbiguity, O_WT_ERROR);
+  optionsSet(options, optionWReservedId, O_WT_ERROR);
   optionsSet(options, optionWVoidReturn, O_WT_ERROR);
   optionsSet(options, optionWUnrecognizedFile, O_WT_ERROR);
   optionsSet(options, optionDebugDump, O_DD_NONE);
@@ -108,6 +110,12 @@ void parseOptions(Options *options, Report *report, size_t argc,
       optionsSet(options, optionWOverloadAmbiguity, O_WT_WARN);
     } else if (strcmp(argv[idx], "-Woverload-ambiguity=ignore") == 0) {
       optionsSet(options, optionWOverloadAmbiguity, O_WT_IGNORE);
+    } else if (strcmp(argv[idx], "-Wreserved-id=error") == 0) {
+      optionsSet(options, optionWReservedId, O_WT_ERROR);
+    } else if (strcmp(argv[idx], "-Wreserved-id=warn") == 0) {
+      optionsSet(options, optionWReservedId, O_WT_WARN);
+    } else if (strcmp(argv[idx], "-Wreserved-id=ignore") == 0) {
+      optionsSet(options, optionWReservedId, O_WT_IGNORE);
     } else if (strcmp(argv[idx], "-Wvoid-return=error") == 0) {
       optionsSet(options, optionWVoidReturn, O_WT_ERROR);
     } else if (strcmp(argv[idx], "-Wvoid-return=warn") == 0) {

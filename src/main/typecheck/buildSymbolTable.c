@@ -18,6 +18,8 @@
 
 #include "typecheck/buildSymbolTable.h"
 
+#include <string.h>
+
 // helpers
 static Type *astToType(Node const *ast, Report *report, Options const *options,
                        Environment const *env, char const *filename) {
@@ -139,6 +141,31 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
     }
     default: {
       return NULL;  // error: not syntactically valid
+    }
+  }
+}
+static void checkId(Node *id, Report *report, Options const *options,
+                    char const *filename) {
+  if (strncmp(id->data.id.id, "__", 2) == 0) {
+    switch (optionsGet(options, optionWReservedId)) {
+      case O_WT_ERROR: {
+        reportError(report,
+                    "%s:%zu:%zu: error: attempted to define something using a "
+                    "reserved identifier",
+                    filename, id->line, id->character);
+        return;
+      }
+      case O_WT_WARN: {
+        reportWarning(
+            report,
+            "%s:%zu:%zu: warning: attempted to define something using a "
+            "reserved identifier",
+            filename, id->line, id->character);
+        break;
+      }
+      case O_WT_IGNORE: {
+        break;
+      }
     }
   }
 }
@@ -423,6 +450,7 @@ static void buildStabParameter(Node const *type, Node *name, Report *report,
     reportError(report, "%s:%zu:%zu: error: '%s' has already been declared",
                 filename, name->line, name->character, name->data.id.id);
   } else {
+    checkId(name, report, options, filename);
     info = varSymbolInfoCreate(paramType, true);
     name->data.id.symbol = info;
     symbolTablePut(environmentTop(env), name->data.id.id, info);
@@ -581,6 +609,7 @@ static void buildStabFnDefn(Node *fn, Report *report, Options const *options,
     }
   }
 
+  checkId(name, report, options, filename);
   name->data.id.symbol = info;
   name->data.id.overload = overload;
 
@@ -717,6 +746,7 @@ static void buildStabFnDecl(Node *fnDecl, Report *report,
     }
   }
 
+  checkId(name, report, options, filename);
   name->data.id.symbol = info;
   name->data.id.overload = overload;
 }
@@ -779,6 +809,7 @@ static void buildStabVarDecl(Node *varDecl, Report *report,
       }
     }
 
+    checkId(name, report, options, filename);
     name->data.id.symbol = info;
   }
 
@@ -842,6 +873,7 @@ static void buildStabStructOrUnionDecl(Node *decl, bool isStruct,
     }
   }
 
+  checkId(name, report, options, filename);
   if (isStruct) {
     info->data.type.data.structType.incomplete = false;
   } else {
@@ -889,6 +921,7 @@ static void buildStabStructOrUnionForwardDecl(Node *forwardDecl, bool isStruct,
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   }
 
+  checkId(name, report, options, filename);
   name->data.id.symbol = info;
 }
 static void buildStabEnumDecl(Node *enumDecl, Report *report,
@@ -922,6 +955,7 @@ static void buildStabEnumDecl(Node *enumDecl, Report *report,
                        constant->data.id.id);
   }
 
+  checkId(name, report, options, filename);
   info->data.type.data.enumType.incomplete = false;
   name->data.id.symbol = info;
 }
@@ -961,6 +995,7 @@ static void buildStabEnumForwardDecl(Node *enumForwardDecl, Report *report,
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   }
 
+  checkId(name, report, options, filename);
   name->data.id.symbol = info;
 }
 static void buildStabTypedefDecl(Node *typedefDecl, Report *report,
@@ -986,6 +1021,7 @@ static void buildStabTypedefDecl(Node *typedefDecl, Report *report,
       return;
     }
 
+    checkId(name, report, options, filename);
     info = typedefSymbolInfoCreate(type);
     name->data.id.symbol = info;
     symbolTablePut(environmentTop(env), name->data.id.id, info);
