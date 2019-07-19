@@ -1,0 +1,14 @@
+dist: trusty
+sudo: required
+language: c
+compiler: gcc
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-9
+script:
+  - ln -s /usr/bin/gcc-9 /usr/local/bin/gcc
+  - make clean
+  - make release
