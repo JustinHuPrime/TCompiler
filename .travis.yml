@@ -9,6 +9,6 @@ addons:
     packages:
       - gcc-9
 script:
-  - ln -s /usr/bin/gcc-9 /usr/local/bin/gcc
+  - sudo ln -s /usr/bin/gcc-9 /usr/local/bin/gcc
   - make clean
   - make release
