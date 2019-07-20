@@ -18,6 +18,8 @@
 
 #include "typecheck/typecheck.h"
 
+#include "util/functional.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -1150,12 +1152,13 @@ static Type *typecheckExpression(Node *expression, Report *report,
         // ambiguous overload, maybe?
         OverloadSet *overloadSet = &info->data.function.overloadSet;
         if (overloadSet->size == 1) {
-          OverloadSetElement *elm = overloadSet->elements[0];
-          expression->data.id.overload = elm;
+          expression->data.id.overload = overloadSet->elements[0];
           return expression->data.id.resultType = modifierTypeCreate(
-                     K_CONST, functionPtrTypeCreate(
-                                  typeCopy(elm->returnType),
-                                  typeVectorCopy(&elm->argumentTypes)));
+                     K_CONST,
+                     functionPtrTypeCreate(
+                         typeCopy(expression->data.id.overload->returnType),
+                         typeVectorCopy(
+                             &expression->data.id.overload->argumentTypes)));
         } else {
           reportError(report,
                       "%s:%zu:%zu: error: cannot determine appropriate "
@@ -1164,11 +1167,49 @@ static Type *typecheckExpression(Node *expression, Report *report,
           return NULL;
         }
       } else {
-        // argTypes != NULL
-        // TODO: figure out overload in set
-        // use directCall - if direct, match w/ default args, else match exact
-        // arg string
-        return NULL;
+        OverloadSet *overloadSet = &info->data.function.overloadSet;
+        if (directCall) {
+          Vector *candidateCalls = overloadSetLookupCall(overloadSet, argTypes);
+          if (candidateCalls->size > 1) {
+            reportError(report,
+                        "%s:%zu:%zu: error: function call has multiple "
+                        "overload candidates",
+                        filename, expression->line, expression->character);
+            vectorDestroy(candidateCalls, nullDtor);
+            return NULL;
+          } else if (candidateCalls->size == 0) {
+            reportError(report,
+                        "%s:%zu:%zu: error: no function in overload set "
+                        "matches given arguments",
+                        filename, expression->line, expression->character);
+            return NULL;
+          } else {
+            expression->data.id.overload = candidateCalls->elements[0];
+            return expression->data.id.resultType = modifierTypeCreate(
+                       K_CONST,
+                       functionPtrTypeCreate(
+                           typeCopy(expression->data.id.overload->returnType),
+                           typeVectorCopy(
+                               &expression->data.id.overload->argumentTypes)));
+          }
+        } else {
+          expression->data.id.overload =
+              overloadSetLookupDefinition(overloadSet, argTypes);
+          if (expression->data.id.overload == NULL) {
+            reportError(report,
+                        "%s:%zu:%zu: error: no function in overload set "
+                        "matches given arguments",
+                        filename, expression->line, expression->character);
+            return NULL;
+          } else {
+            return expression->data.id.resultType = modifierTypeCreate(
+                       K_CONST,
+                       functionPtrTypeCreate(
+                           typeCopy(expression->data.id.overload->returnType),
+                           typeVectorCopy(
+                               &expression->data.id.overload->argumentTypes)));
+          }
+        }
       }
     }
     default: {
