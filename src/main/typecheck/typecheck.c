@@ -1,4 +1,4 @@
-// Copyright 2019 Justin Hu, Bronwyn Damm
+// Copyright 2019 Justin Hu and Bronwyn Damm
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -72,6 +72,8 @@ static bool expressionIsLvalue(Node *expression) {
   }
 }
 
+static Type *typecheckExpression(Node *, Report *, Options const *,
+                                 char const *, TypeVector const *, bool);
 static Type *typecheckPlainBinOp(Node *expression, bool (*lhsReq)(Type const *),
                                  bool (*rhsReq)(Type const *),
                                  char const *opName, Report *report,
@@ -142,14 +144,15 @@ static Type *typecheckExpression(Node *expression, Report *report,
           Type *to = typecheckExpression(expression->data.binOpExp.lhs, report,
                                          options, filename, NULL, false);
           if (to == NULL) {
-            return NULL;  // can't go further
+            return NULL;
           }
 
           Type *from = typecheckExpression(
               expression->data.binOpExp.rhs, report, options, filename,
-              typeIsFunctionPointer(to) ? to->data.functionPtr.argumentTypes
-                                        : NULL,
-              false);  // TODO: deal with const here
+              typeIsFunctionPointer(to)
+                  ? typeGetNonConst(to)->data.functionPtr.argumentTypes
+                  : NULL,
+              false);
           if (from == NULL) {
             return NULL;
           }
@@ -316,11 +319,58 @@ static Type *typecheckExpression(Node *expression, Report *report,
           }
           return expression->data.binOpExp.resultType = typeCopy(lhs);
         }
-        case BO_ADD: {
-          return NULL;  // TODO: write this
-        }
+        case BO_ADD:
         case BO_SUB: {
-          return NULL;  // TODO: write this
+          Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                          options, filename, NULL, false);
+          Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                          options, filename, NULL, false);
+          if (lhs == NULL || rhs == NULL) {
+            return NULL;
+          }
+
+          if (typeIsNumeric(lhs) && typeIsNumeric(rhs)) {
+            expression->data.binOpExp.resultType =
+                typeArithmeticExpMerge(lhs, rhs);
+            if (expression->data.binOpExp.resultType == NULL) {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              reportError(report,
+                          "%s:%zu:%zu: error: cannot apply %s operator to a "
+                          "value of type "
+                          "'%s' with a value of type '%s'",
+                          filename, expression->line, expression->character,
+                          expression->data.binOpExp.op == BO_ADD
+                              ? "addition"
+                              : "subtraction",
+                          lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              return NULL;
+            } else {
+              return expression->data.binOpExp.resultType;
+            }
+          } else {
+            if (typeIsPointer(lhs) && typeIsIntegral(rhs)) {
+              return expression->data.binOpExp.resultType = typeCopy(lhs);
+            } else if (typeIsIntegral(lhs) && typeIsPointer(rhs)) {
+              return expression->data.binOpExp.resultType = typeCopy(rhs);
+            } else {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              reportError(report,
+                          "%s:%zu:%zu: error: cannot apply %s operator to a "
+                          "value of type '%s' and a value of type '%s'",
+                          filename, expression->line, expression->character,
+                          expression->data.binOpExp.op == BO_ADD
+                              ? "addition"
+                              : "subtraction",
+                          lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              return NULL;
+            }
+          }
         }
         case BO_MUL: {
           return typecheckPlainBinOp(expression, typeIsNumeric, typeIsNumeric,
@@ -576,8 +626,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
         return expression->data.landExp.resultType =
                    bad ? NULL : keywordTypeCreate(K_BOOL);
       } else {
-        expression->data.lorExp.resultType =
-            bad ? NULL : keywordTypeCreate(K_BOOL);
+        return expression->data.lorExp.resultType =
+                   bad ? NULL : keywordTypeCreate(K_BOOL);
       }
     }
     case NT_STRUCTACCESSEXP: {
