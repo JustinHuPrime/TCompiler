@@ -270,7 +270,7 @@ static void buildStabExpression(Node *expression, Report *report,
         break;
       }
       case NT_CASTEXP: {
-        expression->data.castExp.toType = astToType(
+        expression->data.castExp.resultType = astToType(
             expression->data.castExp.toWhat, report, options, env, filename);
         buildStabExpression(expression->data.castExp.target, report, options,
                             env, filename);
