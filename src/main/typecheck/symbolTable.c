@@ -277,9 +277,9 @@ static bool typeIsX(Type const *type, TypeKind x) {
   return type->kind == x ||
          (type->kind == K_CONST && typeIsX(type->data.modifier.type, x));
 }
-static bool typeIsXorY(Type const *type, TypeKind x, TypeKind y) {
+static bool typeIsXOrY(Type const *type, TypeKind x, TypeKind y) {
   return type->kind == x || type->kind == y ||
-         (type->kind == K_CONST && typeIsXorY(type->data.modifier.type, x, y));
+         (type->kind == K_CONST && typeIsXOrY(type->data.modifier.type, x, y));
 }
 bool typeIsBoolean(Type const *type) { return typeIsX(type, K_BOOL); }
 bool typeIsIntegral(Type const *type) {
@@ -307,7 +307,7 @@ bool typeIsSignedIntegral(Type const *type) {
           typeIsSignedIntegral(type->data.modifier.type));
 }
 bool typeIsFloat(Type const *type) {
-  return typeIsXorY(type, K_FLOAT, K_DOUBLE);
+  return typeIsXOrY(type, K_FLOAT, K_DOUBLE);
 }
 bool typeIsNumeric(Type const *type) {
   switch (type->kind) {
@@ -334,7 +334,7 @@ bool typeIsFunctionPointer(Type const *type) {
   return typeIsX(type, K_FUNCTION_PTR);
 }
 bool typeIsPointer(Type const *type) {
-  return typeIsXorY(type, K_PTR, K_FUNCTION_PTR);
+  return typeIsXOrY(type, K_PTR, K_FUNCTION_PTR);
 }
 bool typeIsCompound(Type const *type) {
   return typeIsXOrY(type, K_STRUCT, K_UNION);
