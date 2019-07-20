@@ -376,6 +376,7 @@ Node *seqExpNodeCreate(size_t line, size_t character, Node *prefix,
   node->type = NT_SEQEXP;
   node->data.seqExp.prefix = prefix;
   node->data.seqExp.last = last;
+  node->data.seqExp.resultType = NULL;
   return node;
 }
 Node *binOpExpNodeCreate(size_t line, size_t character, BinOpType op, Node *lhs,
@@ -385,6 +386,7 @@ Node *binOpExpNodeCreate(size_t line, size_t character, BinOpType op, Node *lhs,
   node->data.binOpExp.op = op;
   node->data.binOpExp.lhs = lhs;
   node->data.binOpExp.rhs = rhs;
+  node->data.binOpExp.resultType = NULL;
   return node;
 }
 Node *unOpExpNodeCreate(size_t line, size_t character, UnOpType op,
@@ -393,6 +395,7 @@ Node *unOpExpNodeCreate(size_t line, size_t character, UnOpType op,
   node->type = NT_UNOPEXP;
   node->data.unOpExp.op = op;
   node->data.unOpExp.target = target;
+  node->data.unOpExp.resultType = NULL;
   return node;
 }
 Node *compOpExpNodeCreate(size_t line, size_t character, CompOpType op,
@@ -402,6 +405,7 @@ Node *compOpExpNodeCreate(size_t line, size_t character, CompOpType op,
   node->data.compOpExp.op = op;
   node->data.compOpExp.lhs = lhs;
   node->data.compOpExp.rhs = rhs;
+  node->data.compOpExp.resultType = NULL;
   return node;
 }
 Node *landAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
@@ -410,6 +414,7 @@ Node *landAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
   node->type = NT_LANDASSIGNEXP;
   node->data.landAssignExp.lhs = lhs;
   node->data.landAssignExp.rhs = rhs;
+  node->data.landAssignExp.resultType = NULL;
   return node;
 }
 Node *lorAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
@@ -418,6 +423,7 @@ Node *lorAssignExpNodeCreate(size_t line, size_t character, Node *lhs,
   node->type = NT_LORASSIGNEXP;
   node->data.lorAssignExp.lhs = lhs;
   node->data.lorAssignExp.rhs = rhs;
+  node->data.lorAssignExp.resultType = NULL;
   return node;
 }
 Node *ternaryExpNodeCreate(size_t line, size_t character, Node *condition,
@@ -427,6 +433,7 @@ Node *ternaryExpNodeCreate(size_t line, size_t character, Node *condition,
   node->data.ternaryExp.condition = condition;
   node->data.ternaryExp.thenExp = thenExp;
   node->data.ternaryExp.elseExp = elseExp;
+  node->data.ternaryExp.resultType = NULL;
   return node;
 }
 Node *landExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
@@ -434,6 +441,7 @@ Node *landExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
   node->type = NT_LANDEXP;
   node->data.landExp.lhs = lhs;
   node->data.landExp.rhs = rhs;
+  node->data.landExp.resultType = NULL;
   return node;
 }
 Node *lorExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
@@ -441,6 +449,7 @@ Node *lorExpNodeCreate(size_t line, size_t character, Node *lhs, Node *rhs) {
   node->type = NT_LOREXP;
   node->data.lorExp.lhs = lhs;
   node->data.lorExp.rhs = rhs;
+  node->data.lorExp.resultType = NULL;
   return node;
 }
 Node *structAccessExpNodeCreate(size_t line, size_t character, Node *base,
@@ -449,6 +458,7 @@ Node *structAccessExpNodeCreate(size_t line, size_t character, Node *base,
   node->type = NT_STRUCTACCESSEXP;
   node->data.structAccessExp.base = base;
   node->data.structAccessExp.element = element;
+  node->data.structAccessExp.resultType = NULL;
   return node;
 }
 Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *base,
@@ -457,6 +467,7 @@ Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *base,
   node->type = NT_STRUCTPTRACCESSEXP;
   node->data.structPtrAccessExp.base = base;
   node->data.structPtrAccessExp.element = element;
+  node->data.structPtrAccessExp.resultType = NULL;
   return node;
 }
 Node *fnCallExpNodeCreate(size_t line, size_t character, Node *who,
@@ -465,6 +476,7 @@ Node *fnCallExpNodeCreate(size_t line, size_t character, Node *who,
   node->type = NT_FNCALLEXP;
   node->data.fnCallExp.who = who;
   node->data.fnCallExp.args = args;
+  node->data.fnCallExp.resultType = NULL;
   return node;
 }
 
@@ -486,6 +498,7 @@ static uint8_t charToHex(char c) {
 static Node *constExpNodeCreate(size_t line, size_t character) {
   Node *node = nodeCreate(line, character);
   node->type = NT_CONSTEXP;
+  node->data.constExp.resultType = NULL;
   return node;
 }
 static Sign constIntExpGetSign(char *constantString) {
@@ -901,6 +914,7 @@ Node *aggregateInitExpNodeCreate(size_t line, size_t character,
   Node *node = nodeCreate(line, character);
   node->type = NT_AGGREGATEINITEXP;
   node->data.aggregateInitExp.elements = elements;
+  node->data.aggregateInitExp.resultType = NULL;
   return node;
 }
 Node *constTrueNodeCreate(size_t line, size_t character) {
@@ -925,8 +939,8 @@ Node *castExpNodeCreate(size_t line, size_t character, Node *toWhat,
   Node *node = nodeCreate(line, character);
   node->type = NT_CASTEXP;
   node->data.castExp.toWhat = toWhat;
-  node->data.castExp.toType = NULL;
   node->data.castExp.target = target;
+  node->data.castExp.resultType = NULL;
   return node;
 }
 Node *sizeofTypeExpNodeCreate(size_t line, size_t character, Node *target) {
@@ -934,13 +948,14 @@ Node *sizeofTypeExpNodeCreate(size_t line, size_t character, Node *target) {
   node->type = NT_SIZEOFTYPEEXP;
   node->data.sizeofTypeExp.target = target;
   node->data.sizeofTypeExp.targetType = NULL;
+  node->data.sizeofTypeExp.resultType = NULL;
   return node;
 }
 Node *sizeofExpExpNodeCreate(size_t line, size_t character, Node *target) {
   Node *node = nodeCreate(line, character);
   node->type = NT_SIZEOFEXPEXP;
   node->data.sizeofExpExp.target = target;
-  node->data.sizeofExpExp.targetType = NULL;
+  node->data.sizeofExpExp.resultType = NULL;
   return node;
 }
 Node *keywordTypeNodeCreate(size_t line, size_t character, TypeKeyword type) {
@@ -983,6 +998,7 @@ Node *idNodeCreate(size_t line, size_t character, char *id) {
   node->data.id.id = id;
   node->data.id.symbol = NULL;
   node->data.id.overload = NULL;
+  node->data.id.resultType = NULL;
   return node;
 }
 
@@ -1139,61 +1155,97 @@ void nodeDestroy(Node *node) {
     case NT_SEQEXP: {
       nodeDestroy(node->data.seqExp.prefix);
       nodeDestroy(node->data.seqExp.last);
+      if (node->data.seqExp.resultType != NULL) {
+        typeDestroy(node->data.seqExp.resultType);
+      }
       break;
     }
     case NT_BINOPEXP: {
       nodeDestroy(node->data.binOpExp.lhs);
       nodeDestroy(node->data.binOpExp.rhs);
+      if (node->data.binOpExp.resultType != NULL) {
+        typeDestroy(node->data.binOpExp.resultType);
+      }
       break;
     }
     case NT_UNOPEXP: {
       nodeDestroy(node->data.unOpExp.target);
+      if (node->data.unOpExp.resultType != NULL) {
+        typeDestroy(node->data.unOpExp.resultType);
+      }
       break;
     }
     case NT_COMPOPEXP: {
       nodeDestroy(node->data.compOpExp.lhs);
       nodeDestroy(node->data.compOpExp.rhs);
+      if (node->data.compOpExp.resultType != NULL) {
+        typeDestroy(node->data.compOpExp.resultType);
+      }
       break;
     }
     case NT_LANDASSIGNEXP: {
       nodeDestroy(node->data.landAssignExp.lhs);
       nodeDestroy(node->data.landAssignExp.rhs);
+      if (node->data.landAssignExp.resultType != NULL) {
+        typeDestroy(node->data.landAssignExp.resultType);
+      }
       break;
     }
     case NT_LORASSIGNEXP: {
       nodeDestroy(node->data.lorAssignExp.lhs);
       nodeDestroy(node->data.lorAssignExp.rhs);
+      if (node->data.lorAssignExp.resultType != NULL) {
+        typeDestroy(node->data.lorAssignExp.resultType);
+      }
       break;
     }
     case NT_TERNARYEXP: {
       nodeDestroy(node->data.ternaryExp.condition);
       nodeDestroy(node->data.ternaryExp.thenExp);
       nodeDestroy(node->data.ternaryExp.elseExp);
+      if (node->data.ternaryExp.resultType != NULL) {
+        typeDestroy(node->data.ternaryExp.resultType);
+      }
       break;
     }
     case NT_LANDEXP: {
       nodeDestroy(node->data.landExp.lhs);
       nodeDestroy(node->data.landExp.rhs);
+      if (node->data.landExp.resultType != NULL) {
+        typeDestroy(node->data.landExp.resultType);
+      }
       break;
     }
     case NT_LOREXP: {
       nodeDestroy(node->data.lorExp.lhs);
       nodeDestroy(node->data.lorExp.rhs);
+      if (node->data.lorExp.resultType != NULL) {
+        typeDestroy(node->data.lorExp.resultType);
+      }
       break;
     }
     case NT_STRUCTACCESSEXP: {
       nodeDestroy(node->data.structAccessExp.base);
       nodeDestroy(node->data.structAccessExp.element);
+      if (node->data.structAccessExp.resultType != NULL) {
+        typeDestroy(node->data.structAccessExp.resultType);
+      }
       break;
     }
     case NT_STRUCTPTRACCESSEXP: {
       nodeDestroy(node->data.structPtrAccessExp.base);
       nodeDestroy(node->data.structPtrAccessExp.element);
+      if (node->data.structPtrAccessExp.resultType != NULL) {
+        typeDestroy(node->data.structPtrAccessExp.resultType);
+      }
       break;
     }
     case NT_FNCALLEXP: {
       nodeDestroy(node->data.fnCallExp.who);
       nodeListDestroy(node->data.fnCallExp.args);
+      if (node->data.fnCallExp.resultType != NULL) {
+        typeDestroy(node->data.fnCallExp.resultType);
+      }
       break;
     }
     case NT_CONSTEXP: {
@@ -1224,17 +1276,23 @@ void nodeDestroy(Node *node) {
           break;
         }
       }
+      if (node->data.constExp.resultType != NULL) {
+        typeDestroy(node->data.constExp.resultType);
+      }
       break;
     }
     case NT_AGGREGATEINITEXP: {
       nodeListDestroy(node->data.aggregateInitExp.elements);
+      if (node->data.aggregateInitExp.resultType != NULL) {
+        typeDestroy(node->data.aggregateInitExp.resultType);
+      }
       break;
     }
     case NT_CASTEXP: {
       nodeDestroy(node->data.castExp.toWhat);
       nodeDestroy(node->data.castExp.target);
-      if (node->data.castExp.toType != NULL) {
-        typeDestroy(node->data.castExp.toType);
+      if (node->data.castExp.resultType != NULL) {
+        typeDestroy(node->data.castExp.resultType);
       }
       break;
     }
@@ -1243,12 +1301,15 @@ void nodeDestroy(Node *node) {
       if (node->data.sizeofTypeExp.targetType != NULL) {
         typeDestroy(node->data.sizeofTypeExp.targetType);
       }
+      if (node->data.sizeofTypeExp.resultType != NULL) {
+        typeDestroy(node->data.sizeofTypeExp.resultType);
+      }
       break;
     }
     case NT_SIZEOFEXPEXP: {
       nodeDestroy(node->data.sizeofExpExp.target);
-      if (node->data.sizeofExpExp.targetType != NULL) {
-        typeDestroy(node->data.sizeofExpExp.targetType);
+      if (node->data.sizeofExpExp.resultType != NULL) {
+        typeDestroy(node->data.sizeofExpExp.resultType);
       }
       break;
     }
@@ -1275,6 +1336,9 @@ void nodeDestroy(Node *node) {
     }
     case NT_ID: {
       free(node->data.id.id);
+      if (node->data.id.resultType != NULL) {
+        typeDestroy(node->data.id.resultType);
+      }
       break;
     }
   }

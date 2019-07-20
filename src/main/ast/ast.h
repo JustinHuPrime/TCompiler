@@ -327,53 +327,65 @@ typedef struct Node {
     struct {
       struct Node *prefix;
       struct Node *last;
+      Type *resultType;
     } seqExp;
     struct {
       BinOpType op;
       struct Node *lhs;
       struct Node *rhs;
+      Type *resultType;
     } binOpExp;
     struct {
       UnOpType op;
       struct Node *target;
+      Type *resultType;
     } unOpExp;
     struct {
       CompOpType op;
       struct Node *lhs;
       struct Node *rhs;
+      Type *resultType;
     } compOpExp;
     struct {
       struct Node *lhs;
       struct Node *rhs;
+      Type *resultType;
     } landAssignExp;
     struct {
       struct Node *lhs;
       struct Node *rhs;
+      Type *resultType;
     } lorAssignExp;
     struct {
       struct Node *condition;
       struct Node *thenExp;
       struct Node *elseExp;
+      Type *resultType;
     } ternaryExp;
     struct {
       struct Node *lhs;
       struct Node *rhs;
+      Type *resultType;
     } landExp;
     struct {
       struct Node *lhs;
       struct Node *rhs;
+      Type *resultType;
     } lorExp;
     struct {
       struct Node *base;
       struct Node *element;
+      Type *resultType;
     } structAccessExp;
     struct {
       struct Node *base;
       struct Node *element;
+      Type *resultType;
     } structPtrAccessExp;
     struct {
       struct Node *who;
       NodeList *args;
+      Type *resultType;
     } fnCallExp;
     struct {
       ConstType type;
@@ -394,22 +406,25 @@ typedef struct Node {
         uint32_t wcharVal;
         bool boolVal;
       } value;
+      Type *resultType;
     } constExp;
     struct {
       NodeList *elements;
+      Type *resultType;
     } aggregateInitExp;
     struct {
       struct Node *toWhat;
-      Type *toType;
       struct Node *target;
+      Type *resultType;
     } castExp;
     struct {
       struct Node *target;
       Type *targetType;
+      Type *resultType;
     } sizeofTypeExp;
     struct {
       struct Node *target;
-      Type *targetType;
+      Type *resultType;
     } sizeofExpExp;
 
     struct {
@@ -434,6 +449,7 @@ typedef struct Node {
       char *id;
       SymbolInfo *symbol;
       OverloadSetElement *overload;  // nullable
+      Type *resultType;              // nullable
     } id;
   } data;
 } Node;
