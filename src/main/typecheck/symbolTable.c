@@ -273,10 +273,15 @@ Type *typeArithmeticExpMerge(Type const *lhs, Type const *rhs) {
 char *typeToString(Type const *type) {
   return NULL;  // TODO: write this
 }
-bool typeIsBoolean(Type const *type) {
-  return type->kind == K_BOOL ||
-         (type->kind == K_CONST && typeIsBoolean(type->data.modifier.type));
+static bool typeIsX(Type const *type, TypeKind x) {
+  return type->kind == x ||
+         (type->kind == K_CONST && typeIsX(type->data.modifier.type, x));
 }
+static bool typeIsXorY(Type const *type, TypeKind x, TypeKind y) {
+  return type->kind == x || type->kind == y ||
+         (type->kind == K_CONST && typeIsXorY(type->data.modifier.type, x, y));
+}
+bool typeIsBoolean(Type const *type) { return typeIsX(type, K_BOOL); }
 bool typeIsIntegral(Type const *type) {
   switch (type->kind) {
     case K_UBYTE:
@@ -302,25 +307,60 @@ bool typeIsSignedIntegral(Type const *type) {
           typeIsSignedIntegral(type->data.modifier.type));
 }
 bool typeIsFloat(Type const *type) {
-  return type->kind == K_FLOAT || type->kind == K_DOUBLE ||
-         (type->kind == K_CONST && typeIsFloat(type->data.modifier.type));
+  return typeIsXorY(type, K_FLOAT, K_DOUBLE);
 }
-bool typeIsValuePointer(Type const *type) {
-  return type->kind == K_PTR || (type->kind == K_CONST &&
-                                 typeIsValuePointer(type->data.modifier.type));
+bool typeIsNumeric(Type const *type) {
+  switch (type->kind) {
+    case K_UBYTE:
+    case K_BYTE:
+    case K_USHORT:
+    case K_SHORT:
+    case K_UINT:
+    case K_INT:
+    case K_ULONG:
+    case K_LONG:
+    case K_FLOAT:
+    case K_DOUBLE: {
+      return true;
+    }
+    case K_CONST: {
+      return typeIsIntegral(type->data.modifier.type);
+    }
+    default: { return false; }
+  }
 }
+bool typeIsValuePointer(Type const *type) { return typeIsX(type, K_PTR); }
 bool typeIsFunctionPointer(Type const *type) {
-  return type->kind == K_FUNCTION_PTR ||
-         (type->kind == K_CONST &&
-          typeIsValuePointer(type->data.modifier.type));
+  return typeIsX(type, K_FUNCTION_PTR);
 }
 bool typeIsPointer(Type const *type) {
-  return type->kind == K_PTR || type->kind == K_FUNCTION_PTR ||
-         (type->kind == K_CONST && typeIsPointer(type->data.modifier.type));
+  return typeIsXorY(type, K_PTR, K_FUNCTION_PTR);
 }
+bool typeIsCompound(Type const *type) {
+  return typeIsXOrY(type, K_STRUCT, K_UNION);
+}
+bool typeIsArray(Type const *type) { return typeIsX(type, K_ARRAY); }
 Type *typeGetNonConst(Type *type) {
   return type->kind == K_CONST ? typeGetNonConst(type->data.modifier.type)
                                : type;
+}
+Type *typeGetDereferenced(Type *type) {
+  if (type->kind == K_PTR) {
+    return typeCopy(type->data.modifier.type);
+  } else if (type->kind == K_CONST) {
+    return typeGetDereferenced(type->data.modifier.type);
+  } else {
+    return NULL;
+  }
+}
+Type *typeGetArrayElement(Type *type) {
+  if (type->kind == K_ARRAY) {
+    return typeCopy(type->data.array.type);
+  } else if (type->kind == K_CONST) {
+    return typeGetArrayElement(type->data.modifier.type);
+  } else {
+    return NULL;
+  }
 }
 void typeUninit(Type *t) {
   switch (t->kind) {

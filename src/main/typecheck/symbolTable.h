@@ -133,15 +133,22 @@ bool typeIsBoolean(Type const *);
 bool typeIsIntegral(Type const *);
 bool typeIsSignedIntegral(Type const *);
 bool typeIsFloat(Type const *);
+bool typeIsNumeric(Type const *);
 bool typeIsValuePointer(Type const *);
 bool typeIsFunctionPointer(Type const *);
 bool typeIsPointer(Type const *);
+bool typeIsCompound(Type const *);
+bool typeIsArray(Type const *);
 // merge types from conditional branches
 Type *typeTernaryExpMerge(Type const *, Type const *);
 // merge types from arithmetic branches
 Type *typeArithmeticExpMerge(Type const *, Type const *);
-// strip constness off of start of type, non-destructivel
+// strip constness off of start of type, non-destructively
 Type *typeGetNonConst(Type *);
+// strip pointerness and constness off of start of type, produces new type
+Type *typeGetDereferenced(Type *);
+// strip arrayness and constness off of start of type, produces new type
+Type *typeGetArrayElement(Type *);
 char *typeToString(Type const *);
 // in-place dtor
 void typeUninit(Type *);
