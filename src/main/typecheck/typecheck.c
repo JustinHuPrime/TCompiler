@@ -40,9 +40,11 @@ static bool expressionIsLvalue(Node *expression) {
         case BO_ARSHIFTASSIGN:
         case BO_BITANDASSIGN:
         case BO_BITXORASSIGN:
-        case BO_BITORASSIGN:
-        case BO_ARRAYACCESS: {
+        case BO_BITORASSIGN: {
           return true;  // lhs must have been an lvalue to get here
+        }
+        case BO_ARRAYACCESS: {
+          return expressionIsLvalue(expression->data.binOpExp.lhs);
         }
         default: { return false; }
       }
@@ -63,15 +65,62 @@ static bool expressionIsLvalue(Node *expression) {
     case NT_ID: {
       return true;
     }
-    case NT_TERNARYEXP: {
-      return expressionIsLvalue(expression->data.ternaryExp.thenExp) &&
-             expressionIsLvalue(expression->data.ternaryExp.elseExp);
-    }
     case NT_STRUCTACCESSEXP: {
       return expressionIsLvalue(expression->data.structAccessExp.base);
     }
     default: { return false; }
   }
+}
+
+static Type *typecheckPlainBinOp(Node *expression, bool (*lhsReq)(Type const *),
+                                 bool (*rhsReq)(Type const *),
+                                 char const *opName, Report *report,
+                                 Options const *options, char const *filename) {
+  Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                  options, filename, NULL, false);
+  Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                  options, filename, NULL, false);
+  if (lhs == NULL || rhs == NULL) {
+    return NULL;
+  }
+
+  bool bad = false;
+  if (!lhsReq(lhs)) {
+    reportError(report,
+                "%s:%zu:%zu: error: attempted to apply %s "
+                "operator on non-integral value",
+                filename, expression->data.binOpExp.lhs->line,
+                expression->data.binOpExp.lhs->character, opName);
+    bad = true;
+  }
+  if (!rhsReq(rhs)) {
+    reportError(report,
+                "%s:%zu:%zu: error: attempted to apply %s "
+                "operator on non-integral value",
+                filename, expression->data.binOpExp.rhs->line,
+                expression->data.binOpExp.rhs->character, opName);
+    bad = true;
+  }
+  if (bad) {
+    return NULL;
+  }
+
+  expression->data.binOpExp.resultType = typeArithmeticExpMerge(lhs, rhs);
+  if (expression->data.binOpExp.resultType == NULL) {
+    char *lhsString = typeToString(lhs);
+    char *rhsString = typeToString(rhs);
+    reportError(
+        report,
+        "%s:%zu:%zu: error: cannot apply %s operator to a value of type "
+        "'%s' with a value of type '%s'",
+        filename, expression->line, expression->character, opName, lhsString,
+        rhsString);
+    free(lhsString);
+    free(rhsString);
+    return NULL;
+  }
+
+  return expression->data.binOpExp.resultType;
 }
 
 // expressions
@@ -80,14 +129,11 @@ static Type *typecheckExpression(Node *expression, Report *report,
                                  TypeVector const *argTypes, bool directCall) {
   switch (expression->type) {
     case NT_SEQEXP: {
-      Type *prefix = typecheckExpression(expression->data.seqExp.prefix, report,
-                                         options, filename, NULL, false);
-      Type *last = typecheckExpression(expression->data.seqExp.last, report,
-                                       options, filename, argTypes, false);
-      if (prefix != NULL) {
-        typeDestroy(prefix);
-      }
-      return last;
+      typecheckExpression(expression->data.seqExp.prefix, report, options,
+                          filename, NULL, false);
+      return expression->data.seqExp.resultType =
+                 typecheckExpression(expression->data.seqExp.last, report,
+                                     options, filename, argTypes, false);
     }
     case NT_BINOPEXP: {
       // TODO: write this
@@ -105,15 +151,12 @@ static Type *typecheckExpression(Node *expression, Report *report,
                                         : NULL,
               false);  // TODO: deal with const here
           if (from == NULL) {
-            typeDestroy(to);
             return NULL;
           }
           if (!expressionIsLvalue(expression->data.binOpExp.lhs)) {
             reportError(report,
                         "%s:%zu:%zu: error: attempted to assign to non-lvalue",
                         filename, expression->line, expression->character);
-            typeDestroy(to);
-            typeDestroy(from);
             return NULL;
           }
           if (!typeAssignable(to, from)) {
@@ -126,12 +169,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
                         fromString, toString);
             free(fromString);
             free(toString);
-            typeDestroy(to);
-            typeDestroy(from);
             return NULL;
           }
-          typeDestroy(from);
-          return to;
+          return expression->data.binOpExp.resultType = typeCopy(to);
         }
         case BO_MULASSIGN: {
           return NULL;
@@ -167,43 +207,162 @@ static Type *typecheckExpression(Node *expression, Report *report,
           return NULL;
         }
         case BO_BITAND: {
-          return NULL;
+          return typecheckPlainBinOp(expression, typeIsIntegral, typeIsIntegral,
+                                     "bitwise and", report, options, filename);
         }
         case BO_BITOR: {
-          return NULL;
+          return typecheckPlainBinOp(expression, typeIsIntegral, typeIsIntegral,
+                                     "bitwise or", report, options, filename);
         }
         case BO_BITXOR: {
-          return NULL;
+          return typecheckPlainBinOp(expression, typeIsIntegral, typeIsIntegral,
+                                     "bitwise exclusive or", report, options,
+                                     filename);
         }
         case BO_SPACESHIP: {
-          return NULL;
+          Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                          options, filename, NULL, false);
+          Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                          options, filename, NULL, false);
+          if (lhs == NULL || rhs == NULL) {
+            return NULL;
+          }
+
+          if (!typeComparable(lhs, rhs)) {
+            char *lhsString = typeToString(lhs);
+            char *rhsString = typeToString(rhs);
+            reportError(
+                report,
+                "%s:%zu:%zu: error: cannot compare a value of type '%s' "
+                "with a value of type '%s'",
+                filename, expression->line, expression->character, lhsString,
+                rhsString);
+            free(lhsString);
+            free(rhsString);
+            return NULL;
+          } else {
+            return expression->data.binOpExp.resultType =
+                       keywordTypeCreate(K_BYTE);
+          }
         }
-        case BO_LSHIFT: {
-          return NULL;
-        }
+        case BO_LSHIFT:
         case BO_LRSHIFT: {
-          return NULL;
+          Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                          options, filename, NULL, false);
+          Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                          options, filename, NULL, false);
+          if (lhs == NULL || rhs == NULL) {
+            return NULL;
+          }
+
+          bool bad = false;
+          if (!typeIsIntegral(lhs)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: attempted to apply %s shift "
+                        "operator on non-integral value",
+                        filename, expression->data.binOpExp.lhs->line,
+                        expression->data.binOpExp.lhs->character,
+                        expression->data.binOpExp.op == BO_LSHIFT
+                            ? "left"
+                            : "logical right");
+            bad = true;
+          }
+          if (!typeIsIntegral(rhs)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: attempted to apply %s shift "
+                        "operator on non-integral value",
+                        filename, expression->data.binOpExp.rhs->line,
+                        expression->data.binOpExp.rhs->character,
+                        expression->data.binOpExp.op == BO_LSHIFT
+                            ? "left"
+                            : "logical right");
+            bad = true;
+          }
+          if (bad) {
+            return NULL;
+          }
+          return expression->data.binOpExp.resultType = typeCopy(lhs);
         }
         case BO_ARSHIFT: {
-          return NULL;
+          Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                          options, filename, NULL, false);
+          Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                          options, filename, NULL, false);
+          if (lhs == NULL || rhs == NULL) {
+            return NULL;
+          }
+
+          bool bad = false;
+          if (!typeIsSignedIntegral(lhs)) {
+            reportError(
+                report,
+                "%s:%zu:%zu: error: attempted to apply arithmetic right shift "
+                "operator on non-integral value",
+                filename, expression->data.binOpExp.lhs->line,
+                expression->data.binOpExp.lhs->character);
+            bad = true;
+          }
+          if (!typeIsIntegral(rhs)) {
+            reportError(
+                report,
+                "%s:%zu:%zu: error: attempted to apply arithmetic right shift "
+                "operator on non-integral value",
+                filename, expression->data.binOpExp.rhs->line,
+                expression->data.binOpExp.rhs->character);
+            bad = true;
+          }
+          if (bad) {
+            return NULL;
+          }
+          return expression->data.binOpExp.resultType = typeCopy(lhs);
         }
         case BO_ADD: {
-          return NULL;
+          return NULL;  // TODO: write this
         }
         case BO_SUB: {
-          return NULL;
+          return NULL;  // TODO: write this
         }
         case BO_MUL: {
-          return NULL;
+          return typecheckPlainBinOp(expression, typeIsNumeric, typeIsNumeric,
+                                     "multiplication", report, options,
+                                     filename);
         }
         case BO_DIV: {
-          return NULL;
+          return typecheckPlainBinOp(expression, typeIsNumeric, typeIsNumeric,
+                                     "division", report, options, filename);
         }
         case BO_MOD: {
-          return NULL;
+          return typecheckPlainBinOp(expression, typeIsIntegral, typeIsIntegral,
+                                     "modulo", report, options, filename);
         }
         case BO_ARRAYACCESS: {
-          return NULL;
+          Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                          options, filename, NULL, false);
+          Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                          options, filename, NULL, false);
+          if (lhs == NULL || rhs == NULL) {
+            return NULL;
+          }
+
+          bool isPtr = typeIsValuePointer(lhs);
+          if (isPtr || typeIsArray(lhs)) {
+            if (!typeIsIntegral(rhs)) {
+              reportError(
+                  report,
+                  "%s:%zu:%zu: error: attempted to access a non-integral index",
+                  filename, expression->line, expression->character);
+              return NULL;
+            }
+            return isPtr ? (expression->data.binOpExp.resultType =
+                                typeGetDereferenced(lhs))
+                         : (expression->data.binOpExp.resultType =
+                                typeGetArrayElement(lhs));
+          } else {
+            reportError(report,
+                        "%s:%zu:%zu: error: expected an array or a pointer",
+                        filename, expression->line, expression->character);
+            return NULL;
+          }
         }
         default: {
           return NULL;  // invalid enum
@@ -211,7 +370,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
       }
     }
     case NT_UNOPEXP: {
-      // TODO: write this
       Type *target =
           typecheckExpression(expression->data.unOpExp.target, report, options,
                               filename, NULL, false);
@@ -221,25 +379,15 @@ static Type *typecheckExpression(Node *expression, Report *report,
       switch (expression->data.unOpExp.op) {
         case UO_DEREF: {
           // must be pointer or const pointer
-          if (!typeIsPointer(target)) {
+          if (!typeIsValuePointer(target)) {
             reportError(
                 report,
                 "%s:%zu:%zu: error: attempted to dereference a non-pointer",
                 filename, expression->line, expression->character);
-            typeDestroy(target);
             return NULL;
           } else {
-            if (typeIsValuePointer(target)) {
-              // TODO: deal with const here
-              Type *retVal = target->data.modifier.type;
-              free(target);
-              return retVal;
-            } else {
-              Type *retVal = target->data.modifier.type->data.modifier.type;
-              free(target->data.modifier.type);
-              free(target);
-              return retVal;
-            }
+            return expression->data.unOpExp.resultType =
+                       typeGetDereferenced(target);
           }
         }
         case UO_ADDROF: {
@@ -248,10 +396,10 @@ static Type *typecheckExpression(Node *expression, Report *report,
                 report,
                 "%s:%zu:%zu: error: cannot take the address of a non-lvalue",
                 filename, expression->line, expression->character);
-            typeDestroy(target);
             return NULL;
           } else {
-            return modifierTypeCreate(K_PTR, target);
+            return expression->data.unOpExp.resultType =
+                       modifierTypeCreate(K_PTR, typeCopy(target));
           }
         }
         case UO_PREINC:
@@ -268,7 +416,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
                         expression->data.unOpExp.op == UO_POSTINC
                     ? "increment"
                     : "decrement");
-            typeDestroy(target);
             return NULL;
           } else if (!typeIsIntegral(target) && !typeIsPointer(target)) {
             char *typeString = typeToString(target);
@@ -281,10 +428,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
                             : "decrement",
                         typeString);
             free(typeString);
-            typeDestroy(target);
             return NULL;
           }
-          return target;
+          return expression->data.unOpExp.resultType = typeCopy(target);
         }
         case UO_NEG: {
           if (!typeIsSignedIntegral(target) && !typeIsFloat(target)) {
@@ -293,10 +439,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
                 report, "%s:%zu:%zu: error: cannot negate a value of type '%s'",
                 filename, expression->line, expression->character, typeString);
             free(typeString);
-            typeDestroy(target);
             return NULL;
           }
-          return target;
+          return expression->data.unOpExp.resultType = typeCopy(target);
         }
         case UO_LNOT: {
           if (!typeIsBoolean(target)) {
@@ -304,11 +449,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
                         "%s:%zu:%zu: error: attempted to apply a logical not "
                         "to a non-boolean",
                         filename, expression->line, expression->character);
-            typeDestroy(target);
             return NULL;
           }
-
-          return target;
+          return expression->data.unOpExp.resultType = typeCopy(target);
         }
         case UO_BITNOT: {
           if (!typeIsIntegral(target)) {
@@ -319,10 +462,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
                         filename, expression->line, expression->character,
                         typeString);
             free(typeString);
-            typeDestroy(target);
             return NULL;
           }
-          return target;
+          return expression->data.unOpExp.resultType = typeCopy(target);
         }
         default: {
           return NULL;  // invalid enum
@@ -335,12 +477,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
       Type *rhs = typecheckExpression(expression->data.compOpExp.rhs, report,
                                       options, filename, NULL, false);
       if (lhs == NULL || rhs == NULL) {
-        if (lhs != NULL) {
-          typeDestroy(lhs);
-        }
-        if (rhs != NULL) {
-          typeDestroy(rhs);
-        }
         return NULL;
       }
 
@@ -356,7 +492,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
         free(rhsString);
         return NULL;
       } else {
-        return keywordTypeCreate(K_BOOL);
+        return expression->data.compOpExp.resultType =
+                   keywordTypeCreate(K_BOOL);
       }
     }
     case NT_LANDASSIGNEXP: {
@@ -378,15 +515,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
           typecheckExpression(expression->data.ternaryExp.elseExp, report,
                               options, filename, argTypes, false);
       if (condition == NULL || thenExp == NULL || elseExp == NULL) {
-        if (condition != NULL) {
-          typeDestroy(condition);
-        }
-        if (thenExp != NULL) {
-          typeDestroy(thenExp);
-        }
-        if (elseExp != NULL) {
-          typeDestroy(elseExp);
-        }
         return NULL;
       }
       bool bad = false;
@@ -399,26 +527,20 @@ static Type *typecheckExpression(Node *expression, Report *report,
         bad = true;
       }
 
-      Type *expType = typeTernaryExpMerge(thenExp, elseExp);
-      if (expType == NULL) {
+      expression->data.ternaryExp.resultType =
+          typeTernaryExpMerge(thenExp, elseExp);
+      if (expression->data.ternaryExp.resultType == NULL) {
         reportError(report,
                     "%s:%zu:%zu: error: conflicting types in branches of "
                     "ternary expression",
                     filename, expression->line, expression->character);
         bad = true;
       }
-      typeDestroy(condition);
-      typeDestroy(thenExp);
-      typeDestroy(elseExp);
 
       if (bad) {
-        if (expType != NULL) {
-          typeDestroy(expType);
-        }
-
         return NULL;
       }
-      return expType;
+      return expression->data.ternaryExp.resultType;
     }
     case NT_LANDEXP:
     case NT_LOREXP: {
@@ -431,13 +553,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
       Type *rhsType =
           typecheckExpression(rhs, report, options, filename, NULL, false);
       if (lhsType == NULL || rhsType == NULL) {
-        // get out - can't go further.
-        if (lhsType != NULL) {
-          typeDestroy(lhsType);
-        }
-        if (rhsType != NULL) {
-          typeDestroy(rhsType);
-        }
         return NULL;
       }
       bool bad = false;
@@ -457,9 +572,13 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     expression->type == NT_LANDEXP ? "and" : "or");
         bad = true;
       }
-      typeDestroy(lhsType);
-      typeDestroy(rhsType);
-      return bad ? NULL : keywordTypeCreate(K_BOOL);
+      if (expression->type == NT_LANDEXP) {
+        return expression->data.landExp.resultType =
+                   bad ? NULL : keywordTypeCreate(K_BOOL);
+      } else {
+        expression->data.lorExp.resultType =
+            bad ? NULL : keywordTypeCreate(K_BOOL);
+      }
     }
     case NT_STRUCTACCESSEXP: {
       Type *lhs = typecheckExpression(expression->data.structAccessExp.base,
@@ -468,7 +587,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
         return NULL;
       }
 
-      if (lhs->kind != K_STRUCT && lhs->kind != K_UNION) {
+      if (!typeIsCompound(lhs)) {
         reportError(report,
                     "%s:%zu:%zu: error: attempted to access a field of "
                     "something that is not a struct and not a union",
@@ -478,7 +597,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
       }
 
       SymbolInfo *definition = lhs->data.reference.referenced;
-      typeDestroy(lhs);
       StringVector *names = definition->data.type.kind == TDK_STRUCT
                                 ? &definition->data.type.data.structType.names
                                 : &definition->data.type.data.unionType.names;
@@ -502,7 +620,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     expression->line, expression->character);
         return NULL;
       } else {
-        return typeCopy(types->elements[fieldIdx]);
+        return expression->data.structAccessExp.resultType =
+                   typeCopy(types->elements[fieldIdx]);
       }
     }
     case NT_STRUCTPTRACCESSEXP: {
@@ -515,22 +634,20 @@ static Type *typecheckExpression(Node *expression, Report *report,
       if (!typeIsValuePointer(lhs)) {
         reportError(report, "%s:%zu:%zu: error: not a pointer", filename,
                     expression->line, expression->character);
-        typeDestroy(lhs);
         return NULL;
-      } else if (lhs->data.modifier.type->kind != K_STRUCT &&
-                 lhs->data.modifier.type->kind != K_UNION) {
-        // TODO: handle pointers to consts
+      }
+      Type *dereferenced = typeGetDereferenced(lhs);
+      if (!typeIsCompound(dereferenced)) {
         reportError(report,
                     "%s:%zu:%zu: error: attempted to access a field of "
                     "something that is not a struct and not a union",
                     filename, expression->line, expression->character);
-        typeDestroy(lhs);
+        typeDestroy(dereferenced);
         return NULL;
       }
 
       SymbolInfo *definition =
           lhs->data.modifier.type->data.reference.referenced;
-      typeDestroy(lhs);
       StringVector *names = definition->data.type.kind == TDK_STRUCT
                                 ? &definition->data.type.data.structType.names
                                 : &definition->data.type.data.unionType.names;
@@ -552,9 +669,18 @@ static Type *typecheckExpression(Node *expression, Report *report,
       if (!found) {
         reportError(report, "%s:%zu:%zu: error: no such field", filename,
                     expression->line, expression->character);
+        typeDestroy(dereferenced);
         return NULL;
       } else {
-        return typeCopy(types->elements[fieldIdx]);
+        if (dereferenced->kind == K_CONST) {
+          expression->data.structPtrAccessExp.resultType =
+              modifierTypeCreate(K_CONST, typeCopy(types->elements[fieldIdx]));
+        } else {
+          expression->data.structPtrAccessExp.resultType =
+              typeCopy(types->elements[fieldIdx]);
+        }
+        typeDestroy(dereferenced);
+        return expression->data.structPtrAccessExp.resultType;
       }
     }
     case NT_FNCALLEXP: {
@@ -568,7 +694,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
           actualArgTypes = NULL;
         }
         if (actualArgTypes != NULL) {
-          typeVectorInsert(actualArgTypes, argType);
+          typeVectorInsert(actualArgTypes, typeCopy(argType));
         }
       }
 
@@ -583,7 +709,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
       if (fnType == NULL) {
         return NULL;  // no valid function
       } else if (!typeIsFunctionPointer(fnType)) {
-        typeDestroy(fnType);
         reportError(report,
                     "%s:%zu:%zu: error: attempted to make a function call on a "
                     "non-function",
@@ -591,7 +716,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
         return NULL;
       }
 
-      return typeCopy(fnType->data.functionPtr.returnType);
+      return expression->data.fnCallExp.resultType =
+                 typeCopy(fnType->data.functionPtr.returnType);
     }
     case NT_CONSTEXP: {
       switch (expression->data.constExp.type) {
@@ -608,19 +734,22 @@ static Type *typecheckExpression(Node *expression, Report *report,
         case CT_FLOAT:
         case CT_DOUBLE:
         case CT_BOOL: {
-          return keywordTypeCreate(expression->data.constExp.type - CT_UBYTE +
-                                   K_BYTE);
+          return expression->data.constExp.resultType = keywordTypeCreate(
+                     expression->data.constExp.type - CT_UBYTE + K_BYTE);
         }
         case CT_STRING: {
-          return modifierTypeCreate(
-              K_PTR, modifierTypeCreate(K_CONST, keywordTypeCreate(K_CHAR)));
+          return expression->data.constExp.resultType = modifierTypeCreate(
+                     K_PTR,
+                     modifierTypeCreate(K_CONST, keywordTypeCreate(K_CHAR)));
         }
         case CT_WSTRING: {
-          return modifierTypeCreate(
-              K_PTR, modifierTypeCreate(K_CONST, keywordTypeCreate(K_WCHAR)));
+          return expression->data.constExp.resultType = modifierTypeCreate(
+                     K_PTR,
+                     modifierTypeCreate(K_CONST, keywordTypeCreate(K_WCHAR)));
         }
         case CT_NULL: {
-          return modifierTypeCreate(K_PTR, keywordTypeCreate(K_VOID));
+          return expression->data.constExp.resultType =
+                     modifierTypeCreate(K_PTR, keywordTypeCreate(K_VOID));
         }
         case CT_RANGE_ERROR: {
           reportError(report,
@@ -645,12 +774,13 @@ static Type *typecheckExpression(Node *expression, Report *report,
           typeVectorDestroy(elementTypes);
           elementTypes = NULL;
         } else if (elementTypes != NULL) {
-          typeVectorInsert(elementTypes, elementType);
+          typeVectorInsert(elementTypes, typeCopy(elementType));
         }
       }
 
       if (elementTypes != NULL) {
-        return aggregateInitTypeCreate(elementTypes);
+        return expression->data.aggregateInitExp.resultType =
+                   aggregateInitTypeCreate(elementTypes);
       } else {
         return NULL;
       }
@@ -662,8 +792,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
       if (targetType == NULL) {
         return NULL;
       }
-      if (!typeCastable(expression->data.castExp.toType, targetType)) {
-        char *toTypeName = typeToString(expression->data.castExp.toType);
+      if (!typeCastable(expression->data.castExp.resultType, targetType)) {
+        char *toTypeName = typeToString(expression->data.castExp.resultType);
         char *fromTypeName = typeToString(targetType);
         reportError(
             report,
@@ -674,32 +804,33 @@ static Type *typecheckExpression(Node *expression, Report *report,
         free(fromTypeName);
         return NULL;
       } else {
-        return typeCopy(expression->data.castExp.toType);
+        return expression->data.castExp.resultType;
       }
     }
     case NT_SIZEOFTYPEEXP: {
-      return keywordTypeCreate(TK_ULONG);
+      return expression->data.sizeofTypeExp.resultType =
+                 keywordTypeCreate(TK_ULONG);
     }
     case NT_SIZEOFEXPEXP: {
-      expression->data.sizeofExpExp.targetType =
-          typecheckExpression(expression->data.sizeofExpExp.target, report,
-                              options, filename, NULL, false);
-      return keywordTypeCreate(TK_ULONG);
+      typecheckExpression(expression->data.sizeofExpExp.target, report, options,
+                          filename, NULL, false);
+      return expression->data.sizeofExpExp.resultType =
+                 keywordTypeCreate(TK_ULONG);
     }
     case NT_ID: {
       SymbolInfo *info = expression->data.id.symbol;
       if (info->kind == SK_VAR) {
-        return typeCopy(info->data.var.type);
+        return expression->data.id.resultType = typeCopy(info->data.var.type);
       } else if (info->kind == SK_FUNCTION && argTypes == NULL) {
         // ambiguous overload, maybe?
         OverloadSet *overloadSet = &info->data.function.overloadSet;
         if (overloadSet->size == 1) {
           OverloadSetElement *elm = overloadSet->elements[0];
           expression->data.id.overload = elm;
-          return modifierTypeCreate(
-              K_CONST,
-              functionPtrTypeCreate(typeCopy(elm->returnType),
-                                    typeVectorCopy(&elm->argumentTypes)));
+          return expression->data.id.resultType = modifierTypeCreate(
+                     K_CONST, functionPtrTypeCreate(
+                                  typeCopy(elm->returnType),
+                                  typeVectorCopy(&elm->argumentTypes)));
         } else {
           reportError(report,
                       "%s:%zu:%zu: error: cannot determine appropriate "
@@ -707,13 +838,12 @@ static Type *typecheckExpression(Node *expression, Report *report,
                       filename, expression->line, expression->character);
           return NULL;
         }
-      } else if (info->kind == SK_FUNCTION) {
+      } else {
+        // argTypes != NULL
         // TODO: figure out overload in set
         // use directCall - if direct, match w/ default args, else match exact
         // arg string
         return NULL;
-      } else {
-        return NULL;  // not a valid expression - parse error
       }
     }
     default: {
