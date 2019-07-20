@@ -75,9 +75,11 @@ static bool expressionIsLvalue(Node *expression) {
 static Type *typecheckExpression(Node *, Report *, Options const *,
                                  char const *, TypeVector const *, bool);
 static Type *typecheckPlainBinOp(Node *expression, bool (*lhsReq)(Type const *),
+                                 char const *lhsReqName,
                                  bool (*rhsReq)(Type const *),
-                                 char const *opName, Report *report,
-                                 Options const *options, char const *filename) {
+                                 char const *rhsReqName, char const *opName,
+                                 Report *report, Options const *options,
+                                 char const *filename) {
   Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
                                   options, filename, NULL, false);
   Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
@@ -90,17 +92,17 @@ static Type *typecheckPlainBinOp(Node *expression, bool (*lhsReq)(Type const *),
   if (!lhsReq(lhs)) {
     reportError(report,
                 "%s:%zu:%zu: error: attempted to apply %s "
-                "operator on non-integral value",
+                "operator on non-%s value",
                 filename, expression->data.binOpExp.lhs->line,
-                expression->data.binOpExp.lhs->character, opName);
+                expression->data.binOpExp.lhs->character, opName, lhsReqName);
     bad = true;
   }
   if (!rhsReq(rhs)) {
     reportError(report,
                 "%s:%zu:%zu: error: attempted to apply %s "
-                "operator on non-integral value",
+                "operator on non-%s value",
                 filename, expression->data.binOpExp.rhs->line,
-                expression->data.binOpExp.rhs->character, opName);
+                expression->data.binOpExp.rhs->character, opName, rhsReqName);
     bad = true;
   }
   if (bad) {
@@ -124,6 +126,74 @@ static Type *typecheckPlainBinOp(Node *expression, bool (*lhsReq)(Type const *),
 
   return expression->data.binOpExp.resultType;
 }
+static Type *typecheckPlainAssignBinOp(
+    Node *expression, bool (*lhsReq)(Type const *), char const *lhsReqName,
+    bool (*rhsReq)(Type const *), char const *rhsReqName, char const *opName,
+    Report *report, Options const *options, char const *filename) {
+  Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                  options, filename, NULL, false);
+  Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                  options, filename, NULL, false);
+  if (lhs == NULL || rhs == NULL) {
+    return NULL;
+  }
+
+  if (!expressionIsLvalue(expression->data.binOpExp.lhs)) {
+    reportError(report, "%s:%zu:%zu: error: attempted to assign to non-lvalue",
+                filename, expression->line, expression->character);
+    return NULL;
+  }
+
+  bool bad = false;
+  if (!lhsReq(lhs)) {
+    reportError(report,
+                "%s:%zu:%zu: error: attempted to apply %s operator on "
+                "non-%s value",
+                filename, expression->data.binOpExp.lhs->line,
+                expression->data.binOpExp.lhs->character, opName, lhsReqName);
+    bad = true;
+  }
+  if (!rhsReq(rhs)) {
+    reportError(report,
+                "%s:%zu:%zu: error: attempted to apply %s operator on "
+                "non-%s value",
+                filename, expression->data.binOpExp.rhs->line,
+                expression->data.binOpExp.rhs->character, opName, rhsReqName);
+    bad = true;
+  }
+  if (bad) {
+    return NULL;
+  }
+
+  Type *resultType = typeArithmeticExpMerge(lhs, rhs);
+  if (resultType == NULL) {
+    char *lhsString = typeToString(lhs);
+    char *rhsString = typeToString(rhs);
+    reportError(report,
+                "%s:%zu:%zu: error: cannot apply %s operator to a value of "
+                "type '%s' with a value of type '%s'",
+                filename, expression->line, expression->character, opName,
+                lhsString, rhsString);
+    free(lhsString);
+    free(rhsString);
+    return NULL;
+  }
+
+  if (!typeAssignable(lhs, resultType)) {
+    char *fromString = typeToString(resultType);
+    char *toString = typeToString(lhs);
+    reportError(report,
+                "%s:%zu:%zu: error: cannot assign a value of type '%s' "
+                "to a value of type '%s'",
+                filename, expression->line, expression->character, fromString,
+                toString);
+    free(fromString);
+    free(toString);
+    typeDestroy(resultType);
+    return NULL;
+  }
+  return expression->data.binOpExp.resultType = resultType;
+}
 
 // expressions
 static Type *typecheckExpression(Node *expression, Report *report,
@@ -138,7 +208,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
                                      options, filename, argTypes, false);
     }
     case NT_BINOPEXP: {
-      // TODO: write this
       switch (expression->data.binOpExp.op) {
         case BO_ASSIGN: {
           Type *to = typecheckExpression(expression->data.binOpExp.lhs, report,
@@ -177,50 +246,212 @@ static Type *typecheckExpression(Node *expression, Report *report,
           return expression->data.binOpExp.resultType = typeCopy(to);
         }
         case BO_MULASSIGN: {
-          return NULL;
+          return typecheckPlainAssignBinOp(
+              expression, typeIsNumeric, "numeric", typeIsNumeric, "numeric",
+              "compound multiplication and assignment", report, options,
+              filename);
         }
         case BO_DIVASSIGN: {
-          return NULL;
+          return typecheckPlainAssignBinOp(
+              expression, typeIsNumeric, "numeric", typeIsNumeric, "numeric",
+              "compound division and assignment", report, options, filename);
         }
         case BO_MODASSIGN: {
-          return NULL;
+          return typecheckPlainAssignBinOp(
+              expression, typeIsIntegral, "integral", typeIsIntegral,
+              "integral", "compound modulo and assignment", report, options,
+              filename);
         }
-        case BO_ADDASSIGN: {
-          return NULL;
-        }
+        case BO_ADDASSIGN:
         case BO_SUBASSIGN: {
-          return NULL;
+          Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                          options, filename, NULL, false);
+          Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                          options, filename, NULL, false);
+          if (lhs == NULL || rhs == NULL) {
+            return NULL;
+          }
+
+          if (!expressionIsLvalue(expression->data.binOpExp.lhs)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: attempted to assign to non-lvalue",
+                        filename, expression->line, expression->character);
+            return NULL;
+          }
+
+          if (typeIsNumeric(lhs) && typeIsNumeric(rhs)) {
+            Type *resultType = typeArithmeticExpMerge(lhs, rhs);
+            if (expression->data.binOpExp.resultType == NULL) {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              reportError(report,
+                          "%s:%zu:%zu: error: cannot apply compound %s and "
+                          "assignment operator to a "
+                          "value of type "
+                          "'%s' with a value of type '%s'",
+                          filename, expression->line, expression->character,
+                          expression->data.binOpExp.op == BO_ADDASSIGN
+                              ? "addition"
+                              : "subtraction",
+                          lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              return NULL;
+            } else if (!typeAssignable(lhs, resultType)) {
+              char *fromString = typeToString(resultType);
+              char *toString = typeToString(lhs);
+              reportError(
+                  report,
+                  "%s:%zu:%zu: error: cannot assign a value of type '%s' "
+                  "to a value of type '%s'",
+                  filename, expression->line, expression->character, fromString,
+                  toString);
+              free(fromString);
+              free(toString);
+              typeDestroy(resultType);
+              return NULL;
+            } else {
+              return expression->data.binOpExp.resultType = resultType;
+            }
+          } else {
+            if (typeIsPointer(lhs) && typeIsIntegral(rhs)) {
+              return expression->data.binOpExp.resultType = typeCopy(lhs);
+            } else {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              reportError(report,
+                          "%s:%zu:%zu: error: cannot apply compound %s and "
+                          "assignment operator to a "
+                          "value of type '%s' and a value of type '%s'",
+                          filename, expression->line, expression->character,
+                          expression->data.binOpExp.op == BO_ADDASSIGN
+                              ? "addition"
+                              : "subtraction",
+                          lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              return NULL;
+            }
+          }
         }
-        case BO_LSHIFTASSIGN: {
-          return NULL;
-        }
+        case BO_LSHIFTASSIGN:
         case BO_LRSHIFTASSIGN: {
-          return NULL;
+          Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                          options, filename, NULL, false);
+          Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                          options, filename, NULL, false);
+          if (lhs == NULL || rhs == NULL) {
+            return NULL;
+          }
+
+          if (!expressionIsLvalue(expression->data.binOpExp.lhs)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: attempted to assign to non-lvalue",
+                        filename, expression->line, expression->character);
+            return NULL;
+          }
+
+          bool bad = false;
+          if (!typeIsIntegral(lhs)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: attempted to apply compound %s "
+                        "shift and assignment operator on non-integral value",
+                        filename, expression->data.binOpExp.lhs->line,
+                        expression->data.binOpExp.lhs->character,
+                        expression->data.binOpExp.op == BO_LSHIFT
+                            ? "left"
+                            : "logical right");
+            bad = true;
+          }
+          if (!typeIsIntegral(rhs)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: attempted to apply compound %s "
+                        "shift and assignment operator on non-integral value",
+                        filename, expression->data.binOpExp.rhs->line,
+                        expression->data.binOpExp.rhs->character,
+                        expression->data.binOpExp.op == BO_LSHIFT
+                            ? "left"
+                            : "logical right");
+            bad = true;
+          }
+          if (bad) {
+            return NULL;
+          }
+          return expression->data.binOpExp.resultType = typeCopy(lhs);
         }
         case BO_ARSHIFTASSIGN: {
-          return NULL;
+          Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                          options, filename, NULL, false);
+          Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                          options, filename, NULL, false);
+          if (lhs == NULL || rhs == NULL) {
+            return NULL;
+          }
+
+          if (!expressionIsLvalue(expression->data.binOpExp.lhs)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: attempted to assign to non-lvalue",
+                        filename, expression->line, expression->character);
+            return NULL;
+          }
+
+          bool bad = false;
+          if (!typeIsSignedIntegral(lhs)) {
+            reportError(
+                report,
+                "%s:%zu:%zu: error: attempted to apply compound arithmetic "
+                "right "
+                "shift and assignemt operator on non-signed integral value",
+                filename, expression->data.binOpExp.lhs->line,
+                expression->data.binOpExp.lhs->character);
+            bad = true;
+          }
+          if (!typeIsIntegral(rhs)) {
+            reportError(report,
+                        "%s:%zu:%zu: error: attempted to apply compound "
+                        "arithmetic right "
+                        "shift and assignemt operator on non-integral value",
+                        filename, expression->data.binOpExp.rhs->line,
+                        expression->data.binOpExp.rhs->character);
+            bad = true;
+          }
+          if (bad) {
+            return NULL;
+          }
+          return expression->data.binOpExp.resultType = typeCopy(lhs);
         }
         case BO_BITANDASSIGN: {
-          return NULL;
+          return typecheckPlainAssignBinOp(
+              expression, typeIsIntegral, "integral", typeIsIntegral,
+              "integral", "compound bitwise and and assignment", report,
+              options, filename);
         }
         case BO_BITXORASSIGN: {
-          return NULL;
+          return typecheckPlainAssignBinOp(
+              expression, typeIsIntegral, "integral", typeIsIntegral,
+              "integral", "compound bitwise exclusive or and assignment",
+              report, options, filename);
         }
         case BO_BITORASSIGN: {
-          return NULL;
+          return typecheckPlainAssignBinOp(
+              expression, typeIsIntegral, "integral", typeIsIntegral,
+              "integral", "compound bitwise or and assignment", report, options,
+              filename);
         }
         case BO_BITAND: {
-          return typecheckPlainBinOp(expression, typeIsIntegral, typeIsIntegral,
-                                     "bitwise and", report, options, filename);
+          return typecheckPlainBinOp(expression, typeIsIntegral, "integral",
+                                     typeIsIntegral, "integral", "bitwise and",
+                                     report, options, filename);
         }
         case BO_BITOR: {
-          return typecheckPlainBinOp(expression, typeIsIntegral, typeIsIntegral,
-                                     "bitwise or", report, options, filename);
+          return typecheckPlainBinOp(expression, typeIsIntegral, "integral",
+                                     typeIsIntegral, "integral", "bitwise or",
+                                     report, options, filename);
         }
         case BO_BITXOR: {
-          return typecheckPlainBinOp(expression, typeIsIntegral, typeIsIntegral,
-                                     "bitwise exclusive or", report, options,
-                                     filename);
+          return typecheckPlainBinOp(
+              expression, typeIsIntegral, "integral", typeIsIntegral,
+              "integral", "bitwise exclusive or", report, options, filename);
         }
         case BO_SPACESHIP: {
           Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
@@ -300,7 +531,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
             reportError(
                 report,
                 "%s:%zu:%zu: error: attempted to apply arithmetic right shift "
-                "operator on non-integral value",
+                "operator on non-signed integral value",
                 filename, expression->data.binOpExp.lhs->line,
                 expression->data.binOpExp.lhs->character);
             bad = true;
@@ -373,17 +604,19 @@ static Type *typecheckExpression(Node *expression, Report *report,
           }
         }
         case BO_MUL: {
-          return typecheckPlainBinOp(expression, typeIsNumeric, typeIsNumeric,
-                                     "multiplication", report, options,
-                                     filename);
+          return typecheckPlainBinOp(expression, typeIsNumeric, "numeric",
+                                     typeIsNumeric, "numeric", "multiplication",
+                                     report, options, filename);
         }
         case BO_DIV: {
-          return typecheckPlainBinOp(expression, typeIsNumeric, typeIsNumeric,
-                                     "division", report, options, filename);
+          return typecheckPlainBinOp(expression, typeIsNumeric, "numeric",
+                                     typeIsNumeric, "numeric", "division",
+                                     report, options, filename);
         }
         case BO_MOD: {
-          return typecheckPlainBinOp(expression, typeIsIntegral, typeIsIntegral,
-                                     "modulo", report, options, filename);
+          return typecheckPlainBinOp(expression, typeIsIntegral, "integral",
+                                     typeIsIntegral, "integral", "modulo",
+                                     report, options, filename);
         }
         case BO_ARRAYACCESS: {
           Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
@@ -546,13 +779,52 @@ static Type *typecheckExpression(Node *expression, Report *report,
                    keywordTypeCreate(K_BOOL);
       }
     }
-    case NT_LANDASSIGNEXP: {
-      // TODO: write this
-      return NULL;
-    }
+    case NT_LANDASSIGNEXP:
     case NT_LORASSIGNEXP: {
-      // TODO: write this
-      return NULL;
+      Node *lhs = expression->type == NT_LANDEXP ? expression->data.landExp.lhs
+                                                 : expression->data.lorExp.lhs;
+      Node *rhs = expression->type == NT_LANDEXP ? expression->data.landExp.rhs
+                                                 : expression->data.lorExp.rhs;
+      Type *lhsType =
+          typecheckExpression(lhs, report, options, filename, NULL, false);
+      Type *rhsType =
+          typecheckExpression(rhs, report, options, filename, NULL, false);
+      if (lhsType == NULL || rhsType == NULL) {
+        return NULL;
+      }
+
+      if (!expressionIsLvalue(expression->data.binOpExp.lhs)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: attempted to assign to non-lvalue",
+                    filename, expression->line, expression->character);
+        return NULL;
+      }
+
+      bool bad = false;
+      if (!typeIsBoolean(lhsType)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: attempted to apply a compound logical "
+                    "%s and assignment to a non-boolean",
+                    filename, lhs->line, lhs->character,
+                    expression->type == NT_LANDEXP ? "and" : "or");
+        bad = true;
+      }
+      if (!typeIsBoolean(rhsType)) {
+        reportError(report,
+                    "%s:%zu:%zu: error: attempted to apply a compound logical "
+                    "%s and assignment to a non-boolean",
+                    filename, rhs->line, rhs->character,
+                    expression->type == NT_LANDEXP ? "and" : "or");
+        bad = true;
+      }
+
+      if (bad) {
+        return NULL;
+      } else {
+        return expression->type == NT_LANDEXP
+                   ? (expression->data.landExp.resultType = typeCopy(lhsType))
+                   : (expression->data.lorExp.resultType = typeCopy(lhsType));
+      }
     }
     case NT_TERNARYEXP: {
       Type *condition =
@@ -622,12 +894,15 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     expression->type == NT_LANDEXP ? "and" : "or");
         bad = true;
       }
-      if (expression->type == NT_LANDEXP) {
-        return expression->data.landExp.resultType =
-                   bad ? NULL : keywordTypeCreate(K_BOOL);
+
+      if (bad) {
+        return NULL;
       } else {
-        return expression->data.lorExp.resultType =
-                   bad ? NULL : keywordTypeCreate(K_BOOL);
+        return expression->type == NT_LANDEXP
+                   ? (expression->data.landExp.resultType =
+                          keywordTypeCreate(K_BOOL))
+                   : (expression->data.lorExp.resultType =
+                          keywordTypeCreate(K_BOOL));
       }
     }
     case NT_STRUCTACCESSEXP: {
