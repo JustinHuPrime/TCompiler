@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
   if (versionRequested((size_t)argc, argv)) {
     printf(
         "T Language Compiler (tlc) version 0.0.1\n"
-        "Copyright 2019 Justin Hu\n"
+        "Copyright 2019 Justin Hu and Bronwyn Damm\n"
         "This software is licensed under the Apache License, Version 2.0.\n"
         "See the \"LICENSE\" file for copying conditions.\n"
         "This software is distributed on an \"AS IS\" BASIS, WITHOUT "
