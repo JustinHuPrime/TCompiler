@@ -176,15 +176,15 @@ void overloadSetInit(OverloadSet *);
 void overloadSetInsert(OverloadSet *, OverloadSetElement *);
 // lookup
 // finds a single one that potentially collides
-OverloadSetElement *overloadSetLookupCollision(OverloadSet *,
+OverloadSetElement *overloadSetLookupCollision(OverloadSet const *,
                                                TypeVector const *argTypes,
                                                size_t numOptional);
 // finds a single one that matches the argument types (ignoring defaults)
 // exactly
-OverloadSetElement *overloadSetLookupDefinition(OverloadSet *,
+OverloadSetElement *overloadSetLookupDefinition(OverloadSet const *,
                                                 TypeVector const *argTypes);
 // finds all that fit this set of arguments - multiple indicates ambiguity
-OverloadSet *overloadSetLookupCall(OverloadSet *, TypeVector const *argTypes);
+Vector *overloadSetLookupCall(OverloadSet const *, TypeVector const *argTypes);
 // dtor
 void overloadSetUninit(OverloadSet *);
 

@@ -443,7 +443,7 @@ void overloadSetInit(OverloadSet *set) { vectorInit(set); }
 void overloadSetInsert(OverloadSet *set, OverloadSetElement *elm) {
   vectorInsert(set, elm);
 }
-OverloadSetElement *overloadSetLookupCollision(OverloadSet *set,
+OverloadSetElement *overloadSetLookupCollision(OverloadSet const *set,
                                                TypeVector const *argTypes,
                                                size_t numOptional) {
   for (size_t candidateIdx = 0; candidateIdx < set->size; candidateIdx++) {
@@ -479,7 +479,7 @@ OverloadSetElement *overloadSetLookupCollision(OverloadSet *set,
 
   return NULL;
 }
-OverloadSetElement *overloadSetLookupDefinition(OverloadSet *set,
+OverloadSetElement *overloadSetLookupDefinition(OverloadSet const *set,
                                                 TypeVector const *argTypes) {
   for (size_t candidateIdx = 0; candidateIdx < set->size; candidateIdx++) {
     OverloadSetElement *candidate = set->elements[candidateIdx];
@@ -499,6 +499,10 @@ OverloadSetElement *overloadSetLookupDefinition(OverloadSet *set,
   }
 
   return NULL;
+}
+Vector *overloadSetLookupCall(OverloadSet const *set,
+                              TypeVector const *argTypes) {
+  return NULL;  // TODO: write this
 }
 void overloadSetUninit(OverloadSet *set) {
   vectorUninit(set, (void (*)(void *))overloadSetElementDestroy);
