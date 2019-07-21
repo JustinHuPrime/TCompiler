@@ -502,7 +502,28 @@ OverloadSetElement *overloadSetLookupDefinition(OverloadSet const *set,
 }
 Vector *overloadSetLookupCall(OverloadSet const *set,
                               TypeVector const *argTypes) {
-  return NULL;  // TODO: write this
+  Vector *candidates = vectorCreate();
+
+  for (size_t candidateIdx = 0; candidateIdx < set->size; candidateIdx++) {
+    OverloadSetElement *candidate = set->elements[candidateIdx];
+    if (candidate->argumentTypes.size <= argTypes->size &&
+        candidate->argumentTypes.size - argTypes->size <=
+            candidate->numOptional) {
+      bool good = true;
+      for (size_t idx = 0; idx < argTypes->size; idx++) {
+        if (!typeAssignable(candidate->argumentTypes.elements[idx],
+                            argTypes->elements[idx])) {
+          good = false;
+          break;
+        }
+      }
+      if (good) {
+        vectorInsert(candidates, candidate);
+      }
+    }
+  }
+
+  return candidates;
 }
 void overloadSetUninit(OverloadSet *set) {
   vectorUninit(set, (void (*)(void *))overloadSetElementDestroy);
