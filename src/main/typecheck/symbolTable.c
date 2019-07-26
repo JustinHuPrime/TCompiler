@@ -255,8 +255,317 @@ bool typeEqual(Type const *t1, Type const *t2) {
     }
   }
 }
-bool typeAssignable(Type const *to, Type const *from) {
+static bool pointerAssignable(Type const *pointedTo, Type const *pointedFrom) {
   return false;  // TODO: write this
+}
+bool typeAssignable(Type const *to, Type const *from) {
+  switch (to->kind) {
+    case K_VOID: {
+      return false;
+    }
+    case K_UBYTE: {
+      switch (from->kind) {
+        case K_UBYTE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_BYTE: {
+      switch (from->kind) {
+        case K_BYTE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_CHAR: {
+      switch (from->kind) {
+        case K_CHAR: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_USHORT: {
+      switch (from->kind) {
+        case K_UBYTE:
+        case K_USHORT: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_SHORT: {
+      switch (from->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_SHORT: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_UINT: {
+      switch (from->kind) {
+        case K_UBYTE:
+        case K_USHORT:
+        case K_UINT: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_INT: {
+      switch (from->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_INT: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_WCHAR: {
+      switch (from->kind) {
+        case K_CHAR:
+        case K_WCHAR: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_ULONG: {
+      switch (from->kind) {
+        case K_UBYTE:
+        case K_USHORT:
+        case K_UINT:
+        case K_ULONG: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_LONG: {
+      switch (from->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_LONG: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_FLOAT: {
+      switch (from->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_DOUBLE: {
+      switch (from->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_BOOL: {
+      switch (from->kind) {
+        case K_BOOL: {
+          return true;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_STRUCT: {
+      switch (from->kind) {
+        case K_STRUCT: {
+          return from->data.reference.referenced ==
+                 to->data.reference.referenced;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        case K_AGGREGATE_INIT: {
+          TypeVector *fields =
+              &to->data.reference.referenced->data.type.data.structType.fields;
+          TypeVector *elements = from->data.aggregateInit.elementTypes;
+          if (fields->size == elements->size) {
+            for (size_t idx = 0; idx < fields->size; idx++) {
+              if (!typeAssignable(fields->elements[idx],
+                                  elements->elements[idx])) {
+                return false;
+              }
+            }
+            return true;
+          } else {
+            return false;
+          }
+        }
+        default: { return false; }
+      }
+    }
+    case K_UNION: {
+      switch (from->kind) {
+        case K_UNION: {
+          return from->data.reference.referenced ==
+                 to->data.reference.referenced;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_ENUM: {
+      switch (from->kind) {
+        case K_ENUM: {
+          return from->data.reference.referenced ==
+                 to->data.reference.referenced;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_TYPEDEF: {
+      switch (from->kind) {
+        case K_TYPEDEF: {
+          return from->data.reference.referenced ==
+                 to->data.reference.referenced;
+        }
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_CONST: {
+      return false;
+    }
+    case K_ARRAY: {
+      switch (from->kind) {
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        case K_ARRAY: {
+          return from->data.array.size == to->data.array.size &&
+                 typeAssignable(to->data.array.type, from->data.array.type);
+        }
+        case K_AGGREGATE_INIT: {
+          if (from->data.aggregateInit.elementTypes->size ==
+              to->data.array.size) {
+            for (size_t idx = 0; idx < to->data.array.size; idx++) {
+              if (!typeAssignable(
+                      to->data.array.type,
+                      from->data.aggregateInit.elementTypes->elements[idx])) {
+                return false;
+              }
+            }
+            return true;
+          } else {
+            return false;
+          }
+        }
+        default: { return false; }
+      }
+    }
+    case K_PTR: {
+      switch (from->kind) {
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        case K_PTR: {
+          return pointerAssignable(to->data.modifier.type,
+                                   from->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_FUNCTION_PTR: {
+      switch (from->kind) {
+        case K_CONST: {
+          return typeAssignable(to, from->data.modifier.type);
+        }
+        case K_FUNCTION_PTR: {
+          return typeEqual(to, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_AGGREGATE_INIT: {
+      return false;
+    }
+    default: {
+      return false;  // not a valid enum
+    }
+  }
 }
 bool typeComparable(Type const *a, Type const *b) {
   return false;  // TODO: write this
@@ -504,6 +813,7 @@ Vector *overloadSetLookupCall(OverloadSet const *set,
                               TypeVector const *argTypes) {
   Vector *candidates = vectorCreate();
 
+  // exact matches
   for (size_t candidateIdx = 0; candidateIdx < set->size; candidateIdx++) {
     OverloadSetElement *candidate = set->elements[candidateIdx];
     if (candidate->argumentTypes.size <= argTypes->size &&
@@ -511,8 +821,33 @@ Vector *overloadSetLookupCall(OverloadSet const *set,
             candidate->numOptional) {
       bool good = true;
       for (size_t idx = 0; idx < argTypes->size; idx++) {
-        if (!typeAssignable(candidate->argumentTypes.elements[idx],
-                            argTypes->elements[idx])) {
+        if (!typeEqual(typeGetNonConst(candidate->argumentTypes.elements[idx]),
+                       typeGetNonConst(argTypes->elements[idx]))) {
+          good = false;
+          break;
+        }
+      }
+      if (good) {
+        vectorInsert(candidates, candidate);
+      }
+    }
+  }
+  // has exact match(es)
+  if (candidates->size > 0) {
+    return candidates;
+  }
+
+  // inexact matches
+  for (size_t candidateIdx = 0; candidateIdx < set->size; candidateIdx++) {
+    OverloadSetElement *candidate = set->elements[candidateIdx];
+    if (candidate->argumentTypes.size <= argTypes->size &&
+        candidate->argumentTypes.size - argTypes->size <=
+            candidate->numOptional) {
+      bool good = true;
+      for (size_t idx = 0; idx < argTypes->size; idx++) {
+        if (!typeAssignable(
+                typeGetNonConst(candidate->argumentTypes.elements[idx]),
+                argTypes->elements[idx])) {
           good = false;
           break;
         }
