@@ -256,7 +256,17 @@ bool typeEqual(Type const *t1, Type const *t2) {
   }
 }
 static bool pointerAssignable(Type const *pointedTo, Type const *pointedFrom) {
-  return false;  // TODO: write this
+  if (pointedFrom->kind == K_CONST) {
+    return pointedTo->kind == K_CONST &&
+           pointerAssignable(pointedTo->data.modifier.type,
+                             pointedFrom->data.modifier.type);
+  } else if (pointedTo->kind == K_CONST) {
+    return pointerAssignable(pointedTo->data.modifier.type, pointedFrom);
+  } else if (pointedFrom->kind == K_VOID || pointedTo->kind == K_VOID) {
+    return true;
+  } else {
+    return typeEqual(pointedTo, pointedFrom);
+  }
 }
 bool typeAssignable(Type const *to, Type const *from) {
   switch (to->kind) {

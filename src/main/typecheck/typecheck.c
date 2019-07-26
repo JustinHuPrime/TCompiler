@@ -1170,7 +1170,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
         OverloadSet *overloadSet = &info->data.function.overloadSet;
         if (directCall) {
           Vector *candidateCalls = overloadSetLookupCall(overloadSet, argTypes);
-          if (candidateCalls->size > 1) { // TODO: can we disambiguate further?
+          if (candidateCalls->size > 1) {  // TODO: can we disambiguate further?
             reportError(report,
                         "%s:%zu:%zu: error: function call has multiple "
                         "overload candidates",
