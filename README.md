@@ -64,6 +64,8 @@ The option `--debug-dump` can be set to 3 values:
 
 * `--debug-dump=parse-pretty`: dumps the results of the parse phase, as a pretty-printed T program
 
+* `--debug-dump=ir`: dumps the results of the translate to IR phase
+
 ## Limits
 
 Since the T compiler must read the 'module' line from every file, it keeps all specified declaration files open. Currently, this means that the compiler is limited by the number of open files permitted by your operating system.

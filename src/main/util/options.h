@@ -69,6 +69,7 @@ typedef enum {
   O_DD_LEX,
   O_DD_PARSE_STRUCTURE,
   O_DD_PARSE_PRETTY,
+  O_DD_IR,
 } DebugDumpMode;
 extern char const *optionDebugDump;
 
