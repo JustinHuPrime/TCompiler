@@ -18,9 +18,7 @@
 
 #include "ast/printer.h"
 
-#include <assert.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 static double punToDouble(uint64_t bits) {
   union {
