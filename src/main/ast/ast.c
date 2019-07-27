@@ -145,6 +145,9 @@ char const *constTypeToString(ConstType ct) {
 uint64_t const UBYTE_MAX = 255;
 uint64_t const BYTE_MAX = 127;
 uint64_t const BYTE_MIN = 128;
+uint64_t const USHORT_MAX = 65535;
+uint64_t const SHORT_MAX = 32767;
+uint64_t const SHORT_MIN = 32768;
 uint64_t const UINT_MAX = 4294967295;
 uint64_t const INT_MAX = 2147483647;
 uint64_t const INT_MIN = 2147483648;
@@ -521,6 +524,9 @@ static Node *constIntExpSetValue(Node *node, Sign sign, bool overflow,
         if (value <= UBYTE_MAX) {
           node->data.constExp.type = CT_UBYTE;
           node->data.constExp.value.ubyteVal = (uint8_t)value;
+        } else if (value <= USHORT_MAX) {
+          node->data.constExp.type = CT_USHORT;
+          node->data.constExp.value.ushortVal = (uint16_t)value;
         } else if (value <= UINT_MAX) {
           node->data.constExp.type = CT_UINT;
           node->data.constExp.value.uintVal = (uint32_t)value;
@@ -536,6 +542,9 @@ static Node *constIntExpSetValue(Node *node, Sign sign, bool overflow,
         if (value <= BYTE_MAX) {
           node->data.constExp.type = CT_BYTE;
           node->data.constExp.value.byteVal = (int8_t)value;
+        } else if (value <= SHORT_MAX) {
+          node->data.constExp.type = CT_SHORT;
+          node->data.constExp.value.shortVal = (int16_t)value;
         } else if (value <= INT_MAX) {
           node->data.constExp.type = CT_INT;
           node->data.constExp.value.intVal = (int32_t)value;
@@ -551,6 +560,9 @@ static Node *constIntExpSetValue(Node *node, Sign sign, bool overflow,
         if (value <= BYTE_MIN) {
           node->data.constExp.type = CT_BYTE;
           node->data.constExp.value.byteVal = (int8_t)-value;
+        } else if (value <= SHORT_MIN) {
+          node->data.constExp.type = CT_SHORT;
+          node->data.constExp.value.shortVal = (int16_t)-value;
         } else if (value <= INT_MIN) {
           node->data.constExp.type = CT_INT;
           node->data.constExp.value.intVal = (int32_t)-value;

@@ -111,7 +111,7 @@ static Type *typecheckPlainBinOp(Node *expression, bool (*lhsReq)(Type const *),
     return NULL;
   }
 
-  expression->data.binOpExp.resultType = typeArithmeticExpMerge(lhs, rhs);
+  expression->data.binOpExp.resultType = typeExpMerge(lhs, rhs);
   if (expression->data.binOpExp.resultType == NULL) {
     char *lhsString = typeToString(lhs);
     char *rhsString = typeToString(rhs);
@@ -167,7 +167,7 @@ static Type *typecheckPlainAssignBinOp(
     return NULL;
   }
 
-  Type *resultType = typeArithmeticExpMerge(lhs, rhs);
+  Type *resultType = typeExpMerge(lhs, rhs);
   if (resultType == NULL) {
     char *lhsString = typeToString(lhs);
     char *rhsString = typeToString(rhs);
@@ -282,7 +282,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
           }
 
           if (typeIsNumeric(lhs) && typeIsNumeric(rhs)) {
-            Type *resultType = typeArithmeticExpMerge(lhs, rhs);
+            Type *resultType = typeExpMerge(lhs, rhs);
             if (expression->data.binOpExp.resultType == NULL) {
               char *lhsString = typeToString(lhs);
               char *rhsString = typeToString(rhs);
@@ -402,8 +402,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
             reportError(
                 report,
                 "%s:%zu:%zu: error: attempted to apply compound arithmetic "
-                "right "
-                "shift and assignemt operator on non-signed integral value",
+                "right shift and assignemt operator on non-signed integral "
+                "value",
                 filename, expression->data.binOpExp.lhs->line,
                 expression->data.binOpExp.lhs->character);
             bad = true;
@@ -411,8 +411,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
           if (!typeIsIntegral(rhs)) {
             reportError(report,
                         "%s:%zu:%zu: error: attempted to apply compound "
-                        "arithmetic right "
-                        "shift and assignemt operator on non-integral value",
+                        "arithmetic right shift and assignemt operator on "
+                        "non-integral value",
                         filename, expression->data.binOpExp.rhs->line,
                         expression->data.binOpExp.rhs->character);
             bad = true;
@@ -563,15 +563,13 @@ static Type *typecheckExpression(Node *expression, Report *report,
           }
 
           if (typeIsNumeric(lhs) && typeIsNumeric(rhs)) {
-            expression->data.binOpExp.resultType =
-                typeArithmeticExpMerge(lhs, rhs);
+            expression->data.binOpExp.resultType = typeExpMerge(lhs, rhs);
             if (expression->data.binOpExp.resultType == NULL) {
               char *lhsString = typeToString(lhs);
               char *rhsString = typeToString(rhs);
               reportError(report,
                           "%s:%zu:%zu: error: cannot apply %s operator to a "
-                          "value of type "
-                          "'%s' with a value of type '%s'",
+                          "value of type '%s' with a value of type '%s'",
                           filename, expression->line, expression->character,
                           expression->data.binOpExp.op == BO_ADD
                               ? "addition"
@@ -668,6 +666,13 @@ static Type *typecheckExpression(Node *expression, Report *report,
             reportError(
                 report,
                 "%s:%zu:%zu: error: attempted to dereference a non-pointer",
+                filename, expression->line, expression->character);
+            return NULL;
+          } else if (typeGetNonConst(target->data.modifier.type)->kind ==
+                     K_VOID) {
+            reportError(
+                report,
+                "%s:%zu:%zu: error: attempted to dereference a void pointer",
                 filename, expression->line, expression->character);
             return NULL;
           } else {
@@ -851,8 +856,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
         bad = true;
       }
 
-      expression->data.ternaryExp.resultType =
-          typeTernaryExpMerge(thenExp, elseExp);
+      expression->data.ternaryExp.resultType = typeExpMerge(thenExp, elseExp);
       if (expression->data.ternaryExp.resultType == NULL) {
         reportError(report,
                     "%s:%zu:%zu: error: conflicting types in branches of "
@@ -1170,7 +1174,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
         OverloadSet *overloadSet = &info->data.function.overloadSet;
         if (directCall) {
           Vector *candidateCalls = overloadSetLookupCall(overloadSet, argTypes);
-          if (candidateCalls->size > 1) {  // TODO: can we disambiguate further?
+          if (candidateCalls->size > 1) {
             reportError(report,
                         "%s:%zu:%zu: error: function call has multiple "
                         "overload candidates",

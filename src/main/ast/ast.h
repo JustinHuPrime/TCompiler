@@ -458,6 +458,9 @@ typedef struct Node {
 extern uint64_t const UBYTE_MAX;
 extern uint64_t const BYTE_MAX;
 extern uint64_t const BYTE_MIN;
+extern uint64_t const USHORT_MAX;
+extern uint64_t const SHORT_MAX;
+extern uint64_t const SHORT_MIN;
 extern uint64_t const UINT_MAX;
 extern uint64_t const INT_MAX;
 extern uint64_t const INT_MIN;

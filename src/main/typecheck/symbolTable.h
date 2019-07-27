@@ -139,10 +139,8 @@ bool typeIsFunctionPointer(Type const *);
 bool typeIsPointer(Type const *);
 bool typeIsCompound(Type const *);
 bool typeIsArray(Type const *);
-// merge types from conditional branches
-Type *typeTernaryExpMerge(Type const *, Type const *);
-// merge types from arithmetic branches
-Type *typeArithmeticExpMerge(Type const *, Type const *);
+// merge types from conditional or arithmetic branches
+Type *typeExpMerge(Type const *, Type const *);
 // strip constness off of start of type, non-destructively
 Type *typeGetNonConst(Type *);
 // strip pointerness and constness off of start of type, produces new type
@@ -212,6 +210,7 @@ typedef struct SymbolInfo {
     } var;
     struct {
       TypeDefinitionKind kind;
+      char const *name;
       union {
         struct {
           bool incomplete;
@@ -242,10 +241,10 @@ typedef struct SymbolInfo {
 } SymbolInfo;
 // ctor
 SymbolInfo *varSymbolInfoCreate(Type *, bool bound);
-SymbolInfo *structSymbolInfoCreate(void);
-SymbolInfo *unionSymbolInfoCreate(void);
-SymbolInfo *enumSymbolInfoCreate(void);
-SymbolInfo *typedefSymbolInfoCreate(Type *);
+SymbolInfo *structSymbolInfoCreate(char const *name);
+SymbolInfo *unionSymbolInfoCreate(char const *name);
+SymbolInfo *enumSymbolInfoCreate(char const *name);
+SymbolInfo *typedefSymbolInfoCreate(Type *type, char const *name);
 SymbolInfo *functionSymbolInfoCreate(void);
 SymbolInfo *symbolInfoCopy(SymbolInfo const *);
 // printing

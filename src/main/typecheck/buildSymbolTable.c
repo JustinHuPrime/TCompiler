@@ -110,8 +110,16 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
           return NULL;  // error: mutation in const ptr
         }
       }
-      Type *subType = astToType(ast->data.arrayType.element, report, options,
-                                env, filename);
+      Node *element = ast->data.arrayType.element;
+      Type *subType = astToType(element, report, options, env, filename);
+      if (subType->kind == K_CONST) {
+        reportError(report,
+                    "%s:%zu:%zu: error: may not have constant array elements, "
+                    "only a constant array",
+                    filename, element->line, element->character);
+        typeDestroy(subType);
+        return NULL;
+      }
       return subType == NULL ? NULL : arrayTypeCreate(subType, size);
     }
     case NT_PTRTYPE: {
@@ -833,7 +841,8 @@ static void buildStabStructOrUnionDecl(Node *decl, bool isStruct,
     return;
   } else if (info == NULL) {
     // new struct declaration
-    info = (isStruct ? structSymbolInfoCreate : unionSymbolInfoCreate)();
+    info = (isStruct ? structSymbolInfoCreate
+                     : unionSymbolInfoCreate)(name->data.id.id);
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   } else if (!(isStruct ? info->data.type.data.structType.incomplete
                         : info->data.type.data.unionType.incomplete)) {
@@ -917,7 +926,8 @@ static void buildStabStructOrUnionForwardDecl(Node *forwardDecl, bool isStruct,
       }
     }
   } else {
-    info = (isStruct ? structSymbolInfoCreate : unionSymbolInfoCreate)();
+    info = (isStruct ? structSymbolInfoCreate
+                     : unionSymbolInfoCreate)(name->data.id.id);
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   }
 
@@ -939,7 +949,7 @@ static void buildStabEnumDecl(Node *enumDecl, Report *report,
     return;
   } else if (info == NULL) {
     // new enum declaration
-    info = enumSymbolInfoCreate();
+    info = enumSymbolInfoCreate(name->data.id.id);
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   } else if (!info->data.type.data.enumType.incomplete) {
     // already declared
@@ -991,7 +1001,7 @@ static void buildStabEnumForwardDecl(Node *enumForwardDecl, Report *report,
       }
     }
   } else {
-    info = enumSymbolInfoCreate();
+    info = enumSymbolInfoCreate(name->data.id.id);
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   }
 
@@ -1022,7 +1032,7 @@ static void buildStabTypedefDecl(Node *typedefDecl, Report *report,
     }
 
     checkId(name, report, options, filename);
-    info = typedefSymbolInfoCreate(type);
+    info = typedefSymbolInfoCreate(type, name->data.id.id);
     name->data.id.symbol = info;
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   }

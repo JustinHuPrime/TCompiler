@@ -18,6 +18,8 @@
 
 #include "typecheck/symbolTable.h"
 
+#include "ast/ast.h"
+#include "util/format.h"
 #include "util/functional.h"
 #include "util/nameUtils.h"
 
@@ -578,19 +580,1313 @@ bool typeAssignable(Type const *to, Type const *from) {
   }
 }
 bool typeComparable(Type const *a, Type const *b) {
-  return false;  // TODO: write this
+  if (a->kind == K_VOID || b->kind == K_VOID || a->kind == K_AGGREGATE_INIT ||
+      b->kind == K_AGGREGATE_INIT) {
+    return false;
+  }
+  switch (a->kind) {
+    case K_UBYTE: {
+      switch (b->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_BYTE: {
+      switch (b->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_CHAR: {
+      switch (b->kind) {
+        case K_CHAR:
+        case K_WCHAR: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_USHORT: {
+      switch (b->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_SHORT: {
+      switch (b->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_UINT: {
+      switch (b->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_INT: {
+      switch (b->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_WCHAR: {
+      switch (b->kind) {
+        case K_CHAR:
+        case K_WCHAR: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_ULONG: {
+      switch (b->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_LONG: {
+      switch (b->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_FLOAT: {
+      switch (b->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_DOUBLE: {
+      switch (b->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_BOOL: {
+      switch (b->kind) {
+        case K_BOOL: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_STRUCT: {
+      switch (b->kind) {
+        case K_STRUCT: {
+          return a->data.reference.referenced == b->data.reference.referenced;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_UNION: {
+      switch (b->kind) {
+        case K_UNION: {
+          return a->data.reference.referenced == b->data.reference.referenced;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_ENUM: {
+      switch (b->kind) {
+        case K_ENUM: {
+          return a->data.reference.referenced == b->data.reference.referenced;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_TYPEDEF: {
+      switch (b->kind) {
+        case K_TYPEDEF: {
+          return a->data.reference.referenced == b->data.reference.referenced;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_CONST: {
+      return typeComparable(a->data.modifier.type, b);
+    }
+    case K_ARRAY: {
+      switch (b->kind) {
+        case K_ARRAY: {
+          return typeEqual(a, b);
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_PTR: {
+      switch (b->kind) {
+        case K_PTR: {
+          return true;
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    case K_FUNCTION_PTR: {
+      switch (b->kind) {
+        case K_FUNCTION_PTR: {
+          return typeEqual(a, b);
+        }
+        case K_CONST: {
+          return typeComparable(a, b->data.modifier.type);
+        }
+        default: { return false; }
+      }
+    }
+    default: {
+      return false;  // not a valid enum!
+    }
+  }
 }
 bool typeCastable(Type const *to, Type const *from) {
-  return false;  // TODO: write this
+  if (to->kind == K_AGGREGATE_INIT || to->kind == K_VOID ||
+      from->kind == K_VOID) {
+    return false;
+  }
+  switch (from->kind) {
+    case K_UBYTE:
+    case K_BYTE:
+    case K_USHORT:
+    case K_SHORT:
+    case K_UINT:
+    case K_INT:
+    case K_ULONG:
+    case K_LONG: {
+      switch (to->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_CHAR:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_WCHAR:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE:
+        case K_BOOL:
+        case K_ENUM: {
+          return true;
+        }
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return typeCastable(
+              to->data.reference.referenced->data.type.data.typedefType.type,
+              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_CHAR:
+    case K_WCHAR: {
+      switch (to->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_CHAR:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_WCHAR:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE:
+        case K_BOOL: {
+          return true;
+        }
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return typeCastable(
+              to->data.reference.referenced->data.type.data.typedefType.type,
+              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_FLOAT:
+    case K_DOUBLE: {
+      switch (to->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_FLOAT:
+        case K_DOUBLE:
+        case K_BOOL: {
+          return true;
+        }
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return typeCastable(
+              to->data.reference.referenced->data.type.data.typedefType.type,
+              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_BOOL: {
+      switch (to->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_ULONG:
+        case K_LONG:
+        case K_BOOL: {
+          return true;
+        }
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return typeCastable(
+              to->data.reference.referenced->data.type.data.typedefType.type,
+              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_STRUCT: {
+      switch (to->kind) {
+        case K_STRUCT: {
+          return to->data.reference.referenced ==
+                 from->data.reference.referenced;
+        }
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return typeCastable(
+              to->data.reference.referenced->data.type.data.typedefType.type,
+              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_UNION: {
+      TypeVector *myTypes =
+          &from->data.reference.referenced->data.type.data.unionType.fields;
+      for (size_t idx = 0; idx < myTypes->size; idx++) {
+        if (typeCastable(to, myTypes->elements[idx])) {
+          return true;
+        }
+      }
+      switch (to->kind) {
+        case K_UNION: {
+          if (to->data.reference.referenced ==
+              from->data.reference.referenced) {
+            return true;
+          }
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return typeCastable(
+              to->data.reference.referenced->data.type.data.typedefType.type,
+              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_ENUM: {
+      switch (to->kind) {
+        case K_UBYTE: {
+          return from->data.reference.referenced->data.type.data.enumType.fields
+                     .size <= UBYTE_MAX;
+        }
+        case K_BYTE: {
+          return from->data.reference.referenced->data.type.data.enumType.fields
+                     .size <= BYTE_MAX;
+        }
+        case K_USHORT: {
+          return from->data.reference.referenced->data.type.data.enumType.fields
+                     .size <= USHORT_MAX;
+        }
+        case K_SHORT: {
+          return from->data.reference.referenced->data.type.data.enumType.fields
+                     .size <= SHORT_MAX;
+        }
+        case K_UINT: {
+          return from->data.reference.referenced->data.type.data.enumType.fields
+                     .size <= UINT_MAX;
+        }
+        case K_INT: {
+          return from->data.reference.referenced->data.type.data.enumType.fields
+                     .size <= INT_MAX;
+        }
+        case K_ULONG: {
+          return from->data.reference.referenced->data.type.data.enumType.fields
+                     .size <= ULONG_MAX;
+        }
+        case K_LONG: {
+          return from->data.reference.referenced->data.type.data.enumType.fields
+                     .size <= LONG_MAX;
+        }
+        case K_ENUM: {
+          return to->data.reference.referenced ==
+                 from->data.reference.referenced;
+        }
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return typeCastable(
+              to->data.reference.referenced->data.type.data.typedefType.type,
+              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_TYPEDEF: {
+      if (typeCastable(to, from->data.reference.referenced->data.type.data
+                               .typedefType.type)) {
+        return true;
+      }
+      switch (to->kind) {
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return to->data.reference.referenced ==
+                     from->data.reference.referenced ||
+                 typeCastable(to->data.reference.referenced->data.type.data
+                                  .typedefType.type,
+                              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_CONST: {
+      switch (to->kind) {
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return to->data.reference.referenced ==
+                     from->data.reference.referenced ||
+                 typeCastable(to->data.reference.referenced->data.type.data
+                                  .typedefType.type,
+                              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from) ||
+                 typeCastable(to, from->data.modifier.type);
+        }
+        default: { return typeCastable(to, from->data.modifier.type); }
+      }
+    }
+    case K_ARRAY: {
+      switch (to->kind) {
+        case K_ARRAY: {
+          return to->data.array.size == from->data.array.size &&
+                 typeCastable(to->data.array.type, from->data.array.type);
+        }
+        case K_PTR: {
+          return pointerAssignable(to->data.modifier.type,
+                                   from->data.array.type);
+        }
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return to->data.reference.referenced ==
+                     from->data.reference.referenced ||
+                 typeCastable(to->data.reference.referenced->data.type.data
+                                  .typedefType.type,
+                              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_PTR: {
+      switch (to->kind) {
+        case K_PTR: {
+          return true;
+        }
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return to->data.reference.referenced ==
+                     from->data.reference.referenced ||
+                 typeCastable(to->data.reference.referenced->data.type.data
+                                  .typedefType.type,
+                              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_FUNCTION_PTR: {
+      switch (to->kind) {
+        case K_FUNCTION_PTR: {
+          return true;
+        }
+        case K_UNION: {
+          TypeVector *possibleTypes =
+              &to->data.reference.referenced->data.type.data.unionType.fields;
+          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
+            if (typeCastable(possibleTypes->elements[idx], from)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        case K_TYPEDEF: {
+          return to->data.reference.referenced ==
+                     from->data.reference.referenced ||
+                 typeCastable(to->data.reference.referenced->data.type.data
+                                  .typedefType.type,
+                              from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        default: { return false; }
+      }
+    }
+    case K_AGGREGATE_INIT: {
+      switch (to->kind) {
+        case K_STRUCT: {
+          return typeAssignable(to, from);
+        }
+        case K_CONST: {
+          return typeCastable(to->data.modifier.type, from);
+        }
+        case K_ARRAY: {
+          return typeAssignable(to, from);
+        }
+        default: { return false; }
+      }
+    }
+    default: {
+      return false;  // not a valid enum
+    }
+  }
 }
-Type *typeTernaryExpMerge(Type const *lhs, Type const *rhs) {
-  return NULL;  // TODO: write this
+Type *typeExpMerge(Type const *lhs, Type const *rhs) {
+  if (lhs->kind == K_VOID || rhs->kind == K_VOID) {
+    return NULL;
+  }
+  switch (lhs->kind) {
+    case K_UBYTE: {
+      switch (rhs->kind) {
+        case K_UBYTE: {
+          return keywordTypeCreate(K_UBYTE);
+        }
+        case K_BYTE:
+        case K_SHORT: {
+          return keywordTypeCreate(K_SHORT);
+        }
+        case K_USHORT: {
+          return keywordTypeCreate(K_USHORT);
+        }
+        case K_UINT: {
+          return keywordTypeCreate(K_UINT);
+        }
+        case K_INT: {
+          return keywordTypeCreate(K_INT);
+        }
+        case K_ULONG: {
+          return keywordTypeCreate(K_ULONG);
+        }
+        case K_LONG: {
+          return keywordTypeCreate(K_LONG);
+        }
+        case K_FLOAT: {
+          return keywordTypeCreate(K_FLOAT);
+        }
+        case K_DOUBLE: {
+          return keywordTypeCreate(K_DOUBLE);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_BYTE: {
+      switch (rhs->kind) {
+        case K_UBYTE:
+        case K_SHORT: {
+          return keywordTypeCreate(K_SHORT);
+        }
+        case K_BYTE: {
+          return keywordTypeCreate(K_BYTE);
+        }
+        case K_USHORT:
+        case K_INT: {
+          return keywordTypeCreate(K_INT);
+        }
+        case K_UINT:
+        case K_LONG: {
+          return keywordTypeCreate(K_LONG);
+        }
+        case K_FLOAT: {
+          return keywordTypeCreate(K_FLOAT);
+        }
+        case K_DOUBLE: {
+          return keywordTypeCreate(K_DOUBLE);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_CHAR: {
+      switch (rhs->kind) {
+        case K_CHAR: {
+          return keywordTypeCreate(K_CHAR);
+        }
+        case K_WCHAR: {
+          return keywordTypeCreate(K_WCHAR);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_USHORT: {
+      switch (rhs->kind) {
+        case K_UBYTE:
+        case K_USHORT: {
+          return keywordTypeCreate(K_USHORT);
+        }
+        case K_BYTE:
+        case K_SHORT: {
+          return keywordTypeCreate(K_INT);
+        }
+        case K_UINT: {
+          return keywordTypeCreate(K_UINT);
+        }
+        case K_INT:
+        case K_LONG: {
+          return keywordTypeCreate(K_LONG);
+        }
+        case K_ULONG: {
+          return keywordTypeCreate(K_ULONG);
+        }
+        case K_FLOAT: {
+          return keywordTypeCreate(K_FLOAT);
+        }
+        case K_DOUBLE: {
+          return keywordTypeCreate(K_DOUBLE);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_SHORT: {
+      switch (rhs->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_SHORT: {
+          return keywordTypeCreate(K_SHORT);
+        }
+        case K_USHORT:
+        case K_INT: {
+          return keywordTypeCreate(K_INT);
+        }
+        case K_UINT:
+        case K_LONG: {
+          return keywordTypeCreate(K_LONG);
+        }
+        case K_FLOAT: {
+          return keywordTypeCreate(K_FLOAT);
+        }
+        case K_DOUBLE: {
+          return keywordTypeCreate(K_DOUBLE);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_UINT: {
+      switch (rhs->kind) {
+        case K_UBYTE:
+        case K_USHORT:
+        case K_UINT: {
+          return keywordTypeCreate(K_UINT);
+        }
+        case K_BYTE:
+        case K_SHORT:
+        case K_INT:
+        case K_LONG: {
+          return keywordTypeCreate(K_LONG);
+        }
+        case K_ULONG: {
+          return keywordTypeCreate(K_ULONG);
+        }
+        case K_FLOAT: {
+          return keywordTypeCreate(K_FLOAT);
+        }
+        case K_DOUBLE: {
+          return keywordTypeCreate(K_DOUBLE);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_INT: {
+      switch (rhs->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_INT: {
+          return keywordTypeCreate(K_INT);
+        }
+        case K_UINT:
+        case K_LONG: {
+          return keywordTypeCreate(K_LONG);
+        }
+        case K_FLOAT: {
+          return keywordTypeCreate(K_FLOAT);
+        }
+        case K_DOUBLE: {
+          return keywordTypeCreate(K_DOUBLE);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_WCHAR: {
+      switch (rhs->kind) {
+        case K_CHAR:
+        case K_WCHAR: {
+          return keywordTypeCreate(K_WCHAR);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_ULONG: {
+      switch (rhs->kind) {
+        case K_UBYTE:
+        case K_USHORT:
+        case K_UINT:
+        case K_ULONG: {
+          return keywordTypeCreate(K_ULONG);
+        }
+        case K_FLOAT: {
+          return keywordTypeCreate(K_FLOAT);
+        }
+        case K_DOUBLE: {
+          return keywordTypeCreate(K_DOUBLE);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_LONG: {
+      switch (rhs->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_LONG: {
+          return keywordTypeCreate(K_LONG);
+        }
+        case K_FLOAT: {
+          return keywordTypeCreate(K_FLOAT);
+        }
+        case K_DOUBLE: {
+          return keywordTypeCreate(K_DOUBLE);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_FLOAT: {
+      switch (rhs->kind) {
+        case K_BYTE:
+        case K_UBYTE:
+        case K_SHORT:
+        case K_USHORT:
+        case K_INT:
+        case K_UINT:
+        case K_LONG:
+        case K_ULONG:
+        case K_FLOAT: {
+          return keywordTypeCreate(K_FLOAT);
+        }
+        case K_DOUBLE: {
+          return keywordTypeCreate(K_DOUBLE);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_DOUBLE: {
+      switch (rhs->kind) {
+        case K_BYTE:
+        case K_UBYTE:
+        case K_SHORT:
+        case K_USHORT:
+        case K_INT:
+        case K_UINT:
+        case K_LONG:
+        case K_ULONG:
+        case K_FLOAT:
+        case K_DOUBLE: {
+          return keywordTypeCreate(K_DOUBLE);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_BOOL: {
+      switch (rhs->kind) {
+        case K_BOOL: {
+          return keywordTypeCreate(K_BOOL);
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_STRUCT: {
+      switch (rhs->kind) {
+        case K_STRUCT: {
+          return rhs->data.reference.referenced ==
+                         lhs->data.reference.referenced
+                     ? referneceTypeCreate(K_STRUCT,
+                                           lhs->data.reference.referenced)
+                     : NULL;
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_UNION: {
+      switch (rhs->kind) {
+        case K_UNION: {
+          return rhs->data.reference.referenced ==
+                         lhs->data.reference.referenced
+                     ? referneceTypeCreate(K_UNION,
+                                           lhs->data.reference.referenced)
+                     : NULL;
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_ENUM: {
+      switch (rhs->kind) {
+        case K_ENUM: {
+          return rhs->data.reference.referenced ==
+                         lhs->data.reference.referenced
+                     ? referneceTypeCreate(K_ENUM,
+                                           lhs->data.reference.referenced)
+                     : NULL;
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_TYPEDEF: {
+      switch (rhs->kind) {
+        case K_TYPEDEF: {
+          return rhs->data.reference.referenced ==
+                         lhs->data.reference.referenced
+                     ? referneceTypeCreate(K_TYPEDEF,
+                                           lhs->data.reference.referenced)
+                     : NULL;
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_CONST: {
+      switch (rhs->kind) {
+        case K_CONST: {
+          return modifierTypeCreate(
+              K_CONST,
+              typeExpMerge(lhs->data.modifier.type, rhs->data.modifier.type));
+        }
+        default: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs->data.modifier.type, rhs));
+        }
+      }
+    }
+    case K_ARRAY: {
+      switch (rhs->kind) {
+        case K_ARRAY: {
+          return typeEqual(lhs, rhs) ? typeCopy(lhs) : NULL;
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_PTR: {
+      switch (rhs->kind) {
+        case K_PTR: {
+          if (typeEqual(lhs, rhs)) {
+            return typeCopy(lhs);
+          } else if (typeEqual(typeGetNonConst(lhs->data.modifier.type),
+                               typeGetNonConst(rhs->data.modifier.type))) {
+            return modifierTypeCreate(
+                K_PTR, modifierTypeCreate(
+                           K_CONST,
+                           typeCopy(typeGetNonConst(lhs->data.modifier.type))));
+          } else {
+            return NULL;
+          }
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_FUNCTION_PTR: {
+      switch (rhs->kind) {
+        case K_FUNCTION_PTR: {
+          return typeEqual(lhs, rhs) ? typeCopy(lhs) : NULL;
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    case K_AGGREGATE_INIT: {
+      switch (rhs->kind) {
+        case K_AGGREGATE_INIT: {
+          return typeEqual(lhs, rhs) ? typeCopy(lhs) : NULL;
+        }
+        case K_CONST: {
+          return modifierTypeCreate(K_CONST,
+                                    typeExpMerge(lhs, rhs->data.modifier.type));
+        }
+        default: { return NULL; }
+      }
+    }
+    default: {
+      return NULL;  // invalid enum
+    }
+  }
 }
-Type *typeArithmeticExpMerge(Type const *lhs, Type const *rhs) {
-  return NULL;  // TODO: write this
+static char *typeVectorToString(TypeVector const *types) {
+  char *argString = types->size == 0 ? strcpy(malloc(1), "")
+                                     : typeToString(types->elements[0]);
+  for (size_t idx = 1; idx < types->size; idx++) {
+    argString = format("%s, %s", argString, typeToString(types->elements[idx]));
+  }
+  return argString;
 }
 char *typeToString(Type const *type) {
-  return NULL;  // TODO: write this
+  switch (type->kind) {
+    case K_VOID: {
+      return strcpy(malloc(5), "void");
+    }
+    case K_UBYTE: {
+      return strcpy(malloc(6), "ubyte");
+    }
+    case K_BYTE: {
+      return strcpy(malloc(5), "byte");
+    }
+    case K_CHAR: {
+      return strcpy(malloc(6), "char");
+    }
+    case K_USHORT: {
+      return strcpy(malloc(7), "ushort");
+    }
+    case K_SHORT: {
+      return strcpy(malloc(6), "short");
+    }
+    case K_UINT: {
+      return strcpy(malloc(5), "uint");
+    }
+    case K_INT: {
+      return strcpy(malloc(4), "int");
+    }
+    case K_WCHAR: {
+      return strcpy(malloc(6), "wchar");
+    }
+    case K_ULONG: {
+      return strcpy(malloc(6), "ulong");
+    }
+    case K_LONG: {
+      return strcpy(malloc(5), "long");
+    }
+    case K_FLOAT: {
+      return strcpy(malloc(6), "float");
+    }
+    case K_DOUBLE: {
+      return strcpy(malloc(7), "double");
+    }
+    case K_BOOL: {
+      return strcpy(malloc(5), "bool");
+    }
+    case K_STRUCT:
+    case K_UNION:
+    case K_ENUM:
+    case K_TYPEDEF: {
+      return strcpy(
+          malloc(strlen(type->data.reference.referenced->data.type.name) + 1),
+          type->data.reference.referenced->data.type.name);
+    }
+    case K_CONST: {
+      return format("%s const", typeToString(type->data.modifier.type));
+    }
+    case K_ARRAY: {
+      return format("%s[%zu]", typeToString(type->data.array.type),
+                    type->data.array.size);
+    }
+    case K_PTR: {
+      return format("%s *", typeToString(type->data.modifier.type));
+    }
+    case K_FUNCTION_PTR: {
+      return format("%s(%s)", typeToString(type->data.functionPtr.returnType),
+                    typeVectorToString(type->data.functionPtr.argumentTypes));
+    }
+    case K_AGGREGATE_INIT: {
+      return format("{%s}",
+                    typeVectorToString(type->data.functionPtr.argumentTypes));
+    }
+    default: { return NULL; }
+  }
 }
 static bool typeIsX(Type const *type, TypeKind x) {
   return type->kind == x ||
@@ -823,48 +2119,35 @@ Vector *overloadSetLookupCall(OverloadSet const *set,
                               TypeVector const *argTypes) {
   Vector *candidates = vectorCreate();
 
-  // exact matches
-  for (size_t candidateIdx = 0; candidateIdx < set->size; candidateIdx++) {
-    OverloadSetElement *candidate = set->elements[candidateIdx];
-    if (candidate->argumentTypes.size <= argTypes->size &&
-        candidate->argumentTypes.size - argTypes->size <=
-            candidate->numOptional) {
-      bool good = true;
-      for (size_t idx = 0; idx < argTypes->size; idx++) {
-        if (!typeEqual(typeGetNonConst(candidate->argumentTypes.elements[idx]),
-                       typeGetNonConst(argTypes->elements[idx]))) {
-          good = false;
-          break;
+  for (size_t maxCasted = 0; maxCasted < argTypes->size; maxCasted++) {
+    for (size_t candidateIdx = 0; candidateIdx < set->size; candidateIdx++) {
+      OverloadSetElement *candidate = set->elements[candidateIdx];
+      if (candidate->argumentTypes.size <= argTypes->size &&
+          candidate->argumentTypes.size - argTypes->size <=
+              candidate->numOptional) {
+        size_t numCasted = 0;
+        for (size_t idx = 0; idx < argTypes->size; idx++) {
+          if (!typeAssignable(
+                  typeGetNonConst(candidate->argumentTypes.elements[idx]),
+                  argTypes->elements[idx])) {
+            numCasted = maxCasted + 1;
+            break;
+          } else if (!typeEqual(typeGetNonConst(
+                                    candidate->argumentTypes.elements[idx]),
+                                typeGetNonConst(argTypes->elements[idx]))) {
+            numCasted++;
+            if (numCasted > maxCasted) {
+              break;
+            }
+          }
         }
-      }
-      if (good) {
-        vectorInsert(candidates, candidate);
+        if (numCasted <= maxCasted) {
+          vectorInsert(candidates, candidate);
+        }
       }
     }
-  }
-  // has exact match(es)
-  if (candidates->size > 0) {
-    return candidates;
-  }
-
-  // inexact matches
-  for (size_t candidateIdx = 0; candidateIdx < set->size; candidateIdx++) {
-    OverloadSetElement *candidate = set->elements[candidateIdx];
-    if (candidate->argumentTypes.size <= argTypes->size &&
-        candidate->argumentTypes.size - argTypes->size <=
-            candidate->numOptional) {
-      bool good = true;
-      for (size_t idx = 0; idx < argTypes->size; idx++) {
-        if (!typeAssignable(
-                typeGetNonConst(candidate->argumentTypes.elements[idx]),
-                argTypes->elements[idx])) {
-          good = false;
-          break;
-        }
-      }
-      if (good) {
-        vectorInsert(candidates, candidate);
-      }
+    if (candidates->size != 0) {
+      return candidates;
     }
   }
 
@@ -899,32 +2182,36 @@ SymbolInfo *varSymbolInfoCreate(Type *type, bool bound) {
   si->data.var.bound = bound;
   return si;
 }
-SymbolInfo *structSymbolInfoCreate(void) {
+SymbolInfo *structSymbolInfoCreate(char const *name) {
   SymbolInfo *si = symbolInfoCreate(SK_TYPE);
   si->data.type.kind = TDK_STRUCT;
+  si->data.type.name = name;
   si->data.type.data.structType.incomplete = true;
   typeVectorInit(&si->data.type.data.structType.fields);
   stringVectorInit(&si->data.type.data.structType.names);
   return si;
 }
-SymbolInfo *unionSymbolInfoCreate(void) {
+SymbolInfo *unionSymbolInfoCreate(char const *name) {
   SymbolInfo *si = symbolInfoCreate(SK_TYPE);
   si->data.type.kind = TDK_UNION;
+  si->data.type.name = name;
   si->data.type.data.unionType.incomplete = true;
   typeVectorInit(&si->data.type.data.unionType.fields);
   stringVectorInit(&si->data.type.data.unionType.names);
   return si;
 }
-SymbolInfo *enumSymbolInfoCreate(void) {
+SymbolInfo *enumSymbolInfoCreate(char const *name) {
   SymbolInfo *si = symbolInfoCreate(SK_TYPE);
   si->data.type.kind = TDK_ENUM;
+  si->data.type.name = name;
   si->data.type.data.enumType.incomplete = true;
   stringVectorInit(&si->data.type.data.enumType.fields);
   return si;
 }
-SymbolInfo *typedefSymbolInfoCreate(Type *what) {
+SymbolInfo *typedefSymbolInfoCreate(Type *what, char const *name) {
   SymbolInfo *si = symbolInfoCreate(SK_TYPE);
   si->data.type.kind = TDK_TYPEDEF;
+  si->data.type.name = name;
   si->data.type.data.typedefType.type = what;
   return si;
 }
