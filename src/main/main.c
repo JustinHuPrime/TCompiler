@@ -19,6 +19,7 @@
 #include "ast/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "translate/translate.h"
 #include "typecheck/buildSymbolTable.h"
 #include "typecheck/typecheck.h"
 #include "util/errorReport.h"
@@ -156,6 +157,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // semantic analysis
   buildSymbolTables(&report, &options, &asts);
   if (reportState(&report) == RPT_ERR) {
     moduleAstMapPairUninit(&asts);
@@ -172,8 +174,16 @@ int main(int argc, char *argv[]) {
     return TYPECHECK_ERROR;
   }
 
-  // clean up
+  // translation
+  translate(&asts);
   moduleAstMapPairUninit(&asts);
+
+  // debug stop for translate
+  if (optionsGet(&options, optionDebugDump) == O_DD_IR) {
+    printf("Not implemented!\n");
+  }
+
+  // clean up
   optionsUninit(&options);
   reportUninit(&report);
 

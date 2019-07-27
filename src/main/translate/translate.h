@@ -14,10 +14,13 @@
 //
 // This file is part of the T Language Compiler.
 
-// implementation of IR printers
+// translation phase
 
-#include "ir/printer.h"
+#ifndef TLC_TRANSLATE_TRANSLATE_H_
+#define TLC_TRANSLATE_TRANSLATE_H_
 
-#include <stdio.h>
+#include "parser/parser.h"
 
-void printIr(void const *ir) { printf("Not implemented!\n"); }
+void translate(ModuleAstMapPair *);
+
+#endif  // TLC_TRANSLATE_TRANSLATE_H_
