@@ -66,6 +66,8 @@ void typeVectorInit(TypeVector *);
 TypeVector *typeVectorCopy(TypeVector *);
 // insert
 void typeVectorInsert(TypeVector *, struct Type *);
+// toString
+char *typeVectorToString(TypeVector const *);
 // in place dtor
 // takes in a destructor function to apply to the elements
 void typeVectorUninit(TypeVector *);

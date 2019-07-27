@@ -506,12 +506,13 @@ static Node *constExpNodeCreate(size_t line, size_t character) {
 }
 static Sign constIntExpGetSign(char *constantString) {
   switch (constantString[0]) {
-    case '+':
+    case '+': {
       return S_POSITIVE;
-    case '-':
+    }
+    case '-': {
       return S_NEGATIVE;
-    default:
-      return S_UNSIGNED;
+    }
+    default: { return S_UNSIGNED; }
   }
 }
 static Node *constIntExpSetValue(Node *node, Sign sign, bool overflow,

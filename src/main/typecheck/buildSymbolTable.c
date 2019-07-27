@@ -60,7 +60,7 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
 
       Type *subType =
           astToType(ast->data.constType.target, report, options, env, filename);
-      return subType == NULL ? NULL : modifierTypeCreate(K_PTR, subType);
+      return subType == NULL ? NULL : modifierTypeCreate(K_CONST, subType);
     }
     case NT_ARRAYTYPE: {
       Node const *sizeConst = ast->data.arrayType.size;
@@ -474,7 +474,7 @@ static OverloadSetElement *astToOverloadSetElement(
   if (returnType == NULL) {
     overloadSetElementDestroy(overload);
     return NULL;
-  } else if (typeIsIncomplete(returnType, env)) {
+  } else if (typeIsIncomplete(returnType, env) && returnType->kind != K_VOID) {
     reportError(
         report,
         "%s:%zu:%zu: error: function declared as returning an incomplete type",

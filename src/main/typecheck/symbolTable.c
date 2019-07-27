@@ -32,6 +32,14 @@ TypeVector *typeVectorCopy(TypeVector *v) {
   return vectorCopy(v, (void *(*)(void *))typeCopy);
 }
 void typeVectorInsert(TypeVector *v, struct Type *t) { vectorInsert(v, t); }
+char *typeVectorToString(TypeVector const *types) {
+  char *argString = types->size == 0 ? strcpy(malloc(1), "")
+                                     : typeToString(types->elements[0]);
+  for (size_t idx = 1; idx < types->size; idx++) {
+    argString = format("%s, %s", argString, typeToString(types->elements[idx]));
+  }
+  return argString;
+}
 void typeVectorUninit(TypeVector *v) {
   vectorUninit(v, (void (*)(void *))typeDestroy);
 }
@@ -1807,14 +1815,6 @@ Type *typeExpMerge(Type const *lhs, Type const *rhs) {
     }
   }
 }
-static char *typeVectorToString(TypeVector const *types) {
-  char *argString = types->size == 0 ? strcpy(malloc(1), "")
-                                     : typeToString(types->elements[0]);
-  for (size_t idx = 1; idx < types->size; idx++) {
-    argString = format("%s, %s", argString, typeToString(types->elements[idx]));
-  }
-  return argString;
-}
 char *typeToString(Type const *type) {
   switch (type->kind) {
     case K_VOID: {
@@ -2052,6 +2052,7 @@ void overloadSetElementDestroy(OverloadSetElement *elm) {
     typeDestroy(elm->returnType);
   }
   typeVectorUninit(&elm->argumentTypes);
+  free(elm);
 }
 
 void overloadSetInit(OverloadSet *set) { vectorInit(set); }

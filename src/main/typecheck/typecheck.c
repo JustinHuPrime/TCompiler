@@ -1066,7 +1066,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
         case CT_DOUBLE:
         case CT_BOOL: {
           return expression->data.constExp.resultType = keywordTypeCreate(
-                     expression->data.constExp.type - CT_UBYTE + K_BYTE);
+                     expression->data.constExp.type - CT_UBYTE + K_UBYTE);
         }
         case CT_STRING: {
           return expression->data.constExp.resultType = modifierTypeCreate(
@@ -1182,13 +1182,18 @@ static Type *typecheckExpression(Node *expression, Report *report,
             vectorDestroy(candidateCalls, nullDtor);
             return NULL;
           } else if (candidateCalls->size == 0) {
+            char *argTypeString = typeVectorToString(argTypes);
             reportError(report,
                         "%s:%zu:%zu: error: no function in overload set "
-                        "matches given arguments",
-                        filename, expression->line, expression->character);
+                        "matches given arguments (%s)",
+                        filename, expression->line, expression->character,
+                        argTypeString);
+            vectorDestroy(candidateCalls, nullDtor);
+            free(argTypeString);
             return NULL;
           } else {
             expression->data.id.overload = candidateCalls->elements[0];
+            vectorDestroy(candidateCalls, nullDtor);
             return expression->data.id.resultType = modifierTypeCreate(
                        K_CONST,
                        functionPtrTypeCreate(
@@ -1251,7 +1256,6 @@ static void typecheckStmt(Node *statement, Report *report,
                         filename, statement->data.ifStmt.condition->line,
                         statement->data.ifStmt.condition->character);
           }
-          typeDestroy(conditionType);
         }
         typecheckStmt(statement->data.ifStmt.thenStmt, report, options,
                       filename, expectedReturnType);
@@ -1271,7 +1275,6 @@ static void typecheckStmt(Node *statement, Report *report,
                         filename, statement->data.whileStmt.condition->line,
                         statement->data.whileStmt.condition->character);
           }
-          typeDestroy(conditionType);
         }
         typecheckStmt(statement->data.whileStmt.body, report, options, filename,
                       expectedReturnType);
@@ -1291,7 +1294,6 @@ static void typecheckStmt(Node *statement, Report *report,
                         filename, statement->data.doWhileStmt.condition->line,
                         statement->data.doWhileStmt.condition->character);
           }
-          typeDestroy(conditionType);
         }
         break;
       }
@@ -1301,12 +1303,8 @@ static void typecheckStmt(Node *statement, Report *report,
             typecheckStmt(statement->data.forStmt.initialize, report, options,
                           filename, expectedReturnType);
           } else {
-            Type *exprType =
-                typecheckExpression(statement->data.forStmt.initialize, report,
-                                    options, filename, NULL, false);
-            if (exprType != NULL) {
-              typeDestroy(exprType);
-            }
+            typecheckExpression(statement->data.forStmt.initialize, report,
+                                options, filename, NULL, false);
           }
         }
         Type *conditionType =
@@ -1320,15 +1318,10 @@ static void typecheckStmt(Node *statement, Report *report,
                         filename, statement->data.forStmt.condition->line,
                         statement->data.forStmt.condition->character);
           }
-          typeDestroy(conditionType);
         }
         if (statement->data.forStmt.update != NULL) {
-          Type *exprType =
-              typecheckExpression(statement->data.forStmt.update, report,
-                                  options, filename, NULL, false);
-          if (exprType != NULL) {
-            typeDestroy(exprType);
-          }
+          typecheckExpression(statement->data.forStmt.update, report, options,
+                              filename, NULL, false);
         }
         typecheckStmt(statement->data.forStmt.body, report, options, filename,
                       expectedReturnType);
@@ -1346,7 +1339,6 @@ static void typecheckStmt(Node *statement, Report *report,
                         filename, statement->data.switchStmt.onWhat->line,
                         statement->data.switchStmt.onWhat->character);
           }
-          typeDestroy(switchedOnType);
         }
         NodeList *cases = statement->data.switchStmt.cases;
         for (size_t idx = 0; idx < cases->size; idx++) {
@@ -1386,7 +1378,6 @@ static void typecheckStmt(Node *statement, Report *report,
               free(returnTypeString);
               free(expectedTypeString);
             }
-            typeDestroy(returnType);
           }
         } else if (expectedReturnType->kind != K_VOID) {
           switch (optionsGet(options, optionWVoidReturn)) {
@@ -1412,12 +1403,8 @@ static void typecheckStmt(Node *statement, Report *report,
         break;
       }
       case NT_EXPRESSIONSTMT: {
-        Type *exprType =
-            typecheckExpression(statement->data.expressionStmt.expression,
-                                report, options, filename, NULL, false);
-        if (exprType != NULL) {
-          typeDestroy(exprType);
-        }
+        typecheckExpression(statement->data.expressionStmt.expression, report,
+                            options, filename, NULL, false);
         break;
       }
       case NT_VARDECL: {
@@ -1479,8 +1466,6 @@ static void typecheckFnDecl(Node *fnDecl, Report *report,
         free(lhsType);
         free(rhsType);
       }
-
-      typeDestroy(paramType);
     }
   }
 }
@@ -1532,8 +1517,6 @@ static void typecheckFunction(Node *function, Report *report,
         free(lhsType);
         free(rhsType);
       }
-
-      typeDestroy(paramType);
     }
   }
 
@@ -1563,7 +1546,6 @@ static void typecheckVarDecl(Node *varDecl, Report *report,
         free(lhsType);
         free(rhsType);
       }
-      typeDestroy(initType);
     }
   }
 }
