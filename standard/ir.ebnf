@@ -1,0 +1,17 @@
+(*
+Note that this file uses the same extension as grammar.ebnf: {}+
+*)
+program = { module }+ ;
+module = { data_fragment | proc_fragment }+ ;
+
+data_fragment = label, { constant }+ ;
+proc_fragment = label, { statement }+ ;
+
+statement = expression
+          | mov
+          ;
+
+expression = const
+           | binop
+           | unop
+           ;

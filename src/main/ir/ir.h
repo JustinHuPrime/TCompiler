@@ -24,6 +24,14 @@
 #include <stdint.h>
 
 struct IRExp;
+struct IRStm;
+
+typedef Vector IRStmVector;
+IRStmVector *irStmVectorCreate(void);
+void irStmVectorInit(IRStmVector *);
+void irStmVectorInsert(IRStmVector *, struct IRStm *);
+void irStmVectorUninit(IRStmVector *);
+void irStmVectorDestroy(IRStmVector *);
 
 typedef enum {
   IS_MOVE,
@@ -37,6 +45,16 @@ typedef struct {
     } move;
   } data;
 } IRStm;
+IRStm *moveIRStmCreate(struct IRExp *to, struct IRExp *from);
+void irStmDestroy(IRStm *);
+
+typedef Vector IRExpVector;
+IRExpVector *irExpVectorCreate(void);
+void irExpVectorInit(IRExpVector *);
+void irExpVectorInsert(IRExpVector *, struct IRExp *);
+void irExpVectorUninit(IRExpVector *);
+void irExpVectorDestroy(IRExpVector *);
+
 typedef enum {
   IE_BYTE_CONST,
 } IRExpKind;
@@ -48,6 +66,8 @@ typedef struct {
     } byteConst;
   } data;
 } IRExp;
+IRExp *byteConstIRExpCreate(uint8_t value);
+void irExpDestroy(IRExp *);
 
 typedef enum {
   FK_DATA,
@@ -58,20 +78,26 @@ typedef struct {
   FragmentKind kind;
   union {
     struct {
-      IRStm *label;
-      Vector data;
+      char *label;
+      IRExpVector data;
     } data;
     struct {
-      IRStm *label;
+      char *label;
       size_t nBytes;
     } bssData;
     struct {
-      IRStm *label;
-      Vector body;
+      char *label;
+      IRStmVector body;
     } function;
   } data;
 } Fragment;
+Fragment *dataFragmentCreate(char *label);
+Fragment *bssDataFragmentCreate(char *label, size_t nBytes);
+Fragment *functionFragmentCreate(char *label);
 
 typedef Vector FragmentVector;
+FragmentVector *fragmentVectorCreate(void);
+void fragmentVectorInsert(FragmentVector *, Fragment *);
+void *fragmentVectorDestroy(FragmentVector *);
 
 #endif  // TLC_IR_IR_H_
