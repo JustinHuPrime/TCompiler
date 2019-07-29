@@ -22,6 +22,6 @@
 #include "ir/ir.h"
 
 // printes the ir tree
-void printIr(void const *);
+void fragmentVectorPrint(FragmentVector const *);
 
 #endif  // TLC_IR_PRINTER_H_

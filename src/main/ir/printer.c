@@ -20,4 +20,6 @@
 
 #include <stdio.h>
 
-void printIr(void const *ir) { printf("Not implemented!\n"); }
+void fragmentVectorPrint(FragmentVector const *v) {
+  printf("Not implemented!\n");
+}

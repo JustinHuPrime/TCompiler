@@ -27,8 +27,8 @@ typedef HashMap FileFragmentVectorMap;
 void fileFragmentVectorMapInit(FileFragmentVectorMap *);
 FragmentVector *fileFragmentVectorMapGet(FileFragmentVectorMap *,
                                          char const *file);
-int fileFragmentVectorMapPut(FileFragmentVectorMap *, char const *file,
-                             FileFragmentVectorMap *vector);
+int fileFragmentVectorMapPut(FileFragmentVectorMap *, char *file,
+                             FragmentVector *vector);
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
 void translate(FileFragmentVectorMap *, ModuleAstMapPair *);

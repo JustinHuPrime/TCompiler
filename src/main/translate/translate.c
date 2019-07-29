@@ -18,6 +18,59 @@
 
 #include "translate/translate.h"
 
-void translate(FileFragmentVectorMap *fragments, ModuleAstMapPair *asts) {
+#include <stdlib.h>
+#include <string.h>
+
+// data structures
+void fileFragmentVectorMapInit(FileFragmentVectorMap *map) { hashMapInit(map); }
+FragmentVector *fileFragmentVectorMapGet(FileFragmentVectorMap *map,
+                                         char const *file) {
+  return hashMapGet(map, file);
+}
+int fileFragmentVectorMapPut(FileFragmentVectorMap *map, char *file,
+                             FragmentVector *vector) {
+  return hashMapPut(map, file, vector, (void (*)(void *))fragmentVectorDestroy);
+}
+void fileFragmentVectorMapUninit(FileFragmentVectorMap *map) {
+  for (size_t idx = 0; idx < map->capacity; idx++) {
+    if (map->keys[idx] != NULL) {
+      fragmentVectorDestroy(map->values[idx]);
+    }
+  }
+  free(map->values);
+  for (size_t idx = 0; idx < map->capacity; idx++) {
+    if (map->keys[idx] != NULL) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+      free((char *)(map->keys[idx]));
+#pragma GCC diagnostic pop
+    }
+  }
+  free(map->keys);
+}
+
+// file level stuff
+static char *codeFilenameToAssembyFilename(char const *codeFilename) {
+  size_t len = strlen(codeFilename);
+  char *assemblyFilename = strncpy(malloc(len), codeFilename, len);
+  assemblyFilename[len - 2] = 's';
+  assemblyFilename[len - 1] = '\0';
+  return assemblyFilename;
+}
+static FragmentVector *translateFile(Node *file) {
+  FragmentVector *v = fragmentVectorCreate();
   // TODO: write this
+  return v;
+}
+
+void translate(FileFragmentVectorMap *fragments, ModuleAstMapPair *asts) {
+  fileFragmentVectorMapInit(fragments);
+  for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
+    if (asts->codes.keys[idx] != NULL) {
+      Node *file = asts->codes.values[idx];
+      fileFragmentVectorMapPut(
+          fragments, codeFilenameToAssembyFilename(file->data.file.filename),
+          translateFile(file));
+    }
+  }
 }

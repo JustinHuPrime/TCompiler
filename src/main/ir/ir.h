@@ -36,7 +36,7 @@ void irStmVectorDestroy(IRStmVector *);
 typedef enum {
   IS_MOVE,
 } IRStmKind;
-typedef struct {
+typedef struct IRStm {
   IRStmKind kind;
   union {
     struct {
@@ -58,7 +58,7 @@ void irExpVectorDestroy(IRExpVector *);
 typedef enum {
   IE_BYTE_CONST,
 } IRExpKind;
-typedef struct {
+typedef struct IRExp {
   IRExpKind kind;
   union {
     struct {
@@ -94,10 +94,11 @@ typedef struct {
 Fragment *dataFragmentCreate(char *label);
 Fragment *bssDataFragmentCreate(char *label, size_t nBytes);
 Fragment *functionFragmentCreate(char *label);
+void fragmentDestroy(Fragment *);
 
 typedef Vector FragmentVector;
 FragmentVector *fragmentVectorCreate(void);
 void fragmentVectorInsert(FragmentVector *, Fragment *);
-void *fragmentVectorDestroy(FragmentVector *);
+void fragmentVectorDestroy(FragmentVector *);
 
 #endif  // TLC_IR_IR_H_

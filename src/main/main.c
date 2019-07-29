@@ -17,6 +17,7 @@
 // Compiles code modules into assembly files, guided by decl modules
 
 #include "ast/printer.h"
+#include "ir/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "translate/translate.h"
@@ -194,10 +195,16 @@ int main(int argc, char *argv[]) {
 
   // debug stop for translate
   if (optionsGet(&options, optionDebugDump) == O_DD_IR) {
-    printf("Not implemented!\n");
+    for (size_t idx = 0; idx < fragments.capacity; idx++) {
+      if (fragments.keys[idx] != NULL) {
+        printf("%s:\n", fragments.keys[idx]);
+        fragmentVectorPrint(fragments.values[idx]);
+      }
+    }
   }
 
   // clean up
+  fileFragmentVectorMapUninit(&fragments);
   optionsUninit(&options);
   reportUninit(&report);
 
