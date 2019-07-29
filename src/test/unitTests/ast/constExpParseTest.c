@@ -86,40 +86,79 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.byteVal == 104);
   nodeDestroy(node);
 
-  // -int
+  // -short
   string = strcpy(malloc(5), "-200");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '-200' produces type signed "
-       "int.",
-       node->data.constExp.type == CT_INT);
+       "short.",
+       node->data.constExp.type == CT_SHORT);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '-200' produces value -200.",
-       node->data.constExp.value.intVal == -200);
+       node->data.constExp.value.shortVal == -200);
   nodeDestroy(node);
 
-  // uint
+  // ushort
   string = strcpy(malloc(4), "256");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '256' produces type unsigned "
-       "int.",
-       node->data.constExp.type == CT_UINT);
+       "short.",
+       node->data.constExp.type == CT_USHORT);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '256' produces value 256.",
-       node->data.constExp.value.uintVal == 256);
+       node->data.constExp.value.ushortVal == 256);
   nodeDestroy(node);
 
-  // +int
+  // +short
   string = strcpy(malloc(5), "+257");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '+257' produces type signed "
+       "short.",
+       node->data.constExp.type == CT_SHORT);
+  test(status,
+       "[ast] [constantExp] [int] [type] parsing '+257' produces value +257.",
+       node->data.constExp.value.shortVal == 257);
+  nodeDestroy(node);
+
+  // -int
+  string = strcpy(malloc(7), "-40000");
+  node = constDecimalIntExpNodeCreate(0, 0, string);
+  test(status,
+       "[ast] [constantExp] [int] [type] parsing '-40000' produces type signed "
        "int.",
        node->data.constExp.type == CT_INT);
   test(status,
-       "[ast] [constantExp] [int] [type] parsing '+257' produces value +257.",
-       node->data.constExp.value.intVal == 257);
+       "[ast] [constantExp] [int] [type] parsing '-40000' produces value "
+       "-40000.",
+       node->data.constExp.value.intVal == -40000);
+  nodeDestroy(node);
+
+  // uint
+  string = strcpy(malloc(6), "70000");
+  node = constDecimalIntExpNodeCreate(0, 0, string);
+  test(
+      status,
+      "[ast] [constantExp] [int] [type] parsing '70000' produces type unsigned "
+      "int.",
+      node->data.constExp.type == CT_UINT);
+  test(status,
+       "[ast] [constantExp] [int] [type] parsing '70000' produces value 70000.",
+       node->data.constExp.value.uintVal == 70000);
+  nodeDestroy(node);
+
+  // +int
+  string = strcpy(malloc(7), "+40000");
+  node = constDecimalIntExpNodeCreate(0, 0, string);
+  test(status,
+       "[ast] [constantExp] [int] [type] parsing '+40000' produces type signed "
+       "int.",
+       node->data.constExp.type == CT_INT);
+  test(status,
+       "[ast] [constantExp] [int] [type] parsing '+40000' produces value "
+       "+40000.",
+       node->data.constExp.value.intVal == 40000);
   nodeDestroy(node);
 
   // -long
@@ -207,14 +246,25 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.intVal == -2147483648);
   nodeDestroy(node);
 
+  string = strcpy(malloc(7), "-32769");
+  node = constDecimalIntExpNodeCreate(0, 0, string);
+  test(status,
+       "[ast] [constantExp] [int] [range] parsing '-32769' produces type int.",
+       node->data.constExp.type == CT_INT);
+  test(status,
+       "[ast] [constantExp] [int] [range] parsing '-32769' produces value "
+       "-32769.",
+       node->data.constExp.value.intVal == -32769);
+  nodeDestroy(node);
+
   string = strcpy(malloc(5), "-129");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
-       "[ast] [constantExp] [int] [range] parsing '-129' produces type int.",
-       node->data.constExp.type == CT_INT);
+       "[ast] [constantExp] [int] [range] parsing '-129' produces type short.",
+       node->data.constExp.type == CT_SHORT);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '-129' produces value -129.",
-       node->data.constExp.value.intVal == -129);
+       node->data.constExp.value.shortVal == -129);
   nodeDestroy(node);
 
   string = strcpy(malloc(5), "-128");
@@ -240,11 +290,22 @@ void constExpParseIntTest(TestStatus *status) {
   string = strcpy(malloc(5), "+128");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
-       "[ast] [constantExp] [int] [range] parsing '+128' produces type int.",
-       node->data.constExp.type == CT_INT);
+       "[ast] [constantExp] [int] [range] parsing '+128' produces type short.",
+       node->data.constExp.type == CT_SHORT);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '+128' produces value 128.",
-       node->data.constExp.value.intVal == 128);
+       node->data.constExp.value.shortVal == 128);
+  nodeDestroy(node);
+
+  string = strcpy(malloc(7), "+32768");
+  node = constDecimalIntExpNodeCreate(0, 0, string);
+  test(status,
+       "[ast] [constantExp] [int] [range] parsing '+32768' produces type int.",
+       node->data.constExp.type == CT_INT);
+  test(status,
+       "[ast] [constantExp] [int] [range] parsing '+32768' produces value "
+       "32768.",
+       node->data.constExp.value.intVal == 32768);
   nodeDestroy(node);
 
   string = strcpy(malloc(12), "+2147483647");
@@ -307,11 +368,23 @@ void constExpParseIntTest(TestStatus *status) {
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '256' produces type unsigned "
-       "int.",
-       node->data.constExp.type == CT_UINT);
+       "short.",
+       node->data.constExp.type == CT_USHORT);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '256' produces value 256.",
-       node->data.constExp.value.uintVal == 256u);
+       node->data.constExp.value.ushortVal == 256u);
+  nodeDestroy(node);
+
+  string = strcpy(malloc(6), "65536");
+  node = constDecimalIntExpNodeCreate(0, 0, string);
+  test(status,
+       "[ast] [constantExp] [int] [range] parsing '65536' produces type "
+       "unsigned int.",
+       node->data.constExp.type == CT_UINT);
+  test(
+      status,
+      "[ast] [constantExp] [int] [range] parsing '65536' produces value 65536.",
+      node->data.constExp.value.uintVal == 65536u);
   nodeDestroy(node);
 
   string = strcpy(malloc(11), "4294967295");
@@ -365,12 +438,12 @@ void constExpParseIntTest(TestStatus *status) {
   node = constBinaryIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [base] parsing '0b0111101010110111' produces "
-       "type unsigned int.",
-       node->data.constExp.type == CT_UINT);
+       "type unsigned short.",
+       node->data.constExp.type == CT_USHORT);
   test(status,
        "[ast] [constantExp] [int] [base] parsing '0b0111101010110111' produces "
        "value 31415.",
-       node->data.constExp.value.uintVal == 31415);
+       node->data.constExp.value.ushortVal == 31415);
   nodeDestroy(node);
 
   // octal
@@ -379,11 +452,11 @@ void constExpParseIntTest(TestStatus *status) {
   test(status,
        "[ast] [constantExp] [int] [base] parsing '0075267' produces type "
        "unsigned int.",
-       node->data.constExp.type == CT_UINT);
+       node->data.constExp.type == CT_USHORT);
   test(status,
        "[ast] [constantExp] [int] [base] parsing '0075267' produces value "
        "31415.",
-       node->data.constExp.value.uintVal == 31415);
+       node->data.constExp.value.ushortVal == 31415);
   nodeDestroy(node);
 
   // hex
@@ -391,13 +464,12 @@ void constExpParseIntTest(TestStatus *status) {
   node = constHexadecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [base] parsing '0x007AB7' produces type "
-       "unsigned "
-       "int.",
-       node->data.constExp.type == CT_UINT);
+       "unsigned short.",
+       node->data.constExp.type == CT_USHORT);
   test(status,
        "[ast] [constantExp] [int] [base] parsing '0x007AB7' produces value "
        "31415.",
-       node->data.constExp.value.uintVal == 31415);
+       node->data.constExp.value.ushortVal == 31415);
   nodeDestroy(node);
 }
 void constExpParseFloatTest(TestStatus *status) {
