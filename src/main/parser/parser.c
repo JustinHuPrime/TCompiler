@@ -152,13 +152,13 @@ static NodeList *parseTypeList(Report *report, Options const *options,
   while (tokenInfoIsTypeKeyword(&peek) || peek.type == TT_SCOPED_ID ||
          peek.type == TT_ID) {
     if (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
-      TernaryValue isType =
+      SymbolType isType =
           typeEnvironmentLookup(env, report, &peek, info->filename);
-      if (isType == INDETERMINATE) {
+      if (isType == ST_UNDEFINED) {
         unLex(info, &peek);
         nodeListDestroy(types);
         return NULL;
-      } else if (isType == NO) {
+      } else if (isType == ST_TYPE) {
         break;
       }
     }

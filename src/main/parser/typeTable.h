@@ -24,7 +24,6 @@
 #include "lexer/lexer.h"
 #include "util/container/stack.h"
 #include "util/errorReport.h"
-#include "util/ternary.h"
 
 typedef enum { ST_UNDEFINED = 0, ST_ID, ST_TYPE, ST_ENUMCONST } SymbolType;
 

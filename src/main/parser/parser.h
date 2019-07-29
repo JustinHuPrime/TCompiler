@@ -19,6 +19,7 @@
 #ifndef TLC_PARSER_PARSER_H_
 #define TLC_PARSER_PARSER_H_
 
+#include "ast/ast.h"
 #include "util/container/hashMap.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
