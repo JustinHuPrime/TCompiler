@@ -25,6 +25,7 @@
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
+#include "x86_64/frame.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -56,6 +57,7 @@ typedef enum {
   PARSE_ERROR,
   BUILD_STAB_ERROR,
   TYPECHECK_ERROR,
+  INTERNAL_ERROR = -1,
 } ReturnValue;
 
 int main(int argc, char *argv[]) {
@@ -175,7 +177,22 @@ int main(int argc, char *argv[]) {
   }
 
   // translation
-  translate(&asts);
+  FileFragmentListMap fragments;
+  FrameVTable frameVTable;
+  switch (optionsGet(&options, optionArch)) {
+    case O_AT_X86: {
+      x86_64FrameVTableInit(&frameVTable);
+      break;
+    }
+    default: {
+      moduleAstMapPairUninit(&asts);
+      optionsUninit(&options);
+      reportUninit(&report);
+      return INTERNAL_ERROR;
+    }
+  }
+
+  translate(&fragments, &asts, &frameVTable);
   moduleAstMapPairUninit(&asts);
 
   // debug stop for translate

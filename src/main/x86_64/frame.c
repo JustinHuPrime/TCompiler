@@ -14,11 +14,10 @@
 //
 // This file is part of the T Language Compiler.
 
-// implemetation of the translation phase
+// implementation of x86_64 frames
 
-#include "translate/translate.h"
+#include "x86_64/frame.h"
 
-void translate(FileFragmentListMap *fragments, ModuleAstMapPair *asts,
-               FrameVTable const *frame) {
+void x86_64FrameVTableInit(FrameVTable *table) {
   // TODO: write this
 }

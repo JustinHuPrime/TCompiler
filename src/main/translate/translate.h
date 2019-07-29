@@ -20,7 +20,17 @@
 #define TLC_TRANSLATE_TRANSLATE_H_
 
 #include "parser/parser.h"
+#include "util/container/hashMap.h"
 
-void translate(ModuleAstMapPair *);
+typedef void Frame;
+typedef void Access;
+typedef struct {
+  Frame *(*ctor)(void);
+  Access *(*allocLocal)(Frame *, bool, size_t);
+} FrameVTable;
+
+typedef HashMap FileFragmentListMap;
+
+void translate(FileFragmentListMap *, ModuleAstMapPair *, FrameVTable const *);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_
