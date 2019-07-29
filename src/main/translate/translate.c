@@ -18,7 +18,6 @@
 
 #include "translate/translate.h"
 
-void translate(FileFragmentListMap *fragments, ModuleAstMapPair *asts,
-               FrameVTable const *frame) {
+void translate(FileFragmentVectorMap *fragments, ModuleAstMapPair *asts) {
   // TODO: write this
 }

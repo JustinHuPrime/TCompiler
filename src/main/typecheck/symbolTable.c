@@ -2181,6 +2181,7 @@ SymbolInfo *varSymbolInfoCreate(Type *type, bool bound) {
   SymbolInfo *si = symbolInfoCreate(SK_VAR);
   si->data.var.type = type;
   si->data.var.bound = bound;
+  si->data.var.escapes = false;
   return si;
 }
 SymbolInfo *structSymbolInfoCreate(char const *name) {

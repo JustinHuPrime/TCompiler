@@ -24,8 +24,6 @@
 #include "util/container/vector.h"
 #include "util/errorReport.h"
 
-#include "util/container/vector.h"
-
 struct Type;
 struct Environment;
 struct SymbolInfo;
@@ -207,7 +205,8 @@ typedef struct SymbolInfo {
   SymbolKind kind;
   union {
     struct {
-      bool bound;
+      bool bound;    // has this been defined in a code module?
+      bool escapes;  // does this param or local ever get its address taken?
       Type *type;
     } var;
     struct {

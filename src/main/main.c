@@ -25,7 +25,6 @@
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
-#include "x86_64/frame.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -177,11 +176,9 @@ int main(int argc, char *argv[]) {
   }
 
   // translation
-  FileFragmentListMap fragments;
-  FrameVTable frameVTable;
+  FileFragmentVectorMap fragments;
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
-      x86_64FrameVTableInit(&frameVTable);
       break;
     }
     default: {
@@ -192,7 +189,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  translate(&fragments, &asts, &frameVTable);
+  translate(&fragments, &asts);
   moduleAstMapPairUninit(&asts);
 
   // debug stop for translate

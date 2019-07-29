@@ -19,18 +19,18 @@
 #ifndef TLC_TRANSLATE_TRANSLATE_H_
 #define TLC_TRANSLATE_TRANSLATE_H_
 
+#include "ir/ir.h"
 #include "parser/parser.h"
 #include "util/container/hashMap.h"
 
-typedef void Frame;
-typedef void Access;
-typedef struct {
-  Frame *(*ctor)(void);
-  Access *(*allocLocal)(Frame *, bool, size_t);
-} FrameVTable;
+typedef HashMap FileFragmentVectorMap;
+void fileFragmentVectorMapInit(FileFragmentVectorMap *);
+FragmentVector *fileFragmentVectorMapGet(FileFragmentVectorMap *,
+                                         char const *file);
+int fileFragmentVectorMapPut(FileFragmentVectorMap *, char const *file,
+                             FileFragmentVectorMap *vector);
+void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
-typedef HashMap FileFragmentListMap;
-
-void translate(FileFragmentListMap *, ModuleAstMapPair *, FrameVTable const *);
+void translate(FileFragmentVectorMap *, ModuleAstMapPair *);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_
