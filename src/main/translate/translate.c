@@ -18,6 +18,10 @@
 
 #include "translate/translate.h"
 
+#include "util/container/stringBuilder.h"
+#include "util/format.h"
+#include "util/nameUtils.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -49,6 +53,64 @@ void fileFragmentVectorMapUninit(FileFragmentVectorMap *map) {
   free(map->keys);
 }
 
+// helpers
+static char *mangleModuleName(char const *moduleName) {
+  char *buffer = strcpy(malloc(4), "__Z");
+  StringVector *exploded = explodeName(moduleName);
+  for (size_t idx = 0; idx < exploded->size; idx++) {
+    buffer = format("%s%zu%s", buffer, strlen(exploded->elements[idx]),
+                    (char const *)exploded->elements[idx]);
+  }
+  stringVectorDestroy(exploded, true);
+  return buffer;
+}
+static char *mangleTypeString(TypeVector const *args) {
+  return NULL;  // TODO: write this
+}
+static char *mangleVarName(char const *moduleName, Node const *id) {
+  return format("%s%zu%s", mangleModuleName(moduleName), strlen(id->data.id.id),
+                id->data.id.id);
+}
+static char *mangleFunctionName(char const *moduleName, Node const *id) {
+  return format("%s%zu%s%s", mangleModuleName(moduleName),
+                strlen(id->data.id.id), id->data.id.id,
+                mangleTypeString(&id->data.id.overload->argumentTypes));
+}
+
+// top level stuff
+static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
+                               char const *moduleName) {
+  NodePairList *idValuePairs = varDecl->data.varDecl.idValuePairs;
+  for (size_t idx = 0; idx < idValuePairs->size; idx++) {
+    Node *id = idValuePairs->firstElements[idx];
+    Node *initializer = idValuePairs->secondElements[idx];
+    char *mangledName = mangleVarName(moduleName, id);
+    Fragment *f = dataFragmentCreate(mangledName);
+  }
+
+  return;
+  // TODO: write this
+}
+static void translateFunction(Node *function, FragmentVector *fragments,
+                              char const *moduleName) {
+  return;
+  // TODO: write this
+}
+static void translateBody(Node *body, FragmentVector *fragments,
+                          char const *moduleName) {
+  switch (body->type) {
+    case NT_VARDECL: {
+      translateGlobalVar(body, fragments, moduleName);
+      return;
+    }
+    case NT_FUNCTION: {
+      translateFunction(body, fragments, moduleName);
+      return;
+    }
+    default: { return; }
+  }
+}
+
 // file level stuff
 static char *codeFilenameToAssembyFilename(char const *codeFilename) {
   size_t len = strlen(codeFilename);
@@ -58,9 +120,15 @@ static char *codeFilenameToAssembyFilename(char const *codeFilename) {
   return assemblyFilename;
 }
 static FragmentVector *translateFile(Node *file) {
-  FragmentVector *v = fragmentVectorCreate();
-  // TODO: write this
-  return v;
+  FragmentVector *fragments = fragmentVectorCreate();
+
+  NodeList *bodies = file->data.file.bodies;
+  for (size_t idx = 0; idx < bodies->size; idx++) {
+    translateBody(bodies->elements[idx], fragments,
+                  file->data.module.id->data.id.id);
+  }
+
+  return fragments;
 }
 
 void translate(FileFragmentVectorMap *fragments, ModuleAstMapPair *asts) {
