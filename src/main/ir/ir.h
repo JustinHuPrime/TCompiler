@@ -79,7 +79,7 @@ typedef struct {
   union {
     struct {
       char *label;
-      IRExpVector data;
+      ByteVector data;
     } data;
     struct {
       char *label;

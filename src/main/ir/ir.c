@@ -89,7 +89,7 @@ static Fragment *fragmentCreate(FragmentKind kind) {
 Fragment *dataFragmentCreate(char *label) {
   Fragment *f = fragmentCreate(FK_DATA);
   f->data.data.label = label;
-  irExpVectorInit(&f->data.data.data);
+  byteVectorInit(&f->data.data.data);
   return f;
 }
 Fragment *bssDataFragmentCreate(char *label, size_t nBytes) {
@@ -108,7 +108,7 @@ void fragmentDestroy(Fragment *f) {
   switch (f->kind) {
     case FK_DATA: {
       free(f->data.data.label);
-      irExpVectorUninit(&f->data.data.data);
+      byteVectorUninit(&f->data.data.data);
       break;
     }
     case FK_BSS_DATA: {
