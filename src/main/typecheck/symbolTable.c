@@ -2172,20 +2172,22 @@ char const *typeDefinitionKindToString(TypeDefinitionKind kind) {
   return NULL;  // not a valid enum - type safety violated
 }
 
-static SymbolInfo *symbolInfoCreate(SymbolKind kind) {
+static SymbolInfo *symbolInfoCreate(SymbolKind kind, char const *moduleName) {
   SymbolInfo *si = malloc(sizeof(SymbolInfo));
   si->kind = kind;
+  si->module = moduleName;
   return si;
 }
-SymbolInfo *varSymbolInfoCreate(Type *type, bool bound) {
-  SymbolInfo *si = symbolInfoCreate(SK_VAR);
+SymbolInfo *varSymbolInfoCreate(char const *moduleName, Type *type,
+                                bool bound) {
+  SymbolInfo *si = symbolInfoCreate(SK_VAR, moduleName);
   si->data.var.type = type;
   si->data.var.bound = bound;
   si->data.var.escapes = false;
   return si;
 }
-SymbolInfo *structSymbolInfoCreate(char const *name) {
-  SymbolInfo *si = symbolInfoCreate(SK_TYPE);
+SymbolInfo *structSymbolInfoCreate(char const *moduleName, char const *name) {
+  SymbolInfo *si = symbolInfoCreate(SK_TYPE, moduleName);
   si->data.type.kind = TDK_STRUCT;
   si->data.type.name = name;
   si->data.type.data.structType.incomplete = true;
@@ -2193,8 +2195,8 @@ SymbolInfo *structSymbolInfoCreate(char const *name) {
   stringVectorInit(&si->data.type.data.structType.names);
   return si;
 }
-SymbolInfo *unionSymbolInfoCreate(char const *name) {
-  SymbolInfo *si = symbolInfoCreate(SK_TYPE);
+SymbolInfo *unionSymbolInfoCreate(char const *moduleName, char const *name) {
+  SymbolInfo *si = symbolInfoCreate(SK_TYPE, moduleName);
   si->data.type.kind = TDK_UNION;
   si->data.type.name = name;
   si->data.type.data.unionType.incomplete = true;
@@ -2202,23 +2204,24 @@ SymbolInfo *unionSymbolInfoCreate(char const *name) {
   stringVectorInit(&si->data.type.data.unionType.names);
   return si;
 }
-SymbolInfo *enumSymbolInfoCreate(char const *name) {
-  SymbolInfo *si = symbolInfoCreate(SK_TYPE);
+SymbolInfo *enumSymbolInfoCreate(char const *moduleName, char const *name) {
+  SymbolInfo *si = symbolInfoCreate(SK_TYPE, moduleName);
   si->data.type.kind = TDK_ENUM;
   si->data.type.name = name;
   si->data.type.data.enumType.incomplete = true;
   stringVectorInit(&si->data.type.data.enumType.fields);
   return si;
 }
-SymbolInfo *typedefSymbolInfoCreate(Type *what, char const *name) {
-  SymbolInfo *si = symbolInfoCreate(SK_TYPE);
+SymbolInfo *typedefSymbolInfoCreate(char const *moduleName, Type *what,
+                                    char const *name) {
+  SymbolInfo *si = symbolInfoCreate(SK_TYPE, moduleName);
   si->data.type.kind = TDK_TYPEDEF;
   si->data.type.name = name;
   si->data.type.data.typedefType.type = what;
   return si;
 }
-SymbolInfo *functionSymbolInfoCreate(void) {
-  SymbolInfo *si = symbolInfoCreate(SK_FUNCTION);
+SymbolInfo *functionSymbolInfoCreate(char const *moduleName) {
+  SymbolInfo *si = symbolInfoCreate(SK_FUNCTION, moduleName);
   overloadSetInit(&si->data.function.overloadSet);
   return si;
 }

@@ -203,6 +203,7 @@ char const *typeDefinitionKindToString(TypeDefinitionKind);
 // information for a symbol in some module
 typedef struct SymbolInfo {
   SymbolKind kind;
+  char const *module;
   union {
     struct {
       bool bound;    // has this been defined in a code module?
@@ -241,12 +242,13 @@ typedef struct SymbolInfo {
   } data;
 } SymbolInfo;
 // ctor
-SymbolInfo *varSymbolInfoCreate(Type *, bool bound);
-SymbolInfo *structSymbolInfoCreate(char const *name);
-SymbolInfo *unionSymbolInfoCreate(char const *name);
-SymbolInfo *enumSymbolInfoCreate(char const *name);
-SymbolInfo *typedefSymbolInfoCreate(Type *type, char const *name);
-SymbolInfo *functionSymbolInfoCreate(void);
+SymbolInfo *varSymbolInfoCreate(char const *module, Type *, bool bound);
+SymbolInfo *structSymbolInfoCreate(char const *module, char const *name);
+SymbolInfo *unionSymbolInfoCreate(char const *module, char const *name);
+SymbolInfo *enumSymbolInfoCreate(char const *module, char const *name);
+SymbolInfo *typedefSymbolInfoCreate(char const *module, Type *type,
+                                    char const *name);
+SymbolInfo *functionSymbolInfoCreate(char const *module);
 SymbolInfo *symbolInfoCopy(SymbolInfo const *);
 // printing
 char const *symbolInfoToKindString(SymbolInfo const *);

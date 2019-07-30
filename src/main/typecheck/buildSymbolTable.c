@@ -181,91 +181,91 @@ static void checkId(Node *id, Report *report, Options const *options,
 // expression
 static void buildStabExpression(Node *expression, Report *report,
                                 Options const *options, Environment *env,
-                                char const *filename) {
+                                char const *filename, char const *moduleName) {
   if (expression == NULL) {
     return;
   } else {
     switch (expression->type) {
       case NT_SEQEXP: {
         buildStabExpression(expression->data.seqExp.prefix, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         buildStabExpression(expression->data.seqExp.last, report, options, env,
-                            filename);
+                            filename, moduleName);
         break;
       }
       case NT_BINOPEXP: {
         buildStabExpression(expression->data.binOpExp.lhs, report, options, env,
-                            filename);
+                            filename, moduleName);
         buildStabExpression(expression->data.binOpExp.rhs, report, options, env,
-                            filename);
+                            filename, moduleName);
         break;
       }
       case NT_UNOPEXP: {
         buildStabExpression(expression->data.unOpExp.target, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         break;
       }
       case NT_COMPOPEXP: {
         buildStabExpression(expression->data.compOpExp.lhs, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         buildStabExpression(expression->data.compOpExp.rhs, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         break;
       }
       case NT_LANDASSIGNEXP: {
         buildStabExpression(expression->data.landAssignExp.lhs, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         buildStabExpression(expression->data.landAssignExp.rhs, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         break;
       }
       case NT_LORASSIGNEXP: {
         buildStabExpression(expression->data.lorAssignExp.lhs, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         buildStabExpression(expression->data.lorAssignExp.rhs, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         break;
       }
       case NT_TERNARYEXP: {
         buildStabExpression(expression->data.ternaryExp.condition, report,
-                            options, env, filename);
+                            options, env, filename, moduleName);
         buildStabExpression(expression->data.ternaryExp.thenExp, report,
-                            options, env, filename);
+                            options, env, filename, moduleName);
         buildStabExpression(expression->data.ternaryExp.elseExp, report,
-                            options, env, filename);
+                            options, env, filename, moduleName);
         break;
       }
       case NT_LANDEXP: {
         buildStabExpression(expression->data.landExp.lhs, report, options, env,
-                            filename);
+                            filename, moduleName);
         buildStabExpression(expression->data.landExp.rhs, report, options, env,
-                            filename);
+                            filename, moduleName);
         break;
       }
       case NT_LOREXP: {
         buildStabExpression(expression->data.lorExp.lhs, report, options, env,
-                            filename);
+                            filename, moduleName);
         buildStabExpression(expression->data.lorExp.rhs, report, options, env,
-                            filename);
+                            filename, moduleName);
         break;
       }
       case NT_STRUCTACCESSEXP: {
         buildStabExpression(expression->data.structAccessExp.base, report,
-                            options, env, filename);
+                            options, env, filename, moduleName);
         break;
       }
       case NT_STRUCTPTRACCESSEXP: {
         buildStabExpression(expression->data.structPtrAccessExp.base, report,
-                            options, env, filename);
+                            options, env, filename, moduleName);
         break;
       }
       case NT_FNCALLEXP: {
         buildStabExpression(expression->data.fnCallExp.who, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         NodeList *args = expression->data.fnCallExp.args;
         for (size_t idx = 0; idx < args->size; idx++) {
           buildStabExpression(args->elements[idx], report, options, env,
-                              filename);
+                              filename, moduleName);
         }
         break;
       }
@@ -273,7 +273,7 @@ static void buildStabExpression(Node *expression, Report *report,
         NodeList *elements = expression->data.aggregateInitExp.elements;
         for (size_t idx = 0; idx < elements->size; idx++) {
           buildStabExpression(elements->elements[idx], report, options, env,
-                              filename);
+                              filename, moduleName);
         }
         break;
       }
@@ -281,7 +281,7 @@ static void buildStabExpression(Node *expression, Report *report,
         expression->data.castExp.resultType = astToType(
             expression->data.castExp.toWhat, report, options, env, filename);
         buildStabExpression(expression->data.castExp.target, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         break;
       }
       case NT_SIZEOFTYPEEXP: {
@@ -292,7 +292,7 @@ static void buildStabExpression(Node *expression, Report *report,
       }
       case NT_SIZEOFEXPEXP: {
         buildStabExpression(expression->data.sizeofExpExp.target, report,
-                            options, env, filename);
+                            options, env, filename, moduleName);
         break;
       }
       case NT_ID: {
@@ -310,21 +310,22 @@ static void buildStabExpression(Node *expression, Report *report,
 
 // statement
 static void buildStabVarDecl(Node *, Report *, Options const *, Environment *,
-                             char const *, bool);
+                             char const *, char const *, bool);
 static void buildStabStructOrUnionDecl(Node *, bool, Report *, Options const *,
-                                       Environment *, char const *);
+                                       Environment *, char const *,
+                                       char const *);
 static void buildStabStructOrUnionForwardDecl(Node *, bool, Report *,
                                               Options const *, Environment *,
-                                              char const *);
+                                              char const *, char const *);
 static void buildStabEnumDecl(Node *, Report *, Options const *, Environment *,
-                              char const *);
+                              char const *, char const *);
 static void buildStabEnumForwardDecl(Node *, Report *, Options const *,
-                                     Environment *, char const *);
+                                     Environment *, char const *, char const *);
 static void buildStabTypedefDecl(Node *, Report *, Options const *,
-                                 Environment *, char const *);
+                                 Environment *, char const *, char const *);
 static void buildStabStmt(Node *statement, Report *report,
                           Options const *options, Environment *env,
-                          char const *filename) {
+                          char const *filename, char const *moduleName) {
   if (statement == NULL) {
     return;
   } else {
@@ -334,32 +335,32 @@ static void buildStabStmt(Node *statement, Report *report,
         NodeList *statements = statement->data.compoundStmt.statements;
         for (size_t idx = 0; idx < statements->size; idx++) {
           buildStabStmt(statements->elements[idx], report, options, env,
-                        filename);
+                        filename, moduleName);
         }
         statement->data.compoundStmt.localSymbols = environmentPop(env);
         break;
       }
       case NT_IFSTMT: {
         buildStabExpression(statement->data.ifStmt.condition, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         buildStabStmt(statement->data.ifStmt.thenStmt, report, options, env,
-                      filename);
+                      filename, moduleName);
         buildStabStmt(statement->data.ifStmt.elseStmt, report, options, env,
-                      filename);
+                      filename, moduleName);
         break;
       }
       case NT_WHILESTMT: {
         buildStabExpression(statement->data.whileStmt.condition, report,
-                            options, env, filename);
+                            options, env, filename, moduleName);
         buildStabStmt(statement->data.whileStmt.body, report, options, env,
-                      filename);
+                      filename, moduleName);
         break;
       }
       case NT_DOWHILESTMT: {
         buildStabStmt(statement->data.doWhileStmt.condition, report, options,
-                      env, filename);
+                      env, filename, moduleName);
         buildStabExpression(statement->data.doWhileStmt.condition, report,
-                            options, env, filename);
+                            options, env, filename, moduleName);
         break;
       }
       case NT_FORSTMT: {
@@ -367,24 +368,24 @@ static void buildStabStmt(Node *statement, Report *report,
         if (statement->data.forStmt.initialize != NULL) {
           if (statement->data.forStmt.initialize->type == NT_VARDECL) {
             buildStabVarDecl(statement->data.forStmt.initialize, report,
-                             options, env, filename, true);
+                             options, env, filename, moduleName, true);
           } else {
             buildStabExpression(statement->data.forStmt.initialize, report,
-                                options, env, filename);
+                                options, env, filename, moduleName);
           }
         }
         buildStabExpression(statement->data.forStmt.condition, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         buildStabExpression(statement->data.forStmt.update, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         buildStabStmt(statement->data.forStmt.body, report, options, env,
-                      filename);
+                      filename, moduleName);
         statement->data.forStmt.localSymbols = environmentPop(env);
         break;
       }
       case NT_SWITCHSTMT: {
         buildStabExpression(statement->data.switchStmt.onWhat, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         environmentPush(env);
         NodeList *cases = statement->data.switchStmt.cases;
         for (size_t idx = 0; idx < cases->size; idx++) {
@@ -392,48 +393,52 @@ static void buildStabStmt(Node *statement, Report *report,
           buildStabStmt(switchCase->type == NT_NUMCASE
                             ? switchCase->data.numCase.body
                             : switchCase->data.defaultCase.body,
-                        report, options, env, filename);
+                        report, options, env, filename, moduleName);
         }
         statement->data.switchStmt.localSymbols = environmentPop(env);
         break;
       }
       case NT_RETURNSTMT: {
         buildStabExpression(statement->data.returnStmt.value, report, options,
-                            env, filename);
+                            env, filename, moduleName);
         break;
       }
       case NT_EXPRESSIONSTMT: {
         buildStabExpression(statement->data.expressionStmt.expression, report,
-                            options, env, filename);
+                            options, env, filename, moduleName);
         break;
       }
       case NT_VARDECL: {
-        buildStabVarDecl(statement, report, options, env, filename, true);
+        buildStabVarDecl(statement, report, options, env, filename, moduleName,
+                         true);
         break;
       }
       case NT_STRUCTDECL:
       case NT_UNIONDECL: {
         buildStabStructOrUnionDecl(statement, statement->type == NT_STRUCTDECL,
-                                   report, options, env, filename);
+                                   report, options, env, filename, moduleName);
         break;
       }
       case NT_STRUCTFORWARDDECL:
       case NT_UNIONFORWARDDECL: {
         buildStabStructOrUnionForwardDecl(
             statement, statement->type == NT_STRUCTFORWARDDECL, report, options,
-            env, filename);
+            env, filename, moduleName);
         break;
       }
       case NT_ENUMDECL: {
-        buildStabEnumDecl(statement, report, options, env, filename);
+        buildStabEnumDecl(statement, report, options, env, filename,
+                          moduleName);
         break;
       }
       case NT_ENUMFORWARDDECL: {
-        buildStabEnumForwardDecl(statement, report, options, env, filename);
+        buildStabEnumForwardDecl(statement, report, options, env, filename,
+                                 moduleName);
         break;
       }
       case NT_TYPEDEFDECL: {
-        buildStabTypedefDecl(statement, report, options, env, filename);
+        buildStabTypedefDecl(statement, report, options, env, filename,
+                             moduleName);
         break;
       }
       default: {
@@ -446,7 +451,7 @@ static void buildStabStmt(Node *statement, Report *report,
 // top level
 static void buildStabParameter(Node const *type, Node *name, Report *report,
                                Options const *options, Environment *env,
-                               char const *filename) {
+                               char const *filename, char const *moduleName) {
   Type *paramType = astToType(type, report, options, env, filename);
   if (paramType == NULL) {
     return;
@@ -459,7 +464,7 @@ static void buildStabParameter(Node const *type, Node *name, Report *report,
                 filename, name->line, name->character, name->data.id.id);
   } else {
     checkId(name, report, options, filename);
-    info = varSymbolInfoCreate(paramType, true);
+    info = varSymbolInfoCreate(moduleName, paramType, true);
     name->data.id.symbol = info;
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   }
@@ -513,7 +518,8 @@ static OverloadSetElement *astToOverloadSetElement(
   return overload;
 }
 static void buildStabFnDefn(Node *fn, Report *report, Options const *options,
-                            Environment *env, char const *filename) {
+                            Environment *env, char const *filename,
+                            char const *moduleName) {
   // INVARIANT: env has no scopes
   // must not be declared/defined as a non-function, must not allow a function
   // with the same input args and name to be declared/defined
@@ -537,7 +543,7 @@ static void buildStabFnDefn(Node *fn, Report *report, Options const *options,
       return;
     }
 
-    info = functionSymbolInfoCreate();
+    info = functionSymbolInfoCreate(moduleName);
     overloadSetInsert(&info->data.function.overloadSet, overload);
     symbolTablePut(env->currentModule, name->data.id.id, info);
   } else {
@@ -626,14 +632,15 @@ static void buildStabFnDefn(Node *fn, Report *report, Options const *options,
   for (size_t idx = 0; idx < formals->size; idx++) {
     buildStabParameter(formals->firstElements[idx],
                        formals->secondElements[idx], report, options, env,
-                       filename);
+                       filename, moduleName);
   }
-  buildStabStmt(fn->data.function.body, report, options, env, filename);
+  buildStabStmt(fn->data.function.body, report, options, env, filename,
+                moduleName);
   fn->data.function.localSymbols = environmentPop(env);
 }
 static void buildStabFnDecl(Node *fnDecl, Report *report,
                             Options const *options, Environment *env,
-                            char const *filename) {
+                            char const *filename, char const *moduleName) {
   // INVARIANT: env has no scopes
   // must not be declared as a non-function, must check if a function with the
   // same input args and name is declared/defined
@@ -657,7 +664,7 @@ static void buildStabFnDecl(Node *fnDecl, Report *report,
       return;
     }
 
-    info = functionSymbolInfoCreate();
+    info = functionSymbolInfoCreate(moduleName);
     overloadSetInsert(&info->data.function.overloadSet, overload);
     symbolTablePut(env->currentModule, name->data.id.id, info);
   } else {
@@ -760,7 +767,8 @@ static void buildStabFnDecl(Node *fnDecl, Report *report,
 }
 static void buildStabVarDecl(Node *varDecl, Report *report,
                              Options const *options, Environment *env,
-                             char const *filename, bool isDecl) {
+                             char const *filename, char const *moduleName,
+                             bool isDecl) {
   // must not allow a var with the same name to be defined/declared twice
   Type *varType =
       astToType(varDecl->data.varDecl.type, report, options, env, filename);
@@ -784,7 +792,7 @@ static void buildStabVarDecl(Node *varDecl, Report *report,
       continue;
     } else if (info == NULL) {
       // new variable to declare
-      info = varSymbolInfoCreate(typeCopy(varType), !isDecl);
+      info = varSymbolInfoCreate(moduleName, typeCopy(varType), !isDecl);
       symbolTablePut(environmentTop(env), name->data.id.id, info);
     } else {
       if (isDecl) {
@@ -826,7 +834,8 @@ static void buildStabVarDecl(Node *varDecl, Report *report,
 }
 static void buildStabStructOrUnionDecl(Node *decl, bool isStruct,
                                        Report *report, Options const *options,
-                                       Environment *env, char const *filename) {
+                                       Environment *env, char const *filename,
+                                       char const *moduleName) {
   // must not allow anything that isn't a struct with the same name to be
   // declared/defined, must not allow a struct with the same name to be defined
   Node *name = isStruct ? decl->data.structDecl.id : decl->data.unionDecl.id;
@@ -841,8 +850,8 @@ static void buildStabStructOrUnionDecl(Node *decl, bool isStruct,
     return;
   } else if (info == NULL) {
     // new struct declaration
-    info = (isStruct ? structSymbolInfoCreate
-                     : unionSymbolInfoCreate)(name->data.id.id);
+    info = (isStruct ? structSymbolInfoCreate : unionSymbolInfoCreate)(
+        moduleName, name->data.id.id);
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   } else if (!(isStruct ? info->data.type.data.structType.incomplete
                         : info->data.type.data.unionType.incomplete)) {
@@ -890,11 +899,9 @@ static void buildStabStructOrUnionDecl(Node *decl, bool isStruct,
   }
   name->data.id.symbol = info;
 }
-static void buildStabStructOrUnionForwardDecl(Node *forwardDecl, bool isStruct,
-                                              Report *report,
-                                              Options const *options,
-                                              Environment *env,
-                                              char const *filename) {
+static void buildStabStructOrUnionForwardDecl(
+    Node *forwardDecl, bool isStruct, Report *report, Options const *options,
+    Environment *env, char const *filename, char const *moduleName) {
   // must not allow anything that isn't a struct with the same name to be
   // declared/defined, must check if a struct with the same name is
   // declared/defined
@@ -926,8 +933,8 @@ static void buildStabStructOrUnionForwardDecl(Node *forwardDecl, bool isStruct,
       }
     }
   } else {
-    info = (isStruct ? structSymbolInfoCreate
-                     : unionSymbolInfoCreate)(name->data.id.id);
+    info = (isStruct ? structSymbolInfoCreate : unionSymbolInfoCreate)(
+        moduleName, name->data.id.id);
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   }
 
@@ -936,7 +943,7 @@ static void buildStabStructOrUnionForwardDecl(Node *forwardDecl, bool isStruct,
 }
 static void buildStabEnumDecl(Node *enumDecl, Report *report,
                               Options const *options, Environment *env,
-                              char const *filename) {
+                              char const *filename, char const *moduleName) {
   // must not allow anything that isn't an enum with the same name to be
   // declared/defined, must not allow an enum with the same name to be defined
   Node *name = enumDecl->data.enumDecl.id;
@@ -949,7 +956,7 @@ static void buildStabEnumDecl(Node *enumDecl, Report *report,
     return;
   } else if (info == NULL) {
     // new enum declaration
-    info = enumSymbolInfoCreate(name->data.id.id);
+    info = enumSymbolInfoCreate(moduleName, name->data.id.id);
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   } else if (!info->data.type.data.enumType.incomplete) {
     // already declared
@@ -971,7 +978,8 @@ static void buildStabEnumDecl(Node *enumDecl, Report *report,
 }
 static void buildStabEnumForwardDecl(Node *enumForwardDecl, Report *report,
                                      Options const *options, Environment *env,
-                                     char const *filename) {
+                                     char const *filename,
+                                     char const *moduleName) {
   // must not allow anything that isn't an enum with the same name to be
   // declared/defined, must check if an enum with the same name is
   // declared/defined
@@ -1001,7 +1009,7 @@ static void buildStabEnumForwardDecl(Node *enumForwardDecl, Report *report,
       }
     }
   } else {
-    info = enumSymbolInfoCreate(name->data.id.id);
+    info = enumSymbolInfoCreate(moduleName, name->data.id.id);
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   }
 
@@ -1010,7 +1018,7 @@ static void buildStabEnumForwardDecl(Node *enumForwardDecl, Report *report,
 }
 static void buildStabTypedefDecl(Node *typedefDecl, Report *report,
                                  Options const *options, Environment *env,
-                                 char const *filename) {
+                                 char const *filename, char const *moduleName) {
   Node *name = typedefDecl->data.typedefDecl.id;
   SymbolInfo *info = symbolTableGet(environmentTop(env), name->data.id.id);
   if (info != NULL &&
@@ -1032,53 +1040,56 @@ static void buildStabTypedefDecl(Node *typedefDecl, Report *report,
     }
 
     checkId(name, report, options, filename);
-    info = typedefSymbolInfoCreate(type, name->data.id.id);
+    info = typedefSymbolInfoCreate(moduleName, type, name->data.id.id);
     name->data.id.symbol = info;
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   }
 }
 static void buildStabBody(Node *body, Report *report, Options const *options,
-                          Environment *env, char const *filename, bool isDecl) {
+                          Environment *env, char const *filename,
+                          char const *moduleName, bool isDecl) {
   switch (body->type) {
     case NT_FUNCTION: {
-      buildStabFnDefn(body, report, options, env, filename);
+      buildStabFnDefn(body, report, options, env, filename, moduleName);
       return;
     }
     case NT_FNDECL: {
-      buildStabFnDecl(body, report, options, env, filename);
+      buildStabFnDecl(body, report, options, env, filename, moduleName);
       return;
     }
     case NT_VARDECL: {
-      buildStabVarDecl(body, report, options, env, filename, isDecl);
+      buildStabVarDecl(body, report, options, env, filename, moduleName,
+                       isDecl);
       return;
     }
     case NT_UNIONDECL:
     case NT_STRUCTDECL: {
       buildStabStructOrUnionDecl(body, body->type == NT_STRUCTDECL, report,
-                                 options, env, filename);
+                                 options, env, filename, moduleName);
       return;
     }
     case NT_STRUCTFORWARDDECL:
     case NT_UNIONFORWARDDECL: {
-      buildStabStructOrUnionForwardDecl(body,
-                                        body->type == NT_STRUCTFORWARDDECL,
-                                        report, options, env, filename);
+      buildStabStructOrUnionForwardDecl(
+          body, body->type == NT_STRUCTFORWARDDECL, report, options, env,
+          filename, moduleName);
       return;
     }
     case NT_ENUMDECL: {
-      buildStabEnumDecl(body, report, options, env, filename);
+      buildStabEnumDecl(body, report, options, env, filename, moduleName);
       return;
     }
     case NT_ENUMFORWARDDECL: {
-      buildStabEnumForwardDecl(body, report, options, env, filename);
+      buildStabEnumForwardDecl(body, report, options, env, filename,
+                               moduleName);
       return;
     }
     case NT_TYPEDEFDECL: {
-      buildStabTypedefDecl(body, report, options, env, filename);
+      buildStabTypedefDecl(body, report, options, env, filename, moduleName);
       return;
     }
     default: {
-      return;  // not syntactically valid - caught at parse time
+      return;  // not syntactically valid
     }
   }
 }
@@ -1108,7 +1119,8 @@ static void buildStabDecl(Node *ast, Report *report, Options const *options,
   // traverse body
   for (size_t idx = 0; idx < ast->data.file.bodies->size; idx++) {
     Node *body = ast->data.file.bodies->elements[idx];
-    buildStabBody(body, report, options, &env, ast->data.file.filename, true);
+    buildStabBody(body, report, options, &env, ast->data.file.filename,
+                  ast->data.file.module->data.module.id->data.id.id, true);
   }
 
   environmentUninit(&env);
@@ -1134,7 +1146,8 @@ static void buildStabCode(Node *ast, Report *report, Options const *options,
   // traverse body
   for (size_t idx = 0; idx < ast->data.file.bodies->size; idx++) {
     Node *body = ast->data.file.bodies->elements[idx];
-    buildStabBody(body, report, options, &env, ast->data.file.filename, false);
+    buildStabBody(body, report, options, &env, ast->data.file.filename,
+                  ast->data.file.module->data.module.id->data.id.id, false);
   }
 
   environmentUninit(&env);
