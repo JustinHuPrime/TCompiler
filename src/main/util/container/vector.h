@@ -21,6 +21,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 // vector, in java generic style
 typedef struct {
@@ -73,5 +74,21 @@ void boolVectorInsert(BoolVector *, bool);
 void boolVectorUninit(BoolVector *);
 // dtor
 void boolVectorDestroy(BoolVector *);
+
+typedef struct {
+  size_t size;
+  size_t capacity;
+  uint8_t *elements;
+} ByteVector;
+// ctor
+ByteVector *byteVectorCreate(void);
+// in place ctor
+void byteVectorInit(ByteVector *);
+// insert
+void byteVectorInsert(ByteVector *, uint8_t);
+// in place dtor
+void byteVectorUninit(ByteVector *);
+// dtor
+void byteVectorDestroy(ByteVector *);
 
 #endif  // TLC_UTIL_CONTAINER_VECTOR_H_
