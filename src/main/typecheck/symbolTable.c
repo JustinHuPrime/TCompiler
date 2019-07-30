@@ -151,6 +151,85 @@ Type *typeCopy(Type const *t) {
     }
   }
 }
+size_t typeSizeof(Type const *t) {
+  switch (t->kind) {
+    case K_VOID:
+    case K_UBYTE:
+    case K_BYTE:
+    case K_CHAR:
+    case K_BOOL: {
+      return 1;
+    }
+    case K_USHORT:
+    case K_SHORT: {
+      return 2;
+    }
+    case K_FLOAT:
+    case K_UINT:
+    case K_INT:
+    case K_WCHAR: {
+      return 4;
+    }
+    case K_DOUBLE:
+    case K_ULONG:
+    case K_LONG:
+    case K_PTR:
+    case K_FUNCTION_PTR: {
+      return 8;
+    }
+    case K_CONST: {
+      return typeSizeof(t->data.modifier.type);
+    }
+    case K_STRUCT: {
+      size_t acc = 0;
+      TypeVector *fieldTypes =
+          &t->data.reference.referenced->data.type.data.structType.fields;
+
+      for (size_t idx = 0; idx < fieldTypes->size; idx++) {
+        acc += typeSizeof(fieldTypes->elements[idx]);
+      }
+
+      return acc;
+    }
+    case K_UNION: {
+      TypeVector *fieldTypes =
+          &t->data.reference.referenced->data.type.data.structType.fields;
+      size_t acc = typeSizeof(fieldTypes->elements[0]);
+
+      for (size_t idx = 1; idx < fieldTypes->size; idx++) {
+        size_t fieldSize = typeSizeof(fieldTypes->elements[idx]);
+        if (fieldSize > acc) {
+          acc = fieldSize;
+        }
+      }
+
+      return acc;
+    }
+    case K_ENUM: {
+      size_t numFields =
+          t->data.reference.referenced->data.type.data.enumType.fields.size;
+      if (numFields <= UBYTE_MAX) {
+        return 1;  // fits in a byte
+      } else if (numFields <= USHORT_MAX) {
+        return 2;
+      } else if (numFields <= UINT_MAX) {
+        return 4;
+      } else {
+        return 8;  // might actually have more fields, but we crash anyways
+      }
+    }
+    case K_TYPEDEF: {
+      return typeSizeof(
+          t->data.reference.referenced->data.type.data.typedefType.type);
+    }
+    case K_ARRAY: {
+      return t->data.array.size * typeSizeof(t->data.array.type);
+    }
+    default: {
+      return 0;  // error - not a valid enum
+    }
+  }
+}
 bool typeIsIncomplete(Type const *t, Environment const *env) {
   switch (t->kind) {
     case K_VOID: {

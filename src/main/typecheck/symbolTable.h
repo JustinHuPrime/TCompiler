@@ -117,6 +117,8 @@ void functionPtrTypeInit(Type *, Type *returnType, TypeVector *argumentTypes);
 void aggregateInitTypeInit(Type *, TypeVector *elementTypes);
 // copy ctor
 Type *typeCopy(Type const *);
+// sizeof a type
+size_t typeSizeof(Type const *);
 // if type is incomplete, returns true, else false
 bool typeIsIncomplete(Type const *, struct Environment const *);
 // determines if two types are completely equal
