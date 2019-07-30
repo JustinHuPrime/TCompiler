@@ -52,3 +52,23 @@ void splitName(char const *fullName, char **module, char **shortName) {
     (*shortName)[idx] = fullName[moduleLength + 1 + idx];
   }
 }
+StringVector *explodeName(char const *fullName) {
+  StringVector *parts = stringVectorCreate();
+  StringBuilder buffer;
+  stringBuilderInit(&buffer);
+
+  while (*fullName != '\0') {
+    if (*fullName == ':') {
+      stringVectorInsert(parts, stringBuilderData(&buffer));
+      stringBuilderClear(&buffer);
+      fullName += 2;
+    } else {
+      stringBuilderPush(&buffer, *fullName);
+      fullName++;
+    }
+  }
+
+  stringVectorInsert(parts, stringBuilderData(&buffer));
+  stringBuilderClear(&buffer);
+  return parts;
+}

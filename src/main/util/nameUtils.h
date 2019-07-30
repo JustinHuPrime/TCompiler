@@ -19,6 +19,8 @@
 #ifndef TLC_UTIL_NAMEUTILS_H_
 #define TLC_UTIL_NAMEUTILS_H_
 
+#include "util/container/vector.h"
+
 #include <stdbool.h>
 
 // produces whether or not the name has a colon (if it has one, it has to be
@@ -26,5 +28,8 @@
 bool isScoped(char const *);
 // splits a name into the module and the short name (must be scoped)
 void splitName(char const *fullName, char **module, char **shortName);
+// splits a name into its constituent parts (may or may not be scoped)
+// result vector owns the contained strings
+StringVector *explodeName(char const *fullName);
 
 #endif  // TLC_UTIL_NAMEUTILS_H_
