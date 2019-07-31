@@ -2257,12 +2257,13 @@ static SymbolInfo *symbolInfoCreate(SymbolKind kind, char const *moduleName) {
   si->module = moduleName;
   return si;
 }
-SymbolInfo *varSymbolInfoCreate(char const *moduleName, Type *type,
-                                bool bound) {
+SymbolInfo *varSymbolInfoCreate(char const *moduleName, Type *type, bool bound,
+                                bool large) {
   SymbolInfo *si = symbolInfoCreate(SK_VAR, moduleName);
   si->data.var.type = type;
+  si->data.var.access = NULL;
   si->data.var.bound = bound;
-  si->data.var.escapes = false;
+  si->data.var.escapes = large;
   return si;
 }
 SymbolInfo *structSymbolInfoCreate(char const *moduleName, char const *name) {
@@ -2427,6 +2428,9 @@ void symbolInfoDestroy(SymbolInfo *si) {
   switch (si->kind) {
     case SK_VAR: {
       typeDestroy(si->data.var.type);
+      if (si->data.var.access != NULL) {
+        (si->data.var.access->vtable->dtor)(si->data.var.access);
+      }
       break;
     }
     case SK_TYPE: {

@@ -211,6 +211,7 @@ typedef struct SymbolInfo {
       bool bound;    // has this been defined in a code module?
       bool escapes;  // does this param or local ever get its address taken?
       Type *type;
+      Access *access;
     } var;
     struct {
       TypeDefinitionKind kind;
@@ -244,7 +245,8 @@ typedef struct SymbolInfo {
   } data;
 } SymbolInfo;
 // ctor
-SymbolInfo *varSymbolInfoCreate(char const *module, Type *, bool bound);
+SymbolInfo *varSymbolInfoCreate(char const *module, Type *, bool bound,
+                                bool large);
 SymbolInfo *structSymbolInfoCreate(char const *module, char const *name);
 SymbolInfo *unionSymbolInfoCreate(char const *module, char const *name);
 SymbolInfo *enumSymbolInfoCreate(char const *module, char const *name);

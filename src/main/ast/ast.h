@@ -451,7 +451,6 @@ typedef struct Node {
       SymbolInfo *symbol;
       OverloadSetElement *overload;  // nullable
       Type *resultType;              // nullable
-      Access *access;                // nullable
     } id;
   } data;
 } Node;
