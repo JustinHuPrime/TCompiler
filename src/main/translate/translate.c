@@ -18,6 +18,7 @@
 
 #include "translate/translate.h"
 
+#include "translate/frame.h"
 #include "util/container/stringBuilder.h"
 #include "util/format.h"
 #include "util/nameUtils.h"
@@ -78,6 +79,18 @@ static char *mangleFunctionName(char const *moduleName, Node const *id) {
 }
 
 // top level stuff
+static bool constantNotZero(Node *initializer) {
+  switch (initializer->type) {
+    case NT_CONSTEXP: {
+    }
+    case NT_AGGREGATEINITEXP: {
+    }
+    default: { return false; }
+  }
+}
+static void constantToBytes(Node *initializer, ByteVector *out) {
+  // TODO: write this
+}
 static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
                                char const *moduleName) {
   NodePairList *idValuePairs = varDecl->data.varDecl.idValuePairs;
@@ -85,16 +98,22 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
     Node *id = idValuePairs->firstElements[idx];
     Node *initializer = idValuePairs->secondElements[idx];
     char *mangledName = mangleVarName(moduleName, id);
-    Fragment *f = dataFragmentCreate(mangledName);
+    Fragment *f;
+    if (initializer != NULL && constantNotZero(initializer)) {
+      f = dataFragmentCreate(mangledName);
+      constantToBytes(initializer, &f->data.data.data);
+    } else {
+      f = bssDataFragmentCreate(mangledName,
+                                typeSizeof(id->data.id.symbol->data.var.type));
+    }
+    // TODO: add access
   }
 
   return;
-  // TODO: write this
 }
 static void translateFunction(Node *function, FragmentVector *fragments,
                               char const *moduleName) {
-  return;
-  // TODO: write this
+  return;  // TODO: write this
 }
 static void translateBody(Node *body, FragmentVector *fragments,
                           char const *moduleName) {
