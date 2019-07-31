@@ -21,4 +21,7 @@
 
 #include "translate/frame.h"
 
+Frame *x86_64FrameCtor(void);
+Access *x86_64GlobalAccessCtor(char *label);
+
 #endif  // TLC_X86_64_FRAME_H_

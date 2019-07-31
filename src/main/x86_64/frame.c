@@ -17,3 +17,10 @@
 // x86_64 frame implementation
 
 #include "x86_64/frame.h"
+
+Frame *x86_64FrameCtor(void) {
+  return NULL;  // TODO: write this
+}
+Access *x86_64GlobalAccessCtor(char *label) {
+  return NULL;  // TODO: write this
+}

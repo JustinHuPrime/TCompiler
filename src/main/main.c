@@ -26,6 +26,7 @@
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
+#include "x86_64/frame.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -178,8 +179,12 @@ int main(int argc, char *argv[]) {
 
   // translation
   FileFragmentVectorMap fragments;
+  FrameCtor frameCtor;
+  GlobalAccessCtor globalAccessCtor;
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
+      frameCtor = x86_64FrameCtor;
+      globalAccessCtor = x86_64GlobalAccessCtor;
       break;
     }
     default: {
@@ -190,7 +195,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  translate(&fragments, &asts);
+  translate(&fragments, &asts, frameCtor, globalAccessCtor);
   moduleAstMapPairUninit(&asts);
 
   // debug stop for translate
