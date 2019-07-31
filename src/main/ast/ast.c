@@ -1012,6 +1012,7 @@ Node *idNodeCreate(size_t line, size_t character, char *id) {
   node->data.id.symbol = NULL;
   node->data.id.overload = NULL;
   node->data.id.resultType = NULL;
+  node->data.id.access = NULL;
   return node;
 }
 
@@ -1351,6 +1352,9 @@ void nodeDestroy(Node *node) {
       free(node->data.id.id);
       if (node->data.id.resultType != NULL) {
         typeDestroy(node->data.id.resultType);
+      }
+      if (node->data.id.access != NULL) {
+        (node->data.id.access->vtable->dtor)(node->data.id.access);
       }
       break;
     }

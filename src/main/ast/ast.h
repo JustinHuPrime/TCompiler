@@ -19,6 +19,7 @@
 #ifndef TLC_AST_AST_H_
 #define TLC_AST_AST_H_
 
+#include "translate/frame.h"
 #include "typecheck/symbolTable.h"
 #include "util/container/vector.h"
 
@@ -450,6 +451,7 @@ typedef struct Node {
       SymbolInfo *symbol;
       OverloadSetElement *overload;  // nullable
       Type *resultType;              // nullable
+      Access *access;                // nullable
     } id;
   } data;
 } Node;
