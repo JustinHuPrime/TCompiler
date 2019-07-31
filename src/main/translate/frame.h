@@ -26,9 +26,18 @@
 struct Frame;
 struct Access;
 
+typedef Vector AccessVector;
+AccessVector *accessVectorCreate(void);
+void accessVectorInsert(AccessVector *, struct Access *);
+void accessVectorDestroy(AccessVector *);
+
 typedef struct {
   void (*dtor)(struct Frame *);
-  IRStmVector *(*generateEntryExit)(IRStmVector *body);
+  IRStmVector *(*generateEntryExit)(struct Frame *this, IRStmVector *body);
+  IRExp *(*fpExp)(void);
+  struct Access *(*allocLocal)(struct Frame *this, size_t size, bool escapes);
+  struct Access *(*allocOutArg)(struct Frame *this, size_t size);
+  struct Access *(*allocInArg)(struct Frame *this, size_t size, bool escapes);
 } FrameVTable;
 
 typedef struct Frame {
@@ -38,6 +47,8 @@ typedef struct Frame {
 
 typedef struct {
   void (*dtor)(struct Access *);
+  IRExp *(*valueExp)(IRExp *fp);
+  IRExp *(*addressExp)(IRExp *fp);
 } AccessVTable;
 
 typedef struct Access {
