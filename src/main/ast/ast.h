@@ -455,20 +455,6 @@ typedef struct Node {
   } data;
 } Node;
 
-// absolute value of maximum for some data type
-extern uint64_t const UBYTE_MAX;
-extern uint64_t const BYTE_MAX;
-extern uint64_t const BYTE_MIN;
-extern uint64_t const USHORT_MAX;
-extern uint64_t const SHORT_MAX;
-extern uint64_t const SHORT_MIN;
-extern uint64_t const UINT_MAX;
-extern uint64_t const INT_MAX;
-extern uint64_t const INT_MIN;
-extern uint64_t const ULONG_MAX;
-extern uint64_t const LONG_MAX;
-extern uint64_t const LONG_MIN;
-
 // constructors
 // Note that all pointers should be owning pointers
 Node *fileNodeCreate(size_t line, size_t character, Node *module,

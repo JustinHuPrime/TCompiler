@@ -18,6 +18,7 @@
 
 #include "ast/ast.h"
 
+#include "constants.h"
 #include "util/container/stringBuilder.h"
 
 #include <ctype.h>
@@ -141,19 +142,6 @@ char const *constTypeToString(ConstType ct) {
       return NULL;  // error: not a valid enum
   }
 }
-
-uint64_t const UBYTE_MAX = 255;
-uint64_t const BYTE_MAX = 127;
-uint64_t const BYTE_MIN = 128;
-uint64_t const USHORT_MAX = 65535;
-uint64_t const SHORT_MAX = 32767;
-uint64_t const SHORT_MIN = 32768;
-uint64_t const UINT_MAX = 4294967295;
-uint64_t const INT_MAX = 2147483647;
-uint64_t const INT_MIN = 2147483648;
-uint64_t const ULONG_MAX = 18446744073709551615UL;
-uint64_t const LONG_MAX = 9223372036854775807;
-uint64_t const LONG_MIN = 9223372036854775808UL;
 
 // Constructors
 static Node *nodeCreate(size_t line, size_t character) {
