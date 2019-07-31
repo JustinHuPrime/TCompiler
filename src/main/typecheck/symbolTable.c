@@ -19,6 +19,7 @@
 #include "typecheck/symbolTable.h"
 
 #include "ast/ast.h"
+#include "constants.h"
 #include "util/format.h"
 #include "util/functional.h"
 #include "util/nameUtils.h"
@@ -158,24 +159,30 @@ size_t typeSizeof(Type const *t) {
     case K_BYTE:
     case K_CHAR:
     case K_BOOL: {
-      return 1;
+      return BYTE_WIDTH;
     }
     case K_USHORT:
     case K_SHORT: {
-      return 2;
+      return SHORT_WIDTH;
     }
-    case K_FLOAT:
     case K_UINT:
     case K_INT:
     case K_WCHAR: {
-      return 4;
+      return INT_WIDTH;
     }
-    case K_DOUBLE:
     case K_ULONG:
-    case K_LONG:
+    case K_LONG: {
+      return LONG_WIDTH;
+    }
     case K_PTR:
     case K_FUNCTION_PTR: {
-      return 8;
+      return POINTER_WIDTH;
+    }
+    case K_FLOAT: {
+      return FLOAT_WIDTH;
+    }
+    case K_DOUBLE: {
+      return DOUBLE_WIDTH;
     }
     case K_CONST: {
       return typeSizeof(t->data.modifier.type);
