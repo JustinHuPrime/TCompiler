@@ -1817,7 +1817,7 @@ static Node *parseDoWhileStatement(Report *report, Options const *options,
   return doWhileStmtNodeCreate(doKwd.line, doKwd.character, test, body);
 }
 static Node *parseVarDecl(Report *, Options const *, TypeEnvironment *,
-                          LexerInfo *);
+                          LexerInfo *, bool);
 static Node *parseForStatement(Report *report, Options const *options,
                                TypeEnvironment *env, LexerInfo *info) {
   TokenInfo forKwd;
@@ -1864,7 +1864,7 @@ static Node *parseForStatement(Report *report, Options const *options,
     case TT_DOUBLE:
     case TT_BOOL: {
       unLex(info, &next);
-      init = parseVarDecl(report, options, env, info);
+      init = parseVarDecl(report, options, env, info, true);
       if (init == NULL) {
         typeEnvironmentPop(env);
         return NULL;
@@ -1923,7 +1923,7 @@ static Node *parseForStatement(Report *report, Options const *options,
         }
         case ST_TYPE: {
           unLex(info, &next);
-          init = parseVarDecl(report, options, env, info);
+          init = parseVarDecl(report, options, env, info, true);
           if (init == NULL) {
             typeEnvironmentPop(env);
             return NULL;
@@ -2405,7 +2405,7 @@ static Node *parseStatement(Report *report, Options const *options,
     case TT_DOUBLE:
     case TT_BOOL: {
       unLex(info, &peek);
-      return parseVarDecl(report, options, env, info);
+      return parseVarDecl(report, options, env, info, true);
     }
     case TT_STAR:
     case TT_AMPERSAND:
@@ -2489,7 +2489,7 @@ static Node *parseStatement(Report *report, Options const *options,
         }
         case ST_TYPE: {
           unLex(info, &peek);
-          return parseVarDecl(report, options, env, info);
+          return parseVarDecl(report, options, env, info, true);
         }
         default: {
           return NULL;  // error: not a valid enum!
@@ -3183,7 +3183,7 @@ static Node *parseFunctionDeclOrDefn(Report *report, Options const *options,
 // produce false on an error
 static bool parseVarId(Report *report, Options const *options,
                        TypeEnvironment *env, NodePairList *list,
-                       LexerInfo *info) {
+                       LexerInfo *info, bool isStatement) {
   Node *id = parseUnscopedId(report, info);
   if (id == NULL) {
     return false;
@@ -3225,7 +3225,8 @@ static bool parseVarId(Report *report, Options const *options,
     return true;
   }
 
-  Node *literal = parseLiteral(report, options, env, info);
+  Node *literal = (isStatement ? parseAssignmentExpression : parseLiteral)(
+      report, options, env, info);
   if (literal == NULL) {
     nodeDestroy(id);
     return false;
@@ -3237,7 +3238,7 @@ static bool parseVarId(Report *report, Options const *options,
 }
 static NodePairList *parseVarIds(Report *report, Options const *options,
                                  TypeEnvironment *env, Node *firstId,
-                                 LexerInfo *info) {
+                                 LexerInfo *info, bool isStatement) {
   NodePairList *list = nodePairListCreate();
 
   TokenInfo next;
@@ -3245,7 +3246,8 @@ static NodePairList *parseVarIds(Report *report, Options const *options,
 
   switch (next.type) {
     case TT_ASSIGN: {
-      Node *value = parseLiteral(report, options, env, info);
+      Node *value = (isStatement ? parseAssignmentExpression : parseLiteral)(
+          report, options, env, info);
       if (value == NULL) {
         nodePairListDestroy(list);
         nodeDestroy(firstId);
@@ -3282,7 +3284,7 @@ static NodePairList *parseVarIds(Report *report, Options const *options,
   lex(info, report, &peek);
   while (peek.type == TT_ID || peek.type == TT_SCOPED_ID) {
     unLex(info, &peek);
-    if (!parseVarId(report, options, env, list, info)) {
+    if (!parseVarId(report, options, env, list, info, isStatement)) {
       nodePairListDestroy(list);
       return NULL;
     }
@@ -3301,9 +3303,11 @@ static NodePairList *parseVarIds(Report *report, Options const *options,
 }
 static Node *parseVarDeclPrefixed(Report *report, Options const *options,
                                   TypeEnvironment *env, Node *type,
-                                  Node *firstId, LexerInfo *info) {
+                                  Node *firstId, LexerInfo *info,
+                                  bool isStatement) {
   // currently at int foo .
-  NodePairList *decls = parseVarIds(report, options, env, firstId, info);
+  NodePairList *decls =
+      parseVarIds(report, options, env, firstId, info, isStatement);
   if (decls == NULL) {
     return NULL;
   }
@@ -3326,7 +3330,8 @@ static Node *parseVarDeclPrefixed(Report *report, Options const *options,
   return varDeclNodeCreate(type->line, type->character, type, decls);
 }
 static Node *parseVarDecl(Report *report, Options const *options,
-                          TypeEnvironment *env, LexerInfo *info) {
+                          TypeEnvironment *env, LexerInfo *info,
+                          bool isStatement) {
   Node *type = parseType(report, options, env, info);
   if (type == NULL) {
     return NULL;
@@ -3366,7 +3371,8 @@ static Node *parseVarDecl(Report *report, Options const *options,
     }
   }
 
-  return parseVarDeclPrefixed(report, options, env, type, id, info);
+  return parseVarDeclPrefixed(report, options, env, type, id, info,
+                              isStatement);
 }
 static Node *parseVarOrFnDeclOrDefn(Report *report, Options const *options,
                                     TypeEnvironment *env, LexerInfo *info) {
@@ -3423,7 +3429,7 @@ static Node *parseVarOrFnDeclOrDefn(Report *report, Options const *options,
     case TT_ASSIGN:
     case TT_COMMA: {
       unLex(info, &peek);
-      return parseVarDeclPrefixed(report, options, env, type, id, info);
+      return parseVarDeclPrefixed(report, options, env, type, id, info, false);
     }
     default: {
       if (!tokenInfoIsLexerError(&peek)) {
