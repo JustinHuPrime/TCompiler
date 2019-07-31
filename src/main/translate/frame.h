@@ -44,6 +44,7 @@ typedef struct Frame {
   FrameVTable *vtable;
   // other stuff, depending on implementation
 } Frame;
+typedef Frame *(*FrameCtor)(void);
 
 typedef struct {
   void (*dtor)(struct Access *);
@@ -55,5 +56,6 @@ typedef struct Access {
   AccessVTable *vtable;
   // other stuff, depending on implementation
 } Access;
+typedef Access *(*GlobalAccessCtor)(char *label);
 
 #endif  // TLC_TRANSLATE_FRAME_H_

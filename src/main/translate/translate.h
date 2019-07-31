@@ -21,6 +21,7 @@
 
 #include "ir/ir.h"
 #include "parser/parser.h"
+#include "translate/frame.h"
 #include "util/container/hashMap.h"
 
 typedef HashMap FileFragmentVectorMap;
@@ -31,6 +32,7 @@ int fileFragmentVectorMapPut(FileFragmentVectorMap *, char *file,
                              FragmentVector *vector);
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
-void translate(FileFragmentVectorMap *, ModuleAstMapPair *);
+void translate(FileFragmentVectorMap *, ModuleAstMapPair *, FrameCtor,
+               GlobalAccessCtor);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_
