@@ -64,6 +64,15 @@ typedef struct IRExp {
     struct {
       uint8_t value;
     } byteConst;
+    struct {
+      uint16_t value;
+    } shortConst;
+    struct {
+      uint32_t value;
+    } intConst;
+    struct {
+      uint64_t value;
+    } longConst;
   } data;
 } IRExp;
 IRExp *byteConstIRExpCreate(uint8_t value);
@@ -71,6 +80,7 @@ void irExpDestroy(IRExp *);
 
 typedef enum {
   FK_DATA,
+  FK_RO_DATA,
   FK_BSS_DATA,
   FK_FUNCTION,
 } FragmentKind;
@@ -79,8 +89,12 @@ typedef struct {
   union {
     struct {
       char *label;
-      ByteVector data;
+      IRExpVector data;
     } data;
+    struct {
+      char *label;
+      IRExpVector data;
+    } roData;
     struct {
       char *label;
       size_t nBytes;
@@ -92,6 +106,7 @@ typedef struct {
   } data;
 } Fragment;
 Fragment *dataFragmentCreate(char *label);
+Fragment *roDataFragmentCreate(char *label);
 Fragment *bssDataFragmentCreate(char *label, size_t nBytes);
 Fragment *functionFragmentCreate(char *label);
 void fragmentDestroy(Fragment *);
