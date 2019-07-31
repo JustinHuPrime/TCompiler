@@ -30,6 +30,8 @@ extern size_t const LONG_WIDTH;
 extern size_t const FLOAT_WIDTH;
 extern size_t const DOUBLE_WIDTH;
 extern size_t const POINTER_WIDTH;   // <= LONG_WIDTH
+extern size_t const CHAR_WIDTH;      // >= BYTE_WIDTH
+extern size_t const WCHAR_WIDTH;     // >= INT_WIDTH
 extern size_t const REGISTER_WIDTH;  // >= LONG_WIDTH
 
 // absolute value of maximum for some data type

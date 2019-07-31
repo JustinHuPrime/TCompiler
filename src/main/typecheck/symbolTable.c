@@ -157,18 +157,22 @@ size_t typeSizeof(Type const *t) {
     case K_VOID:
     case K_UBYTE:
     case K_BYTE:
-    case K_CHAR:
     case K_BOOL: {
       return BYTE_WIDTH;
+    }
+    case K_CHAR: {
+      return CHAR_WIDTH;
     }
     case K_USHORT:
     case K_SHORT: {
       return SHORT_WIDTH;
     }
     case K_UINT:
-    case K_INT:
-    case K_WCHAR: {
+    case K_INT: {
       return INT_WIDTH;
+    }
+    case K_WCHAR: {
+      return WCHAR_WIDTH;
     }
     case K_ULONG:
     case K_LONG: {

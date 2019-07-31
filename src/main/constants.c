@@ -18,13 +18,15 @@
 
 #include "constants.h"
 
-size_t const BYTE_WIDTH = 1;  // should always be 1, included for consistency
+size_t const BYTE_WIDTH = 1;
 size_t const SHORT_WIDTH = 2;
 size_t const INT_WIDTH = 4;
 size_t const LONG_WIDTH = 8;
 size_t const FLOAT_WIDTH = 4;
 size_t const DOUBLE_WIDTH = 8;
 size_t const POINTER_WIDTH = 8;
+size_t const CHAR_WIDTH = 1;
+size_t const WCHAR_WIDTH = 4;
 size_t const REGISTER_WIDTH = 8;
 
 uint64_t const UBYTE_MAX = 255;
