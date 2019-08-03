@@ -62,6 +62,38 @@ void irExpVectorDestroy(IRExpVector *v) {
   vectorDestroy(v, (void (*)(void *))irExpDestroy);
 }
 
+static uint8_t punSignedToUnsigned8(int8_t value) {
+  union {
+    uint8_t u;
+    int8_t s;
+  } u;
+  u.s = value;
+  return u.u;
+}
+static uint16_t punSignedToUnsigned16(int16_t value) {
+  union {
+    uint16_t u;
+    int16_t s;
+  } u;
+  u.s = value;
+  return u.u;
+}
+static uint32_t punSignedToUnsigned32(int32_t value) {
+  union {
+    uint32_t u;
+    int32_t s;
+  } u;
+  u.s = value;
+  return u.u;
+}
+static uint64_t punSignedToUnsigned64(int64_t value) {
+  union {
+    uint64_t u;
+    int64_t s;
+  } u;
+  u.s = value;
+  return u.u;
+}
 static IRExp *irExpCreate(IRExpKind kind) {
   IRExp *e = malloc(sizeof(IRExp));
   e->kind = kind;
@@ -69,8 +101,49 @@ static IRExp *irExpCreate(IRExpKind kind) {
 }
 IRExp *byteConstIRExpCreate(int8_t value) {
   IRExp *e = irExpCreate(IE_BYTE_CONST);
+  e->data.byteConst.value = punSignedToUnsigned8(value);
+  return e;
+}
+IRExp *ubyteConstIRExpCreate(uint8_t value) {
+  IRExp *e = irExpCreate(IE_BYTE_CONST);
   e->data.byteConst.value = value;
   return e;
+}
+IRExp *shortConstIRExpCreate(int16_t value) {
+  IRExp *e = irExpCreate(IE_SHORT_CONST);
+  e->data.shortConst.value = punSignedToUnsigned16(value);
+  return e;
+}
+IRExp *ushortConstIRExpCreate(uint16_t value) {
+  IRExp *e = irExpCreate(IE_SHORT_CONST);
+  e->data.shortConst.value = value;
+  return e;
+}
+IRExp *intConstIRExpCreate(int32_t value) {
+  IRExp *e = irExpCreate(IE_INT_CONST);
+  e->data.intConst.value = punSignedToUnsigned32(value);
+  return e;
+}
+IRExp *uintConstIRExpCreate(uint32_t value) {
+  IRExp *e = irExpCreate(IE_INT_CONST);
+  e->data.intConst.value = value;
+  return e;
+}
+IRExp *longConstIRExpCreate(int64_t value) {
+  IRExp *e = irExpCreate(IE_LONG_CONST);
+  e->data.longConst.value = punSignedToUnsigned64(value);
+  return e;
+}
+IRExp *ulongConstIRExpCreate(uint64_t value) {
+  IRExp *e = irExpCreate(IE_LONG_CONST);
+  e->data.longConst.value = value;
+  return e;
+}
+IRExp *floatConstIRExpCreate(uint32_t bits) {
+  return uintConstIRExpCreate(bits);
+}
+IRExp *doubleConstIRExpCreate(uint64_t bits) {
+  return ulongConstIRExpCreate(bits);
 }
 void irExpDestroy(IRExp *e) {
   switch (e->kind) {

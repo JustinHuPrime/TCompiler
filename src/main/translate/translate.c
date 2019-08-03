@@ -243,8 +243,107 @@ static bool constantNotZero(Node *initializer) {
     default: { return false; }
   }
 }
-static void constantToData(Node *initializer, IRExpVector *out) {
-  // TODO: write this
+static void constantToData(Node *initializer, IRExpVector *out,
+                           FragmentVector *fragments) {
+  switch (initializer->type) {
+    case NT_CONSTEXP: {
+      switch (initializer->data.constExp.type) {
+        case CT_UBYTE: {
+          irExpVectorInsert(
+              out,
+              ubyteConstIRExpCreate(initializer->data.constExp.value.ubyteVal));
+          return;
+        }
+        case CT_BYTE: {
+          irExpVectorInsert(out, byteConstIRExpCreate(
+                                     initializer->data.constExp.value.byteVal));
+          return;
+        }
+        case CT_CHAR: {
+          irExpVectorInsert(out, ubyteConstIRExpCreate(
+                                     initializer->data.constExp.value.charVal));
+          return;
+        }
+        case CT_USHORT: {
+          irExpVectorInsert(out,
+                            ushortConstIRExpCreate(
+                                initializer->data.constExp.value.ushortVal));
+          return;
+        }
+        case CT_SHORT: {
+          irExpVectorInsert(
+              out,
+              shortConstIRExpCreate(initializer->data.constExp.value.shortVal));
+          return;
+        }
+        case CT_UINT: {
+          irExpVectorInsert(out, uintConstIRExpCreate(
+                                     initializer->data.constExp.value.uintVal));
+          return;
+        }
+        case CT_INT: {
+          irExpVectorInsert(out, intConstIRExpCreate(
+                                     initializer->data.constExp.value.uintVal));
+          return;
+        }
+        case CT_WCHAR: {
+          irExpVectorInsert(
+              out,
+              uintConstIRExpCreate(initializer->data.constExp.value.wcharVal));
+          return;
+        }
+        case CT_ULONG: {
+          irExpVectorInsert(
+              out,
+              ulongConstIRExpCreate(initializer->data.constExp.value.ulongVal));
+          return;
+        }
+        case CT_LONG: {
+          irExpVectorInsert(out, longConstIRExpCreate(
+                                     initializer->data.constExp.value.longVal));
+          return;
+        }
+        case CT_FLOAT: {
+          irExpVectorInsert(
+              out,
+              uintConstIRExpCreate(initializer->data.constExp.value.floatBits));
+          return;
+        }
+        case CT_DOUBLE: {
+          irExpVectorInsert(out,
+                            ulongConstIRExpCreate(
+                                initializer->data.constExp.value.doubleBits));
+          return;
+        }
+        case CT_BOOL: {
+          irExpVectorInsert(out,
+                            ubyteConstIRExpCreate(
+                                initializer->data.constExp.value.floatBits));
+          return;
+        }
+        case CT_STRING:
+        case CT_WSTRING: {
+          // TODO: write this
+          return;
+        }
+        case CT_NULL: {
+          irExpVectorInsert(out, ulongConstIRExpCreate(0));
+          return;
+        }
+        default: {
+          return;  // invalid enum
+        }
+      }
+    }
+    case NT_AGGREGATEINITEXP: {
+      NodeList *elements = initializer->data.aggregateInitExp.elements;
+      for (size_t idx = 0; idx < elements->size; idx++) {
+        constantToData(elements->elements[idx], out, fragments);
+      }
+      return;
+    }
+    default: { return; }
+  }
 }
 static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
                                char const *moduleName,
@@ -260,10 +359,10 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
                                 typeSizeof(id->data.id.symbol->data.var.type));
     } else if (id->data.id.symbol->data.var.type->kind == K_CONST) {
       f = roDataFragmentCreate(mangledName);
-      constantToData(initializer, &f->data.roData.data);
+      constantToData(initializer, &f->data.roData.data, fragments);
     } else {
       f = dataFragmentCreate(mangledName);
-      constantToData(initializer, &f->data.data.data);
+      constantToData(initializer, &f->data.data.data, fragments);
     }
     id->data.id.symbol->data.var.access = globalAccessCtor(mangledName);
 
