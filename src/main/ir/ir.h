@@ -57,6 +57,9 @@ void irExpVectorDestroy(IRExpVector *);
 
 typedef enum {
   IE_BYTE_CONST,
+  IE_SHORT_CONST,
+  IE_INT_CONST,
+  IE_LONG_CONST,
 } IRExpKind;
 typedef struct IRExp {
   IRExpKind kind;
@@ -75,7 +78,16 @@ typedef struct IRExp {
     } longConst;
   } data;
 } IRExp;
-IRExp *byteConstIRExpCreate(uint8_t value);
+IRExp *byteConstIRExpCreate(int8_t value);
+IRExp *ubyteConstIRExpCreate(uint8_t value);
+IRExp *shortConstIRExpCreate(int16_t value);
+IRExp *ushortConstIRExpCreate(uint16_t value);
+IRExp *intConstIRExpCreate(int32_t value);
+IRExp *uintConstIRExpCreate(uint32_t value);
+IRExp *longConstIRExpCreate(int64_t value);
+IRExp *ulongConstIRExpCreate(uint64_t value);
+IRExp *floatConstIRExpCreate(uint32_t bits);
+IRExp *doubleConstIRExpCreate(uint64_t bits);
 void irExpDestroy(IRExp *);
 
 typedef enum {

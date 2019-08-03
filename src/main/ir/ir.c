@@ -67,14 +67,17 @@ static IRExp *irExpCreate(IRExpKind kind) {
   e->kind = kind;
   return e;
 }
-IRExp *byteConstIRExpCreate(uint8_t value) {
+IRExp *byteConstIRExpCreate(int8_t value) {
   IRExp *e = irExpCreate(IE_BYTE_CONST);
   e->data.byteConst.value = value;
   return e;
 }
 void irExpDestroy(IRExp *e) {
   switch (e->kind) {
-    case IE_BYTE_CONST: {
+    case IE_BYTE_CONST:
+    case IE_SHORT_CONST:
+    case IE_INT_CONST:
+    case IE_LONG_CONST: {
       break;
     }
   }
