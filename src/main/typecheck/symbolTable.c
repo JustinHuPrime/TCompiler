@@ -2044,6 +2044,28 @@ bool typeIsPointer(Type const *type) {
 bool typeIsCompound(Type const *type) {
   return typeIsXOrY(type, K_STRUCT, K_UNION);
 }
+bool typeIsComposite(Type const *type) {
+  switch (type->kind) {
+    case K_ARRAY:
+    case K_STRUCT: {
+      return true;
+    }
+    case K_UNION: {
+      TypeVector *fields =
+          &type->data.reference.referenced->data.type.data.unionType.fields;
+      for (size_t idx = 0; idx < fields->size; idx++) {
+        if (typeIsComposite(fields->elements[idx])) {
+          return true;
+        }
+      }
+      return false;
+    }
+    case K_CONST: {
+      return typeIsComposite(type->data.modifier.type);
+    }
+    default: { return false; }
+  }
+}
 bool typeIsArray(Type const *type) { return typeIsX(type, K_ARRAY); }
 Type *typeGetNonConst(Type *type) {
   return type->kind == K_CONST ? typeGetNonConst(type->data.modifier.type)
@@ -2269,12 +2291,12 @@ static SymbolInfo *symbolInfoCreate(SymbolKind kind, char const *moduleName) {
   return si;
 }
 SymbolInfo *varSymbolInfoCreate(char const *moduleName, Type *type, bool bound,
-                                bool large) {
+                                bool escapes) {
   SymbolInfo *si = symbolInfoCreate(SK_VAR, moduleName);
   si->data.var.type = type;
   si->data.var.access = NULL;
   si->data.var.bound = bound;
-  si->data.var.escapes = large;
+  si->data.var.escapes = escapes;
   return si;
 }
 SymbolInfo *structSymbolInfoCreate(char const *moduleName, char const *name) {

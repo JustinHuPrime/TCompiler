@@ -140,7 +140,8 @@ bool typeIsNumeric(Type const *);
 bool typeIsValuePointer(Type const *);
 bool typeIsFunctionPointer(Type const *);
 bool typeIsPointer(Type const *);
-bool typeIsCompound(Type const *);
+bool typeIsCompound(Type const *);   // can use . operator
+bool typeIsComposite(Type const *);  // has parts to address
 bool typeIsArray(Type const *);
 // merge types from conditional or arithmetic branches
 Type *typeExpMerge(Type const *, Type const *);
@@ -247,7 +248,7 @@ typedef struct SymbolInfo {
 } SymbolInfo;
 // ctor
 SymbolInfo *varSymbolInfoCreate(char const *module, Type *, bool bound,
-                                bool large);
+                                bool escapes);
 SymbolInfo *structSymbolInfoCreate(char const *module, char const *name);
 SymbolInfo *unionSymbolInfoCreate(char const *module, char const *name);
 SymbolInfo *enumSymbolInfoCreate(char const *module, char const *name);

@@ -467,7 +467,7 @@ static void buildStabParameter(Node const *type, Node *name, Report *report,
   } else {
     checkId(name, report, options, filename);
     info = varSymbolInfoCreate(moduleName, paramType, true,
-                               typeSizeof(paramType) > REGISTER_WIDTH);
+                               typeIsComposite(paramType));
     name->data.id.symbol = info;
     symbolTablePut(environmentTop(env), name->data.id.id, info);
   }
@@ -775,7 +775,7 @@ static void buildStabVarDecl(Node *varDecl, Report *report,
   // must not allow a var with the same name to be defined/declared twice
   Type *varType =
       astToType(varDecl->data.varDecl.type, report, options, env, filename);
-  bool wide = typeSizeof(varType) > REGISTER_WIDTH;
+  bool escapes = typeIsComposite(varType);
   if (varType == NULL) {
     return;
   } else if (typeIsIncomplete(varType, env)) {
@@ -796,7 +796,8 @@ static void buildStabVarDecl(Node *varDecl, Report *report,
       continue;
     } else if (info == NULL) {
       // new variable to declare
-      info = varSymbolInfoCreate(moduleName, typeCopy(varType), !isDecl, wide);
+      info =
+          varSymbolInfoCreate(moduleName, typeCopy(varType), !isDecl, escapes);
       symbolTablePut(environmentTop(env), name->data.id.id, info);
     } else {
       if (isDecl) {

@@ -24,7 +24,7 @@
 #include <string.h>
 
 // helpers
-static bool expressionIsLvalue(Node *expression) {
+static bool expressionIsLvalue(Node const *expression) {
   switch (expression->type) {
     case NT_SEQEXP: {
       return expressionIsLvalue(expression->data.seqExp.last);
@@ -71,6 +71,58 @@ static bool expressionIsLvalue(Node *expression) {
       return expressionIsLvalue(expression->data.structAccessExp.base);
     }
     default: { return false; }
+  }
+}
+static void expressionEscapes(Node *expression) {
+  switch (expression->type) {
+    case NT_SEQEXP: {
+      expressionEscapes(expression->data.seqExp.last);
+      return;
+    }
+    case NT_BINOPEXP: {
+      switch (expression->data.binOpExp.op) {
+        case BO_ASSIGN:
+        case BO_MULASSIGN:
+        case BO_DIVASSIGN:
+        case BO_MODASSIGN:
+        case BO_ADDASSIGN:
+        case BO_SUBASSIGN:
+        case BO_LSHIFTASSIGN:
+        case BO_LRSHIFTASSIGN:
+        case BO_ARSHIFTASSIGN:
+        case BO_BITANDASSIGN:
+        case BO_BITXORASSIGN:
+        case BO_BITORASSIGN:
+        case BO_ARRAYACCESS: {
+          expressionEscapes(expression->data.binOpExp.lhs);
+          return;
+        }
+        default: { return; }
+      }
+    }
+    case NT_UNOPEXP: {
+      switch (expression->data.unOpExp.op) {
+        case UO_PREINC:
+        case UO_PREDEC: {
+          expressionEscapes(expression->data.unOpExp.target);
+          return;
+        }
+        default: { return; }
+      }
+    }
+    case NT_LANDASSIGNEXP: {
+      expressionEscapes(expression->data.landAssignExp.lhs);
+      return;
+    }
+    case NT_LORASSIGNEXP: {
+      expressionEscapes(expression->data.lorAssignExp.lhs);
+      return;
+    }
+    case NT_ID: {
+      expression->data.id.symbol->data.var.escapes = true;
+      return;
+    }
+    default: { return; }
   }
 }
 
@@ -688,6 +740,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
                 filename, expression->line, expression->character);
             return NULL;
           } else {
+            expressionEscapes(expression->data.unOpExp.target);
             return expression->data.unOpExp.resultType =
                        modifierTypeCreate(K_PTR, typeCopy(target));
           }
