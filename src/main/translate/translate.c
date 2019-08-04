@@ -283,7 +283,7 @@ static void constantToData(Node *initializer, IRExpVector *out,
         }
         case CT_INT: {
           irExpVectorInsert(out, intConstIRExpCreate(
-                                     initializer->data.constExp.value.uintVal));
+                                     initializer->data.constExp.value.intVal));
           return;
         }
         case CT_WCHAR: {
@@ -311,14 +311,14 @@ static void constantToData(Node *initializer, IRExpVector *out,
         }
         case CT_DOUBLE: {
           irExpVectorInsert(out,
-                            ulongConstIRExpCreate(
+                            doubleConstIRExpCreate(
                                 initializer->data.constExp.value.doubleBits));
           return;
         }
         case CT_BOOL: {
-          irExpVectorInsert(out,
-                            ubyteConstIRExpCreate(
-                                initializer->data.constExp.value.floatBits));
+          irExpVectorInsert(
+              out, ubyteConstIRExpCreate(
+                       initializer->data.constExp.value.boolVal ? 1 : 0));
           return;
         }
         case CT_STRING:
