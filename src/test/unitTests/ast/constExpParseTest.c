@@ -17,7 +17,7 @@ void constExpParseIntTest(TestStatus *status) {
   Node *node;
 
   // positive zero
-  string = strcpy(malloc(3), "+0");
+  string = strdup("+0");
   node = constZeroIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [zero] parsing '+0' produces type signed "
@@ -29,7 +29,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // unsigned zero
-  string = strcpy(malloc(2), "0");
+  string = strdup("0");
   node = constZeroIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [zero] parsing '0' produces type unsigned "
@@ -40,7 +40,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // negative zero
-  string = strcpy(malloc(3), "-0");
+  string = strdup("-0");
   node = constZeroIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [zero] parsing '-0' produces type signed "
@@ -52,7 +52,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // -byte
-  string = strcpy(malloc(5), "-128");
+  string = strdup("-128");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '-128' produces type signed "
@@ -63,7 +63,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // ubyte
-  string = strcpy(malloc(4), "213");
+  string = strdup("213");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '213' produces type unsigned "
@@ -75,7 +75,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // +byte
-  string = strcpy(malloc(5), "+104");
+  string = strdup("+104");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '+104' produces type signed "
@@ -87,7 +87,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // -short
-  string = strcpy(malloc(5), "-200");
+  string = strdup("-200");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '-200' produces type signed "
@@ -99,7 +99,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // ushort
-  string = strcpy(malloc(4), "256");
+  string = strdup("256");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '256' produces type unsigned "
@@ -111,7 +111,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // +short
-  string = strcpy(malloc(5), "+257");
+  string = strdup("+257");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '+257' produces type signed "
@@ -123,7 +123,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // -int
-  string = strcpy(malloc(7), "-40000");
+  string = strdup("-40000");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '-40000' produces type signed "
@@ -136,7 +136,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // uint
-  string = strcpy(malloc(6), "70000");
+  string = strdup("70000");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(
       status,
@@ -149,7 +149,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // +int
-  string = strcpy(malloc(7), "+40000");
+  string = strdup("+40000");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '+40000' produces type signed "
@@ -162,7 +162,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // -long
-  string = strcpy(malloc(12), "-5000000000");
+  string = strdup("-5000000000");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '-5000000000' produces type "
@@ -175,7 +175,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // uint
-  string = strcpy(malloc(20), "9223372036854775807");
+  string = strdup("9223372036854775807");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '9223372036854775807' "
@@ -188,7 +188,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // +long
-  string = strcpy(malloc(12), "+5000000001");
+  string = strdup("+5000000001");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [type] parsing '+5000000001' produces type "
@@ -202,7 +202,7 @@ void constExpParseIntTest(TestStatus *status) {
 
   // signed ranges
   // -error, -long, -int, -byte, +byte, +int, +long, +error
-  string = strcpy(malloc(21), "-9223372036854775809");
+  string = strdup("-9223372036854775809");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '-9223372036854775809' "
@@ -210,7 +210,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.type == CT_RANGE_ERROR);
   nodeDestroy(node);
 
-  string = strcpy(malloc(21), "-9223372036854775808");
+  string = strdup("-9223372036854775808");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '-9223372036854775808' "
@@ -222,7 +222,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.longVal == (-9223372036854775807 - 1));
   nodeDestroy(node);
 
-  string = strcpy(malloc(12), "-2147483649");
+  string = strdup("-2147483649");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '-2147483649' produces type "
@@ -234,7 +234,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.longVal == -2147483649);
   nodeDestroy(node);
 
-  string = strcpy(malloc(12), "-2147483648");
+  string = strdup("-2147483648");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '-2147483648' produces type "
@@ -246,7 +246,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.intVal == -2147483648);
   nodeDestroy(node);
 
-  string = strcpy(malloc(7), "-32769");
+  string = strdup("-32769");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '-32769' produces type int.",
@@ -257,7 +257,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.intVal == -32769);
   nodeDestroy(node);
 
-  string = strcpy(malloc(5), "-129");
+  string = strdup("-129");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '-129' produces type short.",
@@ -267,7 +267,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.shortVal == -129);
   nodeDestroy(node);
 
-  string = strcpy(malloc(5), "-128");
+  string = strdup("-128");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '-128' produces type byte.",
@@ -277,7 +277,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.byteVal == -128);
   nodeDestroy(node);
 
-  string = strcpy(malloc(5), "+127");
+  string = strdup("+127");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '+127' produces type byte.",
@@ -287,7 +287,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.byteVal == 127);
   nodeDestroy(node);
 
-  string = strcpy(malloc(5), "+128");
+  string = strdup("+128");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '+128' produces type short.",
@@ -297,7 +297,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.shortVal == 128);
   nodeDestroy(node);
 
-  string = strcpy(malloc(7), "+32768");
+  string = strdup("+32768");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '+32768' produces type int.",
@@ -308,7 +308,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.intVal == 32768);
   nodeDestroy(node);
 
-  string = strcpy(malloc(12), "+2147483647");
+  string = strdup("+2147483647");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '+2147483647' produces type "
@@ -320,7 +320,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.intVal == 2147483647);
   nodeDestroy(node);
 
-  string = strcpy(malloc(12), "+2147483648");
+  string = strdup("+2147483648");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '+2147483648' produces type "
@@ -332,7 +332,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.longVal == 2147483648);
   nodeDestroy(node);
 
-  string = strcpy(malloc(21), "+9223372036854775807");
+  string = strdup("+9223372036854775807");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '+9223372036854775807' "
@@ -344,7 +344,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.longVal == 9223372036854775807);
   nodeDestroy(node);
 
-  string = strcpy(malloc(21), "+9223372036854775808");
+  string = strdup("+9223372036854775808");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '+9223372036854775808' "
@@ -353,7 +353,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // unsigned ranges
-  string = strcpy(malloc(4), "255");
+  string = strdup("255");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '255' produces type unsigned "
@@ -364,7 +364,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.ubyteVal == 255u);
   nodeDestroy(node);
 
-  string = strcpy(malloc(4), "256");
+  string = strdup("256");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '256' produces type unsigned "
@@ -375,7 +375,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.ushortVal == 256u);
   nodeDestroy(node);
 
-  string = strcpy(malloc(6), "65536");
+  string = strdup("65536");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '65536' produces type "
@@ -387,7 +387,7 @@ void constExpParseIntTest(TestStatus *status) {
       node->data.constExp.value.uintVal == 65536u);
   nodeDestroy(node);
 
-  string = strcpy(malloc(11), "4294967295");
+  string = strdup("4294967295");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '4294967295' produces type "
@@ -399,7 +399,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.uintVal == 4294967295u);
   nodeDestroy(node);
 
-  string = strcpy(malloc(11), "4294967296");
+  string = strdup("4294967296");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '4294967296' produces type "
@@ -411,7 +411,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.ulongVal == 4294967296u);
   nodeDestroy(node);
 
-  string = strcpy(malloc(21), "18446744073709551615");
+  string = strdup("18446744073709551615");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '18446744073709551615' "
@@ -423,7 +423,7 @@ void constExpParseIntTest(TestStatus *status) {
        node->data.constExp.value.ulongVal == 18446744073709551615u);
   nodeDestroy(node);
 
-  string = strcpy(malloc(21), "18446744073709551617");
+  string = strdup("18446744073709551617");
   node = constDecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [range] parsing '18446744073709551617' "
@@ -434,7 +434,7 @@ void constExpParseIntTest(TestStatus *status) {
   // bases and leading zeroes
 
   // binary
-  string = strcpy(malloc(19), "0b0111101010110111");
+  string = strdup("0b0111101010110111");
   node = constBinaryIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [base] parsing '0b0111101010110111' produces "
@@ -447,7 +447,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // octal
-  string = strcpy(malloc(8), "0075267");
+  string = strdup("0075267");
   node = constOctalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [base] parsing '0075267' produces type "
@@ -460,7 +460,7 @@ void constExpParseIntTest(TestStatus *status) {
   nodeDestroy(node);
 
   // hex
-  string = strcpy(malloc(9), "0x007AB7");
+  string = strdup("0x007AB7");
   node = constHexadecimalIntExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [int] [base] parsing '0x007AB7' produces type "
@@ -477,7 +477,7 @@ void constExpParseFloatTest(TestStatus *status) {
   Node *node;
 
   // signedness
-  string = strcpy(malloc(4), "1.0");
+  string = strdup("1.0");
   node = constFloatExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [float] [signs] parsing '1.0' produces type float.",
@@ -487,7 +487,7 @@ void constExpParseFloatTest(TestStatus *status) {
        node->data.constExp.value.floatBits == 0x3F800000);
   nodeDestroy(node);
 
-  string = strcpy(malloc(5), "-1.0");
+  string = strdup("-1.0");
   node = constFloatExpNodeCreate(0, 0, string);
   test(
       status,
@@ -499,7 +499,7 @@ void constExpParseFloatTest(TestStatus *status) {
       node->data.constExp.value.floatBits == 0xBF800000);
   nodeDestroy(node);
 
-  string = strcpy(malloc(5), "+1.0");
+  string = strdup("+1.0");
   node = constFloatExpNodeCreate(0, 0, string);
   test(
       status,
@@ -512,7 +512,7 @@ void constExpParseFloatTest(TestStatus *status) {
   nodeDestroy(node);
 
   // float vs double
-  string = strcpy(malloc(4), "1.1");
+  string = strdup("1.1");
   node = constFloatExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [float] [type] parsing '1.1' produces type double.",
@@ -523,7 +523,7 @@ void constExpParseFloatTest(TestStatus *status) {
       node->data.constExp.value.doubleBits == 0x3FF199999999999A);
   nodeDestroy(node);
 
-  string = strcpy(malloc(4), "1.5");
+  string = strdup("1.5");
   node = constFloatExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [float] [type] parsing '1.5' produces type float.",
@@ -535,7 +535,7 @@ void constExpParseFloatTest(TestStatus *status) {
   nodeDestroy(node);
 
   // positive and negative zero
-  string = strcpy(malloc(5), "+0.0");
+  string = strdup("+0.0");
   node = constFloatExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [float] [zero] parsing '+0.0' produces type float.",
@@ -545,7 +545,7 @@ void constExpParseFloatTest(TestStatus *status) {
        node->data.constExp.value.floatBits == 0x00000000);
   nodeDestroy(node);
 
-  string = strcpy(malloc(5), "-0.0");
+  string = strdup("-0.0");
   node = constFloatExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [float] [zero] parsing '-0.0' produces type float.",
@@ -556,8 +556,7 @@ void constExpParseFloatTest(TestStatus *status) {
   nodeDestroy(node);
 
   // accuracy of conversion
-  string =
-      strcpy(malloc(50), "3.14159265358979323846264338327950288419716939937");
+  string = strdup("3.14159265358979323846264338327950288419716939937");
   node = constFloatExpNodeCreate(0, 0, string);
   test(
       status,
@@ -574,7 +573,7 @@ void constExpParseStringTest(TestStatus *status) {
   Node *node;
 
   // simple case
-  string = strcpy(malloc(13), "abcd1234!@#$");
+  string = strdup("abcd1234!@#$");
   node = constStringExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [string] [type] parsing \"abcd1234!@#$\" produces "
@@ -588,7 +587,7 @@ void constExpParseStringTest(TestStatus *status) {
   nodeDestroy(node);
 
   // escape sequence
-  string = strcpy(malloc(17), "\\\"\\n\\r\\t\\0\\\\\\x0f");
+  string = strdup("\\\"\\n\\r\\t\\0\\\\\\x0f");
   node = constStringExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [string] [type] parsing "
@@ -607,7 +606,7 @@ void constExpParseCharTest(TestStatus *status) {
   Node *node;
 
   // simple case
-  string = strcpy(malloc(2), "a");
+  string = strdup("a");
   node = constCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [char] [type] parsing 'a' produces type char.",
@@ -618,7 +617,7 @@ void constExpParseCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // escaped quote
-  string = strcpy(malloc(3), "\\'");
+  string = strdup("\\'");
   node = constCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [char] [type] parsing '\\'' produces type char.",
@@ -630,7 +629,7 @@ void constExpParseCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // newline
-  string = strcpy(malloc(3), "\\n");
+  string = strdup("\\n");
   node = constCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [char] [type] parsing '\\n' produces type char.",
@@ -641,7 +640,7 @@ void constExpParseCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // carriage return
-  string = strcpy(malloc(3), "\\r");
+  string = strdup("\\r");
   node = constCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [char] [type] parsing '\\r' produces type char.",
@@ -653,7 +652,7 @@ void constExpParseCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // tab
-  string = strcpy(malloc(3), "\\t");
+  string = strdup("\\t");
   node = constCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [char] [type] parsing '\\t' produces type char.",
@@ -664,7 +663,7 @@ void constExpParseCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // null
-  string = strcpy(malloc(3), "\\0");
+  string = strdup("\\0");
   node = constCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [char] [type] parsing '\\0' produces type char.",
@@ -675,7 +674,7 @@ void constExpParseCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // backslash
-  string = strcpy(malloc(3), "\\\\");
+  string = strdup("\\\\");
   node = constCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [char] [type] parsing '\\\\' produces type char.",
@@ -686,7 +685,7 @@ void constExpParseCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // hex
-  string = strcpy(malloc(5), "\\x0f");
+  string = strdup("\\x0f");
   node = constCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [char] [type] parsing '\\x0f' produces type char.",
@@ -701,7 +700,7 @@ void constExpParseWStringTest(TestStatus *status) {
   Node *node;
 
   // simple case
-  string = strcpy(malloc(13), "abcd1234!@#$");
+  string = strdup("abcd1234!@#$");
   node = constWStringExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [wstring] [type] parsing \"abcd1234!@#$\"w "
@@ -716,7 +715,7 @@ void constExpParseWStringTest(TestStatus *status) {
   nodeDestroy(node);
 
   // escape sequence
-  string = strcpy(malloc(27), "\\\"\\n\\r\\t\\0\\\\\\x0f\\u0001F34c");
+  string = strdup("\\\"\\n\\r\\t\\0\\\\\\x0f\\u0001F34c");
   node = constWStringExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [wstring] [type] parsing "
@@ -734,7 +733,7 @@ void constExpParseWCharTest(TestStatus *status) {
   Node *node;
 
   // simple case
-  string = strcpy(malloc(2), "a");
+  string = strdup("a");
   node = constWCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [wchar] [type] parsing 'a'w produces type wchar.",
@@ -745,7 +744,7 @@ void constExpParseWCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // escaped quote
-  string = strcpy(malloc(3), "\\'");
+  string = strdup("\\'");
   node = constWCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [wchar] [type] parsing '\\''w produces type wchar.",
@@ -757,7 +756,7 @@ void constExpParseWCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // newline
-  string = strcpy(malloc(3), "\\n");
+  string = strdup("\\n");
   node = constWCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [wchar] [type] parsing '\\n'w produces type wchar.",
@@ -768,7 +767,7 @@ void constExpParseWCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // carriage return
-  string = strcpy(malloc(3), "\\r");
+  string = strdup("\\r");
   node = constWCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [wchar] [type] parsing '\\r'w produces type wchar.",
@@ -780,7 +779,7 @@ void constExpParseWCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // tab
-  string = strcpy(malloc(3), "\\t");
+  string = strdup("\\t");
   node = constWCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [wchar] [type] parsing '\\t'w produces type wchar.",
@@ -791,7 +790,7 @@ void constExpParseWCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // null
-  string = strcpy(malloc(3), "\\0");
+  string = strdup("\\0");
   node = constWCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [wchar] [type] parsing '\\0'w produces type wchar.",
@@ -802,7 +801,7 @@ void constExpParseWCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // backslash
-  string = strcpy(malloc(3), "\\\\");
+  string = strdup("\\\\");
   node = constWCharExpNodeCreate(0, 0, string);
   test(
       status,
@@ -814,7 +813,7 @@ void constExpParseWCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // hex
-  string = strcpy(malloc(5), "\\x0f");
+  string = strdup("\\x0f");
   node = constWCharExpNodeCreate(0, 0, string);
   test(status,
        "[ast] [constantExp] [wchar] [type] parsing '\\x0f'w produces type "
@@ -827,7 +826,7 @@ void constExpParseWCharTest(TestStatus *status) {
   nodeDestroy(node);
 
   // long hex
-  string = strcpy(malloc(11), "\\u0001F34c");
+  string = strdup("\\u0001F34c");
   node = constWCharExpNodeCreate(0, 0, string);
   test(
       status,

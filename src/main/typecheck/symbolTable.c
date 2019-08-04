@@ -34,8 +34,8 @@ TypeVector *typeVectorCopy(TypeVector *v) {
 }
 void typeVectorInsert(TypeVector *v, struct Type *t) { vectorInsert(v, t); }
 char *typeVectorToString(TypeVector const *types) {
-  char *argString = types->size == 0 ? strcpy(malloc(1), "")
-                                     : typeToString(types->elements[0]);
+  char *argString =
+      types->size == 0 ? strdup("") : typeToString(types->elements[0]);
   for (size_t idx = 1; idx < types->size; idx++) {
     argString = format("%s, %s", argString, typeToString(types->elements[idx]));
   }
@@ -1908,46 +1908,46 @@ Type *typeExpMerge(Type const *lhs, Type const *rhs) {
 char *typeToString(Type const *type) {
   switch (type->kind) {
     case K_VOID: {
-      return strcpy(malloc(5), "void");
+      return strdup("void");
     }
     case K_UBYTE: {
-      return strcpy(malloc(6), "ubyte");
+      return strdup("ubyte");
     }
     case K_BYTE: {
-      return strcpy(malloc(5), "byte");
+      return strdup("byte");
     }
     case K_CHAR: {
-      return strcpy(malloc(6), "char");
+      return strdup("char");
     }
     case K_USHORT: {
-      return strcpy(malloc(7), "ushort");
+      return strdup("ushort");
     }
     case K_SHORT: {
-      return strcpy(malloc(6), "short");
+      return strdup("short");
     }
     case K_UINT: {
-      return strcpy(malloc(5), "uint");
+      return strdup("uint");
     }
     case K_INT: {
-      return strcpy(malloc(4), "int");
+      return strdup("int");
     }
     case K_WCHAR: {
-      return strcpy(malloc(6), "wchar");
+      return strdup("wchar");
     }
     case K_ULONG: {
-      return strcpy(malloc(6), "ulong");
+      return strdup("ulong");
     }
     case K_LONG: {
-      return strcpy(malloc(5), "long");
+      return strdup("long");
     }
     case K_FLOAT: {
-      return strcpy(malloc(6), "float");
+      return strdup("float");
     }
     case K_DOUBLE: {
-      return strcpy(malloc(7), "double");
+      return strdup("double");
     }
     case K_BOOL: {
-      return strcpy(malloc(5), "bool");
+      return strdup("bool");
     }
     case K_STRUCT:
     case K_UNION:
