@@ -19,6 +19,7 @@
 #include "typecheck/buildSymbolTable.h"
 
 #include "constants.h"
+#include "internalError.h"
 
 #include <string.h>
 
@@ -109,7 +110,7 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
           break;
         }
         default: {
-          return NULL;  // error: mutation in const ptr
+          error(__FILE__, __LINE__, "invariant failed: unexpected mutation");
         }
       }
       Node *element = ast->data.arrayType.element;
@@ -149,9 +150,7 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
 
       return functionPtrTypeCreate(retType, argTypes);
     }
-    default: {
-      return NULL;  // error: not syntactically valid
-    }
+    default: { error(__FILE__, __LINE__, "invalid syntax passed parse phase"); }
   }
 }
 static void checkId(Node *id, Report *report, Options const *options,
@@ -1093,9 +1092,7 @@ static void buildStabBody(Node *body, Report *report, Options const *options,
       buildStabTypedefDecl(body, report, options, env, filename, moduleName);
       return;
     }
-    default: {
-      return;  // not syntactically valid
-    }
+    default: { error(__FILE__, __LINE__, "invalid syntax past parse phase"); }
   }
 }
 

@@ -18,6 +18,7 @@
 
 #include "parser/parser.h"
 
+#include "internalError.h"
 #include "lexer/lexer.h"
 #include "parser/typeTable.h"
 #include "util/functional.h"
@@ -642,12 +643,15 @@ static Node *parseIntOrEnumLiteral(Report *report, TypeEnvironment *env,
                               constant.data.string);
         }
         default: {
-          return NULL;  // error: not a valid enum
+          error(__FILE__, __LINE__,
+                "invalid SymbolType enum constant encountered");
         }
       }
     }
     default: {
-      return NULL;  // error: tokenInfoIsIntConst is broken.
+      error(__FILE__, __LINE__,
+            "invariant failed: expected integer constant or identifier, but "
+            "got something else");
     }
   }
 }
@@ -689,7 +693,9 @@ static Node *parseIntLiteral(Report *report, LexerInfo *info) {
                                               constant.data.string);
     }
     default: {
-      return NULL;  // error: tokenInfoIsIntConst is broken.
+      error(__FILE__, __LINE__,
+            "invariant failed: expected integer constant, but got something "
+            "else");
     }
   }
 }
@@ -803,7 +809,8 @@ static Node *parseLiteral(Report *report, Options const *options,
           return NULL;
         }
         default: {
-          return NULL;  // error: not a valid enum!
+          error(__FILE__, __LINE__,
+                "invalid SymbolType enum constant encountered");
         }
       }
       break;
@@ -1021,7 +1028,8 @@ static Node *parseSizeof(Report *report, Options const *options,
           break;
         }
         default: {
-          return NULL;  // error: not a valid enum!
+          error(__FILE__, __LINE__,
+                "invalid SymbolType enum constant encountered");
         }
       }
       break;
@@ -1086,7 +1094,8 @@ static Node *parsePrimaryExpression(Report *report, Options const *options,
           return parseLiteral(report, options, env, info);
         }
         default: {
-          return NULL;  // error: not a valid enum
+          error(__FILE__, __LINE__,
+                "invalid SymbolType enum constant encountered");
         }
       }
     }
@@ -1259,7 +1268,8 @@ static Node *parsePostfixExpression(Report *report, Options const *options,
         break;
       }
       default: {
-        return NULL;  // mutation to something that wasn't mutated!
+        error(__FILE__, __LINE__,
+              "checked for operator token, but token mutated unexpectedly");
       }
     }
 
@@ -2492,7 +2502,8 @@ static Node *parseStatement(Report *report, Options const *options,
           return parseVarDecl(report, options, env, info, true);
         }
         default: {
-          return NULL;  // error: not a valid enum!
+          error(__FILE__, __LINE__,
+                "invalid SymbolType enum constant encountered");
         }
       }
     }

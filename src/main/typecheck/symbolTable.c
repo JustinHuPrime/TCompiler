@@ -20,6 +20,7 @@
 
 #include "ast/ast.h"
 #include "constants.h"
+#include "internalError.h"
 #include "util/format.h"
 #include "util/functional.h"
 #include "util/nameUtils.h"
@@ -148,7 +149,8 @@ Type *typeCopy(Type const *t) {
       return arrayTypeCreate(typeCopy(t->data.array.type), t->data.array.size);
     }
     default: {
-      return NULL;  // error - not a valid enum
+      error(__FILE__, __LINE__,
+            "encountered an invalid TypeKind enum constant");
     }
   }
 }
@@ -237,7 +239,8 @@ size_t typeSizeof(Type const *t) {
       return t->data.array.size * typeSizeof(t->data.array.type);
     }
     default: {
-      return 0;  // error - not a valid enum
+      error(__FILE__, __LINE__,
+            "encountered an invalid TypeKind enum constant");
     }
   }
 }
@@ -282,7 +285,8 @@ bool typeIsIncomplete(Type const *t, Environment const *env) {
           return typeIsIncomplete(info->data.type.data.typedefType.type, env);
         }
         default: {
-          return true;  // error - not a valid enum
+          error(__FILE__, __LINE__,
+                "encountered an invalid TypeDefinitionKind enum constant");
         }
       }
     }
@@ -293,7 +297,8 @@ bool typeIsIncomplete(Type const *t, Environment const *env) {
       return typeIsIncomplete(t->data.array.type, env);
     }
     default: {
-      return true;  // error: not a valid enum
+      error(__FILE__, __LINE__,
+            "encountered an invalid TypeKind enum constant");
     }
   }
 }
@@ -350,7 +355,8 @@ bool typeEqual(Type const *t1, Type const *t2) {
         // this works because references reference the symbol table entry
       }
       default: {
-        return false;  // error: not a valid enum
+        error(__FILE__, __LINE__,
+              "encountered an invalid TypeKind enum constant");
       }
     }
   }
@@ -673,7 +679,8 @@ bool typeAssignable(Type const *to, Type const *from) {
       return false;
     }
     default: {
-      return false;  // not a valid enum
+      error(__FILE__, __LINE__,
+            "encountered an invalid TypeKind enum constant");
     }
   }
 }
@@ -999,7 +1006,8 @@ bool typeComparable(Type const *a, Type const *b) {
       }
     }
     default: {
-      return false;  // not a valid enum!
+      error(__FILE__, __LINE__,
+            "encountered an invalid TypeKind enum constant");
     }
   }
 }
@@ -1444,7 +1452,8 @@ bool typeCastable(Type const *to, Type const *from) {
       }
     }
     default: {
-      return false;  // not a valid enum
+      error(__FILE__, __LINE__,
+            "encountered an invalid TypeKind enum constant");
     }
   }
 }
@@ -2272,16 +2281,23 @@ void overloadSetUninit(OverloadSet *set) {
 
 char const *typeDefinitionKindToString(TypeDefinitionKind kind) {
   switch (kind) {
-    case TDK_STRUCT:
+    case TDK_STRUCT: {
       return "a struct";
-    case TDK_UNION:
+    }
+    case TDK_UNION: {
       return "a union";
-    case TDK_ENUM:
+    }
+    case TDK_ENUM: {
       return "an enumeration";
-    case TDK_TYPEDEF:
+    }
+    case TDK_TYPEDEF: {
       return "a type alias";
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered an invalid TypeDefinitionKind enum constant");
+    }
   }
-  return NULL;  // not a valid enum - type safety violated
 }
 
 static SymbolInfo *symbolInfoCreate(SymbolKind kind, char const *moduleName) {
@@ -2438,23 +2454,31 @@ char const *symbolInfoToKindString(SymbolInfo const *si) {
     }
     case SK_TYPE: {
       switch (si->data.type.kind) {
-        case TDK_STRUCT:
+        case TDK_STRUCT: {
           return "a struct";
-        case TDK_UNION:
+        }
+        case TDK_UNION: {
           return "a union";
-        case TDK_ENUM:
+        }
+        case TDK_ENUM: {
           return "an enum";
-        case TDK_TYPEDEF:
+        }
+        case TDK_TYPEDEF: {
           return "a typedef";
-        default:
-          return NULL;  // error - not a valid enum
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "encountered an invalid TypeDefinitionKind enum constant");
+        }
       }
     }
     case SK_FUNCTION: {
       return "a function";
     }
-    default:
-      return NULL;  // error - not a valid enum
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered an invalid SymbolKind enum constant");
+    }
   }
 }
 void symbolInfoDestroy(SymbolInfo *si) {

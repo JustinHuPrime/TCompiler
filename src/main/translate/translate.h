@@ -33,6 +33,6 @@ int fileFragmentVectorMapPut(FileFragmentVectorMap *, char *file,
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
 void translate(FileFragmentVectorMap *, ModuleAstMapPair *, FrameCtor,
-               GlobalAccessCtor);
+               GlobalAccessCtor, LabelGeneratorCtor);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_

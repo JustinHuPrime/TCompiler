@@ -18,6 +18,7 @@
 
 #include "translate/translate.h"
 
+#include "internalError.h"
 #include "util/container/stringBuilder.h"
 #include "util/format.h"
 #include "util/nameUtils.h"
@@ -55,7 +56,7 @@ void fileFragmentVectorMapUninit(FileFragmentVectorMap *map) {
 
 // helpers
 static char *mangleModuleName(char const *moduleName) {
-  char *buffer = strcpy(malloc(4), "__Z");
+  char *buffer = strdup("__Z");
   StringVector *exploded = explodeName(moduleName);
   for (size_t idx = 0; idx < exploded->size; idx++) {
     buffer = format("%s%zu%s", buffer, strlen(exploded->elements[idx]),
@@ -72,46 +73,46 @@ static char *mangleTypeString(TypeVector const *);
 static char *mangleType(Type const *type) {
   switch (type->kind) {
     case K_VOID: {
-      return strcpy(malloc(2), "v");
+      return strdup("v");
     }
     case K_UBYTE: {
-      return strcpy(malloc(3), "ub");
+      return strdup("ub");
     }
     case K_BYTE: {
-      return strcpy(malloc(3), "sb");
+      return strdup("sb");
     }
     case K_CHAR: {
-      return strcpy(malloc(2), "c");
+      return strdup("c");
     }
     case K_USHORT: {
-      return strcpy(malloc(3), "us");
+      return strdup("us");
     }
     case K_SHORT: {
-      return strcpy(malloc(3), "ss");
+      return strdup("ss");
     }
     case K_UINT: {
-      return strcpy(malloc(3), "ui");
+      return strdup("ui");
     }
     case K_INT: {
-      return strcpy(malloc(3), "si");
+      return strdup("si");
     }
     case K_WCHAR: {
-      return strcpy(malloc(2), "w");
+      return strdup("w");
     }
     case K_ULONG: {
-      return strcpy(malloc(3), "ul");
+      return strdup("ul");
     }
     case K_LONG: {
-      return strcpy(malloc(3), "sl");
+      return strdup("sl");
     }
     case K_FLOAT: {
-      return strcpy(malloc(2), "f");
+      return strdup("f");
     }
     case K_DOUBLE: {
-      return strcpy(malloc(2), "d");
+      return strdup("d");
     }
     case K_BOOL: {
-      return strcpy(malloc(2), "B");
+      return strdup("B");
     }
     case K_STRUCT:
     case K_UNION:
@@ -152,12 +153,13 @@ static char *mangleType(Type const *type) {
       return buffer;
     }
     default: {
-      return NULL;  // can't express this type!
+      error(__FILE__, __LINE__,
+            "attempted to mangle an unexpressable type (aggregate init type?)");
     }
   }
 }
 static char *mangleTypeString(TypeVector const *args) {
-  char *buffer = strcpy(malloc(1), "");
+  char *buffer = strdup("");
   for (size_t idx = 0; idx < args->size; idx++) {
     char *mangledType = mangleType(args->elements[idx]);
     buffer = format("%s%s", buffer, mangledType);
@@ -227,7 +229,8 @@ static bool constantNotZero(Node *initializer) {
           return true;
         }
         default: {
-          return false;  // invalid enum
+          error(__FILE__, __LINE__,
+                "encountered an invalid ConstType enum constant");
         }
       }
     }
@@ -240,11 +243,14 @@ static bool constantNotZero(Node *initializer) {
       }
       return false;
     }
-    default: { return false; }
+    default: {
+      error(__FILE__, __LINE__, "expected a constant, found something else");
+    }
   }
 }
 static void constantToData(Node *initializer, IRExpVector *out,
-                           FragmentVector *fragments) {
+                           FragmentVector *fragments,
+                           LabelGenerator *labelGenerator) {
   switch (initializer->type) {
     case NT_CONSTEXP: {
       switch (initializer->data.constExp.type) {
@@ -323,6 +329,10 @@ static void constantToData(Node *initializer, IRExpVector *out,
         }
         case CT_STRING:
         case CT_WSTRING: {
+          Fragment *f = roDataFragmentCreate(
+              (labelGenerator->vtable->generateStringLabel)());
+          // strdup(f->data.roData.label);
+
           // TODO: write this
           return;
         }
@@ -331,23 +341,27 @@ static void constantToData(Node *initializer, IRExpVector *out,
           return;
         }
         default: {
-          return;  // invalid enum
+          error(__FILE__, __LINE__,
+                "encountered an invalid ConstType enum constant");
         }
       }
     }
     case NT_AGGREGATEINITEXP: {
       NodeList *elements = initializer->data.aggregateInitExp.elements;
       for (size_t idx = 0; idx < elements->size; idx++) {
-        constantToData(elements->elements[idx], out, fragments);
+        constantToData(elements->elements[idx], out, fragments, labelGenerator);
       }
       return;
     }
-    default: { return; }
+    default: {
+      error(__FILE__, __LINE__, "expected a constant, found something else");
+    }
   }
 }
 static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
                                char const *moduleName,
-                               GlobalAccessCtor globalAccessCtor) {
+                               GlobalAccessCtor globalAccessCtor,
+                               LabelGenerator *labelGenerator) {
   NodePairList *idValuePairs = varDecl->data.varDecl.idValuePairs;
   for (size_t idx = 0; idx < idValuePairs->size; idx++) {
     Node *id = idValuePairs->firstElements[idx];
@@ -359,10 +373,12 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
                                 typeSizeof(id->data.id.symbol->data.var.type));
     } else if (id->data.id.symbol->data.var.type->kind == K_CONST) {
       f = roDataFragmentCreate(mangledName);
-      constantToData(initializer, &f->data.roData.data, fragments);
+      constantToData(initializer, &f->data.roData.data, fragments,
+                     labelGenerator);
     } else {
       f = dataFragmentCreate(mangledName);
-      constantToData(initializer, &f->data.data.data, fragments);
+      constantToData(initializer, &f->data.data.data, fragments,
+                     labelGenerator);
     }
     id->data.id.symbol->data.var.access = globalAccessCtor(mangledName);
 
@@ -373,7 +389,8 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
 }
 static void translateFunction(Node *function, FragmentVector *fragments,
                               char const *moduleName, FrameCtor frameCtor,
-                              GlobalAccessCtor globalAccessCtor) {
+                              GlobalAccessCtor globalAccessCtor,
+                              LabelGenerator *labelGenerator) {
   Fragment *f = functionFragmentCreate(
       mangleFunctionName(moduleName, function->data.function.id));
 
@@ -384,15 +401,17 @@ static void translateFunction(Node *function, FragmentVector *fragments,
 }
 static void translateBody(Node *body, FragmentVector *fragments,
                           char const *moduleName, FrameCtor frameCtor,
-                          GlobalAccessCtor globalAccessCtor) {
+                          GlobalAccessCtor globalAccessCtor,
+                          LabelGenerator *labelGenerator) {
   switch (body->type) {
     case NT_VARDECL: {
-      translateGlobalVar(body, fragments, moduleName, globalAccessCtor);
+      translateGlobalVar(body, fragments, moduleName, globalAccessCtor,
+                         labelGenerator);
       return;
     }
     case NT_FUNCTION: {
       translateFunction(body, fragments, moduleName, frameCtor,
-                        globalAccessCtor);
+                        globalAccessCtor, labelGenerator);
       return;
     }
     default: { return; }
@@ -408,28 +427,31 @@ static char *codeFilenameToAssembyFilename(char const *codeFilename) {
   return assemblyFilename;
 }
 static FragmentVector *translateFile(Node *file, FrameCtor frameCtor,
-                                     GlobalAccessCtor globalAccessCtor) {
+                                     GlobalAccessCtor globalAccessCtor,
+                                     LabelGenerator *labelGenerator) {
   FragmentVector *fragments = fragmentVectorCreate();
 
   NodeList *bodies = file->data.file.bodies;
   for (size_t idx = 0; idx < bodies->size; idx++) {
     translateBody(bodies->elements[idx], fragments,
-                  file->data.module.id->data.id.id, frameCtor,
-                  globalAccessCtor);
+                  file->data.module.id->data.id.id, frameCtor, globalAccessCtor,
+                  labelGenerator);
   }
 
   return fragments;
 }
 
 void translate(FileFragmentVectorMap *fragments, ModuleAstMapPair *asts,
-               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor) {
+               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor,
+               LabelGeneratorCtor labelGeneratorCtor) {
   fileFragmentVectorMapInit(fragments);
   for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
     if (asts->codes.keys[idx] != NULL) {
       Node *file = asts->codes.values[idx];
       fileFragmentVectorMapPut(
           fragments, codeFilenameToAssembyFilename(file->data.file.filename),
-          translateFile(file, frameCtor, globalAccessCtor));
+          translateFile(file, frameCtor, globalAccessCtor,
+                        labelGeneratorCtor()));
     }
   }
 }

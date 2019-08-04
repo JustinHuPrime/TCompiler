@@ -17,6 +17,7 @@
 // Compiles code modules into assembly files, guided by decl modules
 
 #include "ast/printer.h"
+#include "internalError.h"
 #include "ir/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
@@ -58,7 +59,6 @@ typedef enum {
   PARSE_ERROR,
   BUILD_STAB_ERROR,
   TYPECHECK_ERROR,
-  INTERNAL_ERROR = -1,
 } ReturnValue;
 
 int main(int argc, char *argv[]) {
@@ -181,21 +181,18 @@ int main(int argc, char *argv[]) {
   FileFragmentVectorMap fragments;
   FrameCtor frameCtor;
   GlobalAccessCtor globalAccessCtor;
+  LabelGeneratorCtor labelGeneratorCtor;
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
       frameCtor = x86_64FrameCtor;
       globalAccessCtor = x86_64GlobalAccessCtor;
+      labelGeneratorCtor = x86_64LabelGeneratorCtor;
       break;
     }
-    default: {
-      moduleAstMapPairUninit(&asts);
-      optionsUninit(&options);
-      reportUninit(&report);
-      return INTERNAL_ERROR;
-    }
+    default: { error(__FILE__, __LINE__, "invalid architecture specified"); }
   }
 
-  translate(&fragments, &asts, frameCtor, globalAccessCtor);
+  translate(&fragments, &asts, frameCtor, globalAccessCtor, labelGeneratorCtor);
   moduleAstMapPairUninit(&asts);
 
   // debug stop for translate
