@@ -23,5 +23,6 @@
 
 Frame *x86_64FrameCtor(void);
 Access *x86_64GlobalAccessCtor(char *label);
+LabelGenerator *x86_64LabelGeneratorCtor(void);
 
 #endif  // TLC_X86_64_FRAME_H_

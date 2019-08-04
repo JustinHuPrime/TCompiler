@@ -24,3 +24,6 @@ Frame *x86_64FrameCtor(void) {
 Access *x86_64GlobalAccessCtor(char *label) {
   return NULL;  // TODO: write this
 }
+LabelGenerator *x86_64LabelGeneratorCtor(void) {
+  return NULL;  // TODO: write this
+}

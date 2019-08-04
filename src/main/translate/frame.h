@@ -25,6 +25,7 @@
 
 struct Frame;
 struct Access;
+struct LabelGenerator;
 
 typedef Vector AccessVector;
 AccessVector *accessVectorCreate(void);
@@ -57,5 +58,17 @@ typedef struct Access {
   // other stuff, depending on implementation
 } Access;
 typedef Access *(*GlobalAccessCtor)(char *label);
+
+typedef struct {
+  void (*dtor)(struct LabelGenerator *);
+  char *(*generateStringLabel)(void);
+  char *(*generateCodeLabel)(void);
+} LabelGeneratorVTable;
+
+typedef struct LabelGenerator {
+  LabelGeneratorVTable *vtable;
+  // other stuff, depending on implementation
+} LabelGenerator;
+typedef LabelGenerator *(*LabelGeneratorCtor)(void);
 
 #endif  // TLC_TRANSLATE_FRAME_H_
