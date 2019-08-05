@@ -1962,9 +1962,7 @@ char *typeToString(Type const *type) {
     case K_UNION:
     case K_ENUM:
     case K_TYPEDEF: {
-      return strcpy(
-          malloc(strlen(type->data.reference.referenced->data.type.name) + 1),
-          type->data.reference.referenced->data.type.name);
+      return strdup(type->data.reference.referenced->data.type.name);
     }
     case K_CONST: {
       return format("%s const", typeToString(type->data.modifier.type));
