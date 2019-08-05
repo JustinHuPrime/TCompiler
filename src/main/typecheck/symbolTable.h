@@ -241,9 +241,6 @@ typedef struct SymbolInfo {
     struct {
       OverloadSet overloadSet;
     } function;
-    struct {
-      Type *parentEnum;
-    } enumConst;
   } data;
 } SymbolInfo;
 // ctor

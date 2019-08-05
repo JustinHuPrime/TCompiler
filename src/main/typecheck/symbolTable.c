@@ -2359,10 +2359,15 @@ SymbolInfo *symbolInfoCopy(SymbolInfo const *from) {
   switch (to->kind) {
     case SK_VAR: {
       to->data.var.type = typeCopy(from->data.var.type);
+      to->data.var.bound = from->data.var.bound;
+      to->data.var.escapes = from->data.var.escapes;
+      to->data.var.access =
+          from->data.var.access;  // TODO: is a shallow copy okay?
       break;
     }
     case SK_TYPE: {
       to->data.type.kind = from->data.type.kind;
+      to->data.type.name = from->data.type.name;
       switch (to->data.type.kind) {
         case TDK_STRUCT: {
           TypeVector *toFields = &to->data.type.data.structType.fields;
