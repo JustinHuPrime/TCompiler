@@ -18,6 +18,8 @@
 
 #include "ir/ir.h"
 
+#include "util/tstring.h"
+
 #include <stdlib.h>
 
 IRStmVector *irStmVectorCreate(void) { return vectorCreate(); }
@@ -145,12 +147,38 @@ IRExp *floatConstIRExpCreate(uint32_t bits) {
 IRExp *doubleConstIRExpCreate(uint64_t bits) {
   return ulongConstIRExpCreate(bits);
 }
+IRExp *stringConstIRExpCreate(uint8_t *string) {
+  IRExp *e = irExpCreate(IE_STRING_CONST);
+  e->data.stringConst.value = string;
+  e->data.stringConst.nbytes = (tstrlen(string) + 1) * sizeof(uint8_t);
+  return e;
+}
+IRExp *wstringConstIRExpCreate(uint32_t *string) {
+  IRExp *e = irExpCreate(IE_WSTRING_CONST);
+  e->data.wstringConst.value = string;
+  e->data.wstringConst.nbytes = (twstrlen(string) + 1) * sizeof(uint32_t);
+  return e;
+}
+IRExp *nameIRExpCreate(char const *label) {
+  IRExp *e = irExpCreate(IE_NAME);
+  e->data.name.label = label;
+  return e;
+}
 void irExpDestroy(IRExp *e) {
   switch (e->kind) {
     case IE_BYTE_CONST:
     case IE_SHORT_CONST:
     case IE_INT_CONST:
-    case IE_LONG_CONST: {
+    case IE_LONG_CONST:
+    case IE_NAME: {
+      break;
+    }
+    case IE_STRING_CONST: {
+      free(e->data.stringConst.value);
+      break;
+    }
+    case IE_WSTRING_CONST: {
+      free(e->data.wstringConst.value);
       break;
     }
   }

@@ -22,6 +22,7 @@
 #include "util/container/stringBuilder.h"
 #include "util/format.h"
 #include "util/nameUtils.h"
+#include "util/tstring.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -331,9 +332,14 @@ static void constantToData(Node *initializer, IRExpVector *out,
         case CT_WSTRING: {
           Fragment *f = roDataFragmentCreate(
               (labelGenerator->vtable->generateStringLabel)());
-          // strdup(f->data.roData.label);
-
-          // TODO: write this
+          irExpVectorInsert(
+              &f->data.roData.data,
+              (initializer->data.constExp.type == CT_STRING
+                   ? stringConstIRExpCreate(
+                         tstrdup(initializer->data.constExp.value.stringVal))
+                   : wstringConstIRExpCreate(twstrdup(
+                         initializer->data.constExp.value.wstringVal))));
+          irExpVectorInsert(out, nameIRExpCreate(f->data.roData.label));
           return;
         }
         case CT_NULL: {
