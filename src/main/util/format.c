@@ -17,6 +17,7 @@
 // Implementation of formatted string building
 
 #include "util/format.h"
+#include "internalError.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -29,8 +30,7 @@ char *format(char const *format, ...) {
   va_copy(args2, args1);
   int retVal = vsnprintf(NULL, 0, format, args1);
   if (retVal < 0) {
-    return strcpy(malloc(54),
-                  "tlc: error: could not format error or warning message");
+    error(__FILE__, __LINE__, "could not format error or warning message");
   }
   size_t bufferSize = 1 + (size_t)retVal;
   va_end(args1);
