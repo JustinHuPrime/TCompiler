@@ -18,6 +18,7 @@
 
 #include "translate/translate.h"
 
+#include "constants.h"
 #include "internalError.h"
 #include "util/container/stringBuilder.h"
 #include "util/format.h"
@@ -177,8 +178,6 @@ static char *mangleFunctionName(char const *moduleName, Node const *id) {
                 strlen(id->data.id.id), id->data.id.id,
                 mangleTypeString(&id->data.id.overload->argumentTypes));
 }
-
-// top level stuff
 static bool constantNotZero(Node *initializer) {
   switch (initializer->type) {
     case NT_CONSTEXP: {
@@ -331,7 +330,7 @@ static void constantToData(Node *initializer, IRExpVector *out,
         case CT_STRING:
         case CT_WSTRING: {
           Fragment *f = roDataFragmentCreate(
-              (labelGenerator->vtable->generateStringLabel)());
+              labelGenerator->vtable->generateDataLabel(labelGenerator));
           irExpVectorInsert(
               &f->data.roData.data,
               (initializer->data.constExp.type == CT_STRING
@@ -364,6 +363,99 @@ static void constantToData(Node *initializer, IRExpVector *out,
     }
   }
 }
+
+// expressions
+static IRExp *translateExpression(Node *exp) {
+  return NULL;  // TODO: write this
+}
+
+// statements
+static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
+                          Access *outArg, char const *breakLabel,
+                          char const *continueLabel, char const *exitLabel,
+                          LabelGenerator *labelGenerator) {
+  if (stmt == NULL) {
+    return;
+  }
+
+  switch (stmt->type) {
+    case NT_COMPOUNDSTMT: {
+      NodeList *stmts = stmt->data.compoundStmt.statements;
+      for (size_t idx = 0; idx < stmts->size; idx++) {
+        translateStmt(stmts->elements[idx], out, frame, outArg, breakLabel,
+                      continueLabel, exitLabel, labelGenerator);
+      }
+      break;
+    }
+    case NT_IFSTMT: {
+      // TODO: write this
+    }
+    case NT_WHILESTMT: {
+      // TODO: write this
+    }
+    case NT_DOWHILESTMT: {
+      // TODO: write this
+    }
+    case NT_FORSTMT: {
+      // TODO: write this
+    }
+    case NT_SWITCHSTMT: {
+      // TODO: write this
+    }
+    case NT_BREAKSTMT: {
+      // TODO: write this
+    }
+    case NT_CONTINUESTMT: {
+      // TODO: write this
+    }
+    case NT_RETURNSTMT: {
+      // TODO: write this
+    }
+    case NT_ASMSTMT: {
+      irStmVectorInsert(
+          out, asmIRStmCreate(strdup((char *)stmt->data.asmStmt.assembly)));
+      break;
+    }
+    case NT_EXPRESSIONSTMT: {
+      irStmVectorInsert(out, expIRStmCreate(translateExpression(
+                                 stmt->data.expressionStmt.expression)));
+    }
+    case NT_NULLSTMT:
+    case NT_STRUCTDECL:
+    case NT_STRUCTFORWARDDECL:
+    case NT_UNIONDECL:
+    case NT_UNIONFORWARDDECL:
+    case NT_ENUMDECL:
+    case NT_ENUMFORWARDDECL:
+    case NT_TYPEDEFDECL: {
+      // dealt with at typecheck stage
+      break;
+    }
+    case NT_VARDECL: {
+      NodePairList *idValuePairs = stmt->data.varDecl.idValuePairs;
+      for (size_t idx = 0; idx < idValuePairs->size; idx++) {
+        Node *id = idValuePairs->firstElements[idx];
+        Node *initializer = idValuePairs->secondElements[idx];
+
+        SymbolInfo *info = id->data.id.symbol;
+        info->data.var.access = frame->vtable->allocLocal(
+            frame, typeSizeof(info->data.var.type), info->data.var.escapes);
+
+        if (initializer != NULL) {
+          // TODO: write this - must take into account implicit casts
+        }
+      }
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "bad syntax past parse phase - encountered non-statement in "
+            "statement position");
+    }
+  }
+}
+
+// top level stuff
 static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
                                char const *moduleName,
                                GlobalAccessCtor globalAccessCtor,
@@ -397,12 +489,30 @@ static void translateFunction(Node *function, FragmentVector *fragments,
                               char const *moduleName, FrameCtor frameCtor,
                               GlobalAccessCtor globalAccessCtor,
                               LabelGenerator *labelGenerator) {
-  Fragment *f = functionFragmentCreate(
+  Fragment *fragment = functionFragmentCreate(
       mangleFunctionName(moduleName, function->data.function.id));
+  Frame *frame = frameCtor();
+  IRStmVector *body = irStmVectorCreate();
 
-  // TODO: write this
+  Node *statements = function->data.function.body;
+  OverloadSetElement *overload = function->data.function.id->data.id.overload;
+  overload->access = globalAccessCtor(fragment->data.function.label);
+  Access *outArg =
+      frame->vtable->allocOutArg(frame, typeSizeof(overload->returnType));
 
-  fragmentVectorInsert(fragments, f);
+  // TODO: deal with argument accesses
+
+  char *exitLabel = labelGenerator->vtable->generateCodeLabel(labelGenerator);
+  translateStmt(statements, body, frame, outArg, NULL, NULL, exitLabel,
+                labelGenerator);
+
+  outArg->vtable->dtor(outArg);
+
+  body = frame->vtable->generateEntryExit(frame, body, exitLabel);
+  irStmVectorUninit(&fragment->data.function.body);
+  memcpy(&fragment->data.function.body, body, sizeof(IRStmVector));
+
+  fragmentVectorInsert(fragments, fragment);
   return;
 }
 static void translateBody(Node *body, FragmentVector *fragments,
@@ -451,6 +561,9 @@ void translate(FileFragmentVectorMap *fragments, ModuleAstMapPair *asts,
                FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor,
                LabelGeneratorCtor labelGeneratorCtor) {
   fileFragmentVectorMapInit(fragments);
+
+  // TODO: add accesses to all declared globals
+
   for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
     if (asts->codes.keys[idx] != NULL) {
       Node *file = asts->codes.values[idx];
