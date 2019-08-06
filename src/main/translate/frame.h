@@ -34,7 +34,8 @@ void accessVectorDestroy(AccessVector *);
 
 typedef struct {
   void (*dtor)(struct Frame *);
-  IRStmVector *(*generateEntryExit)(struct Frame *this, IRStmVector *body);
+  IRStmVector *(*generateEntryExit)(struct Frame *this, IRStmVector *body,
+                                    char *exitLabel);
   IRExp *(*fpExp)(void);
   struct Access *(*allocLocal)(struct Frame *this, size_t size, bool escapes);
   struct Access *(*allocOutArg)(struct Frame *this, size_t size);
@@ -49,8 +50,8 @@ typedef Frame *(*FrameCtor)(void);
 
 typedef struct {
   void (*dtor)(struct Access *);
-  IRExp *(*valueExp)(IRExp *fp);
-  IRExp *(*addressExp)(IRExp *fp);
+  IRExp *(*valueExp)(struct Access *this, IRExp *fp);
+  IRExp *(*addressExp)(struct Access *this, IRExp *fp);
 } AccessVTable;
 
 typedef struct Access {
@@ -61,8 +62,8 @@ typedef Access *(*GlobalAccessCtor)(char *label);
 
 typedef struct {
   void (*dtor)(struct LabelGenerator *);
-  char *(*generateStringLabel)(void);
-  char *(*generateCodeLabel)(void);
+  char *(*generateDataLabel)(struct LabelGenerator *this);
+  char *(*generateCodeLabel)(struct LabelGenerator *this);
 } LabelGeneratorVTable;
 
 typedef struct LabelGenerator {
