@@ -35,6 +35,10 @@ void irStmVectorDestroy(IRStmVector *);
 
 typedef enum {
   IS_MOVE,
+  IS_LABEL,
+  IS_JUMP,
+  IS_EXP,
+  IS_ASM,
 } IRStmKind;
 typedef struct IRStm {
   IRStmKind kind;
@@ -42,10 +46,27 @@ typedef struct IRStm {
     struct {
       struct IRExp *to;
       struct IRExp *from;
+      size_t size;
     } move;
+    struct {
+      char *name;
+    } label;
+    struct {
+      char const *target;
+    } jump;
+    struct {
+      struct IRExp *exp;
+    } exp;
+    struct {
+      char *assembly;
+    } assembly;
   } data;
 } IRStm;
-IRStm *moveIRStmCreate(struct IRExp *to, struct IRExp *from);
+IRStm *moveIRStmCreate(struct IRExp *to, struct IRExp *from, size_t size);
+IRStm *labelIRStmCreate(char *name);
+IRStm *jumpIRStmCreate(char const *target);
+IRStm *expIRStmCreate(struct IRExp *exp);
+IRStm *asmIRStmCreate(char *assembly);
 void irStmDestroy(IRStm *);
 
 typedef Vector IRExpVector;

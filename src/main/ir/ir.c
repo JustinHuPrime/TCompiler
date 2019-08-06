@@ -37,10 +37,31 @@ static IRStm *irStmCreate(IRStmKind kind) {
   s->kind = kind;
   return s;
 }
-IRStm *moveIRStmCreate(struct IRExp *to, struct IRExp *from) {
+IRStm *moveIRStmCreate(struct IRExp *to, struct IRExp *from, size_t size) {
   IRStm *s = irStmCreate(IS_MOVE);
   s->data.move.to = to;
   s->data.move.from = from;
+  s->data.move.size = size;
+  return s;
+}
+IRStm *labelIRStmCreate(char *name) {
+  IRStm *s = irStmCreate(IS_LABEL);
+  s->data.label.name = name;
+  return s;
+}
+IRStm *jumpIRStmCreate(char const *target) {
+  IRStm *s = irStmCreate(IS_JUMP);
+  s->data.jump.target = target;
+  return s;
+}
+IRStm *expIRStmCreate(struct IRExp *exp) {
+  IRStm *s = irStmCreate(IS_EXP);
+  s->data.exp.exp = exp;
+  return s;
+}
+IRStm *asmIRStmCreate(char *assembly) {
+  IRStm *s = irStmCreate(IS_ASM);
+  s->data.assembly.assembly = assembly;
   return s;
 }
 void irStmDestroy(IRStm *s) {
@@ -48,6 +69,21 @@ void irStmDestroy(IRStm *s) {
     case IS_MOVE: {
       irExpDestroy(s->data.move.to);
       irExpDestroy(s->data.move.from);
+      break;
+    }
+    case IS_LABEL: {
+      free(s->data.label.name);
+      break;
+    }
+    case IS_JUMP: {
+      break;
+    }
+    case IS_EXP: {
+      irExpDestroy(s->data.exp.exp);
+      break;
+    }
+    case IS_ASM: {
+      free(s->data.assembly.assembly);
       break;
     }
   }
