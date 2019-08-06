@@ -2147,6 +2147,7 @@ OverloadSetElement *overloadSetElementCreate(void) {
   OverloadSetElement *elm = malloc(sizeof(OverloadSetElement));
   typeVectorInit(&elm->argumentTypes);
   elm->returnType = NULL;
+  elm->access = NULL;
   return elm;
 }
 OverloadSetElement *overloadSetElementCopy(OverloadSetElement const *from) {
@@ -2163,6 +2164,7 @@ OverloadSetElement *overloadSetElementCopy(OverloadSetElement const *from) {
     to->argumentTypes.elements[idx] =
         typeCopy(from->argumentTypes.elements[idx]);
   }
+  to->access = from->access;  // TODO: is a shallow copy okay?
 
   return to;
 }
@@ -2171,6 +2173,9 @@ void overloadSetElementDestroy(OverloadSetElement *elm) {
     typeDestroy(elm->returnType);
   }
   typeVectorUninit(&elm->argumentTypes);
+  if (elm->access != NULL) {
+    elm->access->vtable->dtor(elm->access);
+  }
   free(elm);
 }
 
@@ -2489,7 +2494,7 @@ void symbolInfoDestroy(SymbolInfo *si) {
     case SK_VAR: {
       typeDestroy(si->data.var.type);
       if (si->data.var.access != NULL) {
-        (si->data.var.access->vtable->dtor)(si->data.var.access);
+        si->data.var.access->vtable->dtor(si->data.var.access);
       }
       break;
     }

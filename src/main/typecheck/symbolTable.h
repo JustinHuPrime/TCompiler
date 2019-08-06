@@ -163,6 +163,7 @@ typedef struct {
   TypeVector argumentTypes;
   size_t numOptional;
   bool defined;
+  Access *access;
 } OverloadSetElement;
 // ctor
 OverloadSetElement *overloadSetElementCreate(void);
