@@ -412,8 +412,8 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
       // TODO: write this
     }
     case NT_ASMSTMT: {
-      irStmVectorInsert(
-          out, asmIRStmCreate(strdup((char *)stmt->data.asmStmt.assembly)));
+      irStmVectorInsert(out,
+                        asmIRStmCreate(strdup(stmt->data.asmStmt.assembly)));
       break;
     }
     case NT_EXPRESSIONSTMT: {
