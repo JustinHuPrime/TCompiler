@@ -285,9 +285,7 @@ void nodePrintStructure(Node const *node) {
       break;
     }
     case NT_ASMSTMT: {
-      printf("ASMSTMT(");
-      nodePrintStructure(node->data.asmStmt.assembly);
-      printf(")");
+      printf("ASMSTMT(%s)", node->data.asmStmt.assembly);
       break;
     }
     case NT_EXPRESSIONSTMT: {
@@ -1027,9 +1025,7 @@ void nodePrint(Node const *node) {
       break;
     }
     case NT_ASMSTMT: {
-      printf("asm ");
-      nodePrint(node->data.asmStmt.assembly);
-      printf(";\n");
+      printf("asm \"%s\";\n", node->data.asmStmt.assembly);
       break;
     }
     case NT_EXPRESSIONSTMT: {

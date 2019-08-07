@@ -319,7 +319,7 @@ typedef struct Node {
       NodePairList *idValuePairs;  // pair of id, value (nullable)
     } varDecl;
     struct {
-      struct Node *assembly;
+      char *assembly;
     } asmStmt;
     struct {
       struct Node *expression;
@@ -498,7 +498,7 @@ Node *defaultCaseNodeCreate(size_t line, size_t character, Node *body);
 Node *breakStmtNodeCreate(size_t line, size_t character);
 Node *continueStmtNodeCreate(size_t line, size_t character);
 Node *returnStmtNodeCreate(size_t line, size_t character, Node *value);
-Node *asmStmtNodeCreate(size_t line, size_t character, Node *asmString);
+Node *asmStmtNodeCreate(size_t line, size_t character, char *asmString);
 Node *expressionStmtNodeCreate(size_t line, size_t character, Node *expression);
 Node *nullStmtNodeCreate(size_t line, size_t character);
 Node *seqExpNodeCreate(size_t line, size_t character, Node *first, Node *rest);

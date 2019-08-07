@@ -19,9 +19,9 @@
 #include "ast/ast.h"
 
 #include "constants.h"
+#include "util/charSet.h"
 #include "util/container/stringBuilder.h"
 
-#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -343,7 +343,7 @@ Node *returnStmtNodeCreate(size_t line, size_t character, Node *value) {
   node->data.returnStmt.value = value;
   return node;
 }
-Node *asmStmtNodeCreate(size_t line, size_t character, Node *assembly) {
+Node *asmStmtNodeCreate(size_t line, size_t character, char *assembly) {
   Node *node = nodeCreate(line, character);
   node->type = NT_ASMSTMT;
   node->data.asmStmt.assembly = assembly;
@@ -477,15 +477,6 @@ typedef enum {
   S_NEGATIVE,
   S_UNSIGNED,
 } Sign;
-static uint8_t charToHex(char c) {
-  if (isdigit(c)) {
-    return (uint8_t)(c - '0');
-  } else if (isupper(c)) {
-    return (uint8_t)(c - 'A' + 0xA);
-  } else {
-    return (uint8_t)(c - 'a' + 0xA);
-  }
-}
 static Node *constExpNodeCreate(size_t line, size_t character) {
   Node *node = nodeCreate(line, character);
   node->type = NT_CONSTEXP;
@@ -664,7 +655,7 @@ Node *constHexadecimalIntExpNodeCreate(size_t line, size_t character,
     size_t oldAcc = acc;
 
     acc *= 16;
-    acc += charToHex(*constantString);
+    acc += hexToTChar(*constantString);
 
     if (acc < oldAcc) {  // overflowed!
       overflow = true;
@@ -721,8 +712,9 @@ Node *constCharExpNodeCreate(size_t line, size_t character,
         break;
       }
       case 'x': {
-        node->data.constExp.value.charVal = (uint8_t)(
-            (charToHex(constantString[2]) << 4) + charToHex(constantString[3]));
+        node->data.constExp.value.charVal =
+            (uint8_t)((hexToTChar(constantString[2]) << 4) +
+                      hexToTChar(constantString[3]));
         break;
       }
     }
@@ -773,8 +765,8 @@ Node *constStringExpNodeCreate(size_t line, size_t character,
         }
         case 'x': {
           tstringBuilderPush(&buffer,
-                             (uint8_t)((charToHex(constantString[2]) << 4) +
-                                       charToHex(constantString[3])));
+                             (uint8_t)((hexToTChar(constantString[2]) << 4) +
+                                       hexToTChar(constantString[3])));
           constantString += 4;
           break;
         }
@@ -820,8 +812,9 @@ Node *constWCharExpNodeCreate(size_t line, size_t character,
         break;
       }
       case 'x': {
-        node->data.constExp.value.wcharVal = (uint32_t)(
-            (charToHex(constantString[2]) << 4) + charToHex(constantString[3]));
+        node->data.constExp.value.wcharVal =
+            (uint32_t)((hexToTChar(constantString[2]) << 4) +
+                       hexToTChar(constantString[3]));
         break;
       }
       case 'u': {
@@ -829,7 +822,7 @@ Node *constWCharExpNodeCreate(size_t line, size_t character,
         for (size_t idx = 2; idx < 2 + 8; idx++) {
           node->data.constExp.value.wcharVal <<= 4;
           node->data.constExp.value.wcharVal |=
-              (uint32_t)charToHex(constantString[idx]);
+              (uint32_t)hexToTChar(constantString[idx]);
         }
       }
     }
@@ -880,8 +873,8 @@ Node *constWStringExpNodeCreate(size_t line, size_t character,
         }
         case 'x': {
           twstringBuilderPush(&buffer,
-                              (uint32_t)((charToHex(constantString[2]) << 4) +
-                                         charToHex(constantString[3])));
+                              (uint32_t)((hexToTChar(constantString[2]) << 4) +
+                                         hexToTChar(constantString[3])));
           constantString += 4;
           break;
         }
@@ -889,7 +882,7 @@ Node *constWStringExpNodeCreate(size_t line, size_t character,
           uint32_t wchar = 0;
           for (size_t idx = 2; idx < 2 + 8; idx++) {
             wchar <<= 4;
-            wchar |= (uint32_t)charToHex(constantString[idx]);
+            wchar |= (uint32_t)hexToTChar(constantString[idx]);
           }
           twstringBuilderPush(&buffer, wchar);
           constantString += 10;
@@ -1143,7 +1136,7 @@ void nodeDestroy(Node *node) {
       break;
     }
     case NT_ASMSTMT: {
-      nodeDestroy(node->data.asmStmt.assembly);
+      free(node->data.asmStmt.assembly);
       break;
     }
     case NT_EXPRESSIONSTMT: {

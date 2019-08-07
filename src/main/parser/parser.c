@@ -21,6 +21,8 @@
 #include "internalError.h"
 #include "lexer/lexer.h"
 #include "parser/typeTable.h"
+#include "util/charSet.h"
+#include "util/container/stringBuilder.h"
 #include "util/functional.h"
 
 #include <stdio.h>
@@ -28,7 +30,6 @@
 #include <string.h>
 
 // output data structures
-
 ModuleAstMap *moduleAstMapCreate(void) { return hashMapCreate(); }
 void moduleAstMapInit(ModuleAstMap *map) { hashMapInit(map); }
 Node *moduleAstMapGet(ModuleAstMap const *map, char const *key) {
@@ -63,7 +64,6 @@ void moduleAstMapPairDestroy(ModuleAstMapPair *pair) {
 }
 
 // internal data structures
-
 typedef HashMap ModuleLexerInfoMap;
 static void moduleLexerInfoMapInit(ModuleLexerInfoMap *map) {
   hashMapInit(map);
@@ -93,6 +93,58 @@ static void moduleNodeMapUninit(ModuleNodeMap *map) {
 }
 
 // parsing helpers
+char *unescapeCharacters(char *constantString) {
+  StringBuilder buffer;
+  stringBuilderInit(&buffer);
+
+  while (*constantString != '\0') {
+    if (constantString[0] == '\\') {  // special character
+      switch (constantString[1]) {
+        case '"':
+        case '\\': {
+          stringBuilderPush(&buffer, constantString[1]);
+          constantString += 2;
+          break;
+        }
+        case 'n': {
+          stringBuilderPush(&buffer, '\n');
+          constantString += 2;
+          break;
+        }
+        case 'r': {
+          stringBuilderPush(&buffer, '\r');
+          constantString += 2;
+          break;
+        }
+        case 't': {
+          stringBuilderPush(&buffer, '\t');
+          constantString += 2;
+          break;
+        }
+        case '0': {
+          stringBuilderPush(&buffer, '\0');
+          constantString += 2;
+          break;
+        }
+        case 'x': {
+          stringBuilderPush(&buffer,
+                            (char)((hexToChar(constantString[2]) << 4) +
+                                   hexToChar(constantString[3])));
+          constantString += 4;
+          break;
+        }
+      }
+    } else {
+      stringBuilderPush(&buffer, constantString[0]);
+      constantString += 1;
+    }
+  }
+
+  free(constantString);
+  char *retVal = stringBuilderData(&buffer);
+  stringBuilderUninit(&buffer);
+  return retVal;
+}
 
 // basic helpers
 static Node *parseAnyId(Report *report, LexerInfo *info) {
@@ -2361,9 +2413,17 @@ static Node *parseStatement(Report *report, Options const *options,
       return parseReturnStatement(report, options, env, info);
     }
     case TT_ASM: {
-      Node *string = parseStringLiteral(report, info);
-      if (string == NULL) {
-        return NULL;
+      TokenInfo string;
+      lex(info, report, &string);
+      if (string.type != TT_LITERALSTRING) {
+        if (!tokenInfoIsLexerError(&string)) {
+          reportError(report,
+                      "%s:%zu:%zu: error: expected a string literal containing "
+                      "assembly, but found %s",
+                      info->filename, string.line, string.character,
+                      tokenTypeToString(string.type));
+        }
+        tokenInfoUninit(&string);
       }
 
       TokenInfo semi;
@@ -2378,11 +2438,12 @@ static Node *parseStatement(Report *report, Options const *options,
                       tokenTypeToString(semi.type));
         }
         tokenInfoUninit(&semi);
-        nodeDestroy(string);
+        tokenInfoUninit(&string);
         return NULL;
       }
 
-      return asmStmtNodeCreate(peek.line, peek.character, string);
+      return asmStmtNodeCreate(peek.line, peek.character,
+                               unescapeCharacters(string.data.string));
     }
     case TT_STRUCT:
     case TT_UNION: {
