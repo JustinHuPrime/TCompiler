@@ -20,9 +20,9 @@
 
 #include "ast/ast.h"
 #include "constants.h"
-#include "internalError.h"
 #include "util/format.h"
 #include "util/functional.h"
+#include "util/internalError.h"
 #include "util/nameUtils.h"
 
 #include <stdlib.h>

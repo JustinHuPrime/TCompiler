@@ -18,9 +18,9 @@
 
 #include "lexer/lexer.h"
 
-#include "internalError.h"
 #include "util/container/stringBuilder.h"
 #include "util/functional.h"
+#include "util/internalError.h"
 
 #include <assert.h>
 #include <stdio.h>

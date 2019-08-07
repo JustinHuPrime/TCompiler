@@ -18,12 +18,12 @@
 
 #include "parser/parser.h"
 
-#include "internalError.h"
 #include "lexer/lexer.h"
 #include "parser/typeTable.h"
 #include "util/charSet.h"
 #include "util/container/stringBuilder.h"
 #include "util/functional.h"
+#include "util/internalError.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,7 +93,7 @@ static void moduleNodeMapUninit(ModuleNodeMap *map) {
 }
 
 // parsing helpers
-char *unescapeCharacters(char *constantString) {
+static char *unescapeCharacters(char *constantString) {
   StringBuilder buffer;
   stringBuilderInit(&buffer);
 
@@ -618,24 +618,6 @@ static NodeList *parseCodeImports(Report *report, Options const *options,
 }
 
 // expression
-static Node *parseStringLiteral(Report *report, LexerInfo *info) {
-  TokenInfo string;
-  lex(info, report, &string);
-
-  if (string.type != TT_LITERALSTRING) {
-    if (!tokenInfoIsLexerError(&string)) {
-      reportError(report,
-                  "%s:%zu:%zu: error: expected a string literal, but found %s",
-                  info->filename, string.line, string.character,
-                  tokenTypeToString(string.type));
-    }
-    tokenInfoUninit(&string);
-    return NULL;
-  }
-
-  return constStringExpNodeCreate(string.line, string.character,
-                                  string.data.string);
-}
 static Node *parseIntOrEnumLiteral(Report *report, TypeEnvironment *env,
                                    LexerInfo *info) {
   TokenInfo constant;

@@ -17,7 +17,6 @@
 // Compiles code modules into assembly files, guided by decl modules
 
 #include "ast/printer.h"
-#include "internalError.h"
 #include "ir/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
@@ -26,6 +25,7 @@
 #include "typecheck/typecheck.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
+#include "util/internalError.h"
 #include "util/options.h"
 #include "x86_64/frame.h"
 

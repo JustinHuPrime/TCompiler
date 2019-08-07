@@ -19,9 +19,9 @@
 #include "translate/translate.h"
 
 #include "constants.h"
-#include "internalError.h"
 #include "util/container/stringBuilder.h"
 #include "util/format.h"
+#include "util/internalError.h"
 #include "util/nameUtils.h"
 #include "util/tstring.h"
 
