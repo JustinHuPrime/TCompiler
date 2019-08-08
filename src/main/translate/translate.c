@@ -177,8 +177,8 @@ static char *mangleFunctionName(char const *moduleName, char const *id,
   return format("%s%zu%s%s", mangleModuleName(moduleName), strlen(id), id,
                 mangleTypeString(argumentTypes));
 }
-static void addAccesses(SymbolTable *stab, char const *moduleName,
-                        GlobalAccessCtor globalAccessCtor) {
+static void addGlobalAccesses(SymbolTable *stab, char const *moduleName,
+                              GlobalAccessCtor globalAccessCtor) {
   for (size_t idx = 0; idx < stab->capacity; idx++) {
     if (stab->keys[idx] != NULL) {
       SymbolInfo *info = stab->values[idx];
@@ -571,7 +571,6 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
 // top level stuff
 static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
                                char const *moduleName,
-                               GlobalAccessCtor globalAccessCtor,
                                LabelGenerator *labelGenerator) {
   NodePairList *idValuePairs = varDecl->data.varDecl.idValuePairs;
   for (size_t idx = 0; idx < idValuePairs->size; idx++) {
@@ -599,7 +598,6 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
 }
 static void translateFunction(Node *function, FragmentVector *fragments,
                               char const *moduleName, FrameCtor frameCtor,
-                              GlobalAccessCtor globalAccessCtor,
                               LabelGenerator *labelGenerator) {
   Fragment *fragment = functionFragmentCreate(mangleFunctionName(
       moduleName, function->data.function.id->data.id.id,
@@ -611,7 +609,6 @@ static void translateFunction(Node *function, FragmentVector *fragments,
   Access *outArg = frame->vtable->allocOutArg(
       frame,
       typeSizeof(function->data.function.id->data.id.overload->returnType));
-
   // TODO: deal with argument accesses
 
   char *exitLabel = labelGenerator->vtable->generateCodeLabel(labelGenerator);
@@ -629,17 +626,14 @@ static void translateFunction(Node *function, FragmentVector *fragments,
 }
 static void translateBody(Node *body, FragmentVector *fragments,
                           char const *moduleName, FrameCtor frameCtor,
-                          GlobalAccessCtor globalAccessCtor,
                           LabelGenerator *labelGenerator) {
   switch (body->type) {
     case NT_VARDECL: {
-      translateGlobalVar(body, fragments, moduleName, globalAccessCtor,
-                         labelGenerator);
+      translateGlobalVar(body, fragments, moduleName, labelGenerator);
       return;
     }
     case NT_FUNCTION: {
-      translateFunction(body, fragments, moduleName, frameCtor,
-                        globalAccessCtor, labelGenerator);
+      translateFunction(body, fragments, moduleName, frameCtor, labelGenerator);
       return;
     }
     default: { return; }
@@ -655,15 +649,13 @@ static char *codeFilenameToAssembyFilename(char const *codeFilename) {
   return assemblyFilename;
 }
 static FragmentVector *translateFile(Node *file, FrameCtor frameCtor,
-                                     GlobalAccessCtor globalAccessCtor,
                                      LabelGenerator *labelGenerator) {
   FragmentVector *fragments = fragmentVectorCreate();
 
   NodeList *bodies = file->data.file.bodies;
   for (size_t idx = 0; idx < bodies->size; idx++) {
     translateBody(bodies->elements[idx], fragments,
-                  file->data.module.id->data.id.id, frameCtor, globalAccessCtor,
-                  labelGenerator);
+                  file->data.module.id->data.id.id, frameCtor, labelGenerator);
   }
 
   return fragments;
@@ -677,17 +669,17 @@ void translate(FileFragmentVectorMap *fragments, ModuleAstMapPair *asts,
   for (size_t idx = 0; idx < asts->decls.capacity; idx++) {
     if (asts->decls.keys[idx] != NULL) {
       Node *file = asts->decls.values[idx];
-      addAccesses(file->data.file.symbols,
-                  file->data.file.module->data.module.id->data.id.id,
-                  globalAccessCtor);
+      addGlobalAccesses(file->data.file.symbols,
+                        file->data.file.module->data.module.id->data.id.id,
+                        globalAccessCtor);
     }
   }
   for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
     if (asts->codes.keys[idx] != NULL) {
       Node *file = asts->codes.values[idx];
-      addAccesses(file->data.file.symbols,
-                  file->data.file.module->data.module.id->data.id.id,
-                  globalAccessCtor);
+      addGlobalAccesses(file->data.file.symbols,
+                        file->data.file.module->data.module.id->data.id.id,
+                        globalAccessCtor);
     }
   }
 
@@ -699,8 +691,7 @@ void translate(FileFragmentVectorMap *fragments, ModuleAstMapPair *asts,
       Node *file = asts->codes.values[idx];
       fileFragmentVectorMapPut(
           fragments, codeFilenameToAssembyFilename(file->data.file.filename),
-          translateFile(file, frameCtor, globalAccessCtor,
-                        labelGeneratorCtor()));
+          translateFile(file, frameCtor, labelGeneratorCtor()));
     }
   }
 }
