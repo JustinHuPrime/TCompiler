@@ -56,7 +56,7 @@ void fileFragmentVectorMapUninit(FileFragmentVectorMap *map) {
   free(map->keys);
 }
 
-// helpers
+// accesses
 static char *mangleModuleName(char const *moduleName) {
   char *buffer = strdup("__Z");
   StringVector *exploded = explodeName(moduleName);
@@ -169,15 +169,35 @@ static char *mangleTypeString(TypeVector const *args) {
   }
   return buffer;
 }
-static char *mangleVarName(char const *moduleName, Node const *id) {
-  return format("%s%zu%s", mangleModuleName(moduleName), strlen(id->data.id.id),
-                id->data.id.id);
+static char *mangleVarName(char const *moduleName, char const *id) {
+  return format("%s%zu%s", mangleModuleName(moduleName), strlen(id), id);
 }
-static char *mangleFunctionName(char const *moduleName, Node const *id) {
-  return format("%s%zu%s%s", mangleModuleName(moduleName),
-                strlen(id->data.id.id), id->data.id.id,
-                mangleTypeString(&id->data.id.overload->argumentTypes));
+static char *mangleFunctionName(char const *moduleName, char const *id,
+                                TypeVector *argumentTypes) {
+  return format("%s%zu%s%s", mangleModuleName(moduleName), strlen(id), id,
+                mangleTypeString(argumentTypes));
 }
+static void addAccesses(SymbolTable *stab, char const *moduleName,
+                        GlobalAccessCtor globalAccessCtor) {
+  for (size_t idx = 0; idx < stab->capacity; idx++) {
+    if (stab->keys[idx] != NULL) {
+      SymbolInfo *info = stab->values[idx];
+      if (info->kind == SK_FUNCTION) {
+        OverloadSet *set = &info->data.function.overloadSet;
+        for (size_t overloadIdx = 0; overloadIdx < set->size; overloadIdx++) {
+          OverloadSetElement *elm = set->elements[overloadIdx];
+          elm->access = globalAccessCtor(mangleFunctionName(
+              moduleName, stab->keys[idx], &elm->argumentTypes));
+        }
+      } else if (info->kind == SK_VAR) {
+        info->data.var.access =
+            globalAccessCtor(mangleVarName(moduleName, stab->keys[idx]));
+      }
+    }
+  }
+}
+
+// helpers
 static bool constantNotZero(Node *initializer) {
   switch (initializer->type) {
     case NT_CONSTEXP: {
@@ -483,6 +503,8 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
       break;
     }
     case NT_SWITCHSTMT: {
+      NodeList *cases = stmt->data.switchStmt.cases;
+      // treat it as a series of elifs for now...
       // TODO: write this
       break;
     }
@@ -555,7 +577,7 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
   for (size_t idx = 0; idx < idValuePairs->size; idx++) {
     Node *id = idValuePairs->firstElements[idx];
     Node *initializer = idValuePairs->secondElements[idx];
-    char *mangledName = mangleVarName(moduleName, id);
+    char *mangledName = mangleVarName(moduleName, id->data.id.id);
     Fragment *f;
     if (initializer == NULL || !constantNotZero(initializer)) {
       f = bssDataFragmentCreate(mangledName,
@@ -569,7 +591,6 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
       constantToData(initializer, &f->data.data.data, fragments,
                      labelGenerator);
     }
-    id->data.id.symbol->data.var.access = globalAccessCtor(mangledName);
 
     fragmentVectorInsert(fragments, f);
   }
@@ -580,16 +601,16 @@ static void translateFunction(Node *function, FragmentVector *fragments,
                               char const *moduleName, FrameCtor frameCtor,
                               GlobalAccessCtor globalAccessCtor,
                               LabelGenerator *labelGenerator) {
-  Fragment *fragment = functionFragmentCreate(
-      mangleFunctionName(moduleName, function->data.function.id));
+  Fragment *fragment = functionFragmentCreate(mangleFunctionName(
+      moduleName, function->data.function.id->data.id.id,
+      &function->data.function.id->data.id.overload->argumentTypes));
   Frame *frame = frameCtor();
   IRStmVector *body = irStmVectorCreate();
 
   Node *statements = function->data.function.body;
-  OverloadSetElement *overload = function->data.function.id->data.id.overload;
-  overload->access = globalAccessCtor(fragment->data.function.label);
-  Access *outArg =
-      frame->vtable->allocOutArg(frame, typeSizeof(overload->returnType));
+  Access *outArg = frame->vtable->allocOutArg(
+      frame,
+      typeSizeof(function->data.function.id->data.id.overload->returnType));
 
   // TODO: deal with argument accesses
 
@@ -653,7 +674,25 @@ void translate(FileFragmentVectorMap *fragments, ModuleAstMapPair *asts,
                LabelGeneratorCtor labelGeneratorCtor) {
   fileFragmentVectorMapInit(fragments);
 
-  // TODO: add accesses to all declared globals
+  for (size_t idx = 0; idx < asts->decls.capacity; idx++) {
+    if (asts->decls.keys[idx] != NULL) {
+      Node *file = asts->decls.values[idx];
+      addAccesses(file->data.file.symbols,
+                  file->data.file.module->data.module.id->data.id.id,
+                  globalAccessCtor);
+    }
+  }
+  for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
+    if (asts->codes.keys[idx] != NULL) {
+      Node *file = asts->codes.values[idx];
+      addAccesses(file->data.file.symbols,
+                  file->data.file.module->data.module.id->data.id.id,
+                  globalAccessCtor);
+    }
+  }
+
+  TempGenerator tempGenerator;
+  tempGeneratorInit(&tempGenerator);
 
   for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
     if (asts->codes.keys[idx] != NULL) {
