@@ -72,4 +72,11 @@ typedef struct LabelGenerator {
 } LabelGenerator;
 typedef LabelGenerator *(*LabelGeneratorCtor)(void);
 
+typedef struct {
+  size_t nextTemp;
+} TempGenerator;
+void tempGeneratorInit(TempGenerator *);
+size_t tempGeneratorGenerate(TempGenerator *);
+void tempGeneratorUninit(TempGenerator *);
+
 #endif  // TLC_TRANSLATE_FRAME_H_
