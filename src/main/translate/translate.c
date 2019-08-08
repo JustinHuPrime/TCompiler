@@ -368,6 +368,10 @@ static void constantToData(Node *initializer, IRExpVector *out,
 static IRExp *translateExpression(Node *exp) {
   return NULL;  // TODO: write this
 }
+static void translateBranch(Node *branchedOn, char const *trueCase,
+                            char const *falseCase, IRStmVector *out) {
+  // TODO: write this
+}
 
 // statements
 static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
@@ -388,28 +392,114 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
       break;
     }
     case NT_IFSTMT: {
-      // TODO: write this
+      if (stmt->data.ifStmt.elseStmt == NULL) {
+        char *trueCase =
+            labelGenerator->vtable->generateCodeLabel(labelGenerator);
+        char *end = labelGenerator->vtable->generateCodeLabel(labelGenerator);
+        translateBranch(stmt->data.ifStmt.condition, trueCase, end, out);
+        irStmVectorInsert(out, labelIRStmCreate(trueCase));
+        translateStmt(stmt->data.ifStmt.thenStmt, out, frame, outArg,
+                      breakLabel, continueLabel, exitLabel, labelGenerator);
+        irStmVectorInsert(out, labelIRStmCreate(end));
+      } else {
+        char *trueCase =
+            labelGenerator->vtable->generateCodeLabel(labelGenerator);
+        char *falseCase =
+            labelGenerator->vtable->generateCodeLabel(labelGenerator);
+        char *end = labelGenerator->vtable->generateCodeLabel(labelGenerator);
+        translateBranch(stmt->data.ifStmt.condition, trueCase, falseCase, out);
+        irStmVectorInsert(out, labelIRStmCreate(trueCase));
+        translateStmt(stmt->data.ifStmt.thenStmt, out, frame, outArg,
+                      breakLabel, continueLabel, exitLabel, labelGenerator);
+        irStmVectorInsert(out, jumpIRStmCreate(end));
+        irStmVectorInsert(out, labelIRStmCreate(falseCase));
+        translateStmt(stmt->data.ifStmt.elseStmt, out, frame, outArg,
+                      breakLabel, continueLabel, exitLabel, labelGenerator);
+        irStmVectorInsert(out, labelIRStmCreate(end));
+      }
+      break;
     }
     case NT_WHILESTMT: {
-      // TODO: write this
+      char *loopStart =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *loopBody =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *loopEnd = labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      irStmVectorInsert(out, labelIRStmCreate(loopStart));
+      translateBranch(stmt->data.whileStmt.condition, loopBody, loopEnd, out);
+      irStmVectorInsert(out, labelIRStmCreate(loopBody));
+      translateStmt(stmt->data.whileStmt.body, out, frame, outArg, loopEnd,
+                    loopStart, exitLabel, labelGenerator);
+      irStmVectorInsert(out, jumpIRStmCreate(loopStart));
+      irStmVectorInsert(out, labelIRStmCreate(loopEnd));
+      break;
     }
     case NT_DOWHILESTMT: {
-      // TODO: write this
+      char *loopStart =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *loopContinue =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *loopEnd = labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      irStmVectorInsert(out, labelIRStmCreate(loopStart));
+      translateStmt(stmt->data.doWhileStmt.body, out, frame, outArg, loopEnd,
+                    loopContinue, exitLabel, labelGenerator);
+      irStmVectorInsert(out, labelIRStmCreate(loopContinue));
+      translateBranch(stmt->data.doWhileStmt.condition, loopStart, loopEnd,
+                      out);
+      irStmVectorInsert(out, labelIRStmCreate(loopEnd));
+      break;
     }
     case NT_FORSTMT: {
-      // TODO: write this
+      char *loopStart =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *loopBody =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *loopContinue =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *loopEnd = labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      Node *initialize = stmt->data.forStmt.initialize;
+      if (initialize != NULL) {
+        if (initialize->type == NT_VARDECL) {
+          translateStmt(stmt->data.forStmt.initialize, out, frame, outArg,
+                        breakLabel, continueLabel, exitLabel, labelGenerator);
+        } else {
+          irStmVectorInsert(out,
+                            expIRStmCreate(translateExpression(initialize)));
+        }
+      }
+      irStmVectorInsert(out, labelIRStmCreate(loopStart));
+      translateBranch(stmt->data.forStmt.condition, loopBody, loopEnd, out);
+      irStmVectorInsert(out, labelIRStmCreate(loopBody));
+      translateStmt(stmt->data.forStmt.body, out, frame, outArg, loopEnd,
+                    loopContinue, exitLabel, labelGenerator);
+      irStmVectorInsert(out, labelIRStmCreate(loopContinue));
+      if (stmt->data.forStmt.update != NULL) {
+        irStmVectorInsert(
+            out,
+            expIRStmCreate(translateExpression(stmt->data.forStmt.update)));
+      }
+      irStmVectorInsert(out, jumpIRStmCreate(loopStart));
+      irStmVectorInsert(out, labelIRStmCreate(loopEnd));
+      break;
     }
     case NT_SWITCHSTMT: {
       // TODO: write this
+      break;
     }
     case NT_BREAKSTMT: {
-      // TODO: write this
+      irStmVectorInsert(out, jumpIRStmCreate(breakLabel));
+      break;
     }
     case NT_CONTINUESTMT: {
-      // TODO: write this
+      irStmVectorInsert(out, jumpIRStmCreate(continueLabel));
+      break;
     }
     case NT_RETURNSTMT: {
-      // TODO: write this
+      if (stmt->data.returnStmt.value != NULL) {
+        // TODO: assign return value, if any
+      }
+      irStmVectorInsert(out, jumpIRStmCreate(exitLabel));
+      break;
     }
     case NT_ASMSTMT: {
       irStmVectorInsert(out,
@@ -419,6 +509,7 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
     case NT_EXPRESSIONSTMT: {
       irStmVectorInsert(out, expIRStmCreate(translateExpression(
                                  stmt->data.expressionStmt.expression)));
+      break;
     }
     case NT_NULLSTMT:
     case NT_STRUCTDECL:
