@@ -200,13 +200,27 @@ IRExp *nameIRExpCreate(char const *label) {
   e->data.name.label = label;
   return e;
 }
+IRExp *regIRExpCreate(size_t n, size_t size) {
+  IRExp *e = irExpCreate(IE_REG);
+  e->data.reg.n = n;
+  e->data.reg.size = size;
+  return e;
+}
+IRExp *tempIRExpCreate(size_t n, size_t size) {
+  IRExp *e = irExpCreate(IE_TEMP);
+  e->data.reg.n = n;
+  e->data.reg.size = size;
+  return e;
+}
 void irExpDestroy(IRExp *e) {
   switch (e->kind) {
     case IE_BYTE_CONST:
     case IE_SHORT_CONST:
     case IE_INT_CONST:
     case IE_LONG_CONST:
-    case IE_NAME: {
+    case IE_NAME:
+    case IE_REG:
+    case IE_TEMP: {
       break;
     }
     case IE_STRING_CONST: {

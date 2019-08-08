@@ -84,6 +84,8 @@ typedef enum {
   IE_STRING_CONST,
   IE_WSTRING_CONST,
   IE_NAME,
+  IE_REG,
+  IE_TEMP,
 } IRExpKind;
 typedef struct IRExp {
   IRExpKind kind;
@@ -111,6 +113,25 @@ typedef struct IRExp {
     struct {
       char const *label;
     } name;
+    struct {
+      size_t n;
+      size_t size;
+    } reg;
+    struct {
+      size_t n;
+      size_t size;
+    } temp;
+    struct {
+      struct IRExp *who;
+      IRExpVector withWhat;
+    } call;
+    struct {
+      struct IRExp *target;
+    } unOp;
+    struct {
+      struct IRExp *lhs;
+      struct IRExp *rhs;
+    } binOp;
   } data;
 } IRExp;
 IRExp *byteConstIRExpCreate(int8_t value);
@@ -126,6 +147,9 @@ IRExp *doubleConstIRExpCreate(uint64_t bits);
 IRExp *stringConstIRExpCreate(uint8_t *string);
 IRExp *wstringConstIRExpCreate(uint32_t *string);
 IRExp *nameIRExpCreate(char const *label);
+IRExp *regIRExpCreate(size_t n, size_t size);
+IRExp *tempIRExpCreate(size_t n, size_t size);
+IRExp *callIRExpCreate(IRExp *who);
 void irExpDestroy(IRExp *);
 
 typedef enum {
