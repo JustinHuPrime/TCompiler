@@ -182,6 +182,7 @@ int main(int argc, char *argv[]) {
   FrameCtor frameCtor;
   GlobalAccessCtor globalAccessCtor;
   LabelGeneratorCtor labelGeneratorCtor;
+
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
       frameCtor = x86_64FrameCtor;
@@ -202,6 +203,28 @@ int main(int argc, char *argv[]) {
         printf("%s:\n", fragments.keys[idx]);
         fragmentVectorPrint(fragments.values[idx]);
       }
+    }
+  }
+
+  // canonicalize + flatten
+
+  // optimize
+
+  // backend
+  switch (optionsGet(&options, optionArch)) {
+    case O_AT_X86: {
+      // instruction selection
+
+      // register alloc
+
+      // write-out
+
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "invalid architecture specified, furthermore, architecture was "
+            "valid during translate");
     }
   }
 
