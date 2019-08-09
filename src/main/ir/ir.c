@@ -86,6 +86,11 @@ void irStmDestroy(IRStm *s) {
       free(s->data.assembly.assembly);
       break;
     }
+    case IS_CJUMP: {
+      irExpDestroy(s->data.cjump.lhs);
+      irExpDestroy(s->data.cjump.rhs);
+      break;
+    }
   }
   free(s);
 }

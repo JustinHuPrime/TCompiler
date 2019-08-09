@@ -34,11 +34,20 @@ void irStmVectorUninit(IRStmVector *);
 void irStmVectorDestroy(IRStmVector *);
 
 typedef enum {
+  CJ_EQ,
+  CJ_NEQ,
+  CJ_LT,
+  CJ_GT,
+  CJ_LTEQ,
+  CJ_GTEQ,
+} CJumpType;
+typedef enum {
   IS_MOVE,
   IS_LABEL,
   IS_JUMP,
   IS_EXP,
   IS_ASM,
+  IS_CJUMP,
 } IRStmKind;
 typedef struct IRStm {
   IRStmKind kind;
@@ -60,6 +69,13 @@ typedef struct IRStm {
     struct {
       char *assembly;
     } assembly;
+    struct {
+      CJumpType compOp;
+      struct IRExp *lhs;
+      struct IRExp *rhs;
+      char const *trueTarget;
+      char const *falseTarget;
+    } cjump;
   } data;
 } IRStm;
 IRStm *moveIRStmCreate(struct IRExp *to, struct IRExp *from, size_t size);
@@ -67,6 +83,8 @@ IRStm *labelIRStmCreate(char *name);
 IRStm *jumpIRStmCreate(char const *target);
 IRStm *expIRStmCreate(struct IRExp *exp);
 IRStm *asmIRStmCreate(char *assembly);
+IRStm *cjumpIRStmCreate(CJumpType op, struct IRExp *lhs, struct IRExp *rhs,
+                        char const *trueTarget, char const *falseTarget);
 void irStmDestroy(IRStm *);
 
 typedef Vector IRExpVector;
