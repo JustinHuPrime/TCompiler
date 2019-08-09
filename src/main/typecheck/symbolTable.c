@@ -2054,7 +2054,8 @@ bool typeIsCompound(Type const *type) {
 bool typeIsComposite(Type const *type) {
   switch (type->kind) {
     case K_ARRAY:
-    case K_STRUCT: {
+    case K_STRUCT:
+    case K_AGGREGATE_INIT: {
       return true;
     }
     case K_UNION: {

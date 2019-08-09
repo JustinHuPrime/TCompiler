@@ -385,9 +385,15 @@ static void constantToData(Node *initializer, IRExpVector *out,
 }
 
 // expressions
+static IRExp *translateImplicitCast(Node *exp, Type const *from,
+                                    Type const *to) {
+  return exp;  // TODO: write this
+}
 static IRExp *translateExpression(Node *exp) {
   return NULL;  // TODO: write this
 }
+
+// branches
 static void translateBranch(Node *branchedOn, char const *trueCase,
                             char const *falseCase, IRStmVector *out) {
   // TODO: write this
