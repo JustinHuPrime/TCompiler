@@ -609,7 +609,12 @@ static void translateFunction(Node *function, FragmentVector *fragments,
   Access *outArg = frame->vtable->allocOutArg(
       frame,
       typeSizeof(function->data.function.id->data.id.overload->returnType));
-  // TODO: deal with argument accesses
+  for (size_t idx = 0; idx < function->data.function.formals->size; idx++) {
+    Node *id = function->data.function.formals->secondElements[idx];
+    SymbolInfo *info = id->data.id.symbol;
+    info->data.var.access = frame->vtable->allocInArg(
+        frame, typeSizeof(info->data.var.type), info->data.var.escapes);
+  }
 
   char *exitLabel = labelGenerator->vtable->generateCodeLabel(labelGenerator);
   translateStmt(statements, body, frame, outArg, NULL, NULL, exitLabel,
