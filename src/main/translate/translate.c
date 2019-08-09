@@ -385,7 +385,7 @@ static void constantToData(Node *initializer, IRExpVector *out,
 }
 
 // expressions
-static IRExp *translateImplicitCast(Node *exp, Type const *from,
+static IRExp *translateImplicitCast(IRExp *exp, Type const *from,
                                     Type const *to) {
   return exp;  // TODO: write this
 }

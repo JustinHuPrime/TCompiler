@@ -77,6 +77,42 @@ void irExpVectorUninit(IRExpVector *);
 void irExpVectorDestroy(IRExpVector *);
 
 typedef enum {
+  IU_ZX_BYTETOSHORT,
+  IU_ZX_BYTETOINT,
+  IU_ZX_BYTETOLONG,
+  IU_SX_BYTETOSHORT,
+  IU_SX_BYTETOINT,
+  IU_SX_BYTETOLONG,
+  IU_ZX_SHORTTOINT,
+  IU_ZX_SHORTTOLONG,
+  IU_SX_SHORTTOINT,
+  IU_SX_SHORTTOLONG,
+  IU_ZX_INTTOLONG,
+  IU_SX_INTTOLONG,
+  IU_UBYTETOFLOAT,
+  IU_USHORTTOFLOAT,
+  IU_UINTTOFLOAT,
+  IU_ULONGTOFLOAT,
+  IU_BYTETOFLOAT,
+  IU_SHORTTOFLOAT,
+  IU_INTTOFLOAT,
+  IU_LONGTOFLOAT,
+  IU_UBYTETODOUBLE,
+  IU_USHORTTODOUBLE,
+  IU_UINTTODOUBLE,
+  IU_ULONGTODOUBLE,
+  IU_BYTETODOUBLE,
+  IU_SHORTTODOUBLE,
+  IU_INTTODOUBLE,
+  IU_LONGTODOUBLE,
+} IRUnOpType;
+typedef enum {
+  IB_BYTEADD,
+  IB_SHORTADD,
+  IB_INTADD,
+  IB_LONGADD,
+} IRBinOpType;
+typedef enum {
   IE_BYTE_CONST,
   IE_SHORT_CONST,
   IE_INT_CONST,
@@ -86,6 +122,9 @@ typedef enum {
   IE_NAME,
   IE_REG,
   IE_TEMP,
+  IE_CALL,
+  IE_UNOP,
+  IE_BINOP,
 } IRExpKind;
 typedef struct IRExp {
   IRExpKind kind;
@@ -126,9 +165,11 @@ typedef struct IRExp {
       IRExpVector withWhat;
     } call;
     struct {
+      IRUnOpType op;
       struct IRExp *target;
     } unOp;
     struct {
+      IRBinOpType op;
       struct IRExp *lhs;
       struct IRExp *rhs;
     } binOp;
@@ -150,6 +191,8 @@ IRExp *nameIRExpCreate(char const *label);
 IRExp *regIRExpCreate(size_t n, size_t size);
 IRExp *tempIRExpCreate(size_t n, size_t size);
 IRExp *callIRExpCreate(IRExp *who);
+IRExp *unopIRExpCreate(IRUnOpType op, IRExp *target);
+IRExp *binopIRExpCreate(IRBinOpType op, IRExp *lhs, IRExp *rhs);
 void irExpDestroy(IRExp *);
 
 typedef enum {

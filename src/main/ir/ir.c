@@ -231,6 +231,20 @@ void irExpDestroy(IRExp *e) {
       free(e->data.wstringConst.value);
       break;
     }
+    case IE_CALL: {
+      irExpDestroy(e->data.call.who);
+      irExpVectorUninit(&e->data.call.withWhat);
+      break;
+    }
+    case IE_UNOP: {
+      irExpDestroy(e->data.unOp.target);
+      break;
+    }
+    case IE_BINOP: {
+      irExpDestroy(e->data.binOp.lhs);
+      irExpDestroy(e->data.binOp.rhs);
+      break;
+    }
   }
   free(e);
 }
