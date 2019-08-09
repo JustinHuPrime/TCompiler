@@ -110,7 +110,7 @@ static Type *astToType(Node const *ast, Report *report, Options const *options,
           break;
         }
         default: {
-          error(__FILE__, __LINE__, "invariant failed: unexpected mutation");
+          error(__FILE__, __LINE__, "invariant failed: unexpected mutation to constExp type (memory corruption?)");
         }
       }
       Node *element = ast->data.arrayType.element;

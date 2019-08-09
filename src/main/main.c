@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
     default: {
       error(__FILE__, __LINE__,
             "invalid architecture specified, furthermore, architecture was "
-            "valid during translate");
+            "valid during translate (memory corruption?)");
     }
   }
 
