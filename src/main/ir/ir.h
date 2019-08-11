@@ -25,6 +25,9 @@
 
 struct IRExp;
 struct IRStm;
+struct Frame;
+struct Access;
+struct LabelGenerator;
 
 typedef Vector IRStmVector;
 IRStmVector *irStmVectorCreate(void);
@@ -237,18 +240,71 @@ typedef struct {
     struct {
       char *label;
       IRStmVector body;
+      struct Frame *frame;
     } function;
   } data;
 } Fragment;
 Fragment *dataFragmentCreate(char *label);
 Fragment *roDataFragmentCreate(char *label);
 Fragment *bssDataFragmentCreate(char *label, size_t nBytes);
-Fragment *functionFragmentCreate(char *label);
+Fragment *functionFragmentCreate(char *label, struct Frame *frame);
 void fragmentDestroy(Fragment *);
 
 typedef Vector FragmentVector;
 FragmentVector *fragmentVectorCreate(void);
 void fragmentVectorInsert(FragmentVector *, Fragment *);
 void fragmentVectorDestroy(FragmentVector *);
+
+typedef Vector AccessVector;
+AccessVector *accessVectorCreate(void);
+void accessVectorInsert(AccessVector *, struct Access *);
+void accessVectorDestroy(AccessVector *);
+
+typedef struct {
+  void (*dtor)(struct Frame *);
+  IRStmVector *(*generateEntryExit)(struct Frame *this, IRStmVector *body,
+                                    char *exitLabel);
+  IRExp *(*fpExp)(void);
+  struct Access *(*allocLocal)(struct Frame *this, size_t size, bool escapes);
+  struct Access *(*allocOutArg)(struct Frame *this, size_t size);
+  struct Access *(*allocInArg)(struct Frame *this, size_t size, bool escapes);
+} FrameVTable;
+
+typedef struct Frame {
+  FrameVTable *vtable;
+  // other stuff, depending on implementation
+} Frame;
+typedef Frame *(*FrameCtor)(void);
+
+typedef struct {
+  void (*dtor)(struct Access *);
+  IRExp *(*valueExp)(struct Access *this, IRExp *fp);
+  IRExp *(*addressExp)(struct Access *this, IRExp *fp);
+} AccessVTable;
+
+typedef struct Access {
+  AccessVTable *vtable;
+  // other stuff, depending on implementation
+} Access;
+typedef Access *(*GlobalAccessCtor)(char *label);
+
+typedef struct {
+  void (*dtor)(struct LabelGenerator *);
+  char *(*generateDataLabel)(struct LabelGenerator *this);
+  char *(*generateCodeLabel)(struct LabelGenerator *this);
+} LabelGeneratorVTable;
+
+typedef struct LabelGenerator {
+  LabelGeneratorVTable *vtable;
+  // other stuff, depending on implementation
+} LabelGenerator;
+typedef LabelGenerator *(*LabelGeneratorCtor)(void);
+
+typedef struct {
+  size_t nextTemp;
+} TempGenerator;
+void tempGeneratorInit(TempGenerator *);
+size_t tempGeneratorGenerate(TempGenerator *);
+void tempGeneratorUninit(TempGenerator *);
 
 #endif  // TLC_IR_IR_H_

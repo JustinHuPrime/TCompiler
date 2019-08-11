@@ -605,10 +605,12 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
 static void translateFunction(Node *function, FragmentVector *fragments,
                               char const *moduleName, FrameCtor frameCtor,
                               LabelGenerator *labelGenerator) {
-  Fragment *fragment = functionFragmentCreate(mangleFunctionName(
-      moduleName, function->data.function.id->data.id.id,
-      &function->data.function.id->data.id.overload->argumentTypes));
   Frame *frame = frameCtor();
+  Fragment *fragment = functionFragmentCreate(
+      mangleFunctionName(
+          moduleName, function->data.function.id->data.id.id,
+          &function->data.function.id->data.id.overload->argumentTypes),
+      frame);
   IRStmVector *body = irStmVectorCreate();
 
   Node *statements = function->data.function.body;

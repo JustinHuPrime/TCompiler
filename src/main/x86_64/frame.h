@@ -19,7 +19,7 @@
 #ifndef TLC_X86_64_FRAME_H_
 #define TLC_X86_64_FRAME_H_
 
-#include "translate/frame.h"
+#include "ir/ir.h"
 
 Frame *x86_64FrameCtor(void);
 Access *x86_64GlobalAccessCtor(char *label);

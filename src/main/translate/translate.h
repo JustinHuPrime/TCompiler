@@ -21,7 +21,6 @@
 
 #include "ir/ir.h"
 #include "parser/parser.h"
-#include "translate/frame.h"
 #include "util/container/hashMap.h"
 
 typedef HashMap FileFragmentVectorMap;

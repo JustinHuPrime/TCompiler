@@ -19,7 +19,7 @@
 #ifndef TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 #define TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 
-#include "translate/frame.h"
+#include "ir/ir.h"
 #include "util/container/hashMap.h"
 #include "util/container/stack.h"
 #include "util/container/vector.h"

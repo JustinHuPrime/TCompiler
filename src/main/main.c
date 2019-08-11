@@ -215,6 +215,8 @@ int main(int argc, char *argv[]) {
     case O_AT_X86: {
       // instruction selection
 
+      fileFragmentVectorMapUninit(&fragments);
+
       // register alloc
 
       // write-out
@@ -229,7 +231,6 @@ int main(int argc, char *argv[]) {
   }
 
   // clean up
-  fileFragmentVectorMapUninit(&fragments);
   optionsUninit(&options);
   reportUninit(&report);
 

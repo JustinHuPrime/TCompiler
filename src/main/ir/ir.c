@@ -22,6 +22,21 @@
 
 #include <stdlib.h>
 
+AccessVector *accessVectorCreate(void) { return vectorCreate(); }
+void accessVectorInsert(AccessVector *vector, struct Access *access) {
+  vectorInsert(vector, access);
+}
+static void accessDtorCaller(Access *access) { access->vtable->dtor(access); }
+void accessVectorDestroy(AccessVector *vector) {
+  vectorDestroy(vector, (void (*)(void *))accessDtorCaller);
+}
+
+void tempGeneratorInit(TempGenerator *generator) { generator->nextTemp = 0; }
+size_t tempGeneratorGenerate(TempGenerator *generator) {
+  return generator->nextTemp++;
+}
+void tempGeneratorUninit(TempGenerator *generator) {}
+
 IRStmVector *irStmVectorCreate(void) { return vectorCreate(); }
 void irStmVectorInit(IRStmVector *v) { vectorInit(v); }
 void irStmVectorInsert(IRStmVector *v, struct IRStm *s) { vectorInsert(v, s); }
@@ -277,9 +292,10 @@ Fragment *bssDataFragmentCreate(char *label, size_t nBytes) {
   f->data.bssData.nBytes = nBytes;
   return f;
 }
-Fragment *functionFragmentCreate(char *label) {
+Fragment *functionFragmentCreate(char *label, Frame *frame) {
   Fragment *f = fragmentCreate(FK_FUNCTION);
   f->data.function.label = label;
+  f->data.function.frame = frame;
   irStmVectorInit(&f->data.function.body);
   return f;
 }
@@ -301,6 +317,7 @@ void fragmentDestroy(Fragment *f) {
     }
     case FK_FUNCTION: {
       free(f->data.function.label);
+      f->data.function.frame->vtable->dtor(f->data.function.frame);
       irStmVectorUninit(&f->data.function.body);
       break;
     }
