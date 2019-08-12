@@ -37,14 +37,6 @@ void irStmVectorUninit(IRStmVector *);
 void irStmVectorDestroy(IRStmVector *);
 
 typedef enum {
-  CJ_EQ,
-  CJ_NEQ,
-  CJ_LT,
-  CJ_GT,
-  CJ_LTEQ,
-  CJ_GTEQ,
-} CJumpType;
-typedef enum {
   IS_MOVE,
   IS_LABEL,
   IS_JUMP,
@@ -52,6 +44,14 @@ typedef enum {
   IS_ASM,
   IS_CJUMP,
 } IRStmKind;
+typedef enum {
+  CJ_EQ,
+  CJ_NEQ,
+  CJ_LT,
+  CJ_GT,
+  CJ_LTEQ,
+  CJ_GTEQ,
+} CJumpType;
 typedef struct IRStm {
   IRStmKind kind;
   union {
@@ -98,6 +98,21 @@ void irExpVectorUninit(IRExpVector *);
 void irExpVectorDestroy(IRExpVector *);
 
 typedef enum {
+  IE_BYTE_CONST,
+  IE_SHORT_CONST,
+  IE_INT_CONST,
+  IE_LONG_CONST,
+  IE_STRING_CONST,
+  IE_WSTRING_CONST,
+  IE_NAME,
+  IE_REG,
+  IE_TEMP,
+  IE_CALL,
+  IE_UNOP,
+  IE_BINOP,
+  IE_ESEQ,
+} IRExpKind;
+typedef enum {
   IU_ZX_BYTETOSHORT,
   IU_ZX_BYTETOINT,
   IU_ZX_BYTETOLONG,
@@ -133,20 +148,6 @@ typedef enum {
   IB_INTADD,
   IB_LONGADD,
 } IRBinOpType;
-typedef enum {
-  IE_BYTE_CONST,
-  IE_SHORT_CONST,
-  IE_INT_CONST,
-  IE_LONG_CONST,
-  IE_STRING_CONST,
-  IE_WSTRING_CONST,
-  IE_NAME,
-  IE_REG,
-  IE_TEMP,
-  IE_CALL,
-  IE_UNOP,
-  IE_BINOP,
-} IRExpKind;
 typedef struct IRExp {
   IRExpKind kind;
   union {
@@ -194,6 +195,10 @@ typedef struct IRExp {
       struct IRExp *lhs;
       struct IRExp *rhs;
     } binOp;
+    struct {
+      IRStmVector stms;
+      struct IRExp *value;
+    } eseq;
   } data;
 } IRExp;
 IRExp *byteConstIRExpCreate(int8_t value);
@@ -214,6 +219,7 @@ IRExp *tempIRExpCreate(size_t n, size_t size);
 IRExp *callIRExpCreate(IRExp *who);
 IRExp *unopIRExpCreate(IRUnOpType op, IRExp *target);
 IRExp *binopIRExpCreate(IRBinOpType op, IRExp *lhs, IRExp *rhs);
+IRExp *eseqStmCreate(IRExp *value);
 void irExpDestroy(IRExp *);
 
 typedef enum {

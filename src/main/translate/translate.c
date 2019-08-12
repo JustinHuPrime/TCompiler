@@ -384,26 +384,154 @@ static void constantToData(Node *initializer, IRExpVector *out,
   }
 }
 
-// expressions
-static IRExp *translateImplicitCast(IRExp *exp, Type const *from,
-                                    Type const *to) {
-  return exp;  // TODO: write this
-}
-static IRExp *translateExpression(Node *exp) {
-  return NULL;  // TODO: write this
-}
-
 // branches
 static void translateBranch(Node *branchedOn, char const *trueCase,
                             char const *falseCase, IRStmVector *out) {
   // TODO: write this
 }
 
+// expressions
+static void translateAssignment(IRExp *from, IRExp *to, Type const *fromType,
+                                Type const *toType, IRStmVector *out) {
+  // TODO: write this
+}
+static IRExp *translateCast(IRExp *exp, Type const *fromType,
+                            Type const *toType) {
+  return exp;  // TODO: write this
+}
+static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator) {
+  switch (exp->type) {
+    case NT_SEQEXP: {
+      IRExp *e = eseqStmCreate(
+          translateExpression(exp->data.seqExp.last, tempGenerator));
+      irStmVectorInsert(&e->data.eseq.stms,
+                        expIRStmCreate(translateExpression(
+                            exp->data.seqExp.prefix, tempGenerator)));
+      return e;
+    }
+    case NT_BINOPEXP: {
+      // TODO: write this
+    }
+    case NT_UNOPEXP: {
+      // TODO: write this
+    }
+    case NT_COMPOPEXP: {
+      // TODO: write this
+    }
+    case NT_LANDASSIGNEXP: {
+      // TODO: write this
+    }
+    case NT_LORASSIGNEXP: {
+      // TODO: write this
+    }
+    case NT_TERNARYEXP: {
+      IRExp *condition =
+          translateExpression(exp->data.ternaryExp.condition, tempGenerator);
+          // TODO: what about large temps!?
+          // example: (condition ? astruct : bstruct).field
+          // moves astruct or bstruct into a temp, then gets an offset within that temp
+          // is this okay on the backend side of things?
+          // how do we 'register' allocate more than one temp?
+          // how do we get part of a temp?
+    }
+    case NT_LANDEXP: {
+    }
+    case NT_LOREXP: {
+    }
+    case NT_STRUCTACCESSEXP: {
+    }
+    case NT_STRUCTPTRACCESSEXP: {
+    }
+    case NT_FNCALLEXP: {
+    }
+    case NT_CONSTEXP: {
+    }
+    case NT_AGGREGATEINITEXP: {
+    }
+    case NT_CASTEXP: {
+    }
+    case NT_SIZEOFTYPEEXP: {
+    }
+    case NT_SIZEOFEXPEXP: {
+    }
+    case NT_ID: {
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered a non-expression in an expression position");
+    }
+  }
+}
+static Type const *typeofExpression(Node const *exp) {
+  switch (exp->type) {
+    case NT_SEQEXP: {
+      return exp->data.seqExp.resultType;
+    }
+    case NT_BINOPEXP: {
+      return exp->data.binOpExp.resultType;
+    }
+    case NT_UNOPEXP: {
+      return exp->data.unOpExp.resultType;
+    }
+    case NT_COMPOPEXP: {
+      return exp->data.compOpExp.resultType;
+    }
+    case NT_LANDASSIGNEXP: {
+      return exp->data.landAssignExp.resultType;
+    }
+    case NT_LORASSIGNEXP: {
+      return exp->data.lorAssignExp.resultType;
+    }
+    case NT_TERNARYEXP: {
+      return exp->data.ternaryExp.resultType;
+    }
+    case NT_LANDEXP: {
+      return exp->data.landExp.resultType;
+    }
+    case NT_LOREXP: {
+      return exp->data.lorExp.resultType;
+    }
+    case NT_STRUCTACCESSEXP: {
+      return exp->data.structAccessExp.resultType;
+    }
+    case NT_STRUCTPTRACCESSEXP: {
+      return exp->data.structPtrAccessExp.resultType;
+    }
+    case NT_FNCALLEXP: {
+      return exp->data.fnCallExp.resultType;
+    }
+    case NT_CONSTEXP: {
+      return exp->data.constExp.resultType;
+    }
+    case NT_AGGREGATEINITEXP: {
+      return exp->data.aggregateInitExp.resultType;
+    }
+    case NT_CASTEXP: {
+      return exp->data.castExp.resultType;
+    }
+    case NT_SIZEOFTYPEEXP: {
+      return exp->data.sizeofTypeExp.resultType;
+    }
+    case NT_SIZEOFEXPEXP: {
+      return exp->data.sizeofExpExp.resultType;
+    }
+    case NT_ID: {
+      return exp->data.id.resultType;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered a non-expression in an expression position");
+    }
+  }
+}
+
 // statements
 static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
                           Access *outArg, char const *breakLabel,
                           char const *continueLabel, char const *exitLabel,
-                          LabelGenerator *labelGenerator) {
+                          LabelGenerator *labelGenerator,
+                          TempGenerator *tempGenerator,
+                          Type const *returnType) {
   if (stmt == NULL) {
     return;
   }
@@ -413,7 +541,8 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
       NodeList *stmts = stmt->data.compoundStmt.statements;
       for (size_t idx = 0; idx < stmts->size; idx++) {
         translateStmt(stmts->elements[idx], out, frame, outArg, breakLabel,
-                      continueLabel, exitLabel, labelGenerator);
+                      continueLabel, exitLabel, labelGenerator, tempGenerator,
+                      returnType);
       }
       break;
     }
@@ -425,7 +554,8 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
         translateBranch(stmt->data.ifStmt.condition, trueCase, end, out);
         irStmVectorInsert(out, labelIRStmCreate(trueCase));
         translateStmt(stmt->data.ifStmt.thenStmt, out, frame, outArg,
-                      breakLabel, continueLabel, exitLabel, labelGenerator);
+                      breakLabel, continueLabel, exitLabel, labelGenerator,
+                      tempGenerator, returnType);
         irStmVectorInsert(out, labelIRStmCreate(end));
       } else {
         char *trueCase =
@@ -436,11 +566,13 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
         translateBranch(stmt->data.ifStmt.condition, trueCase, falseCase, out);
         irStmVectorInsert(out, labelIRStmCreate(trueCase));
         translateStmt(stmt->data.ifStmt.thenStmt, out, frame, outArg,
-                      breakLabel, continueLabel, exitLabel, labelGenerator);
+                      breakLabel, continueLabel, exitLabel, labelGenerator,
+                      tempGenerator, returnType);
         irStmVectorInsert(out, jumpIRStmCreate(end));
         irStmVectorInsert(out, labelIRStmCreate(falseCase));
         translateStmt(stmt->data.ifStmt.elseStmt, out, frame, outArg,
-                      breakLabel, continueLabel, exitLabel, labelGenerator);
+                      breakLabel, continueLabel, exitLabel, labelGenerator,
+                      tempGenerator, returnType);
         irStmVectorInsert(out, labelIRStmCreate(end));
       }
       break;
@@ -455,7 +587,8 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
       translateBranch(stmt->data.whileStmt.condition, loopBody, loopEnd, out);
       irStmVectorInsert(out, labelIRStmCreate(loopBody));
       translateStmt(stmt->data.whileStmt.body, out, frame, outArg, loopEnd,
-                    loopStart, exitLabel, labelGenerator);
+                    loopStart, exitLabel, labelGenerator, tempGenerator,
+                    returnType);
       irStmVectorInsert(out, jumpIRStmCreate(loopStart));
       irStmVectorInsert(out, labelIRStmCreate(loopEnd));
       break;
@@ -468,7 +601,8 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
       char *loopEnd = labelGenerator->vtable->generateCodeLabel(labelGenerator);
       irStmVectorInsert(out, labelIRStmCreate(loopStart));
       translateStmt(stmt->data.doWhileStmt.body, out, frame, outArg, loopEnd,
-                    loopContinue, exitLabel, labelGenerator);
+                    loopContinue, exitLabel, labelGenerator, tempGenerator,
+                    returnType);
       irStmVectorInsert(out, labelIRStmCreate(loopContinue));
       translateBranch(stmt->data.doWhileStmt.condition, loopStart, loopEnd,
                       out);
@@ -487,22 +621,23 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
       if (initialize != NULL) {
         if (initialize->type == NT_VARDECL) {
           translateStmt(stmt->data.forStmt.initialize, out, frame, outArg,
-                        breakLabel, continueLabel, exitLabel, labelGenerator);
+                        breakLabel, continueLabel, exitLabel, labelGenerator,
+                        tempGenerator, returnType);
         } else {
-          irStmVectorInsert(out,
-                            expIRStmCreate(translateExpression(initialize)));
+          irStmVectorInsert(out, expIRStmCreate(translateExpression(
+                                     initialize, tempGenerator)));
         }
       }
       irStmVectorInsert(out, labelIRStmCreate(loopStart));
       translateBranch(stmt->data.forStmt.condition, loopBody, loopEnd, out);
       irStmVectorInsert(out, labelIRStmCreate(loopBody));
       translateStmt(stmt->data.forStmt.body, out, frame, outArg, loopEnd,
-                    loopContinue, exitLabel, labelGenerator);
+                    loopContinue, exitLabel, labelGenerator, tempGenerator,
+                    returnType);
       irStmVectorInsert(out, labelIRStmCreate(loopContinue));
       if (stmt->data.forStmt.update != NULL) {
-        irStmVectorInsert(
-            out,
-            expIRStmCreate(translateExpression(stmt->data.forStmt.update)));
+        irStmVectorInsert(out, expIRStmCreate(translateExpression(
+                                   stmt->data.forStmt.update, tempGenerator)));
       }
       irStmVectorInsert(out, jumpIRStmCreate(loopStart));
       irStmVectorInsert(out, labelIRStmCreate(loopEnd));
@@ -524,7 +659,10 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
     }
     case NT_RETURNSTMT: {
       if (stmt->data.returnStmt.value != NULL) {
-        // TODO: assign return value, if any
+        translateAssignment(
+            translateExpression(stmt->data.returnStmt.value, tempGenerator),
+            outArg->vtable->valueExp(outArg, frame->vtable->fpExp()),
+            typeofExpression(stmt->data.returnStmt.value), returnType, out);
       }
       irStmVectorInsert(out, jumpIRStmCreate(exitLabel));
       break;
@@ -535,8 +673,9 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
       break;
     }
     case NT_EXPRESSIONSTMT: {
-      irStmVectorInsert(out, expIRStmCreate(translateExpression(
-                                 stmt->data.expressionStmt.expression)));
+      irStmVectorInsert(
+          out, expIRStmCreate(translateExpression(
+                   stmt->data.expressionStmt.expression, tempGenerator)));
       break;
     }
     case NT_NULLSTMT:
@@ -561,7 +700,11 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
             frame, typeSizeof(info->data.var.type), info->data.var.escapes);
 
         if (initializer != NULL) {
-          // TODO: write this - must take into account implicit casts
+          translateAssignment(
+              translateExpression(initializer, tempGenerator),
+              info->data.var.access->vtable->valueExp(info->data.var.access,
+                                                      frame->vtable->fpExp()),
+              typeofExpression(initializer), info->data.var.type, out);
         }
       }
       break;
@@ -604,7 +747,8 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
 }
 static void translateFunction(Node *function, FragmentVector *fragments,
                               char const *moduleName, FrameCtor frameCtor,
-                              LabelGenerator *labelGenerator) {
+                              LabelGenerator *labelGenerator,
+                              TempGenerator *tempGenerator) {
   Frame *frame = frameCtor();
   Fragment *fragment = functionFragmentCreate(
       mangleFunctionName(
@@ -626,7 +770,8 @@ static void translateFunction(Node *function, FragmentVector *fragments,
 
   char *exitLabel = labelGenerator->vtable->generateCodeLabel(labelGenerator);
   translateStmt(statements, body, frame, outArg, NULL, NULL, exitLabel,
-                labelGenerator);
+                labelGenerator, tempGenerator,
+                function->data.function.id->data.id.overload->returnType);
 
   outArg->vtable->dtor(outArg);
 
@@ -639,14 +784,16 @@ static void translateFunction(Node *function, FragmentVector *fragments,
 }
 static void translateBody(Node *body, FragmentVector *fragments,
                           char const *moduleName, FrameCtor frameCtor,
-                          LabelGenerator *labelGenerator) {
+                          LabelGenerator *labelGenerator,
+                          TempGenerator *tempGenerator) {
   switch (body->type) {
     case NT_VARDECL: {
       translateGlobalVar(body, fragments, moduleName, labelGenerator);
       return;
     }
     case NT_FUNCTION: {
-      translateFunction(body, fragments, moduleName, frameCtor, labelGenerator);
+      translateFunction(body, fragments, moduleName, frameCtor, labelGenerator,
+                        tempGenerator);
       return;
     }
     default: { return; }
@@ -662,13 +809,15 @@ static char *codeFilenameToAssembyFilename(char const *codeFilename) {
   return assemblyFilename;
 }
 static FragmentVector *translateFile(Node *file, FrameCtor frameCtor,
-                                     LabelGenerator *labelGenerator) {
+                                     LabelGenerator *labelGenerator,
+                                     TempGenerator *tempGenerator) {
   FragmentVector *fragments = fragmentVectorCreate();
 
   NodeList *bodies = file->data.file.bodies;
   for (size_t idx = 0; idx < bodies->size; idx++) {
     translateBody(bodies->elements[idx], fragments,
-                  file->data.module.id->data.id.id, frameCtor, labelGenerator);
+                  file->data.module.id->data.id.id, frameCtor, labelGenerator,
+                  tempGenerator);
   }
 
   return fragments;
@@ -704,7 +853,9 @@ void translate(FileFragmentVectorMap *fragments, ModuleAstMapPair *asts,
       Node *file = asts->codes.values[idx];
       fileFragmentVectorMapPut(
           fragments, codeFilenameToAssembyFilename(file->data.file.filename),
-          translateFile(file, frameCtor, labelGeneratorCtor()));
+          translateFile(file, frameCtor, labelGeneratorCtor(), &tempGenerator));
     }
   }
+
+  tempGeneratorUninit(&tempGenerator);
 }

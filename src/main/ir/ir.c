@@ -232,6 +232,12 @@ IRExp *tempIRExpCreate(size_t n, size_t size) {
   e->data.reg.size = size;
   return e;
 }
+IRExp *eseqStmCreate(IRExp *value) {
+  IRExp *e = irExpCreate(IE_ESEQ);
+  irStmVectorInit(&e->data.eseq.stms);
+  e->data.eseq.value = value;
+  return e;
+}
 void irExpDestroy(IRExp *e) {
   switch (e->kind) {
     case IE_BYTE_CONST:
