@@ -244,6 +244,72 @@ size_t typeSizeof(Type const *t) {
     }
   }
 }
+size_t typeLowerBound(Type const *type) {
+  switch (type->kind) {
+    case K_UBYTE:
+    case K_USHORT:
+    case K_UINT:
+    case K_ULONG: {
+      return 0;
+    }
+    case K_BYTE: {
+      return BYTE_MIN;
+    }
+    case K_SHORT: {
+      return SHORT_MIN;
+    }
+    case K_INT: {
+      return INT_MIN;
+    }
+    case K_LONG: {
+      return LONG_MIN;
+    }
+    case K_CONST: {
+      return typeLowerBound(type->data.modifier.type);
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "invariant violated: attempted to get lower bound of non-integral "
+            "type");
+    }
+  }
+}
+size_t typeUpperBound(Type const *type) {
+  switch (type->kind) {
+    case K_UBYTE: {
+      return UBYTE_MAX;
+    }
+    case K_USHORT: {
+      return USHORT_MAX;
+    }
+    case K_UINT: {
+      return UINT_MAX;
+    }
+    case K_ULONG: {
+      return ULONG_MAX;
+    }
+    case K_BYTE: {
+      return BYTE_MAX;
+    }
+    case K_SHORT: {
+      return SHORT_MAX;
+    }
+    case K_INT: {
+      return INT_MAX;
+    }
+    case K_LONG: {
+      return LONG_MAX;
+    }
+    case K_CONST: {
+      return typeUpperBound(type->data.modifier.type);
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "invariant violated: attempted to get upper bound of non-integral "
+            "type");
+    }
+  }
+}
 bool typeIsIncomplete(Type const *t, Environment const *env) {
   switch (t->kind) {
     case K_VOID: {

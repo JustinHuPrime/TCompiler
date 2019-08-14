@@ -120,6 +120,9 @@ void aggregateInitTypeInit(Type *, TypeVector *elementTypes);
 Type *typeCopy(Type const *);
 // sizeof a type
 size_t typeSizeof(Type const *);
+// integral type bounds
+size_t typeLowerBound(Type const *);
+size_t typeUpperBound(Type const *);
 // if type is incomplete, returns true, else false
 bool typeIsIncomplete(Type const *, struct Environment const *);
 // determines if two types are completely equal

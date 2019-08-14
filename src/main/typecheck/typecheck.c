@@ -19,6 +19,7 @@
 #include "typecheck/typecheck.h"
 
 #include "util/functional.h"
+#include "util/internalError.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -1393,14 +1394,149 @@ static void typecheckStmt(Node *statement, Report *report,
                         statement->data.switchStmt.onWhat->character);
           }
         }
+
+        size_t lowerBound = typeLowerBound(switchedOnType);
+        size_t upperBound = typeUpperBound(switchedOnType);
+        bool seenDefault = false;
+        bool afterDefault = false;
+
         NodeList *cases = statement->data.switchStmt.cases;
         for (size_t idx = 0; idx < cases->size; idx++) {
           Node *switchCase = cases->elements[idx];
-          typecheckStmt(switchCase->type == NT_NUMCASE
-                            ? switchCase->data.numCase.body
-                            : switchCase->data.defaultCase.body,
-                        report, options, filename, expectedReturnType);
+          if (switchCase->type == NT_NUMCASE) {
+            if (seenDefault && !afterDefault) {
+              switch (optionsGet(options, optionWUnreachable)) {
+                case O_WT_ERROR: {
+                  reportError(
+                      report, "%s:%zu:%zu: error: unreachable case in switch",
+                      filename, switchCase->line, switchCase->character);
+                  break;
+                }
+                case O_WT_WARN: {
+                  reportWarning(
+                      report, "%s:%zu:%zu: warning: unreachable case in switch",
+                      filename, switchCase->line, switchCase->character);
+                  break;
+                }
+                case O_WT_IGNORE: {
+                  break;
+                }
+              }
+              afterDefault = true;
+            } else {
+              NodeList *constVals = switchCase->data.numCase.constVals;
+              for (size_t constIdx = 0; constIdx < constVals->size;
+                   constIdx++) {
+                Node *constVal = constVals->elements[constIdx];
+                bool bad = false;
+                switch (constVal->data.constExp.type) {
+                  case CT_UBYTE: {
+                    bad = constVal->data.constExp.value.ubyteVal > upperBound;
+                    break;
+                  }
+                  case CT_BYTE: {
+                    bad = (constVal->data.constExp.value.byteVal >= 0 &&
+                           (size_t)constVal->data.constExp.value.byteVal >
+                               upperBound) ||
+                          ((size_t)-constVal->data.constExp.value.byteVal >
+                           lowerBound);
+                    break;
+                  }
+                  case CT_USHORT: {
+                    bad = constVal->data.constExp.value.ushortVal > upperBound;
+                    break;
+                  }
+                  case CT_SHORT: {
+                    bad = (constVal->data.constExp.value.shortVal >= 0 &&
+                           (size_t)constVal->data.constExp.value.shortVal >
+                               upperBound) ||
+                          ((size_t)-constVal->data.constExp.value.shortVal >
+                           lowerBound);
+                    break;
+                  }
+                  case CT_UINT: {
+                    bad = constVal->data.constExp.value.uintVal > upperBound;
+                    break;
+                  }
+                  case CT_INT: {
+                    bad = (constVal->data.constExp.value.intVal >= 0 &&
+                           (size_t)constVal->data.constExp.value.intVal >
+                               upperBound) ||
+                          ((size_t)-constVal->data.constExp.value.intVal >
+                           lowerBound);
+                    break;
+                  }
+                  case CT_ULONG: {
+                    bad = constVal->data.constExp.value.ulongVal > upperBound;
+                    break;
+                  }
+                  case CT_LONG: {
+                    bad = (constVal->data.constExp.value.longVal >= 0 &&
+                           (size_t)constVal->data.constExp.value.longVal >
+                               upperBound) ||
+                          ((size_t)-constVal->data.constExp.value.longVal >
+                           lowerBound);
+                    break;
+                  }
+                  default: {
+                    error(__FILE__, __LINE__,
+                          "invalid parse: non-integral constant in switch "
+                          "numcase");
+                  }
+                }
+                if (bad) {
+                  switch (optionsGet(options, optionWUnreachable)) {
+                    case O_WT_ERROR: {
+                      reportError(
+                          report,
+                          "%s:%zu:%zu: error: unreachable case in switch",
+                          filename, constVal->line, constVal->character);
+                      break;
+                    }
+                    case O_WT_WARN: {
+                      reportWarning(
+                          report,
+                          "%s:%zu:%zu: warning: unreachable case in switch",
+                          filename, constVal->line, constVal->character);
+                      break;
+                    }
+                    case O_WT_IGNORE: {
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+            typecheckStmt(switchCase->data.numCase.body, report, options,
+                          filename, expectedReturnType);
+          } else {
+            if (seenDefault && !afterDefault) {
+              switch (optionsGet(options, optionWUnreachable)) {
+                case O_WT_ERROR: {
+                  reportError(
+                      report, "%s:%zu:%zu: error: unreachable case in switch",
+                      filename, switchCase->line, switchCase->character);
+                  break;
+                }
+                case O_WT_WARN: {
+                  reportWarning(
+                      report, "%s:%zu:%zu: warning: unreachable case in switch",
+                      filename, switchCase->line, switchCase->character);
+                  break;
+                }
+                case O_WT_IGNORE: {
+                  break;
+                }
+              }
+              afterDefault = true;
+            }
+            seenDefault = true;
+            typecheckStmt(switchCase->data.defaultCase.body, report, options,
+                          filename, expectedReturnType);
+          }
         }
+        // TODO: generate range info for switch, to see if a jump table is
+        // feasible
         break;
       }
       case NT_RETURNSTMT: {
@@ -1442,10 +1578,10 @@ static void typecheckStmt(Node *statement, Report *report,
               break;
             }
             case O_WT_WARN: {
-              reportWarning(
-                  report,
-                  "%s:%zu:%zu: warning: returning void in a non-void function",
-                  filename, statement->line, statement->character);
+              reportWarning(report,
+                            "%s:%zu:%zu: warning: returning void in a "
+                            "non-void function",
+                            filename, statement->line, statement->character);
               break;
             }
             case O_WT_IGNORE: {
@@ -1480,11 +1616,11 @@ static void typecheckFnDecl(Node *fnDecl, Report *report,
     // const return type
     switch (optionsGet(options, optionWConstReturn)) {
       case O_WT_ERROR: {
-        reportError(
-            report,
-            "%s:%zu:%zu: error: function declared as returing a constant value",
-            filename, fnDecl->data.fnDecl.returnType->line,
-            fnDecl->data.fnDecl.returnType->character);
+        reportError(report,
+                    "%s:%zu:%zu: error: function declared as returing a "
+                    "constant value",
+                    filename, fnDecl->data.fnDecl.returnType->line,
+                    fnDecl->data.fnDecl.returnType->character);
         break;
       }
       case O_WT_WARN: {
@@ -1530,11 +1666,11 @@ static void typecheckFunction(Node *function, Report *report,
     // const return type
     switch (optionsGet(options, optionWConstReturn)) {
       case O_WT_ERROR: {
-        reportError(
-            report,
-            "%s:%zu:%zu: error: function declared as returing a constant value",
-            filename, function->data.function.returnType->line,
-            function->data.function.returnType->character);
+        reportError(report,
+                    "%s:%zu:%zu: error: function declared as returing a "
+                    "constant value",
+                    filename, function->data.function.returnType->line,
+                    function->data.function.returnType->character);
         break;
       }
       case O_WT_WARN: {
