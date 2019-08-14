@@ -62,6 +62,7 @@ extern char const *optionWDuplicateImport;
 extern char const *optionWOverloadAmbiguity;
 extern char const *optionWReservedId;
 extern char const *optionWVoidReturn;
+extern char const *optionWUnreachable;
 extern char const *optionWUnrecognizedFile;
 
 typedef enum {

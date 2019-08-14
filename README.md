@@ -50,7 +50,9 @@ All warning options have three forms, a `-W...=error` form, a `-W...=warn` form,
 
 * `void-return`: returning void in a non-void function. Defaults to error. May not be an error if inline assembly is used to setup the return value.
 
-* `unrecognized-file`: unrecognized file extensions. Default to error. If not an error, unrecognized files are skipped.
+* `unreachable`: unreachable statements detected. Defaults to warn.
+
+* `unrecognized-file`: unrecognized file extensions. Defaults to error. If not an error, unrecognized files are skipped.
 
 #### Debug Options
 
