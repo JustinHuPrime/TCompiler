@@ -1535,8 +1535,6 @@ static void typecheckStmt(Node *statement, Report *report,
                           filename, expectedReturnType);
           }
         }
-        // TODO: generate range info for switch, to see if a jump table is
-        // feasible
         break;
       }
       case NT_RETURNSTMT: {

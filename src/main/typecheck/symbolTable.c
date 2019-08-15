@@ -2231,7 +2231,7 @@ OverloadSetElement *overloadSetElementCopy(OverloadSetElement const *from) {
     to->argumentTypes.elements[idx] =
         typeCopy(from->argumentTypes.elements[idx]);
   }
-  to->access = from->access;  // TODO: is a shallow copy okay?
+  to->access = from->access;
 
   return to;
 }
@@ -2433,8 +2433,7 @@ SymbolInfo *symbolInfoCopy(SymbolInfo const *from) {
       to->data.var.type = typeCopy(from->data.var.type);
       to->data.var.bound = from->data.var.bound;
       to->data.var.escapes = from->data.var.escapes;
-      to->data.var.access =
-          from->data.var.access;  // TODO: is a shallow copy okay?
+      to->data.var.access = from->data.var.access;
       break;
     }
     case SK_TYPE: {

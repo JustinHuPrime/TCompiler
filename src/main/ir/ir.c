@@ -228,8 +228,20 @@ IRExp *regIRExpCreate(size_t n, size_t size) {
 }
 IRExp *tempIRExpCreate(size_t n, size_t size) {
   IRExp *e = irExpCreate(IE_TEMP);
-  e->data.reg.n = n;
-  e->data.reg.size = size;
+  e->data.temp.n = n;
+  e->data.temp.size = size;
+  return e;
+}
+IRExp *memTempIRExpCreate(size_t n, size_t size) {
+  IRExp *e = irExpCreate(IE_MEM_TEMP);
+  e->data.memTemp.n = n;
+  e->data.memTemp.size = size;
+  return e;
+}
+IRExp *memTempOffsetIRExpCreate(IRExp *target, size_t offset) {
+  IRExp *e = irExpCreate(IE_MEM_TEMP_OFFSET);
+  e->data.memTempOffset.target = target;
+  e->data.memTempOffset.offset = offset;
   return e;
 }
 IRExp *eseqStmCreate(IRExp *value) {
@@ -246,7 +258,12 @@ void irExpDestroy(IRExp *e) {
     case IE_LONG_CONST:
     case IE_NAME:
     case IE_REG:
-    case IE_TEMP: {
+    case IE_TEMP:
+    case IE_MEM_TEMP: {
+      break;
+    }
+    case IE_MEM_TEMP_OFFSET: {
+      irExpDestroy(e->data.memTempOffset.target);
       break;
     }
     case IE_STRING_CONST: {
@@ -269,6 +286,11 @@ void irExpDestroy(IRExp *e) {
     case IE_BINOP: {
       irExpDestroy(e->data.binOp.lhs);
       irExpDestroy(e->data.binOp.rhs);
+      break;
+    }
+    case IE_ESEQ: {
+      irStmVectorUninit(&e->data.eseq.stms);
+      irExpDestroy(e->data.eseq.value);
       break;
     }
   }

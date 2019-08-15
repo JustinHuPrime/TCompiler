@@ -107,6 +107,8 @@ typedef enum {
   IE_NAME,
   IE_REG,
   IE_TEMP,
+  IE_MEM_TEMP,
+  IE_MEM_TEMP_OFFSET,
   IE_CALL,
   IE_UNOP,
   IE_BINOP,
@@ -183,6 +185,14 @@ typedef struct IRExp {
       size_t size;
     } temp;
     struct {
+      size_t n;
+      size_t size;
+    } memTemp;
+    struct {
+      struct IRExp *target;
+      size_t offset;
+    } memTempOffset;
+    struct {
       struct IRExp *who;
       IRExpVector withWhat;
     } call;
@@ -216,6 +226,8 @@ IRExp *wstringConstIRExpCreate(uint32_t *string);
 IRExp *nameIRExpCreate(char const *label);
 IRExp *regIRExpCreate(size_t n, size_t size);
 IRExp *tempIRExpCreate(size_t n, size_t size);
+IRExp *memTempIRExpCreate(size_t n, size_t size);
+IRExp *memTempOffsetIRExpCreate(IRExp *target, size_t offset);
 IRExp *callIRExpCreate(IRExp *who);
 IRExp *unopIRExpCreate(IRUnOpType op, IRExp *target);
 IRExp *binopIRExpCreate(IRBinOpType op, IRExp *lhs, IRExp *rhs);
