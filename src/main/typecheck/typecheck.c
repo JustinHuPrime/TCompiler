@@ -842,10 +842,12 @@ static Type *typecheckExpression(Node *expression, Report *report,
     }
     case NT_LANDASSIGNEXP:
     case NT_LORASSIGNEXP: {
-      Node *lhs = expression->type == NT_LANDEXP ? expression->data.landExp.lhs
-                                                 : expression->data.lorExp.lhs;
-      Node *rhs = expression->type == NT_LANDEXP ? expression->data.landExp.rhs
-                                                 : expression->data.lorExp.rhs;
+      Node *lhs = expression->type == NT_LANDASSIGNEXP
+                      ? expression->data.landExp.lhs
+                      : expression->data.lorExp.lhs;
+      Node *rhs = expression->type == NT_LANDASSIGNEXP
+                      ? expression->data.landExp.rhs
+                      : expression->data.lorExp.rhs;
       Type *lhsType =
           typecheckExpression(lhs, report, options, filename, NULL, false);
       Type *rhsType =
@@ -867,7 +869,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     "%s:%zu:%zu: error: attempted to apply a compound logical "
                     "%s and assignment to a non-boolean",
                     filename, lhs->line, lhs->character,
-                    expression->type == NT_LANDEXP ? "and" : "or");
+                    expression->type == NT_LANDASSIGNEXP ? "and" : "or");
         bad = true;
       }
       if (!typeIsBoolean(rhsType)) {
@@ -875,14 +877,14 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     "%s:%zu:%zu: error: attempted to apply a compound logical "
                     "%s and assignment to a non-boolean",
                     filename, rhs->line, rhs->character,
-                    expression->type == NT_LANDEXP ? "and" : "or");
+                    expression->type == NT_LANDASSIGNEXP ? "and" : "or");
         bad = true;
       }
 
       if (bad) {
         return NULL;
       } else {
-        return expression->type == NT_LANDEXP
+        return expression->type == NT_LANDASSIGNEXP
                    ? (expression->data.landExp.resultType = typeCopy(lhsType))
                    : (expression->data.lorExp.resultType = typeCopy(lhsType));
       }
