@@ -496,12 +496,14 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
       IRExp *e =
           eseqStmCreate((isComposite ? memTempIRExpCreate : tempIRExpCreate)(
               resultTemp, typeSize));
+
       char *trueCaseLabel =
           labelGenerator->vtable->generateCodeLabel(labelGenerator);
       char *falseCaseLabel =
           labelGenerator->vtable->generateCodeLabel(labelGenerator);
       char *endLabel =
           labelGenerator->vtable->generateCodeLabel(labelGenerator);
+
       translateBranch(exp->data.ternaryExp.condition, trueCaseLabel,
                       falseCaseLabel, &e->data.eseq.stms);
       irStmVectorInsert(&e->data.eseq.stms, labelIRStmCreate(trueCaseLabel));
@@ -523,8 +525,56 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
       return e;
     }
     case NT_LANDEXP: {
+      size_t resultTemp = tempGeneratorGenerate(tempGenerator);
+      IRExp *e = eseqStmCreate(tempIRExpCreate(resultTemp, BYTE_WIDTH));
+
+      char *trueCaseLabel =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *falseCaseLabel =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *endLabel =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+
+      translateBranch(exp->data.landExp.lhs, trueCaseLabel, falseCaseLabel,
+                      &e->data.eseq.stms);
+      irStmVectorInsert(&e->data.eseq.stms, labelIRStmCreate(trueCaseLabel));
+      translateAssignment(translateExpression(exp->data.landExp.rhs,
+                                              tempGenerator, labelGenerator),
+                          tempIRExpCreate(resultTemp, BYTE_WIDTH),
+                          typeofExpression(exp->data.landExp.rhs),
+                          exp->data.landExp.resultType, &e->data.eseq.stms);
+      irStmVectorInsert(&e->data.eseq.stms, labelIRStmCreate(falseCaseLabel));
+      irStmVectorInsert(&e->data.eseq.stms,
+                        moveIRStmCreate(tempIRExpCreate(resultTemp, BYTE_WIDTH),
+                                        byteConstIRExpCreate(0), BYTE_WIDTH));
+      irStmVectorInsert(&e->data.eseq.stms, labelIRStmCreate(endLabel));
+      return e;
     }
     case NT_LOREXP: {
+      size_t resultTemp = tempGeneratorGenerate(tempGenerator);
+      IRExp *e = eseqStmCreate(tempIRExpCreate(resultTemp, BYTE_WIDTH));
+
+      char *trueCaseLabel =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *falseCaseLabel =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+      char *endLabel =
+          labelGenerator->vtable->generateCodeLabel(labelGenerator);
+
+      translateBranch(exp->data.lorExp.lhs, trueCaseLabel, falseCaseLabel,
+                      &e->data.eseq.stms);
+      irStmVectorInsert(&e->data.eseq.stms, labelIRStmCreate(trueCaseLabel));
+      irStmVectorInsert(&e->data.eseq.stms,
+                        moveIRStmCreate(tempIRExpCreate(resultTemp, BYTE_WIDTH),
+                                        byteConstIRExpCreate(1), BYTE_WIDTH));
+      irStmVectorInsert(&e->data.eseq.stms, labelIRStmCreate(falseCaseLabel));
+      translateAssignment(translateExpression(exp->data.lorExp.rhs,
+                                              tempGenerator, labelGenerator),
+                          tempIRExpCreate(resultTemp, BYTE_WIDTH),
+                          typeofExpression(exp->data.lorExp.rhs),
+                          exp->data.lorExp.resultType, &e->data.eseq.stms);
+      irStmVectorInsert(&e->data.eseq.stms, labelIRStmCreate(endLabel));
+      return e;
     }
     case NT_STRUCTACCESSEXP: {
     }
