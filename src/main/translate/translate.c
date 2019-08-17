@@ -458,35 +458,64 @@ static void translateAssignment(IRExp *from, IRExp *to, Type const *fromType,
   // TODO: write this
 }
 static IRExp *translateExpression(Node *, TempGenerator *, LabelGenerator *);
-static IRExp *translatePlainBinop(Node *exp, TempGenerator *tempGenerator,
-                                  LabelGenerator *labelGenerator,
-                                  IRBinOpType byteOp, IRBinOpType shortOp,
-                                  IRBinOpType intOp, IRBinOpType longOp) {
+static IRExp *translateArithmeticBinop(Node *exp, TempGenerator *tempGenerator,
+                                       LabelGenerator *labelGenerator,
+                                       IRBinOpType ubyteOp, IRBinOpType byteOp,
+                                       IRBinOpType ushortOp,
+                                       IRBinOpType shortOp, IRBinOpType uintOp,
+                                       IRBinOpType intOp, IRBinOpType ulongOp,
+                                       IRBinOpType longOp, IRBinOpType floatOp,
+                                       IRBinOpType doubleOp) {
   size_t lhsTemp = tempGeneratorGenerate(tempGenerator);
   size_t rhsTemp = tempGeneratorGenerate(tempGenerator);
-  Type const *resultType = exp->data.binOpExp.resultType;
+  Type *resultType = exp->data.binOpExp.resultType;
   size_t resultSize = typeSizeof(resultType);
   IRBinOpType op;
-  switch (resultSize) {
-    case 1: {  // BYTE_WIDTH
+  Type const *resultBaseType = typeGetNonConst(resultType);
+  switch (resultBaseType->kind) {
+    case K_UBYTE: {
+      op = ubyteOp;
+      break;
+    }
+    case K_BYTE: {
       op = byteOp;
       break;
     }
-    case 2: {  // SHORT_WIDTH
+    case K_USHORT: {
+      op = ushortOp;
+      break;
+    }
+    case K_SHORT: {
       op = shortOp;
       break;
     }
-    case 4: {  // INT_WIDTH
+    case K_UINT: {
+      op = uintOp;
+      break;
+    }
+    case K_INT: {
       op = intOp;
       break;
     }
-    case 8: {  // LONG_WIDTH
+    case K_ULONG: {
+      op = ulongOp;
+      break;
+    }
+    case K_LONG: {
       op = longOp;
+      break;
+    }
+    case K_FLOAT: {
+      op = floatOp;
+      break;
+    }
+    case K_DOUBLE: {
+      op = doubleOp;
       break;
     }
     default: {
       error(__FILE__, __LINE__,
-            "bitand operator applied to non-integral sized values");
+            "binary arithmetic operator applied to non-integral values");
     }
   }
   IRExp *e =
@@ -578,19 +607,23 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
           // TODO: write this
         }
         case BO_BITAND: {
-          return translatePlainBinop(exp, tempGenerator, labelGenerator,
-                                     IB_BYTEBITAND, IB_SHORTBITAND,
-                                     IB_INTBITAND, IB_LONGBITAND);
+          return translateArithmeticBinop(
+              exp, tempGenerator, labelGenerator, IB_BYTEBITAND, IB_BYTEBITAND,
+              IB_SHORTBITAND, IB_SHORTBITAND, IB_INTBITAND, IB_INTBITAND,
+              IB_LONGBITAND, IB_LONGBITAND, 0,
+              0);  // last two never happen - typechecker prohibits it
         }
         case BO_BITOR: {
-          return translatePlainBinop(exp, tempGenerator, labelGenerator,
-                                     IB_BYTEBITOR, IB_SHORTBITOR, IB_INTBITOR,
-                                     IB_LONGBITOR);
+          return translateArithmeticBinop(
+              exp, tempGenerator, labelGenerator, IB_BYTEBITOR, IB_BYTEBITOR,
+              IB_SHORTBITOR, IB_SHORTBITOR, IB_INTBITOR, IB_INTBITOR,
+              IB_LONGBITOR, IB_LONGBITOR, 0, 0);
         }
         case BO_BITXOR: {
-          return translatePlainBinop(exp, tempGenerator, labelGenerator,
-                                     IB_BYTEBITXOR, IB_SHORTBITXOR,
-                                     IB_INTBITXOR, IB_LONGBITXOR);
+          return translateArithmeticBinop(
+              exp, tempGenerator, labelGenerator, IB_BYTEBITXOR, IB_BYTEBITXOR,
+              IB_SHORTBITXOR, IB_SHORTBITXOR, IB_INTBITXOR, IB_INTBITXOR,
+              IB_LONGBITXOR, IB_LONGBITXOR, 0, 0);
         }
         case BO_SPACESHIP: {
           // TODO: write this
@@ -605,29 +638,28 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
           // TODO: write this
         }
         case BO_ADD: {
-          return translatePlainBinop(exp, tempGenerator, labelGenerator,
-                                     IB_BYTEADD, IB_SHORTADD, IB_INTADD,
-                                     IB_LONGADD);
+          // TODO: deal with ptr arithmetic
         }
         case BO_SUB: {
-          return translatePlainBinop(exp, tempGenerator, labelGenerator,
-                                     IB_BYTESUB, IB_SHORTSUB, IB_INTSUB,
-                                     IB_LONGSUB);
+          // TODO: deal with ptr arithmetic
         }
         case BO_MUL: {
-          return translatePlainBinop(exp, tempGenerator, labelGenerator,
-                                     IB_BYTEMUL, IB_SHORTMUL, IB_INTMUL,
-                                     IB_LONGMUL);
+          return translateArithmeticBinop(
+              exp, tempGenerator, labelGenerator, IB_BYTEUMUL, IB_BYTESMUL,
+              IB_SHORTUMUL, IB_SHORTSMUL, IB_INTUMUL, IB_INTSMUL, IB_LONGUMUL,
+              IB_LONGSMUL, IB_FLOATMUL, IB_DOUBLEMUL);
         }
         case BO_DIV: {
-          return translatePlainBinop(exp, tempGenerator, labelGenerator,
-                                     IB_BYTEDIV, IB_SHORTDIV, IB_INTDIV,
-                                     IB_LONGDIV);
+          return translateArithmeticBinop(
+              exp, tempGenerator, labelGenerator, IB_BYTEUDIV, IB_BYTESDIV,
+              IB_SHORTUDIV, IB_SHORTSDIV, IB_INTUDIV, IB_INTSDIV, IB_LONGUDIV,
+              IB_LONGSDIV, IB_FLOATDIV, IB_DOUBLEDIV);
         }
         case BO_MOD: {
-          return translatePlainBinop(exp, tempGenerator, labelGenerator,
-                                     IB_BYTEMOD, IB_SHORTMOD, IB_INTMOD,
-                                     IB_LONGMOD);
+          return translateArithmeticBinop(
+              exp, tempGenerator, labelGenerator, IB_BYTEUMOD, IB_BYTESMOD,
+              IB_SHORTUMOD, IB_SHORTSMOD, IB_INTUMOD, IB_INTSMOD, IB_LONGUMOD,
+              IB_LONGSMOD, 0, 0);
         }
         case BO_ARRAYACCESS: {
           IRExp *e = translateExpression(exp->data.binOpExp.lhs, tempGenerator,
@@ -640,18 +672,20 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
               e = eseqIRExpCreate(memIRExpCreate(binopIRExpCreate(
                   IB_LONGADD, e,
                   binopIRExpCreate(
-                      IB_LONGMUL, tempIRExpCreate(offsetTemp, LONG_WIDTH),
+                      IB_LONGUMUL, tempIRExpCreate(offsetTemp, LONG_WIDTH),
                       ulongConstIRExpCreate(
                           typeSizeof(exp->data.binOpExp.resultType))))));
+              break;
             }
             case IE_MEM_TEMP: {
               // MEM_TEMP(n) becomes MEM_TEMP_OFFSET(MEM_TEMP(n) BINOP(* index
               // sizeof))
               e = eseqIRExpCreate(memTempOffsetIRExpCreate(
                   e, binopIRExpCreate(
-                         IB_LONGMUL, tempIRExpCreate(offsetTemp, LONG_WIDTH),
+                         IB_LONGUMUL, tempIRExpCreate(offsetTemp, LONG_WIDTH),
                          ulongConstIRExpCreate(
                              typeSizeof(exp->data.binOpExp.resultType)))));
+              break;
             }
             default: {
               error(__FILE__, __LINE__,
@@ -670,7 +704,36 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
       }
     }
     case NT_UNOPEXP: {
-      // TODO: write this
+      switch (exp->data.unOpExp.op) {
+        case UO_DEREF: {
+          return memIRExpCreate(translateExpression(
+              exp->data.unOpExp.target, tempGenerator, labelGenerator));
+        }
+        case UO_ADDROF: {
+          // TODO: write this
+        }
+        case UO_PREINC: {
+          // TODO: write this
+        }
+        case UO_PREDEC: {
+          // TODO: write this
+        }
+        case UO_NEG: {
+          // TODO: write this
+        }
+        case UO_LNOT: {
+          // TODO: write this
+        }
+        case UO_BITNOT: {
+          // TODO: write this
+        }
+        case UO_POSTINC: {
+          // TODO: write this
+        }
+        case UO_POSTDEC: {
+          // TODO: write this
+        }
+      }
     }
     case NT_COMPOPEXP: {
       // TODO: write this
