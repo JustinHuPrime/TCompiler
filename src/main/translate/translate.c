@@ -457,15 +457,58 @@ static void translateAssignment(IRExp *from, IRExp *to, Type const *fromType,
                                 Type const *toType, IRStmVector *out) {
   // TODO: write this
 }
-// static IRExp *translateCast(IRExp *exp, Type const *fromType,
-//                             Type const *toType) {
-//   return exp;  // TODO: write this
-// }
+static IRExp *translateExpression(Node *, TempGenerator *, LabelGenerator *);
+static IRExp *translatePlainBinop(Node *exp, TempGenerator *tempGenerator,
+                                  LabelGenerator *labelGenerator,
+                                  IRBinOpType byteOp, IRBinOpType shortOp,
+                                  IRBinOpType intOp, IRBinOpType longOp) {
+  size_t lhsTemp = tempGeneratorGenerate(tempGenerator);
+  size_t rhsTemp = tempGeneratorGenerate(tempGenerator);
+  Type const *resultType = exp->data.binOpExp.resultType;
+  size_t resultSize = typeSizeof(resultType);
+  IRBinOpType op;
+  switch (resultSize) {
+    case 1: {  // BYTE_WIDTH
+      op = byteOp;
+      break;
+    }
+    case 2: {  // SHORT_WIDTH
+      op = shortOp;
+      break;
+    }
+    case 4: {  // INT_WIDTH
+      op = intOp;
+      break;
+    }
+    case 8: {  // LONG_WIDTH
+      op = longOp;
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "bitand operator applied to non-integral sized values");
+    }
+  }
+  IRExp *e =
+      eseqIRExpCreate(binopIRExpCreate(op, tempIRExpCreate(lhsTemp, resultSize),
+                                       tempIRExpCreate(rhsTemp, resultSize)));
+  translateAssignment(translateExpression(exp->data.binOpExp.lhs, tempGenerator,
+                                          labelGenerator),
+                      tempIRExpCreate(lhsTemp, resultSize),
+                      typeofExpression(exp->data.binOpExp.lhs), resultType,
+                      &e->data.eseq.stms);
+  translateAssignment(translateExpression(exp->data.binOpExp.rhs, tempGenerator,
+                                          labelGenerator),
+                      tempIRExpCreate(rhsTemp, resultSize),
+                      typeofExpression(exp->data.binOpExp.rhs), resultType,
+                      &e->data.eseq.stms);
+  return e;
+}
 static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
                                   LabelGenerator *labelGenerator) {
   switch (exp->type) {
     case NT_SEQEXP: {
-      IRExp *e = eseqStmCreate(translateExpression(
+      IRExp *e = eseqIRExpCreate(translateExpression(
           exp->data.seqExp.last, tempGenerator, labelGenerator));
       irStmVectorInsert(
           &e->data.eseq.stms,
@@ -474,7 +517,157 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
       return e;
     }
     case NT_BINOPEXP: {
-      // TODO: write this
+      switch (exp->data.binOpExp.op) {
+        case BO_ASSIGN: {
+          Type const *targetType = exp->data.binOpExp.resultType;
+          bool isComposite = typeIsComposite(targetType);
+          size_t targetSize = typeSizeof(targetType);
+          size_t resultTemp = tempGeneratorGenerate(tempGenerator);
+
+          IRExp *e = eseqIRExpCreate(
+              (isComposite ? memTempIRExpCreate : tempIRExpCreate)(resultTemp,
+                                                                   targetSize));
+          translateAssignment(
+              translateExpression(exp->data.binOpExp.rhs, tempGenerator,
+                                  labelGenerator),
+              (isComposite ? memTempIRExpCreate : tempIRExpCreate)(resultTemp,
+                                                                   targetSize),
+              typeofExpression(exp->data.binOpExp.rhs), targetType,
+              &e->data.eseq.stms);
+          irStmVectorInsert(
+              &e->data.eseq.stms,
+              moveIRStmCreate(
+                  translateExpression(exp->data.binOpExp.lhs, tempGenerator,
+                                      labelGenerator),
+                  (isComposite ? memTempIRExpCreate : tempIRExpCreate)(
+                      resultTemp, targetSize),
+                  targetSize));
+          return e;
+        }
+        case BO_MULASSIGN: {
+          // TODO: write this
+        }
+        case BO_DIVASSIGN: {
+          // TODO: write this
+        }
+        case BO_MODASSIGN: {
+          // TODO: write this
+        }
+        case BO_ADDASSIGN: {
+          // TODO: write this
+        }
+        case BO_SUBASSIGN: {
+          // TODO: write this
+        }
+        case BO_LSHIFTASSIGN: {
+          // TODO: write this
+        }
+        case BO_LRSHIFTASSIGN: {
+          // TODO: write this
+        }
+        case BO_ARSHIFTASSIGN: {
+          // TODO: write this
+        }
+        case BO_BITANDASSIGN: {
+          // TODO: write this
+        }
+        case BO_BITXORASSIGN: {
+          // TODO: write this
+        }
+        case BO_BITORASSIGN: {
+          // TODO: write this
+        }
+        case BO_BITAND: {
+          return translatePlainBinop(exp, tempGenerator, labelGenerator,
+                                     IB_BYTEBITAND, IB_SHORTBITAND,
+                                     IB_INTBITAND, IB_LONGBITAND);
+        }
+        case BO_BITOR: {
+          return translatePlainBinop(exp, tempGenerator, labelGenerator,
+                                     IB_BYTEBITOR, IB_SHORTBITOR, IB_INTBITOR,
+                                     IB_LONGBITOR);
+        }
+        case BO_BITXOR: {
+          return translatePlainBinop(exp, tempGenerator, labelGenerator,
+                                     IB_BYTEBITXOR, IB_SHORTBITXOR,
+                                     IB_INTBITXOR, IB_LONGBITXOR);
+        }
+        case BO_SPACESHIP: {
+          // TODO: write this
+        }
+        case BO_LSHIFT: {
+          // TODO: write this
+        }
+        case BO_LRSHIFT: {
+          // TODO: write this
+        }
+        case BO_ARSHIFT: {
+          // TODO: write this
+        }
+        case BO_ADD: {
+          return translatePlainBinop(exp, tempGenerator, labelGenerator,
+                                     IB_BYTEADD, IB_SHORTADD, IB_INTADD,
+                                     IB_LONGADD);
+        }
+        case BO_SUB: {
+          return translatePlainBinop(exp, tempGenerator, labelGenerator,
+                                     IB_BYTESUB, IB_SHORTSUB, IB_INTSUB,
+                                     IB_LONGSUB);
+        }
+        case BO_MUL: {
+          return translatePlainBinop(exp, tempGenerator, labelGenerator,
+                                     IB_BYTEMUL, IB_SHORTMUL, IB_INTMUL,
+                                     IB_LONGMUL);
+        }
+        case BO_DIV: {
+          return translatePlainBinop(exp, tempGenerator, labelGenerator,
+                                     IB_BYTEDIV, IB_SHORTDIV, IB_INTDIV,
+                                     IB_LONGDIV);
+        }
+        case BO_MOD: {
+          return translatePlainBinop(exp, tempGenerator, labelGenerator,
+                                     IB_BYTEMOD, IB_SHORTMOD, IB_INTMOD,
+                                     IB_LONGMOD);
+        }
+        case BO_ARRAYACCESS: {
+          IRExp *e = translateExpression(exp->data.binOpExp.lhs, tempGenerator,
+                                         labelGenerator);
+          size_t offsetTemp = tempGeneratorGenerate(tempGenerator);
+          Type *ulong = keywordTypeCreate(TK_ULONG);
+          switch (e->kind) {
+            case IE_MEM: {
+              // MEM(x) becomes MEM(BINOP(+ x BINOP(* index sizeof)))
+              e = eseqIRExpCreate(memIRExpCreate(binopIRExpCreate(
+                  IB_LONGADD, e,
+                  binopIRExpCreate(
+                      IB_LONGMUL, tempIRExpCreate(offsetTemp, LONG_WIDTH),
+                      ulongConstIRExpCreate(
+                          typeSizeof(exp->data.binOpExp.resultType))))));
+            }
+            case IE_MEM_TEMP: {
+              // MEM_TEMP(n) becomes MEM_TEMP_OFFSET(MEM_TEMP(n) BINOP(* index
+              // sizeof))
+              e = eseqIRExpCreate(memTempOffsetIRExpCreate(
+                  e, binopIRExpCreate(
+                         IB_LONGMUL, tempIRExpCreate(offsetTemp, LONG_WIDTH),
+                         ulongConstIRExpCreate(
+                             typeSizeof(exp->data.binOpExp.resultType)))));
+            }
+            default: {
+              error(__FILE__, __LINE__,
+                    "attempted to access part of a non-composite value");
+            }
+          }
+          translateAssignment(
+              translateExpression(exp->data.binOpExp.rhs, tempGenerator,
+                                  labelGenerator),
+              tempIRExpCreate(offsetTemp, LONG_WIDTH),
+              typeofExpression(exp->data.binOpExp.rhs), ulong,
+              &e->data.eseq.stms);
+          typeDestroy(ulong);
+          return e;
+        }
+      }
     }
     case NT_UNOPEXP: {
       // TODO: write this
@@ -494,7 +687,7 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
       size_t typeSize = typeSizeof(resultType);
       bool isComposite = typeIsComposite(resultType);
       IRExp *e =
-          eseqStmCreate((isComposite ? memTempIRExpCreate : tempIRExpCreate)(
+          eseqIRExpCreate((isComposite ? memTempIRExpCreate : tempIRExpCreate)(
               resultTemp, typeSize));
 
       char *trueCaseLabel =
@@ -526,7 +719,7 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
     }
     case NT_LANDEXP: {
       size_t resultTemp = tempGeneratorGenerate(tempGenerator);
-      IRExp *e = eseqStmCreate(tempIRExpCreate(resultTemp, BYTE_WIDTH));
+      IRExp *e = eseqIRExpCreate(tempIRExpCreate(resultTemp, BYTE_WIDTH));
 
       char *trueCaseLabel =
           labelGenerator->vtable->generateCodeLabel(labelGenerator);
@@ -552,7 +745,7 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
     }
     case NT_LOREXP: {
       size_t resultTemp = tempGeneratorGenerate(tempGenerator);
-      IRExp *e = eseqStmCreate(tempIRExpCreate(resultTemp, BYTE_WIDTH));
+      IRExp *e = eseqIRExpCreate(tempIRExpCreate(resultTemp, BYTE_WIDTH));
 
       char *trueCaseLabel =
           labelGenerator->vtable->generateCodeLabel(labelGenerator);
@@ -577,8 +770,37 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
       return e;
     }
     case NT_STRUCTACCESSEXP: {
+      IRExp *e = translateExpression(exp->data.structAccessExp.base,
+                                     tempGenerator, labelGenerator);
+      switch (e->kind) {
+        case IE_MEM: {
+          // if MEM(x), becomes MEM(BINOP(+ x offset))
+          IRExp *ptr = e->data.mem.ptr;
+          e->data.mem.ptr = binopIRExpCreate(
+              IB_LONGADD, ptr,
+              ulongConstIRExpCreate(exp->data.structAccessExp.offset));
+          break;
+        }
+        case IE_MEM_TEMP: {
+          // if MEM_TEMP(n), becomes MEM_TEMP_OFFSET(MEM_TEMP(n) offset)
+          e = memTempOffsetIRExpCreate(
+              e, ulongConstIRExpCreate(exp->data.structAccessExp.offset));
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "attempted to access part of a non-composite value");
+        }
+      }
+
+      return e;
     }
     case NT_STRUCTPTRACCESSEXP: {
+      return memIRExpCreate(binopIRExpCreate(
+          IB_LONGADD,
+          translateExpression(exp->data.structPtrAccessExp.base, tempGenerator,
+                              labelGenerator),
+          ulongConstIRExpCreate(exp->data.structPtrAccessExp.offset)));
     }
     case NT_FNCALLEXP: {
     }
@@ -722,8 +944,6 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
       break;
     }
     case NT_SWITCHSTMT: {
-      NodeList *cases = stmt->data.switchStmt.cases;
-      // treat it as a series of elifs for now...
       // TODO: write this
       break;
     }
@@ -765,7 +985,7 @@ static void translateStmt(Node *stmt, IRStmVector *out, Frame *frame,
     case NT_ENUMDECL:
     case NT_ENUMFORWARDDECL:
     case NT_TYPEDEFDECL: {
-      // dealt with at typecheck stage
+      // semantics only - no generated code
       break;
     }
     case NT_VARDECL: {

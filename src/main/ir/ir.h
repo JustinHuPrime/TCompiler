@@ -113,6 +113,7 @@ typedef enum {
   IE_UNOP,
   IE_BINOP,
   IE_ESEQ,
+  IE_MEM,
 } IRExpKind;
 typedef enum {
   IU_ZX_BYTETOSHORT,
@@ -145,10 +146,38 @@ typedef enum {
   IU_LONGTODOUBLE,
 } IRUnOpType;
 typedef enum {
+  IB_BYTEBITAND,
+  IB_SHORTBITAND,
+  IB_INTBITAND,
+  IB_LONGBITAND,
+  IB_BYTEBITOR,
+  IB_SHORTBITOR,
+  IB_INTBITOR,
+  IB_LONGBITOR,
+  IB_BYTEBITXOR,
+  IB_SHORTBITXOR,
+  IB_INTBITXOR,
+  IB_LONGBITXOR,
   IB_BYTEADD,
   IB_SHORTADD,
   IB_INTADD,
   IB_LONGADD,
+  IB_BYTESUB,
+  IB_SHORTSUB,
+  IB_INTSUB,
+  IB_LONGSUB,
+  IB_BYTEMUL,
+  IB_SHORTMUL,
+  IB_INTMUL,
+  IB_LONGMUL,
+  IB_BYTEDIV,
+  IB_SHORTDIV,
+  IB_INTDIV,
+  IB_LONGDIV,
+  IB_BYTEMOD,
+  IB_SHORTMOD,
+  IB_INTMOD,
+  IB_LONGMOD,
 } IRBinOpType;
 typedef struct IRExp {
   IRExpKind kind;
@@ -190,7 +219,7 @@ typedef struct IRExp {
     } memTemp;
     struct {
       struct IRExp *target;
-      size_t offset;
+      struct IRExp *offset;
     } memTempOffset;
     struct {
       struct IRExp *who;
@@ -209,6 +238,9 @@ typedef struct IRExp {
       IRStmVector stms;
       struct IRExp *value;
     } eseq;
+    struct {
+      struct IRExp *ptr;
+    } mem;
   } data;
 } IRExp;
 IRExp *byteConstIRExpCreate(int8_t value);
@@ -227,11 +259,12 @@ IRExp *nameIRExpCreate(char const *label);
 IRExp *regIRExpCreate(size_t n, size_t size);
 IRExp *tempIRExpCreate(size_t n, size_t size);
 IRExp *memTempIRExpCreate(size_t n, size_t size);
-IRExp *memTempOffsetIRExpCreate(IRExp *target, size_t offset);
+IRExp *memTempOffsetIRExpCreate(IRExp *target, IRExp *offset);
 IRExp *callIRExpCreate(IRExp *who);
 IRExp *unopIRExpCreate(IRUnOpType op, IRExp *target);
 IRExp *binopIRExpCreate(IRBinOpType op, IRExp *lhs, IRExp *rhs);
-IRExp *eseqStmCreate(IRExp *value);
+IRExp *eseqIRExpCreate(IRExp *value);
+IRExp *memIRExpCreate(IRExp *ptr);
 void irExpDestroy(IRExp *);
 
 typedef enum {

@@ -2121,18 +2121,9 @@ bool typeIsComposite(Type const *type) {
   switch (type->kind) {
     case K_ARRAY:
     case K_STRUCT:
+    case K_UNION:
     case K_AGGREGATE_INIT: {
       return true;
-    }
-    case K_UNION: {
-      TypeVector *fields =
-          &type->data.reference.referenced->data.type.data.unionType.fields;
-      for (size_t idx = 0; idx < fields->size; idx++) {
-        if (typeIsComposite(fields->elements[idx])) {
-          return true;
-        }
-      }
-      return false;
     }
     case K_CONST: {
       return typeIsComposite(type->data.modifier.type);
