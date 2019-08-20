@@ -94,6 +94,7 @@ static void moduleNodeMapUninit(ModuleNodeMap *map) {
 
 // parsing helpers
 static char *unescapeCharacters(char *constantString) {
+  char *originalString = constantString;
   StringBuilder buffer;
   stringBuilderInit(&buffer);
 
@@ -140,7 +141,7 @@ static char *unescapeCharacters(char *constantString) {
     }
   }
 
-  free(constantString);
+  free(originalString);
   char *retVal = stringBuilderData(&buffer);
   stringBuilderUninit(&buffer);
   return retVal;

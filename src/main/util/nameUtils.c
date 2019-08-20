@@ -69,6 +69,6 @@ StringVector *explodeName(char const *fullName) {
   }
 
   stringVectorInsert(parts, stringBuilderData(&buffer));
-  stringBuilderClear(&buffer);
+  stringBuilderUninit(&buffer);
   return parts;
 }

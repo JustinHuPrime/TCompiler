@@ -61,8 +61,10 @@ static char *mangleModuleName(char const *moduleName) {
   char *buffer = strdup("__Z");
   StringVector *exploded = explodeName(moduleName);
   for (size_t idx = 0; idx < exploded->size; idx++) {
-    buffer = format("%s%zu%s", buffer, strlen(exploded->elements[idx]),
-                    (char const *)exploded->elements[idx]);
+    char *newBuffer = format("%s%zu%s", buffer, strlen(exploded->elements[idx]),
+                             (char const *)exploded->elements[idx]);
+    free(buffer);
+    buffer = newBuffer;
   }
   stringVectorDestroy(exploded, true);
   return buffer;
@@ -164,18 +166,28 @@ static char *mangleTypeString(TypeVector const *args) {
   char *buffer = strdup("");
   for (size_t idx = 0; idx < args->size; idx++) {
     char *mangledType = mangleType(args->elements[idx]);
-    buffer = format("%s%s", buffer, mangledType);
+    char *newBuffer = format("%s%s", buffer, mangledType);
+    free(buffer);
+    buffer = newBuffer;
     free(mangledType);
   }
   return buffer;
 }
 static char *mangleVarName(char const *moduleName, char const *id) {
-  return format("%s%zu%s", mangleModuleName(moduleName), strlen(id), id);
+  char *mangledModuleName = mangleModuleName(moduleName);
+  char *retVal = format("%s%zu%s", mangledModuleName, strlen(id), id);
+  free(mangledModuleName);
+  return retVal;
 }
 static char *mangleFunctionName(char const *moduleName, char const *id,
                                 TypeVector *argumentTypes) {
-  return format("%s%zu%s%s", mangleModuleName(moduleName), strlen(id), id,
-                mangleTypeString(argumentTypes));
+  char *mangledModuleName = mangleModuleName(moduleName);
+  char *mangledArgumentTypes = mangleTypeString(argumentTypes);
+  char *retVal = format("%s%zu%s%s", mangledModuleName, strlen(id), id,
+                        mangledArgumentTypes);
+  free(mangledModuleName);
+  free(mangledArgumentTypes);
+  return retVal;
 }
 static void addGlobalAccesses(SymbolTable *stab, char const *moduleName,
                               GlobalAccessCtor globalAccessCtor) {
@@ -387,6 +399,7 @@ static void constantToData(Node *initializer, IRExpVector *out,
 // branches
 static void translateBranch(Node *branchedOn, char const *trueCase,
                             char const *falseCase, IRStmVector *out) {
+  notYetImplemented(__FILE__, __LINE__);
   // TODO: write this
 }
 
@@ -455,6 +468,7 @@ static Type const *typeofExpression(Node const *exp) {
 }
 static void translateAssignment(IRExp *from, IRExp *to, Type const *fromType,
                                 Type const *toType, IRStmVector *out) {
+  notYetImplemented(__FILE__, __LINE__);
   // TODO: write this
 }
 static IRExp *translateExpression(Node *, TempGenerator *, LabelGenerator *);
@@ -515,7 +529,7 @@ static IRExp *translateArithmeticBinop(Node *exp, TempGenerator *tempGenerator,
     }
     default: {
       error(__FILE__, __LINE__,
-            "binary arithmetic operator applied to non-integral values");
+            "binary arithmetic operator applied to non-numeric values");
     }
   }
   IRExp *e =
@@ -574,36 +588,47 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
           return e;
         }
         case BO_MULASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_DIVASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_MODASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_ADDASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_SUBASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_LSHIFTASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_LRSHIFTASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_ARSHIFTASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_BITANDASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_BITXORASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_BITORASSIGN: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_BITAND: {
@@ -626,21 +651,57 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
               IB_LONGBITXOR, IB_LONGBITXOR, 0, 0);
         }
         case BO_SPACESHIP: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_LSHIFT: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_LRSHIFT: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_ARSHIFT: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case BO_ADD: {
-          // TODO: deal with ptr arithmetic
+          Type *resultType = exp->data.binOpExp.resultType;
+          size_t resultSize = typeSizeof(resultType);
+          IRBinOpType op;
+          Type const *resultBaseType = typeGetNonConst(resultType);
+          switch (resultBaseType->kind) {
+            case K_UBYTE:
+            case K_BYTE:
+            case K_USHORT:
+            case K_SHORT:
+            case K_UINT:
+            case K_INT:
+            case K_ULONG:
+            case K_LONG:
+            case K_FLOAT:
+            case K_DOUBLE: {
+              return translateArithmeticBinop(
+                  exp, tempGenerator, labelGenerator, IB_BYTEADD, IB_BYTEADD,
+                  IB_SHORTADD, IB_SHORTADD, IB_INTADD, IB_INTADD, IB_LONGADD,
+                  IB_LONGADD, IB_FLOATADD, IB_DOUBLEADD);
+            }
+            case K_PTR: {
+              Type *ulong = keywordTypeCreate(K_ULONG);
+              typeDestroy(ulong);
+              // TODO: deal with ptr arithmetic
+              notYetImplemented(__FILE__, __LINE__);
+            }
+            default: {
+              error(__FILE__, __LINE__,
+                    "addition operator applied to non-numeric, non-pointer "
+                    "values");
+            }
+          }
         }
         case BO_SUB: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: deal with ptr arithmetic
         }
         case BO_MUL: {
@@ -661,7 +722,7 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
               IB_SHORTUMOD, IB_SHORTSMOD, IB_INTUMOD, IB_INTSMOD, IB_LONGUMOD,
               IB_LONGSMOD, 0, 0);
         }
-        case BO_ARRAYACCESS: {
+        case BO_ARRAYACCESS: {  // FIXME: index may be signed or negative
           IRExp *e = translateExpression(exp->data.binOpExp.lhs, tempGenerator,
                                          labelGenerator);
           size_t offsetTemp = tempGeneratorGenerate(tempGenerator);
@@ -701,6 +762,7 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
           typeDestroy(ulong);
           return e;
         }
+        default: { error(__FILE__, __LINE__, "invalid BinOpType enum"); }
       }
     }
     case NT_UNOPEXP: {
@@ -710,38 +772,50 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
               exp->data.unOpExp.target, tempGenerator, labelGenerator));
         }
         case UO_ADDROF: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case UO_PREINC: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case UO_PREDEC: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case UO_NEG: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case UO_LNOT: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case UO_BITNOT: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case UO_POSTINC: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
         case UO_POSTDEC: {
+          notYetImplemented(__FILE__, __LINE__);
           // TODO: write this
         }
+        default: { error(__FILE__, __LINE__, "invalid UnOpType enum"); }
       }
     }
     case NT_COMPOPEXP: {
+      notYetImplemented(__FILE__, __LINE__);
       // TODO: write this
     }
     case NT_LANDASSIGNEXP: {
+      notYetImplemented(__FILE__, __LINE__);
       // TODO: write this
     }
     case NT_LORASSIGNEXP: {
+      notYetImplemented(__FILE__, __LINE__);
       // TODO: write this
     }
     case NT_TERNARYEXP: {
@@ -866,18 +940,32 @@ static IRExp *translateExpression(Node *exp, TempGenerator *tempGenerator,
           ulongConstIRExpCreate(exp->data.structPtrAccessExp.offset)));
     }
     case NT_FNCALLEXP: {
+      notYetImplemented(__FILE__, __LINE__);
+      // TODO: write this
     }
     case NT_CONSTEXP: {
+      notYetImplemented(__FILE__, __LINE__);
+      // TODO: write this
     }
     case NT_AGGREGATEINITEXP: {
+      notYetImplemented(__FILE__, __LINE__);
+      // TODO: write this
     }
     case NT_CASTEXP: {
+      notYetImplemented(__FILE__, __LINE__);
+      // TODO: write this
     }
     case NT_SIZEOFTYPEEXP: {
+      notYetImplemented(__FILE__, __LINE__);
+      // TODO: write this
     }
     case NT_SIZEOFEXPEXP: {
+      notYetImplemented(__FILE__, __LINE__);
+      // TODO: write this
     }
     case NT_ID: {
+      notYetImplemented(__FILE__, __LINE__);
+      // TODO: write this
     }
     default: {
       error(__FILE__, __LINE__,
@@ -1087,7 +1175,9 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
   for (size_t idx = 0; idx < idValuePairs->size; idx++) {
     Node *id = idValuePairs->firstElements[idx];
     Node *initializer = idValuePairs->secondElements[idx];
-    char *mangledName = mangleVarName(moduleName, id->data.id.id);
+    Access *access = id->data.id.symbol->data.var.access;
+    char *mangledName =
+        access->vtable->getLabel(id->data.id.symbol->data.var.access);
     Fragment *f;
     if (initializer == NULL || !constantNotZero(initializer)) {
       f = bssDataFragmentCreate(mangledName,
@@ -1112,11 +1202,9 @@ static void translateFunction(Node *function, FragmentVector *fragments,
                               LabelGenerator *labelGenerator,
                               TempGenerator *tempGenerator) {
   Frame *frame = frameCtor();
-  Fragment *fragment = functionFragmentCreate(
-      mangleFunctionName(
-          moduleName, function->data.function.id->data.id.id,
-          &function->data.function.id->data.id.overload->argumentTypes),
-      frame);
+  Access *functionAccess = function->data.function.id->data.id.overload->access;
+  char *mangledName = functionAccess->vtable->getLabel(functionAccess);
+  Fragment *fragment = functionFragmentCreate(mangledName, frame);
   IRStmVector *body = irStmVectorCreate();
 
   Node *statements = function->data.function.body;
