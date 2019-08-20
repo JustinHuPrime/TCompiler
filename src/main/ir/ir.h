@@ -356,7 +356,7 @@ typedef Frame *(*FrameCtor)(void);
 typedef struct {
   void (*dtor)(struct Access *);
   IRExp *(*valueExp)(struct Access *this, IRExp *fp);
-  IRExp *(*addressExp)(struct Access *this, IRExp *fp);
+  char *(*getLabel)(struct Access *this);
 } AccessVTable;
 
 typedef struct Access {

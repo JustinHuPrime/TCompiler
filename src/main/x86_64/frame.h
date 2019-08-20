@@ -21,6 +21,21 @@
 
 #include "ir/ir.h"
 
+typedef struct {
+  Frame base;
+} X86_64Frame;
+
+typedef struct {
+  Access base;
+  char *labelName;
+  bool labelOwned;
+} X86_64GlobalAccess;
+
+typedef struct {
+  LabelGenerator base;
+  size_t nextLabel;
+} X86_64LabelGenerator;
+
 Frame *x86_64FrameCtor(void);
 Access *x86_64GlobalAccessCtor(char *label);
 LabelGenerator *x86_64LabelGeneratorCtor(void);
