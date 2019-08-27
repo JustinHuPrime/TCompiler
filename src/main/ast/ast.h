@@ -19,15 +19,17 @@
 #ifndef TLC_AST_AST_H_
 #define TLC_AST_AST_H_
 
-#include "ir/ir.h"
-#include "typecheck/symbolTable.h"
+#include "util/container/hashMap.h"
 #include "util/container/vector.h"
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
+typedef HashMap SymbolTable;
+struct Type;
 struct Node;
+struct OverloadSetElement;
 
 // specialization of vector
 typedef Vector NodeList;
@@ -328,67 +330,67 @@ typedef struct Node {
     struct {
       struct Node *prefix;
       struct Node *last;
-      Type *resultType;
+      struct Type *resultType;
     } seqExp;
     struct {
       BinOpType op;
       struct Node *lhs;
       struct Node *rhs;
-      Type *resultType;
+      struct Type *resultType;
     } binOpExp;
     struct {
       UnOpType op;
       struct Node *target;
-      Type *resultType;
+      struct Type *resultType;
     } unOpExp;
     struct {
       CompOpType op;
       struct Node *lhs;
       struct Node *rhs;
-      Type *resultType;
+      struct Type *resultType;
     } compOpExp;
     struct {
       struct Node *lhs;
       struct Node *rhs;
-      Type *resultType;
+      struct Type *resultType;
     } landAssignExp;
     struct {
       struct Node *lhs;
       struct Node *rhs;
-      Type *resultType;
+      struct Type *resultType;
     } lorAssignExp;
     struct {
       struct Node *condition;
       struct Node *thenExp;
       struct Node *elseExp;
-      Type *resultType;
+      struct Type *resultType;
     } ternaryExp;
     struct {
       struct Node *lhs;
       struct Node *rhs;
-      Type *resultType;
+      struct Type *resultType;
     } landExp;
     struct {
       struct Node *lhs;
       struct Node *rhs;
-      Type *resultType;
+      struct Type *resultType;
     } lorExp;
     struct {
       struct Node *base;
       struct Node *element;
-      Type *resultType;
+      struct Type *resultType;
       size_t offset;
     } structAccessExp;
     struct {
       struct Node *base;
       struct Node *element;
-      Type *resultType;
+      struct Type *resultType;
       size_t offset;
     } structPtrAccessExp;
     struct {
       struct Node *who;
       NodeList *args;
-      Type *resultType;
+      struct Type *resultType;
     } fnCallExp;
     struct {
       ConstType type;
@@ -409,25 +411,25 @@ typedef struct Node {
         uint32_t wcharVal;
         bool boolVal;
       } value;
-      Type *resultType;
+      struct Type *resultType;
     } constExp;
     struct {
       NodeList *elements;
-      Type *resultType;
+      struct Type *resultType;
     } aggregateInitExp;
     struct {
       struct Node *toWhat;
       struct Node *target;
-      Type *resultType;
+      struct Type *resultType;
     } castExp;
     struct {
       struct Node *target;
-      Type *targetType;
-      Type *resultType;
+      struct Type *targetType;
+      struct Type *resultType;
     } sizeofTypeExp;
     struct {
       struct Node *target;
-      Type *resultType;
+      struct Type *resultType;
     } sizeofExpExp;
 
     struct {
@@ -450,9 +452,9 @@ typedef struct Node {
 
     struct {
       char *id;
-      SymbolInfo *symbol;
-      OverloadSetElement *overload;  // nullable
-      Type *resultType;              // nullable
+      struct SymbolInfo *symbol;
+      struct OverloadSetElement *overload;  // nullable
+      struct Type *resultType;              // nullable
     } id;
   } data;
 } Node;

@@ -161,7 +161,7 @@ void typeUninit(Type *);
 void typeDestroy(Type *);
 
 // POD struct containing data for an overload set instance
-typedef struct {
+typedef struct OverloadSetElement {
   Type *returnType;
   TypeVector argumentTypes;
   size_t numOptional;

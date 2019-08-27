@@ -19,7 +19,6 @@
 #ifndef TLC_LEXER_LEXER_H_
 #define TLC_LEXER_LEXER_H_
 
-#include "ast/ast.h"
 #include "util/container/hashMap.h"
 #include "util/errorReport.h"
 #include "util/file.h"

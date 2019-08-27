@@ -18,6 +18,7 @@
 
 #include "lexer/lexer.h"
 
+#include "ast/ast.h"
 #include "util/container/stringBuilder.h"
 #include "util/functional.h"
 #include "util/internalError.h"

@@ -19,6 +19,7 @@
 #include "ast/ast.h"
 
 #include "constants.h"
+#include "typecheck/symbolTable.h"
 #include "util/charSet.h"
 #include "util/container/stringBuilder.h"
 

@@ -19,6 +19,7 @@
 #include "typecheck/buildSymbolTable.h"
 
 #include "constants.h"
+#include "typecheck/symbolTable.h"
 #include "util/internalError.h"
 
 #include <string.h>

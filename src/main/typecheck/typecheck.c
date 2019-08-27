@@ -18,6 +18,7 @@
 
 #include "typecheck/typecheck.h"
 
+#include "typecheck/symbolTable.h"
 #include "util/functional.h"
 #include "util/internalError.h"
 

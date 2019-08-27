@@ -28,6 +28,7 @@ struct IRStm;
 struct Frame;
 struct Access;
 struct LabelGenerator;
+typedef Vector TypeVector;
 
 typedef Vector IRStmVector;
 IRStmVector *irStmVectorCreate(void);
@@ -344,7 +345,8 @@ typedef struct {
   IRExp *(*fpExp)(void);
   struct Access *(*allocLocal)(struct Frame *this, size_t size, bool escapes);
   struct Access *(*allocOutArg)(struct Frame *this, size_t size);
-  struct Access *(*allocInArg)(struct Frame *this, size_t size, bool escapes);
+  struct Access *(*allocInArgs)(struct Frame *this, TypeVector *types,
+                                BoolVector *escapes);
 } FrameVTable;
 
 typedef struct Frame {

@@ -19,6 +19,7 @@
 #include "translate/translate.h"
 
 #include "constants.h"
+#include "typecheck/symbolTable.h"
 #include "util/container/stringBuilder.h"
 #include "util/format.h"
 #include "util/internalError.h"
@@ -1214,8 +1215,8 @@ static void translateFunction(Node *function, FragmentVector *fragments,
   for (size_t idx = 0; idx < function->data.function.formals->size; idx++) {
     Node *id = function->data.function.formals->secondElements[idx];
     SymbolInfo *info = id->data.id.symbol;
-    info->data.var.access = frame->vtable->allocInArg(
-        frame, typeSizeof(info->data.var.type), info->data.var.escapes);
+    // info->data.var.access = frame->vtable->allocInArg(
+    //     frame, typeSizeof(info->data.var.type), info->data.var.escapes);
   }
 
   char *exitLabel = labelGenerator->vtable->generateCodeLabel(labelGenerator);

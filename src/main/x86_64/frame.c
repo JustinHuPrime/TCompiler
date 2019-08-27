@@ -23,6 +23,71 @@
 
 #include <stdlib.h>
 
+typedef struct {
+  Frame base;
+  size_t numIntArgs;
+  size_t numFloatArgs;
+  size_t numMemArgs;
+  size_t outArgStackSize;
+} X86_64Frame;
+// FrameVTable const X86_64FrameVTable = {};
+
+typedef struct {
+  Access base;
+  char *labelName;
+  bool labelOwned;
+} X86_64GlobalAccess;
+typedef struct {
+  Access base;
+  int64_t basePointerOffset;
+} X86_64MemoryAccess;
+typedef struct {
+  Access base;
+  size_t registerNumber;
+} X86_64RegisterAccess;
+
+typedef struct {
+  LabelGenerator base;
+  size_t nextLabel;
+} X86_64LabelGenerator;
+
+typedef enum {
+  X86_64_RAX,
+  X86_64_RBX,
+  X86_64_RCX,
+  X86_64_RDX,
+  X86_64_RDI,
+  X86_64_RSI,
+  X86_64_RBP,
+  X86_64_RSP,
+  X86_64_R8,
+  X86_64_R9,
+  X86_64_R10,
+  X86_64_R11,
+  X86_64_R12,
+  X86_64_R13,
+  X86_64_R14,
+  X86_64_R15,
+
+  X86_64_XMM0,
+  X86_64_XMM1,
+  X86_64_XMM2,
+  X86_64_XMM3,
+  X86_64_XMM4,
+  X86_64_XMM5,
+  X86_64_XMM6,
+  X86_64_XMM7,
+  X86_64_XMM8,
+  X86_64_XMM9,
+  X86_64_XMM10,
+  X86_64_XMM11,
+  X86_64_XMM12,
+  X86_64_XMM13,
+  X86_64_XMM14,
+  X86_64_XMM15,
+} X86_64Register;
+size_t const X86_64_INT_REGISTER_WIDTH = 8;
+
 static void x86_64FrameDtor(X86_64Frame *frame) {
   free(frame->base.vtable);
   free(frame);
@@ -32,14 +97,17 @@ static IRStmVector *x86_64GenerateEntryExit(X86_64Frame *frame,
                                             char *exitLabel) {
   notYetImplemented(__FILE__, __LINE__);
 }
-static IRExp *x86_64FPExp(void) { notYetImplemented(__FILE__, __LINE__); }
+static IRExp *x86_64FPExp(void) {
+  return regIRExpCreate(X86_64_RBP, X86_64_INT_REGISTER_WIDTH);
+}
 static Access *x86_64AllocLocal(X86_64Frame *frame, size_t size, bool escapes) {
   notYetImplemented(__FILE__, __LINE__);
 }
 static Access *x86_64AllocOutArg(X86_64Frame *frame, size_t size) {
   notYetImplemented(__FILE__, __LINE__);
 }
-static Access *x86_64AllocInArg(X86_64Frame *frame, size_t size, bool escapes) {
+static Access *x86_64AllocInArgs(X86_64Frame *frame, TypeVector *types,
+                                 BoolVector *escapes) {
   notYetImplemented(__FILE__, __LINE__);
 }
 Frame *x86_64FrameCtor(void) {
@@ -54,8 +122,12 @@ Frame *x86_64FrameCtor(void) {
       (Access * (*)(Frame *, size_t, bool)) x86_64AllocLocal;
   frame->base.vtable->allocOutArg =
       (Access * (*)(Frame *, size_t)) x86_64AllocOutArg;
-  frame->base.vtable->allocInArg =
-      (Access * (*)(Frame *, size_t, bool)) x86_64AllocInArg;
+  frame->base.vtable->allocInArgs =
+      (Access * (*)(Frame *, TypeVector *, BoolVector *)) x86_64AllocInArgs;
+  frame->numIntArgs = 0;
+  frame->numFloatArgs = 0;
+  frame->numMemArgs = 0;
+  frame->outArgStackSize = 0;
   return (Frame *)frame;
 }
 
