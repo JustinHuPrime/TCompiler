@@ -19,9 +19,17 @@
 #ifndef TLC_TRANSLATE_TRANSLATE_H_
 #define TLC_TRANSLATE_TRANSLATE_H_
 
-#include "ir/ir.h"
-#include "parser/parser.h"
 #include "util/container/hashMap.h"
+#include "util/container/vector.h"
+
+struct ModuleAstMapPair;
+struct Frame;
+struct Access;
+struct LabelGenerator;
+typedef struct Frame *(*FrameCtor)(void);
+typedef struct Access *(*GlobalAccessCtor)(char *label);
+typedef struct LabelGenerator *(*LabelGeneratorCtor)(void);
+typedef Vector FragmentVector;
 
 typedef HashMap FileFragmentVectorMap;
 void fileFragmentVectorMapInit(FileFragmentVectorMap *);
@@ -31,7 +39,7 @@ int fileFragmentVectorMapPut(FileFragmentVectorMap *, char *file,
                              FragmentVector *vector);
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
-void translate(FileFragmentVectorMap *, ModuleAstMapPair *, FrameCtor,
+void translate(FileFragmentVectorMap *, struct ModuleAstMapPair *, FrameCtor,
                GlobalAccessCtor, LabelGeneratorCtor);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_

@@ -19,10 +19,12 @@
 #ifndef TLC_TYPECHECK_BUILDSYMBOLTABLE_H_
 #define TLC_TYPECHECK_BUILDSYMBOLTABLE_H_
 
-#include "parser/parser.h"
 #include "util/errorReport.h"
 #include "util/options.h"
 
-void buildSymbolTables(Report *, Options const *, ModuleAstMapPair const *asts);
+struct ModuleAstMapPair;
+
+void buildSymbolTables(Report *, Options const *,
+                       struct ModuleAstMapPair const *asts);
 
 #endif  // TLC_TYPECHECK_BUILDSYMBOLTABLE_H_

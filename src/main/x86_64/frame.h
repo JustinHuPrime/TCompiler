@@ -19,10 +19,12 @@
 #ifndef TLC_X86_64_FRAME_H_
 #define TLC_X86_64_FRAME_H_
 
-#include "ir/ir.h"
+struct Frame;
+struct Access;
+struct LabelGenerator;
 
-Frame *x86_64FrameCtor(void);
-Access *x86_64GlobalAccessCtor(char *label);
-LabelGenerator *x86_64LabelGeneratorCtor(void);
+struct Frame *x86_64FrameCtor(void);
+struct Access *x86_64GlobalAccessCtor(char *label);
+struct LabelGenerator *x86_64LabelGeneratorCtor(void);
 
 #endif  // TLC_X86_64_FRAME_H_

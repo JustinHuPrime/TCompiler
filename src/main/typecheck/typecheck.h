@@ -19,10 +19,11 @@
 #ifndef TLC_TYPECHECK_TYPECHECK_H_
 #define TLC_TYPECHECK_TYPECHECK_H_
 
-#include "parser/parser.h"
 #include "util/errorReport.h"
 #include "util/options.h"
 
-void typecheck(Report *, Options const *, ModuleAstMapPair const *asts);
+struct ModuleAstMapPair;
+
+void typecheck(Report *, Options const *, struct ModuleAstMapPair const *asts);
 
 #endif  // TLC_TYPECHECK_TYPECHECK_H_

@@ -18,6 +18,8 @@
 
 #include "ir/printer.h"
 
+#include "ir/ir.h"
+
 #include <stdio.h>
 
 void fragmentVectorPrint(FragmentVector const *v) {

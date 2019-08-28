@@ -19,12 +19,12 @@
 #ifndef TLC_AST_PRINTER_H_
 #define TLC_AST_PRINTER_H_
 
-#include "ast/ast.h"
+struct Node;
 
 // prints the structure of a node, in function format
-void nodePrintStructure(Node const *);
+void nodePrintStructure(struct Node const *);
 
 // prints the original code, modulo whitespace and ignored syntactic elements
-void nodePrint(Node const *);
+void nodePrint(struct Node const *);
 
 #endif  // TLC_AST_PRINTER_H_

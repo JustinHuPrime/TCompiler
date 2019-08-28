@@ -18,6 +18,8 @@
 
 #include "typecheck/typecheck.h"
 
+#include "ast/ast.h"
+#include "parser/parser.h"
 #include "typecheck/symbolTable.h"
 #include "util/functional.h"
 #include "util/internalError.h"

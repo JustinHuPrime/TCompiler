@@ -18,6 +18,7 @@
 
 #include "x86_64/frame.h"
 
+#include "ir/ir.h"
 #include "util/format.h"
 #include "util/internalError.h"
 

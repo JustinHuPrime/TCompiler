@@ -19,7 +19,6 @@
 #ifndef TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 #define TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 
-#include "ir/ir.h"
 #include "util/container/hashMap.h"
 #include "util/container/stack.h"
 #include "util/container/vector.h"
@@ -28,6 +27,7 @@
 struct Type;
 struct Environment;
 struct SymbolInfo;
+struct Access;
 
 typedef enum {
   K_VOID,
@@ -166,7 +166,7 @@ typedef struct OverloadSetElement {
   TypeVector argumentTypes;
   size_t numOptional;
   bool defined;
-  Access *access;
+  struct Access *access;
 } OverloadSetElement;
 // ctor
 OverloadSetElement *overloadSetElementCreate(void);
@@ -217,7 +217,7 @@ typedef struct SymbolInfo {
       bool bound;    // has this been defined in a code module?
       bool escapes;  // does this param or local ever get its address taken?
       Type *type;
-      Access *access;
+      struct Access *access;
     } var;
     struct {
       TypeDefinitionKind kind;

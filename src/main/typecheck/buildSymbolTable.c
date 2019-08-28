@@ -18,7 +18,9 @@
 
 #include "typecheck/buildSymbolTable.h"
 
+#include "ast/ast.h"
 #include "constants.h"
+#include "parser/parser.h"
 #include "typecheck/symbolTable.h"
 #include "util/internalError.h"
 

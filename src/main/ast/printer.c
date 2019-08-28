@@ -18,6 +18,8 @@
 
 #include "ast/printer.h"
 
+#include "ast/ast.h"
+
 #include <stdio.h>
 
 static double punToDouble(uint64_t bits) {

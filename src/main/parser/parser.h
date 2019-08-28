@@ -19,23 +19,24 @@
 #ifndef TLC_PARSER_PARSER_H_
 #define TLC_PARSER_PARSER_H_
 
-#include "ast/ast.h"
 #include "util/container/hashMap.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/options.h"
+
+struct Node;
 
 // specialization of a generic
 typedef HashMap ModuleAstMap;
 ModuleAstMap *moduleAstMapCreate(void);
 void moduleAstMapInit(ModuleAstMap *);
 Node *moduleAstMapGet(ModuleAstMap const *, char const *key);
-int moduleAstMapPut(ModuleAstMap *, char const *key, Node *value);
+int moduleAstMapPut(ModuleAstMap *, char const *key, struct Node *value);
 void moduleAstMapUninit(ModuleAstMap *);
 void moduleAstMapDestroy(ModuleAstMap *);
 
 // pod struct holding two ModuleAstMaps
-typedef struct {
+typedef struct ModuleAstMapPair {
   ModuleAstMap decls;
   ModuleAstMap codes;
 } ModuleAstMapPair;

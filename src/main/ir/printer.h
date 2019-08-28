@@ -19,7 +19,9 @@
 #ifndef TLC_IR_PRINTER_H_
 #define TLC_IR_PRINTER_H_
 
-#include "ir/ir.h"
+#include "util/container/vector.h"
+
+typedef Vector FragmentVector;
 
 // printes the ir tree
 void fragmentVectorPrint(FragmentVector const *);

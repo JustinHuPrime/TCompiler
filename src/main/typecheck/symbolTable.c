@@ -20,6 +20,7 @@
 
 #include "ast/ast.h"
 #include "constants.h"
+#include "ir/ir.h"
 #include "util/format.h"
 #include "util/functional.h"
 #include "util/internalError.h"

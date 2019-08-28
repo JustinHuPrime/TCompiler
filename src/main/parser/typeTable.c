@@ -18,6 +18,7 @@
 
 #include "parser/typeTable.h"
 
+#include "lexer/lexer.h"
 #include "util/functional.h"
 #include "util/nameUtils.h"
 

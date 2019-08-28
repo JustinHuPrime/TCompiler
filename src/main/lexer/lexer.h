@@ -155,7 +155,7 @@ BinOpType tokenTypeToMulBinop(TokenType);
 UnOpType tokenTypeToPrefixUnop(TokenType);
 
 // pod object, stores the result of a lex
-typedef struct {
+typedef struct TokenInfo {
   TokenType type;
   size_t line;
   size_t character;

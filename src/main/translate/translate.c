@@ -18,7 +18,10 @@
 
 #include "translate/translate.h"
 
+#include "ast/ast.h"
 #include "constants.h"
+#include "ir/ir.h"
+#include "parser/parser.h"
 #include "typecheck/symbolTable.h"
 #include "util/container/stringBuilder.h"
 #include "util/format.h"

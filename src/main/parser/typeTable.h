@@ -21,9 +21,10 @@
 
 #include "util/container/hashMap.h"
 
-#include "lexer/lexer.h"
 #include "util/container/stack.h"
 #include "util/errorReport.h"
+
+struct TokenInfo;
 
 typedef enum { ST_UNDEFINED = 0, ST_ID, ST_TYPE, ST_ENUMCONST } SymbolType;
 
@@ -55,7 +56,8 @@ typedef struct {
 void typeEnvironmentInit(TypeEnvironment *, TypeTable *currentModule,
                          char const *currentModuleName);
 SymbolType typeEnvironmentLookup(TypeEnvironment const *, Report *report,
-                                 TokenInfo const *token, char const *filename);
+                                 struct TokenInfo const *token,
+                                 char const *filename);
 TypeTable *typeEnvironmentTop(TypeEnvironment const *);
 void typeEnvironmentPush(TypeEnvironment *);
 void typeEnvironmentPop(TypeEnvironment *);
