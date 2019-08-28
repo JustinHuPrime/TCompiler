@@ -21,6 +21,7 @@
 #include "ir/ir.h"
 #include "util/format.h"
 #include "util/internalError.h"
+#include "typecheck/symbolTable.h"
 
 #include <stdlib.h>
 
@@ -31,7 +32,6 @@ typedef struct {
   size_t numMemArgs;
   size_t outArgStackSize;
 } X86_64Frame;
-// FrameVTable const X86_64FrameVTable = {};
 
 typedef struct {
   Access base;
@@ -53,6 +53,7 @@ typedef struct {
 } X86_64LabelGenerator;
 
 typedef enum {
+  // general purpose registers
   X86_64_RAX,
   X86_64_RBX,
   X86_64_RCX,
@@ -70,6 +71,9 @@ typedef enum {
   X86_64_R14,
   X86_64_R15,
 
+  // SSE registers - assuming basic x86-64 architecture, without MMX, AVX, or
+  // AVX-512
+  // also not using x87 FPU registers
   X86_64_XMM0,
   X86_64_XMM1,
   X86_64_XMM2,
@@ -89,10 +93,7 @@ typedef enum {
 } X86_64Register;
 size_t const X86_64_INT_REGISTER_WIDTH = 8;
 
-static void x86_64FrameDtor(X86_64Frame *frame) {
-  free(frame->base.vtable);
-  free(frame);
-}
+static void x86_64FrameDtor(X86_64Frame *frame) { free(frame); }
 static IRStmVector *x86_64GenerateEntryExit(X86_64Frame *frame,
                                             IRStmVector *body,
                                             char *exitLabel) {
@@ -107,24 +108,36 @@ static Access *x86_64AllocLocal(X86_64Frame *frame, size_t size, bool escapes) {
 static Access *x86_64AllocOutArg(X86_64Frame *frame, size_t size) {
   notYetImplemented(__FILE__, __LINE__);
 }
-static Access *x86_64AllocInArgs(X86_64Frame *frame, TypeVector *types,
-                                 BoolVector *escapes) {
-  notYetImplemented(__FILE__, __LINE__);
+static AccessVector *x86_64AllocInArgs(X86_64Frame *frame, TypeVector *types,
+                                       BoolVector *escapes) {
+  // see x86_64 SystemV ABI for calling convention information
+
+  // we never have SSEUP, X87, X87FPU, COMPLEX_X87 arguments
+  typedef enum {
+    AC_POINTER,
+    AC_INTEGER,
+    AC_SSE,
+    AC_NO_CLASS,
+    AC_MEMORY,
+  } ArgumentClass;
+
+  ArgumentClass *classes = malloc(sizeof(ArgumentClass) * types->size);
+  for (size_t idx = 0; idx < types->size; ++idx) {
+    Type *type = types->elements[idx];
+    
+  }
 }
+FrameVTable const X86_64FrameVTable = {
+    (void (*)(Frame *))x86_64FrameDtor,
+    (IRStmVector * (*)(Frame *, IRStmVector *, char *)) x86_64GenerateEntryExit,
+    (IRExp * (*)(void)) x86_64FPExp,
+    (Access * (*)(Frame *, size_t, bool)) x86_64AllocLocal,
+    (Access * (*)(Frame *, size_t)) x86_64AllocOutArg,
+    (AccessVector * (*)(Frame *, TypeVector *, BoolVector *)) x86_64AllocInArgs,
+};  // the frame vtable
 Frame *x86_64FrameCtor(void) {
   X86_64Frame *frame = malloc(sizeof(X86_64Frame));
-  frame->base.vtable = malloc(sizeof(FrameVTable));
-  frame->base.vtable->dtor = (void (*)(Frame *))x86_64FrameDtor;
-  frame->base.vtable->generateEntryExit =
-      (IRStmVector * (*)(Frame *, IRStmVector *, char *))
-          x86_64GenerateEntryExit;
-  frame->base.vtable->fpExp = x86_64FPExp;
-  frame->base.vtable->allocLocal =
-      (Access * (*)(Frame *, size_t, bool)) x86_64AllocLocal;
-  frame->base.vtable->allocOutArg =
-      (Access * (*)(Frame *, size_t)) x86_64AllocOutArg;
-  frame->base.vtable->allocInArgs =
-      (Access * (*)(Frame *, TypeVector *, BoolVector *)) x86_64AllocInArgs;
+  frame->base.vtable = &X86_64FrameVTable;
   frame->numIntArgs = 0;
   frame->numFloatArgs = 0;
   frame->numMemArgs = 0;
@@ -133,34 +146,34 @@ Frame *x86_64FrameCtor(void) {
 }
 
 static void x86_64GlobalAccessDtor(X86_64GlobalAccess *access) {
-  free(access->base.vtable);
   if (access->labelOwned) {
     free(access->labelName);
   }
   free(access);
 }
-static IRExp *x86_64ValueExp(X86_64GlobalAccess *access, IRExp *fp) {
+static IRExp *x86_64GlobalAccessValueExp(X86_64GlobalAccess *access,
+                                         IRExp *fp) {
   irExpDestroy(fp);
   return memIRExpCreate(nameIRExpCreate(access->labelName));
 }
-static char *x86_64GetLabel(X86_64GlobalAccess *access) {
+static char *x86_64GlobalAccessGetLabel(X86_64GlobalAccess *access) {
   access->labelOwned = false;
   return access->labelName;
 }
+AccessVTable X86_64GlobalAccessVTable = {
+    (void (*)(Access *))x86_64GlobalAccessDtor,
+    (IRExp * (*)(Access *, IRExp *)) x86_64GlobalAccessValueExp,
+    (char *(*)(struct Access *))x86_64GlobalAccessGetLabel,
+};
 Access *x86_64GlobalAccessCtor(char *label) {
   X86_64GlobalAccess *access = malloc(sizeof(X86_64GlobalAccess));
-  access->base.vtable = malloc(sizeof(AccessVTable));
-  access->base.vtable->dtor = (void (*)(Access *))x86_64GlobalAccessDtor;
-  access->base.vtable->valueExp =
-      (IRExp * (*)(Access *, IRExp *)) x86_64ValueExp;
-  access->base.vtable->getLabel = (char *(*)(Access *))x86_64GetLabel;
+  access->base.vtable = &X86_64GlobalAccessVTable;
   access->labelName = label;
   access->labelOwned = true;
   return (Access *)access;
 }
 
 static void x86_64LabelGeneratorDtor(X86_64LabelGenerator *generator) {
-  free(generator->base.vtable);
   free(generator);
 }
 static char *x86_64LabelGeneratorGenerateDataLabel(
@@ -171,15 +184,14 @@ static char *x86_64LabelGeneratorGenerateCodeLabel(
     X86_64LabelGenerator *generator) {
   return format(".L%zu", generator->nextLabel++);
 }
+LabelGeneratorVTable X86_64LabelGeneratorVTable = {
+    (void (*)(LabelGenerator *))x86_64LabelGeneratorDtor,
+    (char *(*)(struct LabelGenerator *))x86_64LabelGeneratorGenerateDataLabel,
+    (char *(*)(struct LabelGenerator *))x86_64LabelGeneratorGenerateCodeLabel,
+};
 LabelGenerator *x86_64LabelGeneratorCtor(void) {
   X86_64LabelGenerator *generator = malloc(sizeof(X86_64LabelGenerator));
-  generator->base.vtable = malloc(sizeof(LabelGeneratorVTable));
-  generator->base.vtable->dtor =
-      (void (*)(LabelGenerator *))x86_64LabelGeneratorDtor;
-  generator->base.vtable->generateDataLabel =
-      (char *(*)(LabelGenerator *))x86_64LabelGeneratorGenerateDataLabel;
-  generator->base.vtable->generateCodeLabel =
-      (char *(*)(LabelGenerator *))x86_64LabelGeneratorGenerateCodeLabel;
+  generator->base.vtable = &X86_64LabelGeneratorVTable;
   generator->nextLabel = 1;
   return (LabelGenerator *)generator;
 }

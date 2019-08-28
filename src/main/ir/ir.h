@@ -345,12 +345,12 @@ typedef struct {
   IRExp *(*fpExp)(void);
   struct Access *(*allocLocal)(struct Frame *this, size_t size, bool escapes);
   struct Access *(*allocOutArg)(struct Frame *this, size_t size);
-  struct Access *(*allocInArgs)(struct Frame *this, TypeVector *types,
-                                BoolVector *escapes);
+  AccessVector *(*allocInArgs)(struct Frame *this, TypeVector *types,
+                               BoolVector *escapes);
 } FrameVTable;
 
 typedef struct Frame {
-  FrameVTable *vtable;
+  FrameVTable const *vtable;
   // other stuff, depending on implementation
 } Frame;
 typedef Frame *(*FrameCtor)(void);
@@ -362,7 +362,7 @@ typedef struct {
 } AccessVTable;
 
 typedef struct Access {
-  AccessVTable *vtable;
+  AccessVTable const *vtable;
   // other stuff, depending on implementation
 } Access;
 typedef Access *(*GlobalAccessCtor)(char *label);
@@ -374,7 +374,7 @@ typedef struct {
 } LabelGeneratorVTable;
 
 typedef struct LabelGenerator {
-  LabelGeneratorVTable *vtable;
+  LabelGeneratorVTable const *vtable;
   // other stuff, depending on implementation
 } LabelGenerator;
 typedef LabelGenerator *(*LabelGeneratorCtor)(void);
