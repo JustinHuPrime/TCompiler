@@ -27,7 +27,6 @@
 struct Type;
 struct Environment;
 struct SymbolInfo;
-struct Access;
 
 typedef enum {
   K_VOID,
@@ -166,7 +165,6 @@ typedef struct OverloadSetElement {
   TypeVector argumentTypes;
   size_t numOptional;
   bool defined;
-  struct Access *access;
 } OverloadSetElement;
 // ctor
 OverloadSetElement *overloadSetElementCreate(void);
