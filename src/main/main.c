@@ -17,17 +17,14 @@
 // Compiles code modules into assembly files, guided by decl modules
 
 #include "ast/printer.h"
-#include "ir/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
-#include "translate/translate.h"
 #include "typecheck/buildSymbolTable.h"
 #include "typecheck/typecheck.h"
 #include "util/errorReport.h"
 #include "util/fileList.h"
 #include "util/internalError.h"
 #include "util/options.h"
-#include "x86_64/frame.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -178,32 +175,18 @@ int main(int argc, char *argv[]) {
   }
 
   // translation
-  FileFragmentVectorMap fragments;
-  FrameCtor frameCtor;
-  GlobalAccessCtor globalAccessCtor;
-  LabelGeneratorCtor labelGeneratorCtor;
 
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
-      frameCtor = x86_64FrameCtor;
-      globalAccessCtor = x86_64GlobalAccessCtor;
-      labelGeneratorCtor = x86_64LabelGeneratorCtor;
       break;
     }
     default: { error(__FILE__, __LINE__, "invalid architecture specified"); }
   }
 
-  translate(&fragments, &asts, frameCtor, globalAccessCtor, labelGeneratorCtor);
-  moduleAstMapPairUninit(&asts);
+  // translate();
 
   // debug stop for translate
   if (optionsGet(&options, optionDebugDump) == O_DD_IR) {
-    for (size_t idx = 0; idx < fragments.capacity; idx++) {
-      if (fragments.keys[idx] != NULL) {
-        printf("%s:\n", fragments.keys[idx]);
-        fragmentVectorPrint(fragments.values[idx]);
-      }
-    }
   }
 
   // canonicalize + flatten
@@ -214,8 +197,6 @@ int main(int argc, char *argv[]) {
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
       // instruction selection
-
-      fileFragmentVectorMapUninit(&fragments);
 
       // register alloc
 
