@@ -19,6 +19,7 @@
 #include "ast/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "translate/translate.h"
 #include "typecheck/buildSymbolTable.h"
 #include "typecheck/typecheck.h"
 #include "util/errorReport.h"
@@ -174,7 +175,12 @@ int main(int argc, char *argv[]) {
     return TYPECHECK_ERROR;
   }
 
+  // no more user errors:
+  // program is well formed, and errors are all internal compiler errors
+  reportUninit(&report);
+
   // translation
+  FileFragmentVectorMap fragments;
 
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
@@ -183,10 +189,11 @@ int main(int argc, char *argv[]) {
     default: { error(__FILE__, __LINE__, "invalid architecture specified"); }
   }
 
-  // translate();
+  translate(&fragments, &asts.codes);
 
   // debug stop for translate
   if (optionsGet(&options, optionDebugDump) == O_DD_IR) {
+    error(__FILE__, __LINE__, "not yet implemented");
   }
 
   // canonicalize + flatten
@@ -213,7 +220,6 @@ int main(int argc, char *argv[]) {
 
   // clean up
   optionsUninit(&options);
-  reportUninit(&report);
 
   return SUCCESS;
 }
