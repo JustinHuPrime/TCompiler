@@ -18,6 +18,7 @@
 
 #include "util/container/vector.h"
 
+#include "util/container/optimization.h"
 #include "util/functional.h"
 
 #include <stdlib.h>
@@ -30,8 +31,8 @@ Vector *vectorCreate(void) {
 }
 void vectorInit(Vector *vector) {
   vector->size = 0;
-  vector->capacity = 1;
-  vector->elements = malloc(sizeof(void *));
+  vector->capacity = PTR_VECTOR_INIT_CAPACITY;
+  vector->elements = malloc(vector->capacity * sizeof(void *));
 }
 Vector *vectorCopy(Vector *v, void *(*elmCopy)(void *)) {
   Vector *vector = malloc(sizeof(Vector));
@@ -77,8 +78,8 @@ BoolVector *boolVectorCreate(void) {
 }
 void boolVectorInit(BoolVector *vector) {
   vector->size = 0;
-  vector->capacity = 1;
-  vector->elements = malloc(sizeof(bool));
+  vector->capacity = BYTE_VECTOR_INIT_CAPACITY;
+  vector->elements = malloc(vector->capacity * sizeof(bool));
 }
 void boolVectorInsert(BoolVector *vector, bool b) {
   if (vector->size == vector->capacity) {
@@ -101,8 +102,8 @@ ByteVector *byteVectorCreate(void) {
 }
 void byteVectorInit(ByteVector *vector) {
   vector->size = 0;
-  vector->capacity = 1;
-  vector->elements = malloc(sizeof(uint8_t));
+  vector->capacity = BYTE_VECTOR_INIT_CAPACITY;
+  vector->elements = malloc(vector->capacity * sizeof(uint8_t));
 }
 void byteVectorInsert(ByteVector *vector, uint8_t byte) {
   if (vector->size == vector->capacity) {

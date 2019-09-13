@@ -19,40 +19,45 @@
 #include "util/container/vector.h"
 
 #include "unitTests/tests.h"
+#include "util/container/optimization.h"
 #include "util/functional.h"
 
 void vectorTest(TestStatus *status) {
   Vector *v = vectorCreate();
   test(status, "[util] [vector] [ctor] ctor produces size zero", v->size == 0);
-  test(status, "[util] [vector] [ctor] ctor produces capacity one",
-       v->capacity == 1);
+  test(status,
+       "[util] [vector] [ctor] ctor produces capacity PTR_VECTOR_INIT_CAPACITY",
+       v->capacity == PTR_VECTOR_INIT_CAPACITY);
   test(status, "[util] [vector] [ctor] ctor produces non-null elements array",
        v->elements != NULL);
 
+  for (size_t idx = 0; idx < PTR_VECTOR_INIT_CAPACITY - 1; idx++) {
+    vectorInsert(v, (void *)0);
+  }
   vectorInsert(v, (void *)1);
   test(status, "[util] [vector] [vectorInsert] insertion changes size",
-       v->size == 1);
+       v->size == PTR_VECTOR_INIT_CAPACITY);
   test(status,
        "[util] [vector] [vectorInsert] insertion doesn't change capacity if "
        "not full",
-       v->capacity == 1);
+       v->capacity == PTR_VECTOR_INIT_CAPACITY);
   test(status,
        "[util] [vector] [vectorInsert] inserted element is in the appropriate "
        "slot",
-       v->elements[0] == (void *)1);
+       v->elements[v->size - 1] == (void *)1);
 
   vectorInsert(v, (void *)2);
   test(status, "[util] [vector] [vectorInsert] insertion changes size",
-       v->size == 2);
+       v->size == PTR_VECTOR_INIT_CAPACITY + 1);
   test(status,
        "[util] [vector] [vectorInsert] insertion changes capacity if full",
-       v->capacity == 2);
+       v->capacity == PTR_VECTOR_INIT_CAPACITY * 2);
   test(status,
        "[util] [vector] [vectorInsert] inserted element is in the appropriate "
        "slot",
-       v->elements[1] == (void *)2);
+       v->elements[v->size - 1] == (void *)2);
   test(status, "[util] [vector] [vectorInsert] previous element is unchanged",
-       v->elements[0] == (void *)1);
+       v->elements[v->size - 2] == (void *)1);
 
   vectorDestroy(v, nullDtor);
 }

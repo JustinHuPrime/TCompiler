@@ -19,6 +19,7 @@
 #include "util/container/stringBuilder.h"
 
 #include "unitTests/tests.h"
+#include "util/container/optimization.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -29,68 +30,71 @@ void stringBuilderTest(TestStatus *status) {
   test(status,
        "[util] [stringBuilder] [ctor] ctor produces stringbuilder of size 0",
        sb->size == 0);
-  test(
-      status,
-      "[util] [stringBuilder] [ctor] ctor produces stringbuilder of capacity 1",
-      sb->capacity == 1);
+  test(status,
+       "[util] [stringBuilder] [ctor] ctor produces stringbuilder of capacity "
+       "BYTE_VECTOR_INIT_CAPACITY",
+       sb->capacity == BYTE_VECTOR_INIT_CAPACITY);
   test(status,
        "[util] [stringBuilder] [ctor] ctor produces stringBuilder with "
        "non-null buffer",
        sb->string != NULL);
 
+  for (size_t idx = 0; idx < BYTE_VECTOR_INIT_CAPACITY - 1; idx++) {
+    stringBuilderPush(sb, ' ');
+  }
   stringBuilderPush(sb, 'a');
   test(status, "[util] [stringBuilder] [stringBuilderPush] push changes size",
-       sb->size == 1);
+       sb->size == BYTE_VECTOR_INIT_CAPACITY);
   test(status,
        "[util] [stringBuilder] [stringBuilderPush] push doesn't change "
        "capacity when not full",
-       sb->capacity == 1);
+       sb->capacity == BYTE_VECTOR_INIT_CAPACITY);
   test(status,
        "[util] [stringBuilder] [stringBuilderPush] push writes the char",
-       sb->string[0] == 'a');
+       sb->string[sb->size - 1] == 'a');
 
   stringBuilderPush(sb, 'b');
   test(status, "[util] [stringBuilder] [stringBuilderPush] push changes size",
-       sb->size == 2);
+       sb->size == BYTE_VECTOR_INIT_CAPACITY + 1);
   test(status,
        "[util] [stringBuilder] [stringBuilderPush] push changes capacity when "
        "full",
-       sb->capacity == 2);
+       sb->capacity == BYTE_VECTOR_INIT_CAPACITY * 2);
   test(status,
        "[util] [stringBuilder] [stringBuilderPush] push writes the char",
-       sb->string[1] == 'b');
+       sb->string[sb->size - 1] == 'b');
   test(status,
        "[util] [stringBuilder] [stringBuilderPush] push doesn't change "
        "previous chars",
-       sb->string[0] == 'a');
+       sb->string[sb->size - 2] == 'a');
 
   stringBuilderPop(sb);
   test(status, "[util] [stringBuilder] [stringBuilderPop] pop changes size",
-       sb->size == 1);
+       sb->size == BYTE_VECTOR_INIT_CAPACITY);
   test(status,
        "[util] [stringBuilder] [stringBuilderPop] pop doesn't change capacity",
-       sb->capacity == 2);
+       sb->capacity == BYTE_VECTOR_INIT_CAPACITY * 2);
   test(status,
        "[util] [stringBuilder] [stringBuilderPop] pop doesn't change unpopped "
        "chars",
-       sb->string[0] == 'a');
+       sb->string[sb->size - 1] == 'a');
 
   char *data = stringBuilderData(sb);
   test(status,
        "[util] [stringBuilder] [stringBuilderData] data doesn't change size",
-       sb->size == 1);
+       sb->size == BYTE_VECTOR_INIT_CAPACITY);
   test(status,
        "[util] [stringBuilder] [stringBuilderData] data doesn't change "
        "capacity",
-       sb->capacity == 2);
+       sb->capacity == BYTE_VECTOR_INIT_CAPACITY * 2);
   test(status,
        "[util] [stringBuilder] [stringBuilderData] data doesn't change "
        "existing data",
-       sb->string[0] == 'a');
+       sb->string[sb->size - 1] == 'a');
   test(status,
        "[util] [stringBuilder] [stringBuilderData] data produces copy, with "
        "added null",
-       strcmp(data, "a") == 0);
+       strncmp(data, sb->string, sb->size) == 0);
   free(data);
 
   stringBuilderClear(sb);
@@ -100,7 +104,7 @@ void stringBuilderTest(TestStatus *status) {
   test(status,
        "[util] [stringBuilder] [stringBuilderClear] clear doesn't change "
        "capacity",
-       sb->capacity == 2);
+       sb->capacity == BYTE_VECTOR_INIT_CAPACITY * 2);
 
   stringBuilderDestroy(sb);
 }

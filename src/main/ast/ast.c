@@ -21,6 +21,7 @@
 #include "constants.h"
 #include "typecheck/symbolTable.h"
 #include "util/charSet.h"
+#include "util/container/optimization.h"
 #include "util/container/stringBuilder.h"
 
 #include <stdlib.h>
@@ -39,9 +40,9 @@ void nodeListDestroy(NodeList *list) {
 NodePairList *nodePairListCreate(void) {
   NodePairList *list = malloc(sizeof(NodePairList));
   list->size = 0;
-  list->capacity = 1;
-  list->firstElements = malloc(sizeof(Node *));
-  list->secondElements = malloc(sizeof(Node *));
+  list->capacity = PTR_VECTOR_INIT_CAPACITY;
+  list->firstElements = malloc(list->capacity * sizeof(Node *));
+  list->secondElements = malloc(list->capacity * sizeof(Node *));
   return list;
 }
 
@@ -71,10 +72,10 @@ void nodePairListDestroy(NodePairList *list) {
 NodeTripleList *nodeTripleListCreate(void) {
   NodeTripleList *list = malloc(sizeof(NodeTripleList));
   list->size = 0;
-  list->capacity = 1;
-  list->firstElements = malloc(sizeof(Node *));
-  list->secondElements = malloc(sizeof(Node *));
-  list->thirdElements = malloc(sizeof(Node *));
+  list->capacity = PTR_VECTOR_INIT_CAPACITY;
+  list->firstElements = malloc(list->capacity * sizeof(Node *));
+  list->secondElements = malloc(list->capacity * sizeof(Node *));
+  list->thirdElements = malloc(list->capacity * sizeof(Node *));
   return list;
 }
 void nodeTripleListInsert(NodeTripleList *list, struct Node *first,

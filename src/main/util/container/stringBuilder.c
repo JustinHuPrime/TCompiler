@@ -18,6 +18,8 @@
 
 #include "util/container/stringBuilder.h"
 
+#include "util/container/optimization.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -28,8 +30,8 @@ StringBuilder *stringBuilderCreate(void) {
 }
 void stringBuilderInit(StringBuilder *sb) {
   sb->size = 0;
-  sb->capacity = 1;
-  sb->string = malloc(sizeof(char));
+  sb->capacity = BYTE_VECTOR_INIT_CAPACITY;
+  sb->string = malloc(sb->capacity * sizeof(char));
 }
 void stringBuilderPush(StringBuilder *sb, char c) {
   if (sb->size == sb->capacity) {
@@ -59,8 +61,8 @@ TStringBuilder *tstringBuilderCreate(void) {
 }
 void tstringBuilderInit(TStringBuilder *sb) {
   sb->size = 0;
-  sb->capacity = 1;
-  sb->string = malloc(sizeof(uint8_t));
+  sb->capacity = BYTE_VECTOR_INIT_CAPACITY;
+  sb->string = malloc(sb->capacity * sizeof(uint8_t));
 }
 void tstringBuilderPush(TStringBuilder *sb, uint8_t c) {
   if (sb->size == sb->capacity) {
@@ -90,8 +92,8 @@ TWStringBuilder *twstringBuilderCreate(void) {
 }
 void twstringBuilderInit(TWStringBuilder *sb) {
   sb->size = 0;
-  sb->capacity = 1;
-  sb->string = malloc(sizeof(uint32_t));
+  sb->capacity = PTR_VECTOR_INIT_CAPACITY;
+  sb->string = malloc(sb->capacity * sizeof(uint32_t));
 }
 void twstringBuilderPush(TWStringBuilder *sb, uint32_t c) {
   if (sb->size == sb->capacity) {
