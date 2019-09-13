@@ -22,7 +22,6 @@
 #include <stddef.h>
 
 extern size_t const PTR_VECTOR_INIT_CAPACITY;
-extern size_t const INT_VECTOR_INIT_CAPACITY;
 extern size_t const BYTE_VECTOR_INIT_CAPACITY;
 
 #endif  // TLC_UTIL_CONTAINER_OPTIMIZATION_H_
