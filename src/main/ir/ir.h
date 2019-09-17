@@ -147,7 +147,9 @@ void irEntryDestroy(IREntry *);
 
 typedef Vector IRVector;
 IRVector *irVectorCreate(void);
+void irVectorInit(IRVector *);
 void irVectorInsert(IRVector *, IREntry *);
+void irVectorUninit(IRVector *);
 void irVectorDestroy(IRVector *);
 
 #endif  // TLC_IR_IR_H_

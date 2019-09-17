@@ -34,10 +34,15 @@ struct Access;
 
 typedef struct AccessVTable {
   void (*dtor)(struct Access *);
+  // inserts instructions into code to load the var, produces the operand
+  // where the result can be found
   struct IROperand *(*load)(struct Access *this, IRVector *code);
+  // inserts instructions into code to store to the var, takes an operand to
+  // store
   void (*store)(struct Access *this, IRVector *code, struct IROperand *input);
-  struct IROperand *(*addrof)(struct Access *this, IRVector *code);
   // addrof is nullable - will be invalid in non-escaping/non-global accesses
+  // gets the address of the var
+  struct IROperand *(*addrof)(struct Access *this, IRVector *code);
 } AccessVTable;
 typedef struct Access {
   AccessVTable *vtable;
@@ -50,13 +55,16 @@ void accessVectorDestroy(AccessVector *);
 
 typedef struct FrameVTable {
   void (*dtor)(struct Frame *);
+  // adds an argument of the given type
   Access *(*allocArg)(struct Frame *this, struct Type const *type,
                       bool escapes);
+  // adds a local variable of the given type
   Access *(*allocLocal)(struct Frame *this, struct Type const *type,
                         bool escapes);
+  // allocates a place to put the return value (addrof invalid)
   Access *(*allocRetVal)(struct Frame *this, struct Type const *type);
-  void (*generateEntry)(struct Frame *this, IRVector *out);
-  void (*generateExit)(struct Frame *this, IRVector *out);
+  // adds instructions to out to form the whole function body
+  void (*wrapBody)(struct Frame *this, IRVector *out);
 } FrameVTable;
 typedef struct Frame {
   FrameVTable *vtable;
