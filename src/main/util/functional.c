@@ -18,4 +18,12 @@
 
 #include "util/functional.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 void nullDtor(void *ignored) { (void)ignored; }
+void invalidFunction(void) {
+  fprintf(stderr,
+          "tlc: internal compiler error: null function pointer called\n");
+  abort();
+}

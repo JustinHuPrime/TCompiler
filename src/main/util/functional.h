@@ -19,6 +19,9 @@
 #ifndef TLC_UTIL_FUNCTIONAL_H_
 #define TLC_UTIL_FUNCTIONAL_H_
 
+// does nothing
 void nullDtor(void *);
+// reports error, aborts
+void invalidFunction(void) __attribute__((noreturn));
 
 #endif  // TLC_UTIL_FUNCTIONAL_H_
