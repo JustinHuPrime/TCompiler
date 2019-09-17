@@ -30,7 +30,7 @@ typedef enum {
   OK_LABEL,
   OK_ASM,
 } OperandKind;
-typedef struct {
+typedef struct IROperand {
   OperandKind kind;
   union {
     struct {

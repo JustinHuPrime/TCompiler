@@ -65,6 +65,37 @@ void fileFragmentVectorMapUninit(FileFragmentVectorMap *map) {
   hashMapUninit(map, (void (*)(void *))fragmentVectorDestroy);
 }
 
-void translate(FileFragmentVectorMap *fragments, ModuleAstMap *codes) {
-  fileFragmentVectorMapInit(fragments);
+static void translateFunction(Node *function, FragmentVector *out) {}
+static void translateGlobal(Node *function, FragmentVector *out) {}
+static FragmentVector *translateModule(Node *module) {
+  FragmentVector *fragments = fragmentVectorCreate();
+  NodeList *bodies = module->data.file.bodies;
+
+  for (size_t idx = 0; idx < bodies->size; idx++) {
+    Node *body = bodies->elements[idx];
+    switch (body->type) {
+      case NT_FUNCTION: {
+      }
+      case NT_VARDECL: {
+      }
+      default: {
+        break;  // no code generated from this
+      }
+    }
+  }
+
+  return fragments;
+}
+
+void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes) {
+  fileFragmentVectorMapInit(fragmentMap);
+
+  for (size_t idx = 0; idx < codes->capacity; idx++) {
+    if (codes->keys[idx] != NULL) {
+      Node *module = codes->values[idx];
+      FragmentVector *fragments = translateModule(module);
+      fileFragmentVectorMapPut(fragmentMap, module->data.file.filename,
+                               fragments);
+    }
+  }
 }

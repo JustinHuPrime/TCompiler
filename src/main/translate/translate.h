@@ -64,6 +64,6 @@ int fileFragmentVectorMapPut(FileFragmentVectorMap *, char const *key,
                              FragmentVector *vector);
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
-void translate(FileFragmentVectorMap *fragments, ModuleAstMap *codes);
+void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_

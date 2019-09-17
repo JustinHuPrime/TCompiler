@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
     error(__FILE__, __LINE__, "not yet implemented");
   }
 
-  // canonicalize + flatten
+  // canonicalize
 
   // optimize
 
@@ -214,11 +214,12 @@ int main(int argc, char *argv[]) {
     default: {
       error(__FILE__, __LINE__,
             "invalid architecture specified, furthermore, architecture was "
-            "valid during translate (memory corruption?)");
+            "valid during translate (possible memory corruption?)");
     }
   }
 
   // clean up
+  fileFragmentVectorMapUninit(&fragments);
   optionsUninit(&options);
 
   return SUCCESS;
