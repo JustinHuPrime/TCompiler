@@ -19,6 +19,10 @@
 #ifndef TLC_ARCHITECTURE_X86_64_FRAME_H_
 #define TLC_ARCHITECTURE_X86_64_FRAME_H_
 
-#include "ir/frame.h"
+struct Frame;
+struct Access;
+
+struct Frame *x86_64FrameCtor(void);
+struct Access *x86_64GlobalAccessCtor(char *label);
 
 #endif  // TLC_ARCHITECTURE_X86_64_FRAME_H_

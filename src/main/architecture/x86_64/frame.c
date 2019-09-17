@@ -17,3 +17,31 @@
 // implementation of x86_64 function frames
 
 #include "architecture/x86_64/frame.h"
+
+#include "ir/frame.h"
+
+typedef struct X86_64Frame {
+  Frame frame;
+} X86_64Frame;
+FrameVTable *X86_64VTable = NULL;
+Frame *x86_64FrameCtor(void) {
+  return NULL;  // TODO: write this
+}
+
+typedef struct X86_64GlobalAccess {
+  Access access;
+} X86_64GlobalAccess;
+AccessVTable *X86_64GlobalAccessVTable = NULL;
+Access *x86_64GlobalAccessCtor(char *label) {
+  return NULL;  // TODO: write this
+}
+
+typedef struct X86_64TempAccess {
+  Access access;
+} X86_64TempAccess;
+AccessVTable *X86_64TempAccessVTable = NULL;
+
+typedef struct X86_64MemoryAccess {
+  Access access;
+} X86_64MemoryAccess;
+AccessVTable *X86_64MemoryAccessVTable = NULL;

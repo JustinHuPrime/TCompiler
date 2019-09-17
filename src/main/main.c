@@ -16,6 +16,7 @@
 
 // Compiles code modules into assembly files, guided by decl modules
 
+#include "architecture/x86_64/frame.h"
 #include "ast/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
@@ -181,15 +182,19 @@ int main(int argc, char *argv[]) {
 
   // translation
   FileFragmentVectorMap fragments;
+  FrameCtor frameCtor;
+  GlobalAccessCtor globalAccessCtor;
 
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
+      frameCtor = x86_64FrameCtor;
+      globalAccessCtor = x86_64GlobalAccessCtor;
       break;
     }
     default: { error(__FILE__, __LINE__, "invalid architecture specified"); }
   }
 
-  translate(&fragments, &asts.codes);
+  translate(&fragments, &asts.codes, frameCtor, globalAccessCtor);
 
   // debug stop for translate
   if (optionsGet(&options, optionDebugDump) == O_DD_IR) {

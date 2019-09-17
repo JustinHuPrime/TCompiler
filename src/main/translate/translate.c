@@ -67,7 +67,8 @@ void fileFragmentVectorMapUninit(FileFragmentVectorMap *map) {
 
 static void translateFunction(Node *function, FragmentVector *out) {}
 static void translateGlobal(Node *function, FragmentVector *out) {}
-static FragmentVector *translateModule(Node *module) {
+static FragmentVector *translateModule(Node *module, FrameCtor frameCtor,
+                                       GlobalAccessCtor globalAccessCtor) {
   FragmentVector *fragments = fragmentVectorCreate();
   NodeList *bodies = module->data.file.bodies;
 
@@ -75,8 +76,10 @@ static FragmentVector *translateModule(Node *module) {
     Node *body = bodies->elements[idx];
     switch (body->type) {
       case NT_FUNCTION: {
+        // TODO: write this
       }
       case NT_VARDECL: {
+        // TODO: write this
       }
       default: {
         break;  // no code generated from this
@@ -87,13 +90,15 @@ static FragmentVector *translateModule(Node *module) {
   return fragments;
 }
 
-void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes) {
+void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes,
+               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor) {
   fileFragmentVectorMapInit(fragmentMap);
 
   for (size_t idx = 0; idx < codes->capacity; idx++) {
     if (codes->keys[idx] != NULL) {
       Node *module = codes->values[idx];
-      FragmentVector *fragments = translateModule(module);
+      FragmentVector *fragments =
+          translateModule(module, frameCtor, globalAccessCtor);
       fileFragmentVectorMapPut(fragmentMap, module->data.file.filename,
                                fragments);
     }

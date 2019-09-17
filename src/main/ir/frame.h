@@ -21,10 +21,13 @@
 
 #include "util/container/vector.h"
 
+#include <stdbool.h>
+
 struct IROperand;
 struct IREntry;
 typedef Vector IRVector;
 typedef Vector TypeVector;
+struct Type;
 
 struct Frame;
 struct Access;
@@ -47,7 +50,13 @@ void accessVectorDestroy(AccessVector *);
 
 typedef struct FrameVTable {
   void (*dtor)(struct Frame *);
-  AccessVector *(*allocArgs)(struct Frame *this, TypeVector *types);
+  Access *(*allocArg)(struct Frame *this, struct Type const *type,
+                      bool escapes);
+  Access *(*allocLocal)(struct Frame *this, struct Type const *type,
+                        bool escapes);
+  Access *(*allocRetVal)(struct Frame *this, struct Type const *type);
+  void (*generateEntry)(struct Frame *this, IRVector *out);
+  void (*generateExit)(struct Frame *this, IRVector *out);
 } FrameVTable;
 typedef struct Frame {
   FrameVTable *vtable;

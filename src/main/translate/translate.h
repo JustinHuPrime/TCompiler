@@ -24,6 +24,8 @@
 
 typedef HashMap ModuleAstMap;
 typedef Vector IRVector;
+struct Frame;
+struct Access;
 
 typedef enum {
   FK_BSS,
@@ -64,6 +66,10 @@ int fileFragmentVectorMapPut(FileFragmentVectorMap *, char const *key,
                              FragmentVector *vector);
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
-void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes);
+typedef struct Frame *(*FrameCtor)(void);
+typedef struct Access *(*GlobalAccessCtor)(char *name);
+
+void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes,
+               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_
