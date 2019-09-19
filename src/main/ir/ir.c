@@ -20,6 +20,113 @@
 
 #include <stdlib.h>
 
+static uint8_t punByteToUByte(int8_t value) {
+  union {
+    int8_t s;
+    uint8_t u;
+  } u;
+  u.s = value;
+  return u.u;
+}
+static uint16_t punShortToUShort(int16_t value) {
+  union {
+    int16_t s;
+    uint16_t u;
+  } u;
+  u.s = value;
+  return u.u;
+}
+static uint32_t punIntToUInt(int32_t value) {
+  union {
+    int32_t s;
+    uint32_t u;
+  } u;
+  u.s = value;
+  return u.u;
+}
+static uint64_t punLongToULong(int64_t value) {
+  union {
+    int64_t s;
+    uint64_t u;
+  } u;
+  u.s = value;
+  return u.u;
+}
+static IROperand *irOperandCreate(OperandKind kind) {
+  IROperand *o = malloc(sizeof(IROperand));
+  o->kind = kind;
+  return o;
+}
+IROperand *tempIROperandCreate(size_t n) {
+  IROperand *o = irOperandCreate(OK_TEMP);
+  o->data.temp.n = n;
+  return o;
+}
+IROperand *regIROperandCreate(size_t n) {
+  IROperand *o = irOperandCreate(OK_REG);
+  o->data.reg.n = n;
+  return o;
+}
+IROperand *ubyteIROperandCreate(uint8_t value) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.bits = value;
+  return o;
+}
+IROperand *byteIROperandCreate(int8_t value) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.bits = punByteToUByte(value);
+  return o;
+}
+IROperand *ushortIROperandCreate(uint16_t value) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.bits = value;
+  return o;
+}
+IROperand *shortIROperandCreate(int16_t value) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.bits = punShortToUShort(value);
+  return o;
+}
+IROperand *uintIROperandCreate(uint32_t value) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.bits = value;
+  return o;
+}
+IROperand *intIROperandCreate(int32_t value) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.bits = punIntToUInt(value);
+  return o;
+}
+IROperand *ulongIROperandCreate(uint64_t value) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.bits = value;
+  return o;
+}
+IROperand *longIROperandCreate(int64_t value) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.bits = punLongToULong(value);
+  return o;
+}
+IROperand *floatIROperandCreate(uint32_t bits) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.bits = bits;
+  return o;
+}
+IROperand *doubleIROperandCreate(uint64_t bits) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.bits = bits;
+  return o;
+}
+IROperand *labelIROperandCreate(char *name) {
+  IROperand *o = irOperandCreate(OK_LABEL);
+  o->data.label.name = name;
+  return o;
+}
+IROperand *asmIROperandCreate(char *assembly) {
+  IROperand *o = irOperandCreate(OK_ASM);
+  o->data.assembly.assembly = assembly;
+  return o;
+}
 void irOperandDestroy(IROperand *o) {
   switch (o->kind) {
     case OK_TEMP: {
@@ -32,17 +139,93 @@ void irOperandDestroy(IROperand *o) {
       break;
     }
     case OK_LABEL: {
-      free(o->operand.label.name);
+      free(o->data.label.name);
       break;
     }
     case OK_ASM: {
-      free(o->operand.assembly.assembly);
+      free(o->data.assembly.assembly);
       break;
     }
   }
   free(o);
 }
 
+static IREntry *irEntryCreate(size_t size, IROperator op) {
+  IREntry *e = malloc(sizeof(IREntry));
+  e->opSize = size;
+  e->op = op;
+  e->arg1 = e->arg2 = e->dest = NULL;
+  return e;
+}
+IREntry *constantIREntryCreate(size_t size, IROperand *constant) {
+  IREntry *e = irEntryCreate(size, IO_CONST);
+  e->arg1 = constant;
+  return e;
+}
+IREntry *asmIREntryCreate(IROperand *assembly) {
+  IREntry *e = irEntryCreate(0, IO_ASM);
+  e->arg1 = assembly;
+  return e;
+}
+IREntry *labelIREntryCreate(IROperand *label) {
+  IREntry *e = irEntryCreate(0, IO_LABEL);
+  e->arg1 = label;
+  return e;
+}
+IREntry *moveIREntryCreate(size_t size, IROperand *dest, IROperand *source) {
+  IREntry *e = irEntryCreate(size, IO_MOVE);
+  e->dest = dest;
+  e->arg1 = source;
+  return e;
+}
+IREntry *storeIREntryCreate(size_t size, IROperand *destAddr,
+                            IROperand *source) {
+  IREntry *e = irEntryCreate(size, IO_STORE);
+  e->dest = destAddr;
+  e->arg1 = source;
+  return e;
+}
+IREntry *loadIREntryCreate(size_t size, IROperand *dest,
+                           IROperand *sourceAddr) {
+  IREntry *e = irEntryCreate(size, IO_LOAD);
+  e->dest = dest;
+  e->arg1 = sourceAddr;
+  return e;
+}
+IREntry *binopIREntryCreate(size_t size, IROperator op, IROperand *dest,
+                            IROperand *arg1, IROperand *arg2) {
+  IREntry *e = irEntryCreate(size, op);
+  e->dest = dest;
+  e->arg1 = arg1;
+  e->arg2 = arg2;
+  return e;
+}
+IREntry *unopIREntryCreate(size_t size, IROperator op, IROperand *dest,
+                           IROperand *arg) {
+  IREntry *e = irEntryCreate(size, op);
+  e->dest = dest;
+  e->arg1 = arg;
+  return e;
+}
+IREntry *jumpIREntryCreate(IROperand *dest) {
+  IREntry *e = irEntryCreate(0, IO_JUMP);
+  e->dest = dest;
+  return e;
+}
+IREntry *cjumpIREntryCreate(size_t size, IROperator op, IROperand *dest,
+                            IROperand *lhs, IROperand *rhs) {
+  IREntry *e = irEntryCreate(size, op);
+  e->dest = dest;
+  e->arg1 = lhs;
+  e->arg2 = rhs;
+  return e;
+}
+IREntry *callIREntryCreate(IROperand *who) {
+  IREntry *e = irEntryCreate(0, IO_CALL);
+  e->arg1 = who;
+  return e;
+}
+IREntry *returnIREntryCreate(void) { return irEntryCreate(0, IO_RETURN); }
 void irEntryDestroy(IREntry *e) {
   if (e->dest != NULL) {
     irOperandDestroy(e->dest);
@@ -64,4 +247,14 @@ void irVectorUninit(IRVector *v) {
 }
 void irVectorDestroy(IRVector *v) {
   vectorDestroy(v, (void (*)(void *))irEntryDestroy);
+}
+
+void tempAllocatorInit(TempAllocator *allocator) {
+  allocator->next = 1;  // skipping zero
+}
+size_t tempAllocatorAllocate(TempAllocator *allocator) {
+  return allocator->next++;
+}
+void tempAllocatorUninit(TempAllocator *allocator) {
+  (void)allocator;  // do nothing
 }
