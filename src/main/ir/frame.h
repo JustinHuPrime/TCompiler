@@ -19,14 +19,8 @@
 #ifndef TLC_IR_FRAME_H_
 #define TLC_IR_FRAME_H_
 
-#include "util/container/vector.h"
+#include "ir/ir.h"
 
-#include <stdbool.h>
-
-struct IROperand;
-struct IREntry;
-struct TempAllocator;
-typedef Vector IRVector;
 typedef Vector TypeVector;
 struct Type;
 
@@ -37,19 +31,21 @@ typedef struct AccessVTable {
   void (*dtor)(struct Access *);
   // inserts instructions into code to load the var, produces the operand
   // where the result can be found
-  struct IROperand *(*load)(struct Access *this, IRVector *code,
-                            struct TempAllocator *tempAllocator);
+  IROperand *(*load)(struct Access *this, IRVector *code,
+                     struct TempAllocator *tempAllocator);
   // inserts instructions into code to store to the var, takes an operand to
   // store
-  void (*store)(struct Access *this, IRVector *code, struct IROperand *input,
+  void (*store)(struct Access *this, IRVector *code, IROperand *input,
                 struct TempAllocator *tempAllocator);
   // addrof is nullable - will be invalid in non-escaping/non-global accesses
   // gets the address of the var
-  struct IROperand *(*addrof)(struct Access *this, IRVector *code,
-                              struct TempAllocator *tempAllocator);
+  IROperand *(*addrof)(struct Access *this, IRVector *code,
+                       struct TempAllocator *tempAllocator);
 } AccessVTable;
 typedef struct Access {
   AccessVTable *vtable;
+  size_t size;
+  AllocHint kind;
 } Access;
 
 // typedef Vector AccessVector;

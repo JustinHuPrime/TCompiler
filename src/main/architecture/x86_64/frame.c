@@ -18,19 +18,21 @@
 
 #include "architecture/x86_64/frame.h"
 
+#include "constants.h"
 #include "ir/frame.h"
 #include "ir/ir.h"
+#include "ir/shorthand.h"
 #include "typecheck/symbolTable.h"
 #include "util/container/optimization.h"
+#include "util/functional.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 typedef struct X86_64GlobalAccess {
-  Access access;
+  Access base;
   char *label;
 } X86_64GlobalAccess;
-AccessVTable *X86_64GlobalAccessVTable = NULL;
 static void x86_64GlobalAccessDtor(Access *baseAccess) {
   X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
   free(access->label);
@@ -39,54 +41,148 @@ static void x86_64GlobalAccessDtor(Access *baseAccess) {
 static IROperand *x86_64GlobalAccessLoad(Access *baseAccess, IRVector *code,
                                          TempAllocator *tempAllocator) {
   X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
-  return NULL;  // TODO: write this
+
+  size_t result = NEW(tempAllocator);
+  IR(code, LOAD(access->base.size, TEMP(result, access->base.kind),
+                LABEL(strdup(access->label))));
+  return TEMP(result, access->base.kind);
 }
+static void x86_64GlobalAccessStore(Access *baseAccess, IRVector *code,
+                                    IROperand *input,
+                                    TempAllocator *tempAllocator) {
+  X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
+
+  IR(code, STORE(access->base.size, LABEL(strdup(access->label)), input));
+}
+static IROperand *x86_64GlobalAccessAddrof(Access *baseAccess, IRVector *code,
+                                           TempAllocator *tempAllocator) {
+  X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
+
+  return LABEL(strdup(access->label));
+}
+AccessVTable *X86_64GlobalAccessVTable = NULL;
 static AccessVTable *getX86_64GlobalAccessVTable(void) {
   if (X86_64GlobalAccessVTable == NULL) {
     X86_64GlobalAccessVTable = malloc(sizeof(AccessVTable));
     X86_64GlobalAccessVTable->dtor = x86_64GlobalAccessDtor;
     X86_64GlobalAccessVTable->load = x86_64GlobalAccessLoad;
-    X86_64GlobalAccessVTable->store;
-    X86_64GlobalAccessVTable->addrof;
+    X86_64GlobalAccessVTable->store = x86_64GlobalAccessStore;
+    X86_64GlobalAccessVTable->addrof = x86_64GlobalAccessAddrof;
   }
   return X86_64GlobalAccessVTable;
 }
-Access *x86_64GlobalAccessCtor(char *label) {
+Access *x86_64GlobalAccessCtor(size_t size, AllocHint kind, char *label) {
   X86_64GlobalAccess *access = malloc(sizeof(X86_64GlobalAccess));
-  access->access.vtable = getX86_64GlobalAccessVTable();
+  access->base.vtable = getX86_64GlobalAccessVTable();
+  access->base.size = size;
+  access->base.kind = kind;
   access->label = label;
   return (Access *)access;
 }
 
 typedef struct X86_64TempAccess {
-  Access access;
+  Access base;
   size_t tempNum;
 } X86_64TempAccess;
+static void x86_64TempAccessDtor(Access *baseAccess) {
+  X86_64TempAccess *access = (X86_64TempAccess *)baseAccess;
+  free(access);
+}
+static IROperand *x86_64TempAccessLoad(Access *baseAccess, IRVector *code,
+                                       TempAllocator *tempAllocator) {
+  X86_64TempAccess *access = (X86_64TempAccess *)baseAccess;
+
+  return TEMP(access->tempNum, access->base.kind);
+}
+static void x86_64TempAccessStore(Access *baseAccess, IRVector *code,
+                                  IROperand *input,
+                                  TempAllocator *tempAllocator) {
+  X86_64TempAccess *access = (X86_64TempAccess *)baseAccess;
+
+  IR(code,
+     MOVE(access->base.size, TEMP(access->tempNum, access->base.kind), input));
+}
 AccessVTable *X86_64TempAccessVTable = NULL;
 static AccessVTable *getX86_64TempAccessVTable(void) {
   if (X86_64TempAccessVTable == NULL) {
     X86_64TempAccessVTable = malloc(sizeof(AccessVTable));
-    X86_64TempAccessVTable->dtor;
-    X86_64TempAccessVTable->load;
-    X86_64TempAccessVTable->store;
-    X86_64TempAccessVTable->addrof;
+    X86_64TempAccessVTable->dtor = x86_64TempAccessDtor;
+    X86_64TempAccessVTable->load = x86_64TempAccessLoad;
+    X86_64TempAccessVTable->store = x86_64TempAccessStore;
+    X86_64TempAccessVTable->addrof =
+        (IROperand * (*)(Access *, IRVector *, TempAllocator *))
+            invalidFunction;
   }
   return X86_64TempAccessVTable;
 }
+static Access *x86_64TempAccessCtor(size_t size, AllocHint kind,
+                                    size_t tempNum) {
+  X86_64TempAccess *access = malloc(sizeof(X86_64TempAccess));
+  access->base.vtable = getX86_64TempAccessVTable();
+  access->base.size = size;
+  access->base.kind = kind;
+  access->tempNum = tempNum;
+  return (Access *)access;
+}
 
 typedef struct X86_64MemoryAccess {
-  Access access;
+  Access base;
+  size_t bpOffset;
 } X86_64MemoryAccess;
+static void x86_64MemoryAccessDtor(Access *baseAccess) {
+  X86_64MemoryAccess *access = (X86_64MemoryAccess *)baseAccess;
+  free(access);
+}
+static IROperand *x86_64MemoryAccessLoad(Access *baseAccess, IRVector *code,
+                                         TempAllocator *tempAllocator) {
+  X86_64MemoryAccess *access = (X86_64MemoryAccess *)baseAccess;
+
+  size_t address = NEW(tempAllocator);
+  size_t result = NEW(tempAllocator);
+  IR(code, BINOP(POINTER_WIDTH, IO_ADD, TEMP(address, AH_GP), REG(X86_64_RBP),
+                 ULONG(access->bpOffset)));
+  IR(code, LOAD(access->base.size, TEMP(result, access->base.kind),
+                TEMP(address, AH_GP)));
+  return TEMP(result, access->base.kind);
+}
+static void x86_64MemoryAccessStore(Access *baseAccess, IRVector *code,
+                                    IROperand *input,
+                                    TempAllocator *tempAllocator) {
+  X86_64MemoryAccess *access = (X86_64MemoryAccess *)baseAccess;
+
+  size_t address = NEW(tempAllocator);
+  IR(code, BINOP(POINTER_WIDTH, IO_ADD, TEMP(address, AH_GP), REG(X86_64_RBP),
+                 ULONG(access->bpOffset)));
+  IR(code, STORE(access->base.size, TEMP(address, AH_GP), input));
+}
+static IROperand *x86_64MemoryAccessAddrof(Access *baseAccess, IRVector *code,
+                                           TempAllocator *tempAllocator) {
+  X86_64MemoryAccess *access = (X86_64MemoryAccess *)baseAccess;
+
+  size_t address = NEW(tempAllocator);
+  IR(code, BINOP(POINTER_WIDTH, IO_ADD, TEMP(address, AH_GP), REG(X86_64_RBP),
+                 ULONG(access->bpOffset)));
+  return TEMP(address, access->base.kind);
+}
 AccessVTable *X86_64MemoryAccessVTable = NULL;
 static AccessVTable *getX86_64MemoryAccessVTable(void) {
   if (X86_64MemoryAccessVTable == NULL) {
     X86_64MemoryAccessVTable = malloc(sizeof(AccessVTable));
-    X86_64MemoryAccessVTable->dtor;
-    X86_64MemoryAccessVTable->load;
-    X86_64MemoryAccessVTable->store;
-    X86_64MemoryAccessVTable->addrof;
+    X86_64MemoryAccessVTable->dtor = x86_64MemoryAccessDtor;
+    X86_64MemoryAccessVTable->load = x86_64MemoryAccessLoad;
+    X86_64MemoryAccessVTable->store = x86_64MemoryAccessStore;
+    X86_64MemoryAccessVTable->addrof = x86_64MemoryAccessAddrof;
   }
   return X86_64MemoryAccessVTable;
+}
+static Access *x86_64MemoryAccessCtor(size_t size, AllocHint kind,
+                                      size_t bpOffset) {
+  X86_64MemoryAccess *access = malloc(sizeof(X86_64MemoryAccess));
+  access->base.vtable = getX86_64MemoryAccessVTable();
+  access->base.size = size;
+  access->base.kind = kind;
+  access->bpOffset = bpOffset;
+  return (Access *)access;
 }
 
 typedef struct X86_64Frame {

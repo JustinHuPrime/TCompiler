@@ -20,7 +20,11 @@
 
 #include "ir/ir.h"
 
-IROperand *TEMP(size_t n) { return tempIROperandCreate(n); }
+size_t NEW(TempAllocator *t) { return tempAllocatorAllocate(t); }
+
+IROperand *TEMP(size_t n, AllocHint kind) {
+  return tempIROperandCreate(n, kind);
+}
 IROperand *REG(size_t n) { return regIROperandCreate(n); }
 IROperand *UBYTE(uint8_t value) { return ubyteIROperandCreate(value); }
 IROperand *BYTE(int8_t value) { return byteIROperandCreate(value); }
@@ -64,3 +68,5 @@ IREntry *CJUMP(size_t size, IROperator op, IROperand *dest, IROperand *lhs,
 }
 IREntry *CALL(IROperand *who) { return callIREntryCreate(who); }
 IREntry *RETURN(void) { return returnIREntryCreate(); }
+
+void IR(IRVector *v, IREntry *e) { irVectorInsert(v, e); }

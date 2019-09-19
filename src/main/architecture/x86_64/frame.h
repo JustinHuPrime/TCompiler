@@ -16,13 +16,59 @@
 
 // x86_64 specific function frame
 
-#ifndef TLC_ARCHITECTURE_X86_64_FRAME_H_
-#define TLC_ARCHITECTURE_X86_64_FRAME_H_
+#ifndef TLC_ARCHITECTURE_X86_64_64_FRAME_H_
+#define TLC_ARCHITECTURE_X86_64_64_FRAME_H_
+
+#include "ir/ir.h"
 
 struct Frame;
 struct Access;
 
-struct Frame *x86_64FrameCtor(void);
-struct Access *x86_64GlobalAccessCtor(char *label);
+typedef enum {
+  // GP registers
+  X86_64_RAX,
+  X86_64_RBX,
+  X86_64_RCX,
+  X86_64_RDX,
 
-#endif  // TLC_ARCHITECTURE_X86_64_FRAME_H_
+  // GP index registers
+  X86_64_RSI,
+  X86_64_RDI,
+
+  // GP stack pointer registers
+  X86_64_RSP,
+  X86_64_RBP,
+
+  // GP registers
+  X86_64_R8,
+  X86_64_R9,
+  X86_64_R10,
+  X86_64_R11,
+  X86_64_R12,
+  X86_64_R13,
+  X86_64_R14,
+  X86_64_R15,
+
+  // SSE registers
+  X86_64_XMM0,
+  X86_64_XMM1,
+  X86_64_XMM2,
+  X86_64_XMM3,
+  X86_64_XMM4,
+  X86_64_XMM5,
+  X86_64_XMM6,
+  X86_64_XMM7,
+  X86_64_XMM8,
+  X86_64_XMM9,
+  X86_64_XMM10,
+  X86_64_XMM11,
+  X86_64_XMM12,
+  X86_64_XMM13,
+  X86_64_XMM14,
+  X86_64_XMM15,
+} X86_64Register;
+
+struct Frame *x86_64FrameCtor(void);
+struct Access *x86_64GlobalAccessCtor(size_t size, AllocHint kind, char *label);
+
+#endif  // TLC_ARCHITECTURE_X86_64_64_FRAME_H_

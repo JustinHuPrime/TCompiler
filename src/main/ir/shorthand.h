@@ -24,7 +24,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-IROperand *TEMP(size_t n);
+size_t NEW(TempAllocator *);
+
+IROperand *TEMP(size_t n, AllocHint kind);
 IROperand *REG(size_t n);
 IROperand *UBYTE(uint8_t value);
 IROperand *BYTE(int8_t value);
@@ -52,5 +54,7 @@ IREntry *CJUMP(size_t size, IROperator op, IROperand *dest, IROperand *lhs,
                IROperand *rhs);
 IREntry *CALL(IROperand *who);
 IREntry *RETURN(void);
+
+void IR(IRVector *, IREntry *);
 
 #endif  // TLC_IR_SHORTHAND_H_

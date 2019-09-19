@@ -19,6 +19,8 @@
 #ifndef TLC_TRANSLATE_TRANSLATE_H_
 #define TLC_TRANSLATE_TRANSLATE_H_
 
+#include "ir/ir.h"
+
 #include "util/container/hashMap.h"
 #include "util/container/vector.h"
 
@@ -26,7 +28,6 @@ typedef HashMap ModuleAstMap;
 typedef Vector IRVector;
 struct Frame;
 struct Access;
-struct TempAllocator;
 
 typedef enum {
   FK_BSS,
@@ -68,10 +69,11 @@ int fileFragmentVectorMapPut(FileFragmentVectorMap *, char const *key,
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
 typedef struct Frame *(*FrameCtor)(void);
-typedef struct Access *(*GlobalAccessCtor)(char *name);
+typedef struct Access *(*GlobalAccessCtor)(size_t size, AllocHint kind,
+                                           char *name);
 
 void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes,
                FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor,
-               struct TempAllocator *);
+               TempAllocator *);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_

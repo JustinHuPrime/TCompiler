@@ -57,9 +57,10 @@ static IROperand *irOperandCreate(OperandKind kind) {
   o->kind = kind;
   return o;
 }
-IROperand *tempIROperandCreate(size_t n) {
+IROperand *tempIROperandCreate(size_t n, AllocHint kind) {
   IROperand *o = irOperandCreate(OK_TEMP);
   o->data.temp.n = n;
+  o->data.temp.kind = kind;
   return o;
 }
 IROperand *regIROperandCreate(size_t n) {

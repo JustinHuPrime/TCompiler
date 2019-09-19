@@ -24,6 +24,11 @@
 #include <stdint.h>
 
 typedef enum {
+  AH_GP,
+  AH_MEM,
+  AH_FLOAT,
+} AllocHint;
+typedef enum {
   OK_TEMP,
   OK_REG,
   OK_CONSTANT,
@@ -35,6 +40,7 @@ typedef struct IROperand {
   union {
     struct {
       size_t n;
+      AllocHint kind;
     } temp;
     struct {
       size_t n;  // specific to the target architecture
@@ -50,7 +56,7 @@ typedef struct IROperand {
     } assembly;
   } data;
 } IROperand;
-IROperand *tempIROperandCreate(size_t n);
+IROperand *tempIROperandCreate(size_t n, AllocHint kind);
 IROperand *regIROperandCreate(size_t n);
 IROperand *ubyteIROperandCreate(uint8_t value);
 IROperand *byteIROperandCreate(int8_t value);
