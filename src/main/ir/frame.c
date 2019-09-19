@@ -18,10 +18,10 @@
 
 #include "ir/frame.h"
 
-static void accessDtorCaller(Access *a) { a->vtable->dtor(a); }
+// static void accessDtorCaller(Access *a) { a->vtable->dtor(a); }
 
-AccessVector *accessVectorCreate(void) { return vectorCreate(); }
-void accessVectorInsert(AccessVector *v, Access *a) { vectorInsert(v, a); }
-void accessVectorDestroy(AccessVector *v) {
-  vectorDestroy(v, (void (*)(void *))accessDtorCaller);
-}
+// AccessVector *accessVectorCreate(void) { return vectorCreate(); }
+// void accessVectorInsert(AccessVector *v, Access *a) { vectorInsert(v, a); }
+// void accessVectorDestroy(AccessVector *v) {
+//   vectorDestroy(v, (void (*)(void *))accessDtorCaller);
+// }

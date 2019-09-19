@@ -25,6 +25,7 @@
 
 struct IROperand;
 struct IREntry;
+struct TempAllocator;
 typedef Vector IRVector;
 typedef Vector TypeVector;
 struct Type;
@@ -36,33 +37,37 @@ typedef struct AccessVTable {
   void (*dtor)(struct Access *);
   // inserts instructions into code to load the var, produces the operand
   // where the result can be found
-  struct IROperand *(*load)(struct Access *this, IRVector *code);
+  struct IROperand *(*load)(struct Access *this, IRVector *code,
+                            struct TempAllocator *tempAllocator);
   // inserts instructions into code to store to the var, takes an operand to
   // store
-  void (*store)(struct Access *this, IRVector *code, struct IROperand *input);
+  void (*store)(struct Access *this, IRVector *code, struct IROperand *input,
+                struct TempAllocator *tempAllocator);
   // addrof is nullable - will be invalid in non-escaping/non-global accesses
   // gets the address of the var
-  struct IROperand *(*addrof)(struct Access *this, IRVector *code);
+  struct IROperand *(*addrof)(struct Access *this, IRVector *code,
+                              struct TempAllocator *tempAllocator);
 } AccessVTable;
 typedef struct Access {
   AccessVTable *vtable;
 } Access;
 
-typedef Vector AccessVector;
-AccessVector *accessVectorCreate(void);
-void accessVectorInsert(AccessVector *, Access *);
-void accessVectorDestroy(AccessVector *);
+// typedef Vector AccessVector;
+// AccessVector *accessVectorCreate(void);
+// void accessVectorInsert(AccessVector *, Access *);
+// void accessVectorDestroy(AccessVector *);
 
 typedef struct FrameVTable {
   void (*dtor)(struct Frame *);
   // adds an argument of the given type
-  Access *(*allocArg)(struct Frame *this, struct Type const *type,
-                      bool escapes);
+  Access *(*allocArg)(struct Frame *this, struct Type const *type, bool escapes,
+                      struct TempAllocator *tempAllocator);
   // adds a local variable of the given type
   Access *(*allocLocal)(struct Frame *this, struct Type const *type,
-                        bool escapes);
+                        bool escapes, struct TempAllocator *tempAllocator);
   // allocates a place to put the return value (addrof invalid)
-  Access *(*allocRetVal)(struct Frame *this, struct Type const *type);
+  Access *(*allocRetVal)(struct Frame *this, struct Type const *type,
+                         struct TempAllocator *tempAllocator);
   // adds instructions to out to form the whole function body
   void (*wrapBody)(struct Frame *this, IRVector *out);
 } FrameVTable;

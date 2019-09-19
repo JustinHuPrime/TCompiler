@@ -18,6 +18,7 @@
 
 #include "architecture/x86_64/frame.h"
 #include "ast/printer.h"
+#include "ir/ir.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "translate/translate.h"
@@ -181,6 +182,9 @@ int main(int argc, char *argv[]) {
   reportUninit(&report);
 
   // translation
+  TempAllocator tempAllocator;
+  tempAllocatorInit(&tempAllocator);
+
   FileFragmentVectorMap fragments;
   FrameCtor frameCtor;
   GlobalAccessCtor globalAccessCtor;
@@ -194,7 +198,10 @@ int main(int argc, char *argv[]) {
     default: { error(__FILE__, __LINE__, "invalid architecture specified"); }
   }
 
-  translate(&fragments, &asts.codes, frameCtor, globalAccessCtor);
+  translate(&fragments, &asts.codes, frameCtor, globalAccessCtor,
+            &tempAllocator);
+
+  tempAllocatorUninit(&tempAllocator);
 
   // debug stop for translate
   if (optionsGet(&options, optionDebugDump) == O_DD_IR) {

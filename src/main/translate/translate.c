@@ -68,7 +68,8 @@ void fileFragmentVectorMapUninit(FileFragmentVectorMap *map) {
 static void translateFunction(Node *function, FragmentVector *out) {}
 static void translateGlobal(Node *function, FragmentVector *out) {}
 static FragmentVector *translateModule(Node *module, FrameCtor frameCtor,
-                                       GlobalAccessCtor globalAccessCtor) {
+                                       GlobalAccessCtor globalAccessCtor,
+                                       TempAllocator *tempAllocator) {
   FragmentVector *fragments = fragmentVectorCreate();
   NodeList *bodies = module->data.file.bodies;
 
@@ -91,14 +92,15 @@ static FragmentVector *translateModule(Node *module, FrameCtor frameCtor,
 }
 
 void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes,
-               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor) {
+               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor,
+               TempAllocator *tempAllocator) {
   fileFragmentVectorMapInit(fragmentMap);
 
   for (size_t idx = 0; idx < codes->capacity; idx++) {
     if (codes->keys[idx] != NULL) {
       Node *module = codes->values[idx];
       FragmentVector *fragments =
-          translateModule(module, frameCtor, globalAccessCtor);
+          translateModule(module, frameCtor, globalAccessCtor, tempAllocator);
       fileFragmentVectorMapPut(fragmentMap, module->data.file.filename,
                                fragments);
     }
