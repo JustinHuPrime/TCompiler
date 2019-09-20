@@ -24,17 +24,17 @@
 
 // sizeof fundamental data types
 extern size_t const BYTE_WIDTH;  // should always be 1, included for consistency
-extern size_t const SHORT_WIDTH;
-extern size_t const INT_WIDTH;
-extern size_t const LONG_WIDTH;
-extern size_t const FLOAT_WIDTH;
-extern size_t const DOUBLE_WIDTH;
-extern size_t const POINTER_WIDTH;   // <= LONG_WIDTH
-extern size_t const CHAR_WIDTH;      // <= BYTE_WIDTH
-extern size_t const WCHAR_WIDTH;     // <= INT_WIDTH
-extern size_t const REGISTER_WIDTH;  // >= LONG_WIDTH
+extern size_t const SHORT_WIDTH;     // 2 on 64 bit, 2 on 32 bit
+extern size_t const INT_WIDTH;       // 4 on 64 bit, 4 on 32 bit
+extern size_t const LONG_WIDTH;      // 8 on 64 bit, 4 on 32 bit
+extern size_t const FLOAT_WIDTH;     // 4 on 64 bit, 4 on 32 bit
+extern size_t const DOUBLE_WIDTH;    // 8 on 64 bit, 4 on 32 bit
+extern size_t const POINTER_WIDTH;   // 8 on 64 bit, 4 on 32 bit
+extern size_t const CHAR_WIDTH;      // should always be 1
+extern size_t const WCHAR_WIDTH;     // should always be 4
+extern size_t const REGISTER_WIDTH;  // 8 on 64 bit, 4 on 32 bit
 
-// absolute value of maximum for some data type
+// absolute value of limits for some data type
 extern uint64_t const UBYTE_MAX;
 extern uint64_t const BYTE_MAX;
 extern uint64_t const BYTE_MIN;

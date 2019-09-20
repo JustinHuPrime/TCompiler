@@ -26,6 +26,3 @@ void error(char const *file, size_t line, char const *message) {
           message);
   abort();
 }
-void notYetImplemented(char const *file, size_t line) {
-  error(file, line, "feature not implemented");
-}

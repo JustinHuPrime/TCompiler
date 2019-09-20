@@ -22,9 +22,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-extern size_t const F_BUFFER_SIZE;
-
-// low level file manipulation
+// A caching file stream
+// this is optimized for a linear read through the file, and performs poorly
+// when backtracking
 typedef struct {
   char *buffer;
   int fd;

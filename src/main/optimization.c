@@ -14,14 +14,14 @@
 //
 // This file is part of the T Language Compiler.
 
-// Container optimization constants
+// Values of container optimization constants
 
-#ifndef TLC_UTIL_CONTAINER_OPTIMIZATION_H_
-#define TLC_UTIL_CONTAINER_OPTIMIZATION_H_
+#include "optimization.h"
 
-#include <stddef.h>
+// vectors of pointers start with 64 bytes allocated to reduce memory churn
+size_t const PTR_VECTOR_INIT_CAPACITY = 8;
+// vectors of bytes start with 16 bytes allocated to reduce memory churn
+size_t const BYTE_VECTOR_INIT_CAPACITY = 16;
 
-extern size_t const PTR_VECTOR_INIT_CAPACITY;
-extern size_t const BYTE_VECTOR_INIT_CAPACITY;
-
-#endif  // TLC_UTIL_CONTAINER_OPTIMIZATION_H_
+// we read files one page at a time
+size_t const FILE_BUFFER_SIZE = 4096;

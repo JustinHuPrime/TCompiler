@@ -33,7 +33,7 @@ void reportInit(Report *report) {
 }
 
 void reportMessage(Report *report, char const *format, ...) {
-  (void)report;  // argument kept for consistency
+  (void)report;  // ignored - argument kept for consistency
   va_list args;
   va_start(args, format);
   vfprintf(stderr, format, args);

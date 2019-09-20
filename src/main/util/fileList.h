@@ -27,7 +27,7 @@
 
 #include <stddef.h>
 
-// vector of char const *
+// vector of two categories of char const *
 typedef struct {
   Vector decls;
   Vector codes;
@@ -42,7 +42,8 @@ void fileListUninit(FileList *);
 // dtor
 void fileListDestroy(FileList *);
 
-// parser
+// initializes a fileList object given the options, argc, and argv, reporting
+// errors into report
 void parseFiles(FileList *, Report *report, Options const *options, size_t argc,
                 char const *const *argv);
 

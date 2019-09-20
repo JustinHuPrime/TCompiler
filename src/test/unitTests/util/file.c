@@ -18,6 +18,7 @@
 
 #include "util/file.h"
 
+#include "optimization.h"
 #include "unitTests/tests.h"
 
 #include <stdlib.h>
@@ -66,9 +67,9 @@ void fileTest(TestStatus *status) {
   // buffer boundary behaviour
   test(status,
        "[util] [fileStream] [buffer boundary] expect buffer size to be 4096",
-       F_BUFFER_SIZE == 4096);
+       FILE_BUFFER_SIZE == 4096);
   f = fOpen("testFiles/fileStream/fileStreamTestFile4097Char.txt");
-  for (size_t n = 0; n < F_BUFFER_SIZE; n++) fGet(f);
+  for (size_t n = 0; n < FILE_BUFFER_SIZE; n++) fGet(f);
   test(status,
        "[util] [fileStream] [buffer boundary] get after buffer boundary "
        "produces correct value",

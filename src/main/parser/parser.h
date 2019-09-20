@@ -27,12 +27,19 @@
 struct Node;
 
 // specialization of a generic
+// associates between a module and the AST
 typedef HashMap ModuleAstMap;
+// ctor
 ModuleAstMap *moduleAstMapCreate(void);
+// in-place ctor
 void moduleAstMapInit(ModuleAstMap *);
+// get
 Node *moduleAstMapGet(ModuleAstMap const *, char const *key);
+// put
 int moduleAstMapPut(ModuleAstMap *, char const *key, struct Node *value);
+// in-place dtor
 void moduleAstMapUninit(ModuleAstMap *);
+// dtor
 void moduleAstMapDestroy(ModuleAstMap *);
 
 // pod struct holding two ModuleAstMaps
@@ -40,9 +47,13 @@ typedef struct ModuleAstMapPair {
   ModuleAstMap decls;
   ModuleAstMap codes;
 } ModuleAstMapPair;
+// ctor
 ModuleAstMapPair *moduleAstMapPairCreate(void);
+// in-place ctor
 void moduleAstMapPairInit(ModuleAstMapPair *);
+// in-place dtor
 void moduleAstMapPairUninit(ModuleAstMapPair *);
+// dtor
 void moduleAstMapPairDestroy(ModuleAstMapPair *);
 
 // parses the files, producing SOME_TYPE

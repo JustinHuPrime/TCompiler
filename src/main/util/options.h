@@ -43,6 +43,8 @@ void optionsUninit(Options *);
 // dtor
 void optionsDestroy(Options *);
 
+// constants that options can be set to, with associated keys
+
 typedef enum {
   O_AT_X86 = 1,
   // O_AT_SEP,
@@ -74,7 +76,8 @@ typedef enum {
 } DebugDumpMode;
 extern char const *optionDebugDump;
 
-// parser
+// initializes the given options object, when given argc and argv, reports
+// errors into report
 void parseOptions(Options *, Report *report, size_t argc,
                   char const *const *argv);
 

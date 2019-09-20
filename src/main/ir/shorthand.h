@@ -24,8 +24,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// equivalent to tempAllocatorAllocate
 size_t NEW(TempAllocator *);
 
+// shorthands for IROperand construction
 IROperand *TEMP(size_t n, AllocHint kind);
 IROperand *REG(size_t n);
 IROperand *UBYTE(uint8_t value);
@@ -40,8 +42,9 @@ IROperand *FLOAT(uint32_t bits);
 IROperand *DOUBLE(uint64_t bits);
 IROperand *LABEL(char *name);
 
+// shorthands for IREntry construction
 IREntry *CONST(size_t size, IROperand *);
-IREntry *ASM(char *assembly);
+IREntry *ASM(char *assembly);  // constructs the IROperand as well
 IREntry *LABEL_DEF(IROperand *label);
 IREntry *MOVE(size_t size, IROperand *dest, IROperand *source);
 IREntry *STORE(size_t size, IROperand *destAddr, IROperand *source);
@@ -55,6 +58,7 @@ IREntry *CJUMP(size_t size, IROperator op, IROperand *dest, IROperand *lhs,
 IREntry *CALL(IROperand *who);
 IREntry *RETURN(void);
 
+// equivalent to irVectorInsert
 void IR(IRVector *, IREntry *);
 
 #endif  // TLC_IR_SHORTHAND_H_

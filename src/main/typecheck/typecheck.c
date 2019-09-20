@@ -28,6 +28,8 @@
 #include <string.h>
 
 // helpers
+// produce true if given expression can be assigned to (ignoring constness)
+// alternatively, produce true if given expression has an address
 static bool expressionIsLvalue(Node const *expression) {
   switch (expression->type) {
     case NT_SEQEXP: {
@@ -77,6 +79,8 @@ static bool expressionIsLvalue(Node const *expression) {
     default: { return false; }
   }
 }
+// record that this expression will escape
+// only valid if applied to an lvalue expression
 static void expressionEscapes(Node *expression) {
   switch (expression->type) {
     case NT_SEQEXP: {
@@ -132,6 +136,11 @@ static void expressionEscapes(Node *expression) {
 
 static Type *typecheckExpression(Node *, Report *, Options const *,
                                  char const *, TypeVector const *, bool);
+// type check a plain binary operation
+// takes the expression, a function to check for lhs validiy, a function to
+// check for rhs validity, the names of the corresponding requirements, the
+// operation name, a report to report to, the options, and the filename to
+// report with
 static Type *typecheckPlainBinOp(Node *expression, bool (*lhsReq)(Type const *),
                                  char const *lhsReqName,
                                  bool (*rhsReq)(Type const *),
@@ -184,6 +193,12 @@ static Type *typecheckPlainBinOp(Node *expression, bool (*lhsReq)(Type const *),
 
   return expression->data.binOpExp.resultType;
 }
+// type check a plain compound assignment operation
+// takes the expression, a function to check for lhs validity, a function to
+// check for rhs validity, the names of the corresponding requirements, the
+// operation name, a report to report to, the options, and the filename to
+// report with
+// in addition to above, checks for the lhs being an lvalue
 static Type *typecheckPlainAssignBinOp(
     Node *expression, bool (*lhsReq)(Type const *), char const *lhsReqName,
     bool (*rhsReq)(Type const *), char const *rhsReqName, char const *opName,
@@ -254,6 +269,13 @@ static Type *typecheckPlainAssignBinOp(
 }
 
 // expressions
+// typechecks an expression
+// directCall specifies if the expression is the direct child of a function call
+// (and thus if the argument types should match any function callable with the
+// arguments)
+// if directCall is false, then the argTypes will match any function whose
+// argument list is equal to the argTypes, not requiring any defaulting of
+// arguments
 static Type *typecheckExpression(Node *expression, Report *report,
                                  Options const *options, char const *filename,
                                  TypeVector const *argTypes, bool directCall) {
@@ -1298,6 +1320,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
 
 // statements
 static void typecheckVarDecl(Node *, Report *, Options const *, char const *);
+// dispatches a typecheck for every expression in a statement
 static void typecheckStmt(Node *statement, Report *report,
                           Options const *options, char const *filename,
                           Type const *expectedReturnType) {
@@ -1624,6 +1647,7 @@ static void typecheckStmt(Node *statement, Report *report,
 }
 
 // top level
+// check a declaration for consistency
 static void typecheckFnDecl(Node *fnDecl, Report *report,
                             Options const *options, char const *filename) {
   NodePairList *params = fnDecl->data.fnDecl.params;
@@ -1674,6 +1698,7 @@ static void typecheckFnDecl(Node *fnDecl, Report *report,
     }
   }
 }
+// check a function definition for consistency
 static void typecheckFunction(Node *function, Report *report,
                               Options const *options, char const *filename) {
   NodeTripleList *params = function->data.function.formals;
@@ -1728,6 +1753,7 @@ static void typecheckFunction(Node *function, Report *report,
   typecheckStmt(function->data.function.body, report, options, filename,
                 overload->returnType);
 }
+// check a variable declaration for consistency
 static void typecheckVarDecl(Node *varDecl, Report *report,
                              Options const *options, char const *filename) {
   NodePairList *idValuePairs = varDecl->data.varDecl.idValuePairs;
@@ -1756,6 +1782,7 @@ static void typecheckVarDecl(Node *varDecl, Report *report,
 }
 
 // file level stuff
+// type check a declaration file for consistency
 static void typecheckDecl(Node *ast, Report *report, Options const *options) {
   NodeList *bodies = ast->data.file.bodies;
   char const *filename = ast->data.file.filename;
@@ -1765,8 +1792,10 @@ static void typecheckDecl(Node *ast, Report *report, Options const *options) {
     if (body->type == NT_FNDECL) {
       typecheckFnDecl(body, report, options, filename);
     }
+    // other body nodes are not relevant
   }
 }
+// type check a code file for consistency
 static void typecheckCode(Node *ast, Report *report, Options const *options) {
   NodeList *bodies = ast->data.file.bodies;
   char const *filename = ast->data.file.filename;
@@ -1780,6 +1809,7 @@ static void typecheckCode(Node *ast, Report *report, Options const *options) {
     } else if (body->type == NT_VARDECL) {
       typecheckVarDecl(body, report, options, filename);
     }
+    // other body nodes are not relevant
   }
 }
 void typecheck(Report *report, Options const *options,

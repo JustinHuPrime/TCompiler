@@ -23,8 +23,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-uint8_t *tstrdup(uint8_t *);
-uint32_t *twstrdup(uint32_t *);
+// duplicates a string - does a malloc
+uint8_t *tstrdup(uint8_t const *);
+uint32_t *twstrdup(uint32_t const *);
+// get the length of a string, excluding the terminating null byte/int
 size_t tstrlen(uint8_t const *);
 size_t twstrlen(uint32_t const *);
 

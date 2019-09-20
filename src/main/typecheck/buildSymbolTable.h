@@ -24,6 +24,8 @@
 
 struct ModuleAstMapPair;
 
+// associate a symbol table with each scope, and a symbol table entry with each
+// identifier
 void buildSymbolTables(Report *, Options const *,
                        struct ModuleAstMapPair const *asts);
 

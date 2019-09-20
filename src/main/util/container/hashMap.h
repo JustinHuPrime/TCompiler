@@ -21,7 +21,7 @@
 
 #include <stddef.h>
 
-// A hash table between a string and a value pointer
+// A hash table between a string (not owned) and a value pointer
 typedef struct {
   size_t size;
   size_t capacity;
@@ -36,6 +36,7 @@ void hashMapInit(HashMap *);
 
 // get
 // returns the node, or NULL if the key is not in the table
+// constant time operation
 void *hashMapGet(HashMap const *, char const *key);
 
 extern int const HM_OK;
@@ -44,10 +45,12 @@ extern int const HM_EEXISTS;
 // takes a dtor function to use on the data if it could not insert the data
 // returns: HM_OK if the insertion was successful
 //          HM_EEXISTS if the key exists
+// amortized constant time operation
 int hashMapPut(HashMap *, char const *key, void *value, void (*dtor)(void *));
 
 // set - sets a key in the table, if it doesn't exist, adds it.
 // always succeeds
+// amortized constant time operation
 void hashMapSet(HashMap *, char const *key, void *value);
 
 // dtor

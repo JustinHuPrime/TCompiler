@@ -145,13 +145,21 @@ typedef enum {
   TT_LITERALWSTRING,
   TT_LITERALWCHAR,
 } TokenType;
+// produce a string describing the token
 char const *tokenTypeToString(TokenType);
+// turn the token into a type keyword
 TypeKeyword tokenTypeToTypeKeyword(TokenType);
+// turn the token into an assignment binop
 BinOpType tokenTypeToAssignmentBinop(TokenType);
+// turn the token into a bitwise binop
 BinOpType tokenTypeToBitwiseBinop(TokenType);
+// turn the token into a comparison operator
 CompOpType tokenTypeToCompop(TokenType);
+// turn the token into a shift binary operator
 BinOpType tokenTypeToShiftBinop(TokenType);
+// turn the token into a multiplication binary operator
 BinOpType tokenTypeToMulBinop(TokenType);
+// turn the token into a prefix unary operator
 UnOpType tokenTypeToPrefixUnop(TokenType);
 
 // pod object, stores the result of a lex
@@ -190,11 +198,15 @@ void lexerInfoDestroy(LexerInfo *);
 
 // specialization of hashmap
 typedef HashMap KeywordMap;
-
+// ctor - fills in the table
 KeywordMap *keywordMapCreate(void);
+// in-place ctor - fills in the table
 void keywordMapInit(KeywordMap *);
+// get
 TokenType const *keywordMapGet(KeywordMap const *, char const *);
+// in-place dtor
 void keywordMapUninit(KeywordMap *);
+// dtor
 void keywordMapDestroy(KeywordMap *);
 
 // takes the lexer info and reads one token from it, discarding preceeding

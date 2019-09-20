@@ -18,6 +18,8 @@
 
 #include "ir/frame.h"
 
+// empty module - implementation is abstract
+
 // static void accessDtorCaller(Access *a) { a->vtable->dtor(a); }
 
 // AccessVector *accessVectorCreate(void) { return vectorCreate(); }

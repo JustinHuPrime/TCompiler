@@ -35,6 +35,7 @@ typedef enum {
   FK_DATA,
   FK_TEXT,
 } FragmentKind;
+// a fragment of assembly data or code
 typedef struct {
   FragmentKind kind;
   char *label;
@@ -53,27 +54,42 @@ typedef struct {
     } text;
   } data;
 } Fragment;
+// ctors
+Fragment *bssFragmentCreate(void);
+Fragment *rodataFragmentCreate(void);
+Fragment *dataFragmentCreate(void);
+Fragment *textFragmentCreate(void);
+// dtor
 void fragmentDestroy(Fragment *);
 
+// vector of fragments
 typedef Vector FragmentVector;
+// ctor
 FragmentVector *fragmentVectorCreate(void);
+// insert
 void fragmentVectorInsert(FragmentVector *, Fragment *);
+// dtor
 void fragmentVectorDestroy(FragmentVector *);
 
+// associates the fragments in a file with the file
 typedef HashMap FileFragmentVectorMap;
+// in-place ctor
 void fileFragmentVectorMapInit(FileFragmentVectorMap *);
+// get
 FragmentVector *fileFragmentVectorMapGet(FileFragmentVectorMap *,
                                          char const *key);
+// put
 int fileFragmentVectorMapPut(FileFragmentVectorMap *, char const *key,
                              FragmentVector *vector);
+// in-place dtor
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
 typedef struct Frame *(*FrameCtor)(void);
 typedef struct Access *(*GlobalAccessCtor)(size_t size, AllocHint kind,
                                            char *name);
 
+// translates an abstract syntax tree into a series of fragments
 void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes,
-               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor,
-               TempAllocator *);
+               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_

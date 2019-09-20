@@ -24,6 +24,7 @@
 
 struct ModuleAstMapPair;
 
+// check that the given modules are consistent with type usage
 void typecheck(Report *, Options const *, struct ModuleAstMapPair const *asts);
 
 #endif  // TLC_TYPECHECK_TYPECHECK_H_

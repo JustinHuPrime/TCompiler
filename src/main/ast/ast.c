@@ -19,9 +19,9 @@
 #include "ast/ast.h"
 
 #include "constants.h"
+#include "optimization.h"
 #include "typecheck/symbolTable.h"
 #include "util/charSet.h"
-#include "util/container/optimization.h"
 #include "util/container/stringBuilder.h"
 
 #include <stdlib.h>

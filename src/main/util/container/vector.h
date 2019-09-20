@@ -23,7 +23,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// vector, in java generic style
+// a vector of pointers, in java generic style
 typedef struct {
   size_t size;
   size_t capacity;
@@ -34,9 +34,9 @@ typedef struct {
 Vector *vectorCreate(void);
 // in place ctor
 void vectorInit(Vector *);
-// copy ctor
+// copy ctor - takes a function to copy elements
 Vector *vectorCopy(Vector *, void *(*elmCopy)(void *));
-// insert
+// insert - amortized constant time
 void vectorInsert(Vector *, void *);
 // in place dtor
 // takes in a destructor function to apply to the elements
@@ -75,6 +75,7 @@ void boolVectorUninit(BoolVector *);
 // dtor
 void boolVectorDestroy(BoolVector *);
 
+// vector of bytes
 typedef struct {
   size_t size;
   size_t capacity;

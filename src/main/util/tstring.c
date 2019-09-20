@@ -21,13 +21,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-uint8_t *tstrdup(uint8_t *string) {
+uint8_t *tstrdup(uint8_t const *string) {
   size_t nbytes = (tstrlen(string) + 1) * sizeof(uint8_t);
   uint8_t *out = malloc(nbytes);
   memcpy(out, string, nbytes);
   return out;
 }
-uint32_t *twstrdup(uint32_t *string) {
+uint32_t *twstrdup(uint32_t const *string) {
   size_t nbytes = (twstrlen(string) + 1) * sizeof(uint32_t);
   uint32_t *out = malloc(nbytes);
   memcpy(out, string, nbytes);

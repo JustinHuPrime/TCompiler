@@ -21,7 +21,11 @@
 
 #include <stdint.h>
 
+// converts a character containing a hexadecimal digit to a T character equal to
+// the value of the hex digit
 uint8_t hexToTChar(char c);
+// converts a character containing a hexadecimal digit to a character equal to
+// the value of the hex digit
 char hexToChar(char c);
 
 #endif  // TLC_UTIL_CHARSET_H_

@@ -18,7 +18,7 @@
 
 #include "util/container/stringBuilder.h"
 
-#include "util/container/optimization.h"
+#include "optimization.h"
 
 #include <stdlib.h>
 #include <string.h>

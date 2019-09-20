@@ -21,8 +21,9 @@
 
 #include <stddef.h>
 
+// report an internal compiler error coming from the given file and line, with
+// the given message
 void error(char const *file, size_t line, char const *message)
     __attribute__((noreturn));
-void notYetImplemented(char const *file, size_t line) __attribute__((noreturn));
 
 #endif  // TLC_INTERNALERROR_H_

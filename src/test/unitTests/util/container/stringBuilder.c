@@ -18,8 +18,8 @@
 
 #include "util/container/stringBuilder.h"
 
+#include "optimization.h"
 #include "unitTests/tests.h"
-#include "util/container/optimization.h"
 
 #include <stdlib.h>
 #include <string.h>

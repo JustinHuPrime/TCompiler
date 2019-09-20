@@ -23,7 +23,6 @@
 #include "ir/ir.h"
 #include "ir/shorthand.h"
 #include "typecheck/symbolTable.h"
-#include "util/container/optimization.h"
 #include "util/functional.h"
 
 #include <stdlib.h>

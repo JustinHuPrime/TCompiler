@@ -14,7 +14,7 @@
 //
 // This file is part of the T Language Compiler.
 
-// Symbol table for typecheck time
+// Symbol table used at typecheck time
 
 #ifndef TLC_SYMBOLTABLE_SYMBOLTABLE_H_
 #define TLC_SYMBOLTABLE_SYMBOLTABLE_H_
@@ -54,7 +54,7 @@ typedef enum {
   K_AGGREGATE_INIT,
 } TypeKind;
 
-// specialization of a generic
+// a vector of type pointers
 typedef Vector TypeVector;
 // ctor
 TypeVector *typeVectorCreate(void);
@@ -72,6 +72,7 @@ void typeVectorUninit(TypeVector *);
 // dtor
 void typeVectorDestroy(TypeVector *);
 
+// the type of a variable
 typedef struct Type {
   TypeKind kind;
   union {
@@ -272,11 +273,17 @@ void symbolTableDestroy(SymbolTable *);
 // map b/w module name and symbol table
 // specialization of a generic
 typedef HashMap ModuleTableMap;
+// ctor
 ModuleTableMap *moduleTableMapCreate(void);
+// in-place ctor
 void moduleTableMapInit(ModuleTableMap *);
+// getter
 SymbolTable *moduleTableMapGet(ModuleTableMap const *, char const *key);
+// insert
 int moduleTableMapPut(ModuleTableMap *, char const *key, SymbolTable *value);
+// in-place dtor
 void moduleTableMapUninit(ModuleTableMap *);
+// dtor
 void moduleTableMapDestroy(ModuleTableMap *);
 
 typedef struct Environment {
@@ -285,17 +292,25 @@ typedef struct Environment {
   char const *currentModuleName;  // non-owning current module name
   Stack scopes;                   // stack of local env symbol tables (owning)
 } Environment;
+// ctor
 Environment *environmentCreate(SymbolTable *currentModule,
                                char const *currentModuleName);
+// in-place ctor
 void environmentInit(Environment *, SymbolTable *currentModule,
                      char const *currentModuleName);
+// looks up an id in the environment, reporting error if not found
 SymbolInfo *environmentLookup(Environment const *, Report *report,
                               char const *id, size_t line, size_t character,
                               char const *filename);
+// return a pointer to the topmost scope's symbol table
 SymbolTable *environmentTop(Environment const *);
+// start a scope
 void environmentPush(Environment *);
+// end a scope, return its symbol table
 SymbolTable *environmentPop(Environment *);
+// in-place dtor
 void environmentUninit(Environment *);
+// dtor
 void environmentDestroy(Environment *);
 
 #endif  // TLC_SYMBOLTABLE_SYMBOLTABLE_H_

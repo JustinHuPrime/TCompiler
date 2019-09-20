@@ -24,6 +24,7 @@
 struct Frame;
 struct Access;
 
+// symbolic constants for x86_64 register numbers
 typedef enum {
   // GP registers
   X86_64_RAX,
@@ -68,6 +69,7 @@ typedef enum {
   X86_64_XMM15,
 } X86_64Register;
 
+// constructors for x86_64 implementation of frames
 struct Frame *x86_64FrameCtor(void);
 struct Access *x86_64GlobalAccessCtor(size_t size, AllocHint kind, char *label);
 

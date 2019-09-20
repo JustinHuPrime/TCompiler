@@ -17,6 +17,8 @@
 // Implementation of generic hash map
 
 #include "util/container/hashMap.h"
+
+#include "optimization.h"
 #include "util/hash.h"
 
 #include <stdlib.h>
@@ -29,9 +31,9 @@ HashMap *hashMapCreate(void) {
 }
 void hashMapInit(HashMap *map) {
   map->size = 0;
-  map->capacity = 1;
-  map->keys = calloc(1, sizeof(char const *));
-  map->values = malloc(sizeof(void *));
+  map->capacity = PTR_VECTOR_INIT_CAPACITY;
+  map->keys = calloc(map->capacity, sizeof(char const *));
+  map->values = malloc(map->capacity * sizeof(void *));
 }
 
 void *hashMapGet(HashMap const *map, char const *key) {

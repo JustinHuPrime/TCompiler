@@ -18,13 +18,19 @@
 
 #include "util/container/hashMap.h"
 
+#include "optimization.h"
 #include "unitTests/tests.h"
+#include "util/format.h"
 #include "util/functional.h"
+
+#include <stdlib.h>
 
 void hashMapTest(TestStatus *status) {
   HashMap *map = hashMapCreate();
-  test(status, "[util] [hashMap] [ctor] ctor produces map with capacity one",
-       map->capacity == 1);
+  test(status,
+       "[util] [hashMap] [ctor] ctor produces map with capacity "
+       "PTR_VECTOR_INIT_CAPACITY",
+       map->capacity == PTR_VECTOR_INIT_CAPACITY);
   test(status, "[util] [hashMap] [ctor] ctor produces map with size zero",
        map->size == 0);
   test(
@@ -37,39 +43,29 @@ void hashMapTest(TestStatus *status) {
   test(status, "[util] [hashMap] [ctor] ctor produces zeroed key array",
        map->keys[0] == NULL);
 
+  char **strings = malloc((PTR_VECTOR_INIT_CAPACITY - 1) * sizeof(char *));
+  for (size_t count = 0; count < PTR_VECTOR_INIT_CAPACITY - 1; count++) {
+    strings[count] = format("%zu", count);
+    hashMapPut(map, strings[count], (void *)0, nullDtor);
+  }
+
   char const *a = "a";
   hashMapPut(map, a, (void *)1, nullDtor);
   test(status,
        "[util] [hashMap] [hashMapPut] put does not update capacity if there is "
        "no collision",
-       map->capacity == 1);
+       map->capacity == PTR_VECTOR_INIT_CAPACITY);
   test(status, "[util] [hashMap] [hashMapPut] put updates size properly",
-       map->size == 1);
-  test(status, "[util] [hashMap] [hashMapPut] put inserts key into only slot",
-       map->keys[0] == a);
-  test(status, "[util] [hashMap] [hashMapPut] put inserts value into only slot",
-       map->values[0] == (void *)1);
+       map->size == PTR_VECTOR_INIT_CAPACITY);
 
   char const *b = "b";
   hashMapPut(map, b, (void *)2, nullDtor);
   test(status,
        "[util] [hashMap] [hashMapPut] put updates capacity if there is a "
        "collision",
-       map->capacity == 2);
+       map->capacity == PTR_VECTOR_INIT_CAPACITY * 2);
   test(status, "[util] [hashMap] [hashMapPut] put updates size properly",
-       map->size == 2);
-  test(status,
-       "[util] [hashMap] [hashMapPut] put inserts key into appropriate slot",
-       map->keys[1] == b);
-  test(status,
-       "[util] [hashMap] [hashMapPut] put inserts value into appropriate slot",
-       map->values[1] == (void *)2);
-  test(status,
-       "[util] [hashMap] [hashMapPut] put keeps old key in appropriate slot",
-       map->keys[0] == a);
-  test(status,
-       "[util] [hashMap] [hashMapPut] put keeps old value in appropriate slot",
-       map->values[0] == (void *)1);
+       map->size == PTR_VECTOR_INIT_CAPACITY + 1);
 
   int retVal = hashMapPut(map, b, (void *)2, nullDtor);
   test(status,
@@ -77,9 +73,9 @@ void hashMapTest(TestStatus *status) {
        "existing key",
        retVal == HM_EEXISTS);
   test(status, "[util] [hashMap] [hashMapPut] bad put doesn't change capacity",
-       map->size == 2);
+       map->capacity == PTR_VECTOR_INIT_CAPACITY * 2);
   test(status, "[util] [hashMap] [hashMapPut] bad put doesn't change size",
-       map->size == 2);
+       map->size == PTR_VECTOR_INIT_CAPACITY + 1);
 
   test(status,
        "[util] [hashMap] [hashMapGet] get returns correct value for existing "
@@ -94,49 +90,15 @@ void hashMapTest(TestStatus *status) {
   test(status,
        "[util] [hashMap] [hashMapSet] set doesn't update capacity if there is "
        "no collision",
-       map->capacity == 2);
+       map->capacity == PTR_VECTOR_INIT_CAPACITY * 2);
   test(status,
        "[util] [hashMap] [hashMapSet] set doesn't update size if key exists",
-       map->size == 2);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set keeps key in appropriate slot",
-       map->keys[1] == b);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set changes value in appropriate slot",
-       map->values[1] == (void *)3);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set keeps old key in appropriate slot",
-       map->keys[0] == a);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set keeps old value in appropriate slot",
-       map->values[0] == (void *)1);
-
-  char const *c = "c";
-  hashMapSet(map, c, (void *)4);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set updates capacity if there is a "
-       "collision",
-       map->capacity == 4);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set updates size if key doesn't exist",
-       map->size == 3);
-  test(status, "[util] [hashMap] [hashMapSet] set adds key in appropriate slot",
-       map->keys[2] == c);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set adds value in appropriate slot",
-       map->values[2] == (void *)4);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set keeps old key in appropriate slot",
-       map->keys[3] == b);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set keeps old value in appropriate slot",
-       map->values[3] == (void *)3);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set keeps old key in appropriate slot",
-       map->keys[0] == a);
-  test(status,
-       "[util] [hashMap] [hashMapSet] set keeps old value in appropriate slot",
-       map->values[0] == (void *)1);
+       map->size == PTR_VECTOR_INIT_CAPACITY + 1);
 
   hashMapDestroy(map, nullDtor);
+
+  for (size_t count = 0; count < PTR_VECTOR_INIT_CAPACITY - 1; count++) {
+    free(strings[count]);
+  }
+  free(strings);
 }

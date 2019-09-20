@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 
+// using a printf format string to print into a malloced string
 char *format(char const *format, ...) __attribute__((format(printf, 1, 2)));
 
 #endif  // TLC_UTIL_FORMAT_H_

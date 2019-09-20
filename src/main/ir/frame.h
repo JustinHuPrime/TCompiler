@@ -42,6 +42,7 @@ typedef struct AccessVTable {
   IROperand *(*addrof)(struct Access *this, IRVector *code,
                        struct TempAllocator *tempAllocator);
 } AccessVTable;
+// an abstract access to some value, of some size and some kind
 typedef struct Access {
   AccessVTable *vtable;
   size_t size;
@@ -67,6 +68,7 @@ typedef struct FrameVTable {
   // adds instructions to out to form the whole function body
   void (*wrapBody)(struct Frame *this, IRVector *out);
 } FrameVTable;
+// an abstract function frame
 typedef struct Frame {
   FrameVTable *vtable;
 } Frame;

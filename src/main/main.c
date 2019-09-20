@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+// determines if any argument in argv is "--version"
 static bool versionRequested(size_t argc, char *argv[]) {
   for (size_t idx = 1; idx < argc; idx++) {
     if (strcmp(argv[idx], "--version") == 0) {
@@ -42,6 +43,7 @@ static bool versionRequested(size_t argc, char *argv[]) {
   }
   return false;
 }
+// determines if any argument in argv is "--help", "-h", or "-?"
 static bool helpRequested(size_t argc, char *argv[]) {
   for (size_t idx = 1; idx < argc; idx++) {
     if (strcmp(argv[idx], "--help") == 0 || strcmp(argv[idx], "-h") == 0 ||
@@ -52,6 +54,7 @@ static bool helpRequested(size_t argc, char *argv[]) {
   return false;
 }
 
+// possible return values for main
 typedef enum {
   SUCCESS = EXIT_SUCCESS,
   OPTION_ERROR,
@@ -61,18 +64,11 @@ typedef enum {
   TYPECHECK_ERROR,
 } ReturnValue;
 
+// compile the given declaration and code files into one assembly file per code
+// file, given the flags
 int main(int argc, char *argv[]) {
-  if (versionRequested((size_t)argc, argv)) {
-    printf(
-        "T Language Compiler (tlc) version 0.0.1\n"
-        "Copyright 2019 Justin Hu and Bronwyn Damm\n"
-        "This software is licensed under the Apache License, Version 2.0.\n"
-        "See the \"LICENSE\" file for copying conditions.\n"
-        "This software is distributed on an \"AS IS\" BASIS, WITHOUT "
-        "WARRANTIES OR\n"
-        "CONDITIONS OF ANY KIND\n");
-    return SUCCESS;
-  } else if (helpRequested((size_t)argc, argv)) {
+  // handle overriding command line arguments
+  if (helpRequested((size_t)argc, argv)) {
     printf(
         "Usage: tlc [options] file...\n"
         "For more information, see the 'README.md' file.\n"
@@ -87,14 +83,24 @@ int main(int argc, char *argv[]) {
         "Please report bugs at "
         "<https://github.com/JustinHuPrime/TCompiler/issues>\n");
     return SUCCESS;
+  } else if (versionRequested((size_t)argc, argv)) {
+    printf(
+        "T Language Compiler (tlc) version 0.0.1\n"
+        "Copyright 2019 Justin Hu and Bronwyn Damm\n"
+        "This software is licensed under the Apache License, Version 2.0.\n"
+        "See the \"LICENSE\" file for copying conditions.\n"
+        "This software is distributed on an \"AS IS\" BASIS, WITHOUT "
+        "WARRANTIES OR\n"
+        "CONDITIONS OF ANY KIND\n");
+    return SUCCESS;
   }
 
+  // Global error report - tracks the error level
   Report report;
   reportInit(&report);
 
   // Read the given options, and validate them
   Options options;
-
   parseOptions(&options, &report, (size_t)argc, (char const *const *)argv);
   if (reportState(&report) == RPT_ERR) {
     optionsUninit(&options);
@@ -113,7 +119,7 @@ int main(int argc, char *argv[]) {
     return FILE_ERROR;
   }
 
-  // debug stop for lex
+  // debug stop for lex - displays the tokens in all given files
   if (optionsGet(&options, optionDebugDump) == O_DD_LEX) {
     Report dumpReport;
     reportInit(&dumpReport);
@@ -132,9 +138,11 @@ int main(int argc, char *argv[]) {
     return PARSE_ERROR;
   }
 
+  // no longer need to track file names - file name strings are owned by main
   fileListUninit(&files);
 
-  // debug stop for parse
+  // debug stop for parse - displays the parse tree as text or in constructor
+  // style
   if (optionsGet(&options, optionDebugDump) == O_DD_PARSE_PRETTY) {
     for (size_t idx = 0; idx < asts.decls.capacity; idx++) {
       if (asts.decls.keys[idx] != NULL) {
@@ -161,6 +169,8 @@ int main(int argc, char *argv[]) {
   }
 
   // semantic analysis
+  // associate a symbol table with each scope, and a symbol table entry with
+  // each identifier
   buildSymbolTables(&report, &options, &asts);
   if (reportState(&report) == RPT_ERR) {
     moduleAstMapPairUninit(&asts);
@@ -169,6 +179,7 @@ int main(int argc, char *argv[]) {
     return BUILD_STAB_ERROR;
   }
 
+  // check for type consistency
   typecheck(&report, &options, &asts);
   if (reportState(&report) == RPT_ERR) {
     moduleAstMapPairUninit(&asts);
@@ -177,15 +188,14 @@ int main(int argc, char *argv[]) {
     return TYPECHECK_ERROR;
   }
 
-  // no more user errors:
-  // program is well formed, and errors are all internal compiler errors
+  // no more user errors - program is well formed, and further errors are all
+  // internal compiler errors
   reportUninit(&report);
 
-  // translation
-  TempAllocator tempAllocator;
-  tempAllocatorInit(&tempAllocator);
-
+  // translation into IR
   FileFragmentVectorMap fragments;
+
+  // architecture specific functions
   FrameCtor frameCtor;
   GlobalAccessCtor globalAccessCtor;
 
@@ -198,21 +208,19 @@ int main(int argc, char *argv[]) {
     default: { error(__FILE__, __LINE__, "invalid architecture specified"); }
   }
 
-  translate(&fragments, &asts.codes, frameCtor, globalAccessCtor,
-            &tempAllocator);
+  translate(&fragments, &asts.codes, frameCtor, globalAccessCtor);
 
-  tempAllocatorUninit(&tempAllocator);
-
-  // debug stop for translate
+  // debug stop for translate - displays the IR fragments for each file
   if (optionsGet(&options, optionDebugDump) == O_DD_IR) {
     error(__FILE__, __LINE__, "not yet implemented");
   }
 
-  // canonicalize
+  // convert into SSA form
 
   // optimize
+  // TODO: write optimizations
 
-  // backend
+  // backend - everything is architecture specific
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
       // instruction selection

@@ -18,8 +18,8 @@
 
 #include "util/container/vector.h"
 
+#include "optimization.h"
 #include "unitTests/tests.h"
-#include "util/container/optimization.h"
 #include "util/functional.h"
 
 void vectorTest(TestStatus *status) {

@@ -35,6 +35,7 @@ typedef enum {
   OK_LABEL,
   OK_ASM,
 } OperandKind;
+// an operand in an IR entry
 typedef struct IROperand {
   OperandKind kind;
   union {
@@ -56,6 +57,7 @@ typedef struct IROperand {
     } assembly;
   } data;
 } IROperand;
+// ctors
 IROperand *tempIROperandCreate(size_t n, AllocHint kind);
 IROperand *regIROperandCreate(size_t n);
 IROperand *ubyteIROperandCreate(uint8_t value);
@@ -70,6 +72,7 @@ IROperand *floatIROperandCreate(uint32_t bits);
 IROperand *doubleIROperandCreate(uint64_t bits);
 IROperand *labelIROperandCreate(char *name);
 IROperand *asmIROperandCreate(char *assembly);
+// dtor
 void irOperandDestroy(IROperand *);
 
 typedef enum IROperator {
@@ -128,6 +131,7 @@ typedef enum IROperator {
               // arg2 = NULL note that the return value is set up beforehand by
               // moves, handled by the stack frame
 } IROperator;
+// a three-address code
 typedef struct IREntry {
   IROperator op;
   size_t opSize;
@@ -135,6 +139,7 @@ typedef struct IREntry {
   IROperand *arg1;
   IROperand *arg2;  // nullable
 } IREntry;
+// ctors
 IREntry *constantIREntryCreate(size_t size, IROperand *constant);
 IREntry *asmIREntryCreate(IROperand *assembly);
 IREntry *labelIREntryCreate(IROperand *label);
@@ -151,8 +156,10 @@ IREntry *cjumpIREntryCreate(size_t size, IROperator op, IROperand *dest,
                             IROperand *lhs, IROperand *rhs);
 IREntry *callIREntryCreate(IROperand *who);
 IREntry *returnIREntryCreate(void);
+// dtor
 void irEntryDestroy(IREntry *);
 
+// vector of IREntries - used for data, rodata, and code fragments
 typedef Vector IRVector;
 IRVector *irVectorCreate(void);
 void irVectorInit(IRVector *);
@@ -160,11 +167,15 @@ void irVectorInsert(IRVector *, IREntry *);
 void irVectorUninit(IRVector *);
 void irVectorDestroy(IRVector *);
 
+// a linear allocator for temporary numbers
 typedef struct TempAllocator {
   size_t next;
 } TempAllocator;
+// in-place ctor
 void tempAllocatorInit(TempAllocator *);
+// produce a number
 size_t tempAllocatorAllocate(TempAllocator *);
+// in-place dtor
 void tempAllocatorUninit(TempAllocator *);
 
 #endif  // TLC_IR_IR_H_

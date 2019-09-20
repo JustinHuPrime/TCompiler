@@ -18,7 +18,7 @@
 
 #include "util/container/vector.h"
 
-#include "util/container/optimization.h"
+#include "optimization.h"
 #include "util/functional.h"
 
 #include <stdlib.h>
@@ -46,7 +46,7 @@ Vector *vectorCopy(Vector *v, void *(*elmCopy)(void *)) {
 }
 void vectorInsert(Vector *vector, void *element) {
   if (vector->size == vector->capacity) {
-    vector->capacity *= 2;
+    vector->capacity *= 2;  // using exponential growth
     vector->elements =
         realloc(vector->elements, vector->capacity * sizeof(void *));
   }

@@ -14,7 +14,7 @@
 //
 // This file is part of the T Language Compiler.
 
-// Error message handler
+// Error message formatter and counter
 
 #ifndef TLC_UTIL_ERRORREPORT_H_
 #define TLC_UTIL_ERRORREPORT_H_
@@ -24,7 +24,6 @@
 #include <stddef.h>
 
 typedef struct {
-  Vector messages;
   size_t errors;
   size_t warnings;
 } Report;
@@ -34,19 +33,20 @@ Report *reportCreate(void);
 // in-place ctor
 void reportInit(Report *);
 
-// displays a message
+// displays a message - does not change the count of errors or warnings
 void reportMessage(Report *, char const *format, ...)
     __attribute__((format(printf, 2, 3)));
-// displays an error
+// displays an error - increments errors by one
 void reportError(Report *, char const *format, ...)
     __attribute__((format(printf, 2, 3)));
-// displays a warning
+// displays a warning - increments warnings by one
 void reportWarning(Report *, char const *format, ...)
     __attribute__((format(printf, 2, 3)));
 
 extern int const RPT_OK;
 extern int const RPT_ERR;
 extern int const RPT_WARN;
+// gets the current state of the report
 // returns: RPT_OK if no errors and no warnings,
 //          RPT_ERR if any errors exist,
 //          RPT_WARN if any warnings exist.
