@@ -56,17 +56,23 @@ typedef struct Access {
 
 typedef struct FrameVTable {
   void (*dtor)(struct Frame *);
-  // adds an argument of the given type
+  // adds an argument of the given type - may not be called except in outermost
+  // scope
   Access *(*allocArg)(struct Frame *this, struct Type const *type, bool escapes,
                       struct TempAllocator *tempAllocator);
   // adds a local variable of the given type
   Access *(*allocLocal)(struct Frame *this, struct Type const *type,
                         bool escapes, struct TempAllocator *tempAllocator);
-  // allocates a place to put the return value (addrof invalid)
+  // allocates a place to put the return value (addrof invalid) - may not be
+  // called except in outermost scope
   Access *(*allocRetVal)(struct Frame *this, struct Type const *type,
                          struct TempAllocator *tempAllocator);
-  // adds instructions to out to form the whole function body
-  void (*wrapBody)(struct Frame *this, IRVector *out);
+  // starts a scope
+  void (*scopeStart)(struct Frame *this);
+  // ends a scope, and generates code for it
+  // also called to end the whole function's scope
+  IRVector *(*scopeEnd)(struct Frame *this, IRVector *body,
+                        struct TempAllocator *tempAllocator);
 } FrameVTable;
 // an abstract function frame
 typedef struct Frame {

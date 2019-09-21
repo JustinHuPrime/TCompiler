@@ -164,6 +164,7 @@ typedef Vector IRVector;
 IRVector *irVectorCreate(void);
 void irVectorInit(IRVector *);
 void irVectorInsert(IRVector *, IREntry *);
+IRVector *irVectorMerge(IRVector *, IRVector *);
 void irVectorUninit(IRVector *);
 void irVectorDestroy(IRVector *);
 

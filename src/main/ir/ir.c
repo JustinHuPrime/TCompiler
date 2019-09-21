@@ -243,6 +243,9 @@ void irEntryDestroy(IREntry *e) {
 IRVector *irVectorCreate(void) { return vectorCreate(); }
 void irVectorInit(IRVector *v) { vectorInit(v); }
 void irVectorInsert(IRVector *v, IREntry *e) { vectorInsert(v, e); }
+IRVector *irVectorMerge(IRVector *v1, IRVector *v2) {
+  return vectorMerge(v1, v2);
+}
 void irVectorUninit(IRVector *v) {
   vectorUninit(v, (void (*)(void *))irEntryDestroy);
 }

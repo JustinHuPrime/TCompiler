@@ -124,6 +124,49 @@ static Access *x86_64TempAccessCtor(size_t size, AllocHint kind,
   return (Access *)access;
 }
 
+typedef struct X86_64RegAccess {
+  Access base;
+  size_t regNum;
+} X86_64RegAccess;
+static void x86_64RegAccessDtor(Access *baseAccess) {
+  X86_64RegAccess *access = (X86_64RegAccess *)baseAccess;
+  free(access);
+}
+static IROperand *x86_64RegAccessLoad(Access *baseAccess, IRVector *code,
+                                      TempAllocator *tempAllocator) {
+  X86_64RegAccess *access = (X86_64RegAccess *)baseAccess;
+
+  return REG(access->regNum);
+}
+static void x86_64RegAccessStore(Access *baseAccess, IRVector *code,
+                                 IROperand *input,
+                                 TempAllocator *tempAllocator) {
+  X86_64RegAccess *access = (X86_64RegAccess *)baseAccess;
+
+  IR(code, MOVE(access->base.size, REG(access->regNum), input));
+}
+AccessVTable *X86_64RegAccessVTable = NULL;
+static AccessVTable *getX86_64RegAccessVTable(void) {
+  if (X86_64RegAccessVTable == NULL) {
+    X86_64RegAccessVTable = malloc(sizeof(AccessVTable));
+    X86_64RegAccessVTable->dtor = x86_64RegAccessDtor;
+    X86_64RegAccessVTable->load = x86_64RegAccessLoad;
+    X86_64RegAccessVTable->store = x86_64RegAccessStore;
+    X86_64RegAccessVTable->addrof =
+        (IROperand * (*)(Access *, IRVector *, TempAllocator *))
+            invalidFunction;
+  }
+  return X86_64RegAccessVTable;
+}
+static Access *x86_64RegAccessCtor(size_t size, AllocHint kind, size_t regNum) {
+  X86_64RegAccess *access = malloc(sizeof(X86_64RegAccess));
+  access->base.vtable = getX86_64RegAccessVTable();
+  access->base.size = size;
+  access->base.kind = kind;
+  access->regNum = regNum;
+  return (Access *)access;
+}
+
 typedef struct X86_64MemoryAccess {
   Access base;
   size_t bpOffset;
@@ -186,16 +229,12 @@ static Access *x86_64MemoryAccessCtor(size_t size, AllocHint kind,
 
 typedef struct X86_64Frame {
   Frame frame;
-  IRVector prologue;
-  IRVector epilogue;
 } X86_64Frame;
 FrameVTable *X86_64VTable = NULL;
 
 // assumes that the frame is an x86_64 frame
 static void x86_64FrameDtor(Frame *baseFrame) {
   X86_64Frame *frame = (X86_64Frame *)baseFrame;
-  irVectorUninit(&frame->prologue);
-  irVectorUninit(&frame->epilogue);
   free(frame);
 }
 static Access *x86_64AllocArg(Frame *baseFrame, Type const *type, bool escapes,
@@ -210,32 +249,12 @@ static Access *x86_64AllocRetVal(Frame *baseFrame, Type const *type,
                                  TempAllocator *tempAllocator) {
   return NULL;  // TODO: write this
 }
-static void x86_64WrapBody(Frame *baseFrame, IRVector *out) {
-  X86_64Frame *frame = (X86_64Frame *)baseFrame;
-
-  IREntry **oldBody = (IREntry **)out->elements;
-  size_t oldSize = out->size;
-
-  out->size += frame->prologue.size + frame->epilogue.size;
-  while (out->capacity < out->size) {
-    out->capacity *= 2;
-  }
-
-  out->elements = malloc(sizeof(out->capacity * sizeof(IREntry *)));
-  IREntry **writingPtr = (IREntry **)out->elements;
-
-  memcpy(writingPtr, frame->prologue.elements,
-         frame->prologue.size * sizeof(IREntry *));
-  writingPtr += frame->prologue.size;
-  irVectorInit(&frame->prologue);
-
-  memcpy(writingPtr, oldBody, oldSize * sizeof(IREntry *));
-  writingPtr += oldSize;
-  free(oldBody);
-
-  memcpy(writingPtr, frame->epilogue.elements,
-         frame->epilogue.size * sizeof(IREntry *));
-  irVectorInit(&frame->epilogue);
+static void x86_64ScopeStart(Frame *baseFrame) {
+  return;  // TODO: write this
+}
+static IRVector *x86_64ScopeEnd(Frame *baseFrame, IRVector *body,
+                                TempAllocator *tempAllocator) {
+  return body;  // TODO: write this
 }
 static FrameVTable *getX86_64VTable(void) {
   if (X86_64VTable == NULL) {
@@ -244,14 +263,13 @@ static FrameVTable *getX86_64VTable(void) {
     X86_64VTable->allocArg = x86_64AllocArg;
     X86_64VTable->allocLocal = x86_64AllocLocal;
     X86_64VTable->allocRetVal = x86_64AllocRetVal;
-    X86_64VTable->wrapBody = x86_64WrapBody;
+    X86_64VTable->scopeStart = x86_64ScopeStart;
+    X86_64VTable->scopeEnd = x86_64ScopeEnd;
   }
   return X86_64VTable;
 }
 Frame *x86_64FrameCtor(void) {
   X86_64Frame *frame = malloc(sizeof(X86_64Frame));
   frame->frame.vtable = getX86_64VTable();
-  irVectorInit(&frame->prologue);
-  irVectorInit(&frame->epilogue);
   return (Frame *)frame;
 }
