@@ -52,6 +52,28 @@ void vectorInsert(Vector *vector, void *element) {
   }
   vector->elements[vector->size++] = element;
 }
+Vector *vectorMerge(Vector *v1, Vector *v2) {
+  Vector *out = malloc(sizeof(Vector));
+  out->size = v1->size + v2->size;
+  out->capacity = v1->capacity > v2->capacity ? v1->capacity : v2->capacity;
+  while (out->capacity < out->size) {
+    out->capacity *= 2;
+  }
+  out->elements = malloc(out->capacity * sizeof(void *));
+
+  // copy data
+  memcpy(out->elements, v1->elements, v1->size * sizeof(void *));
+  memcpy(out->elements + v1->size * sizeof(void *), v2->elements,
+         v2->size * sizeof(void *));
+
+  // clean up v1 and v2
+  free(v1->elements);
+  free(v1);
+  free(v2->elements);
+  free(v2);
+
+  return out;
+}
 void vectorUninit(Vector *vector, void (*dtor)(void *)) {
   for (size_t idx = 0; idx < vector->size; idx++) dtor(vector->elements[idx]);
   free(vector->elements);

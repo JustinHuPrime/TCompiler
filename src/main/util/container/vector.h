@@ -38,6 +38,8 @@ void vectorInit(Vector *);
 Vector *vectorCopy(Vector *, void *(*elmCopy)(void *));
 // insert - amortized constant time
 void vectorInsert(Vector *, void *);
+// merge - linear with memory used
+Vector *vectorMerge(Vector *, Vector *);
 // in place dtor
 // takes in a destructor function to apply to the elements
 void vectorUninit(Vector *, void (*dtor)(void *));
