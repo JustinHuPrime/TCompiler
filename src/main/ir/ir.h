@@ -26,7 +26,7 @@
 typedef enum {
   AH_GP,
   AH_MEM,
-  AH_FLOAT,
+  AH_SSE,
 } AllocHint;
 typedef enum {
   OK_TEMP,
@@ -41,6 +41,8 @@ typedef struct IROperand {
   union {
     struct {
       size_t n;
+      size_t alignment;
+      size_t size;
       AllocHint kind;
     } temp;
     struct {
@@ -58,7 +60,8 @@ typedef struct IROperand {
   } data;
 } IROperand;
 // ctors
-IROperand *tempIROperandCreate(size_t n, AllocHint kind);
+IROperand *tempIROperandCreate(size_t n, size_t size, size_t alignment,
+                               AllocHint kind);
 IROperand *regIROperandCreate(size_t n);
 IROperand *ubyteIROperandCreate(uint8_t value);
 IROperand *byteIROperandCreate(int8_t value);
@@ -85,14 +88,25 @@ typedef enum IROperator {
   IO_LABEL,  // label this entry: opSize = 0, dest = NULL, arg1 = label name,
              // arg2 = NULL
 
-  IO_MOVE,   // move to temp or reg: opSize = sizeof(target), dest =
-             // target reg or temp, arg1 = source, arg2 = NULL
-  IO_STORE,  // move from temp or reg to mem, opSize = sizeof(temp or
-             // reg), dest = destination address, arg1 = source, arg2 =
-             // NULL
-  IO_LOAD,   // move from mem to temp or reg, opSize = sizeof(temp or
-             // reg), dest = destination temp or reg, arg1 = source
-             // address, arg2 = NULL
+  IO_MOVE,          // move to temp or reg: opSize = sizeof(target), dest =
+                    // target reg or temp, arg1 = source, arg2 = NULL
+  IO_MEM_STORE,     // move from temp or reg to mem, opSize = sizeof(temp or
+                    // reg), dest = destination address, arg1 = source, arg2 =
+                    // NULL
+  IO_MEM_LOAD,      // move from mem to temp or reg, opSize = sizeof(temp or
+                    // reg), dest = destination temp or reg, arg1 = source
+                    // address, arg2 = NULL
+  IO_STK_STORE,     // move from temp or reg to stack at constant offset
+                    // dest = destination offset (long), arg1 = source data
+  IO_STK_LOAD,      // move from stack at constant offset to register or temp
+                    // dest = destination temp or reg, arg1 = destination offset
+                    // (long)
+  IO_OFFSET_STORE,  // move from temp or reg to part of a mem temp
+                    // dest = destination memtemp, arg1 = source temp or reg,
+                    // arg2 = offset
+  IO_OFFSET_LOAD,   // move from mem temp to temp or reg
+                    // dest = destination temp or reg, arg1 = source memtemp,
+                    // arg2 = offset
 
   IO_ADD,  // plain binary operations: opSize = sizeof(operands), dest = result
            // storage, arg1 = argument 1, arg2 = argument 2
@@ -144,9 +158,18 @@ IREntry *constantIREntryCreate(size_t size, IROperand *constant);
 IREntry *asmIREntryCreate(IROperand *assembly);
 IREntry *labelIREntryCreate(IROperand *label);
 IREntry *moveIREntryCreate(size_t size, IROperand *dest, IROperand *source);
-IREntry *storeIREntryCreate(size_t size, IROperand *destAddr,
-                            IROperand *source);
-IREntry *loadIREntryCreate(size_t size, IROperand *dest, IROperand *sourceAddr);
+IREntry *memStoreIREntryCreate(size_t size, IROperand *destAddr,
+                               IROperand *source);
+IREntry *memLoadIREntryCreate(size_t size, IROperand *dest,
+                              IROperand *sourceAddr);
+IREntry *stackStoreIREntryCreate(size_t size, IROperand *destOffset,
+                                 IROperand *source);
+IREntry *stackLoadIREntryCreate(size_t size, IROperand *dest,
+                                IROperand *sourceOffset);
+IREntry *offsetStoreIREntryCreate(size_t size, IROperand *destMemTemp,
+                                  IROperand *source, IROperand *offset);
+IREntry *offsetLoadIREntryCreate(size_t size, IROperand *dest,
+                                 IROperand *sourceMemTemp, IROperand *offset);
 IREntry *binopIREntryCreate(size_t size, IROperator op, IROperand *dest,
                             IROperand *arg1, IROperand *arg2);
 IREntry *unopIREntryCreate(size_t size, IROperator op, IROperand *dest,

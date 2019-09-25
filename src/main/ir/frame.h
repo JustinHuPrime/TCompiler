@@ -46,6 +46,7 @@ typedef struct AccessVTable {
 typedef struct Access {
   AccessVTable *vtable;
   size_t size;
+  size_t alignment;
   AllocHint kind;
 } Access;
 
@@ -77,6 +78,7 @@ typedef struct FrameVTable {
 // an abstract function frame
 typedef struct Frame {
   FrameVTable *vtable;
+  char *name;
 } Frame;
 
 #endif  // TLC_IR_FRAME_H_

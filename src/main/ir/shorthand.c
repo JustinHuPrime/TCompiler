@@ -22,8 +22,8 @@
 
 size_t NEW(TempAllocator *t) { return tempAllocatorAllocate(t); }
 
-IROperand *TEMP(size_t n, AllocHint kind) {
-  return tempIROperandCreate(n, kind);
+IROperand *TEMP(size_t n, size_t size, size_t alignment, AllocHint kind) {
+  return tempIROperandCreate(n, size, alignment, kind);
 }
 IROperand *REG(size_t n) { return regIROperandCreate(n); }
 IROperand *UBYTE(uint8_t value) { return ubyteIROperandCreate(value); }
@@ -48,11 +48,25 @@ IREntry *LABEL_DEF(IROperand *label) { return labelIREntryCreate(label); }
 IREntry *MOVE(size_t size, IROperand *dest, IROperand *source) {
   return moveIREntryCreate(size, dest, source);
 }
-IREntry *STORE(size_t size, IROperand *destAddr, IROperand *source) {
-  return storeIREntryCreate(size, destAddr, source);
+IREntry *MEM_STORE(size_t size, IROperand *destAddr, IROperand *source) {
+  return memStoreIREntryCreate(size, destAddr, source);
 }
-IREntry *LOAD(size_t size, IROperand *dest, IROperand *sourceAddr) {
-  return loadIREntryCreate(size, dest, sourceAddr);
+IREntry *MEM_LOAD(size_t size, IROperand *dest, IROperand *sourceAddr) {
+  return memLoadIREntryCreate(size, dest, sourceAddr);
+}
+IREntry *STACK_STORE(size_t size, int64_t destOffset, IROperand *source) {
+  return stackStoreIREntryCreate(size, LONG(destOffset), source);
+}
+IREntry *STACK_LOAD(size_t size, IROperand *dest, int64_t sourceOffset) {
+  return stackLoadIREntryCreate(size, dest, LONG(sourceOffset));
+}
+IREntry *OFFSET_STORE(size_t size, IROperand *destMemTemp, IROperand *source,
+                      IROperand *offset) {
+  return offsetStoreIREntryCreate(size, destMemTemp, source, offset);
+}
+IREntry *OFFSET_LOAD(size_t size, IROperand *dest, IROperand *sourceMemTemp,
+                     IROperand *offset) {
+  return offsetLoadIREntryCreate(size, dest, sourceMemTemp, offset);
 }
 IREntry *BINOP(size_t size, IROperator op, IROperand *dest, IROperand *arg1,
                IROperand *arg2) {

@@ -120,6 +120,8 @@ void aggregateInitTypeInit(Type *, TypeVector *elementTypes);
 Type *typeCopy(Type const *);
 // sizeof a type
 size_t typeSizeof(Type const *);
+// alignof a type, at most REGISTER_WIDTH
+size_t typeAlignof(Type const *);
 // integral type bounds
 size_t typeLowerBound(Type const *);
 size_t typeUpperBound(Type const *);

@@ -70,7 +70,8 @@ typedef enum {
 } X86_64Register;
 
 // constructors for x86_64 implementation of frames
-struct Frame *x86_64FrameCtor(void);
-struct Access *x86_64GlobalAccessCtor(size_t size, AllocHint kind, char *label);
+struct Frame *x86_64FrameCtor(char *name);
+struct Access *x86_64GlobalAccessCtor(size_t size, size_t alignment,
+                                      AllocHint kind, char *label);
 
 #endif  // TLC_ARCHITECTURE_X86_64_64_FRAME_H_

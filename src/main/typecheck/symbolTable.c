@@ -222,13 +222,99 @@ size_t typeSizeof(Type const *t) {
       size_t numFields =
           t->data.reference.referenced->data.type.data.enumType.fields.size;
       if (numFields <= UBYTE_MAX) {
-        return 1;  // fits in a byte
+        return BYTE_WIDTH;  // fits in a byte
       } else if (numFields <= USHORT_MAX) {
-        return 2;
+        return SHORT_WIDTH;
       } else if (numFields <= UINT_MAX) {
-        return 4;
+        return INT_WIDTH;
       } else {
-        return 8;  // might actually have more fields, but we crash anyways
+        return LONG_WIDTH;  // might actually have more fields, but we crash
+                            // anyways
+      }
+    }
+    case K_TYPEDEF: {
+      return typeSizeof(
+          t->data.reference.referenced->data.type.data.typedefType.type);
+    }
+    case K_ARRAY: {
+      return t->data.array.size * typeSizeof(t->data.array.type);
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered an invalid TypeKind enum constant");
+    }
+  }
+}
+size_t typeAlignof(Type const *t) {
+  switch (t->kind) {
+    case K_VOID:
+    case K_UBYTE:
+    case K_BYTE:
+    case K_BOOL: {
+      return BYTE_WIDTH;
+    }
+    case K_CHAR: {
+      return CHAR_WIDTH;
+    }
+    case K_USHORT:
+    case K_SHORT: {
+      return SHORT_WIDTH;
+    }
+    case K_UINT:
+    case K_INT: {
+      return INT_WIDTH;
+    }
+    case K_WCHAR: {
+      return WCHAR_WIDTH;
+    }
+    case K_ULONG:
+    case K_LONG: {
+      return LONG_WIDTH;
+    }
+    case K_PTR:
+    case K_FUNCTION_PTR: {
+      return POINTER_WIDTH;
+    }
+    case K_FLOAT: {
+      return FLOAT_WIDTH;
+    }
+    case K_DOUBLE: {
+      return DOUBLE_WIDTH;
+    }
+    case K_CONST: {
+      return typeAlignof(t->data.modifier.type);
+    }
+    case K_STRUCT: {
+      TypeVector *fieldTypes =
+          &t->data.reference.referenced->data.type.data.structType.fields;
+      return typeAlignof(fieldTypes->elements[0]);
+    }
+    case K_UNION: {
+      TypeVector *fieldTypes =
+          &t->data.reference.referenced->data.type.data.structType.fields;
+      size_t acc = typeAlignof(fieldTypes->elements[0]);
+
+      for (size_t idx = 1; idx < fieldTypes->size; idx++) {
+        size_t fieldSize = typeAlignof(fieldTypes->elements[idx]);
+        if (fieldSize > acc) {
+          acc = fieldSize;
+        }
+      }
+
+      return acc;
+    }
+    case K_ENUM: {
+      size_t numFields =
+          t->data.reference.referenced->data.type.data.enumType.fields.size;
+      if (numFields <= UBYTE_MAX) {
+        return BYTE_WIDTH;  // fits in a byte
+      } else if (numFields <= USHORT_MAX) {
+        return SHORT_WIDTH;
+      } else if (numFields <= UINT_MAX) {
+        return INT_WIDTH;
+      } else {
+        return LONG_WIDTH;  // might actually have more fields, but we crash
+                            // anyways
       }
     }
     case K_TYPEDEF: {

@@ -50,6 +50,7 @@ typedef struct {
       IRVector *ir;
     } data;
     struct {
+      struct Frame *frame;
       IRVector *ir;
     } text;
   } data;
@@ -84,9 +85,9 @@ int fileFragmentVectorMapPut(FileFragmentVectorMap *, char const *key,
 // in-place dtor
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
-typedef struct Frame *(*FrameCtor)(void);
-typedef struct Access *(*GlobalAccessCtor)(size_t size, AllocHint kind,
-                                           char *name);
+typedef struct Frame *(*FrameCtor)(char *name);
+typedef struct Access *(*GlobalAccessCtor)(size_t size, size_t alignment,
+                                           AllocHint kind, char *name);
 
 // translates an abstract syntax tree into a series of fragments
 void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes,

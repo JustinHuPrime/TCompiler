@@ -28,7 +28,7 @@
 size_t NEW(TempAllocator *);
 
 // shorthands for IROperand construction
-IROperand *TEMP(size_t n, AllocHint kind);
+IROperand *TEMP(size_t n, size_t size, size_t alignment, AllocHint kind);
 IROperand *REG(size_t n);
 IROperand *UBYTE(uint8_t value);
 IROperand *BYTE(int8_t value);
@@ -47,8 +47,16 @@ IREntry *CONST(size_t size, IROperand *);
 IREntry *ASM(char *assembly);  // constructs the IROperand as well
 IREntry *LABEL_DEF(IROperand *label);
 IREntry *MOVE(size_t size, IROperand *dest, IROperand *source);
-IREntry *STORE(size_t size, IROperand *destAddr, IROperand *source);
-IREntry *LOAD(size_t size, IROperand *dest, IROperand *sourceAddr);
+IREntry *MEM_STORE(size_t size, IROperand *destAddr, IROperand *source);
+IREntry *MEM_LOAD(size_t size, IROperand *dest, IROperand *sourceAddr);
+IREntry *STACK_STORE(size_t size, int64_t destOffset,
+                     IROperand *source);  // wraps the offset
+IREntry *STACK_LOAD(size_t size, IROperand *dest,
+                    int64_t sourceOffset);  // wraps the offset
+IREntry *OFFSET_STORE(size_t size, IROperand *destMemTemp, IROperand *source,
+                      IROperand *offset);
+IREntry *OFFSET_LOAD(size_t size, IROperand *dest, IROperand *sourceMemTemp,
+                     IROperand *offset);
 IREntry *BINOP(size_t size, IROperator op, IROperand *dest, IROperand *arg1,
                IROperand *arg2);
 IREntry *UNOP(size_t size, IROperator op, IROperand *dest, IROperand *arg);

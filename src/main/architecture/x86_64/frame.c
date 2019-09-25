@@ -23,7 +23,9 @@
 #include "ir/ir.h"
 #include "ir/shorthand.h"
 #include "typecheck/symbolTable.h"
+#include "util/format.h"
 #include "util/functional.h"
+#include "util/internalError.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -42,16 +44,19 @@ static IROperand *x86_64GlobalAccessLoad(Access *baseAccess, IRVector *code,
   X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
 
   size_t result = NEW(tempAllocator);
-  IR(code, LOAD(access->base.size, TEMP(result, access->base.kind),
-                LABEL(strdup(access->label))));
-  return TEMP(result, access->base.kind);
+  IR(code, MEM_LOAD(access->base.size,
+                    TEMP(result, access->base.size, access->base.alignment,
+                         access->base.kind),
+                    LABEL(strdup(access->label))));
+  return TEMP(result, access->base.size, access->base.alignment,
+              access->base.kind);
 }
 static void x86_64GlobalAccessStore(Access *baseAccess, IRVector *code,
                                     IROperand *input,
                                     TempAllocator *tempAllocator) {
   X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
 
-  IR(code, STORE(access->base.size, LABEL(strdup(access->label)), input));
+  IR(code, MEM_STORE(access->base.size, LABEL(strdup(access->label)), input));
 }
 static IROperand *x86_64GlobalAccessAddrof(Access *baseAccess, IRVector *code,
                                            TempAllocator *tempAllocator) {
@@ -70,10 +75,12 @@ static AccessVTable *getX86_64GlobalAccessVTable(void) {
   }
   return X86_64GlobalAccessVTable;
 }
-Access *x86_64GlobalAccessCtor(size_t size, AllocHint kind, char *label) {
+Access *x86_64GlobalAccessCtor(size_t size, size_t alignment, AllocHint kind,
+                               char *label) {
   X86_64GlobalAccess *access = malloc(sizeof(X86_64GlobalAccess));
   access->base.vtable = getX86_64GlobalAccessVTable();
   access->base.size = size;
+
   access->base.kind = kind;
   access->label = label;
   return (Access *)access;
@@ -91,15 +98,18 @@ static IROperand *x86_64TempAccessLoad(Access *baseAccess, IRVector *code,
                                        TempAllocator *tempAllocator) {
   X86_64TempAccess *access = (X86_64TempAccess *)baseAccess;
 
-  return TEMP(access->tempNum, access->base.kind);
+  return TEMP(access->tempNum, access->base.size, access->base.alignment,
+              access->base.kind);
 }
 static void x86_64TempAccessStore(Access *baseAccess, IRVector *code,
                                   IROperand *input,
                                   TempAllocator *tempAllocator) {
   X86_64TempAccess *access = (X86_64TempAccess *)baseAccess;
 
-  IR(code,
-     MOVE(access->base.size, TEMP(access->tempNum, access->base.kind), input));
+  IR(code, MOVE(access->base.size,
+                TEMP(access->tempNum, access->base.size, access->base.alignment,
+                     access->base.kind),
+                input));
 }
 AccessVTable *X86_64TempAccessVTable = NULL;
 static AccessVTable *getX86_64TempAccessVTable(void) {
@@ -114,11 +124,12 @@ static AccessVTable *getX86_64TempAccessVTable(void) {
   }
   return X86_64TempAccessVTable;
 }
-static Access *x86_64TempAccessCtor(size_t size, AllocHint kind,
-                                    size_t tempNum) {
+static Access *x86_64TempAccessCtor(size_t size, size_t alignment,
+                                    AllocHint kind, size_t tempNum) {
   X86_64TempAccess *access = malloc(sizeof(X86_64TempAccess));
   access->base.vtable = getX86_64TempAccessVTable();
   access->base.size = size;
+  access->base.alignment = alignment;
   access->base.kind = kind;
   access->tempNum = tempNum;
   return (Access *)access;
@@ -158,102 +169,600 @@ static AccessVTable *getX86_64RegAccessVTable(void) {
   }
   return X86_64RegAccessVTable;
 }
-static Access *x86_64RegAccessCtor(size_t size, AllocHint kind, size_t regNum) {
+static Access *x86_64RegAccessCtor(size_t size, size_t alignment,
+                                   AllocHint kind, size_t regNum) {
   X86_64RegAccess *access = malloc(sizeof(X86_64RegAccess));
   access->base.vtable = getX86_64RegAccessVTable();
   access->base.size = size;
+  access->base.alignment = alignment;
   access->base.kind = kind;
   access->regNum = regNum;
   return (Access *)access;
 }
 
-typedef struct X86_64MemoryAccess {
+typedef struct X86_64StackAccess {
   Access base;
-  size_t bpOffset;
-} X86_64MemoryAccess;
-static void x86_64MemoryAccessDtor(Access *baseAccess) {
-  X86_64MemoryAccess *access = (X86_64MemoryAccess *)baseAccess;
+  int64_t bpOffset;
+} X86_64StackAccess;
+static void x86_64StackAccessDtor(Access *baseAccess) {
+  X86_64StackAccess *access = (X86_64StackAccess *)baseAccess;
   free(access);
 }
-static IROperand *x86_64MemoryAccessLoad(Access *baseAccess, IRVector *code,
-                                         TempAllocator *tempAllocator) {
-  X86_64MemoryAccess *access = (X86_64MemoryAccess *)baseAccess;
+static IROperand *x86_64StackAccessLoad(Access *baseAccess, IRVector *code,
+                                        TempAllocator *tempAllocator) {
+  X86_64StackAccess *access = (X86_64StackAccess *)baseAccess;
 
-  size_t address = NEW(tempAllocator);
   size_t result = NEW(tempAllocator);
-  IR(code, BINOP(POINTER_WIDTH, IO_ADD, TEMP(address, AH_GP), REG(X86_64_RBP),
-                 ULONG(access->bpOffset)));
-  IR(code, LOAD(access->base.size, TEMP(result, access->base.kind),
-                TEMP(address, AH_GP)));
-  return TEMP(result, access->base.kind);
+  IR(code, STACK_LOAD(access->base.size,
+                      TEMP(result, access->base.size, access->base.alignment,
+                           access->base.kind),
+                      access->bpOffset));
+  return TEMP(result, access->base.size, access->base.alignment,
+              access->base.kind);
 }
-static void x86_64MemoryAccessStore(Access *baseAccess, IRVector *code,
-                                    IROperand *input,
-                                    TempAllocator *tempAllocator) {
-  X86_64MemoryAccess *access = (X86_64MemoryAccess *)baseAccess;
+static void x86_64StackAccessStore(Access *baseAccess, IRVector *code,
+                                   IROperand *input,
+                                   TempAllocator *tempAllocator) {
+  X86_64StackAccess *access = (X86_64StackAccess *)baseAccess;
+
+  IR(code, STACK_STORE(access->base.size, access->bpOffset, input));
+}
+static IROperand *x86_64StackAccessAddrof(Access *baseAccess, IRVector *code,
+                                          TempAllocator *tempAllocator) {
+  X86_64StackAccess *access = (X86_64StackAccess *)baseAccess;
 
   size_t address = NEW(tempAllocator);
-  IR(code, BINOP(POINTER_WIDTH, IO_ADD, TEMP(address, AH_GP), REG(X86_64_RBP),
-                 ULONG(access->bpOffset)));
-  IR(code, STORE(access->base.size, TEMP(address, AH_GP), input));
+  IR(code, BINOP(POINTER_WIDTH, IO_ADD,
+                 TEMP(address, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                 REG(X86_64_RBP), LONG(access->bpOffset)));
+  return TEMP(address, access->base.size, access->base.alignment,
+              access->base.kind);
 }
-static IROperand *x86_64MemoryAccessAddrof(Access *baseAccess, IRVector *code,
-                                           TempAllocator *tempAllocator) {
-  X86_64MemoryAccess *access = (X86_64MemoryAccess *)baseAccess;
-
-  size_t address = NEW(tempAllocator);
-  IR(code, BINOP(POINTER_WIDTH, IO_ADD, TEMP(address, AH_GP), REG(X86_64_RBP),
-                 ULONG(access->bpOffset)));
-  return TEMP(address, access->base.kind);
-}
-AccessVTable *X86_64MemoryAccessVTable = NULL;
-static AccessVTable *getX86_64MemoryAccessVTable(void) {
-  if (X86_64MemoryAccessVTable == NULL) {
-    X86_64MemoryAccessVTable = malloc(sizeof(AccessVTable));
-    X86_64MemoryAccessVTable->dtor = x86_64MemoryAccessDtor;
-    X86_64MemoryAccessVTable->load = x86_64MemoryAccessLoad;
-    X86_64MemoryAccessVTable->store = x86_64MemoryAccessStore;
-    X86_64MemoryAccessVTable->addrof = x86_64MemoryAccessAddrof;
+AccessVTable *X86_64StackAccessVTable = NULL;
+static AccessVTable *getX86_64StackAccessVTable(void) {
+  if (X86_64StackAccessVTable == NULL) {
+    X86_64StackAccessVTable = malloc(sizeof(AccessVTable));
+    X86_64StackAccessVTable->dtor = x86_64StackAccessDtor;
+    X86_64StackAccessVTable->load = x86_64StackAccessLoad;
+    X86_64StackAccessVTable->store = x86_64StackAccessStore;
+    X86_64StackAccessVTable->addrof = x86_64StackAccessAddrof;
   }
-  return X86_64MemoryAccessVTable;
+  return X86_64StackAccessVTable;
 }
-static Access *x86_64MemoryAccessCtor(size_t size, AllocHint kind,
-                                      size_t bpOffset) {
-  X86_64MemoryAccess *access = malloc(sizeof(X86_64MemoryAccess));
-  access->base.vtable = getX86_64MemoryAccessVTable();
+static Access *x86_64StackAccessCtor(size_t size, size_t alignment,
+                                     AllocHint kind, int64_t bpOffset) {
+  X86_64StackAccess *access = malloc(sizeof(X86_64StackAccess));
+  access->base.vtable = getX86_64StackAccessVTable();
   access->base.size = size;
+  access->base.alignment = alignment;
   access->base.kind = kind;
   access->bpOffset = bpOffset;
   return (Access *)access;
 }
 
+typedef struct {
+  size_t scopeSize;
+  IRVector *prologue;
+  IRVector *epilogue;
+} X86_64FrameScope;
+static X86_64FrameScope *x86_64FrameScopeCreate(void) {
+  X86_64FrameScope *scope = malloc(sizeof(X86_64FrameScope));
+  scope->scopeSize = 0;
+  scope->prologue = irVectorCreate();
+  scope->epilogue = irVectorCreate();
+  return scope;
+}
+static void x86_64FrameScopeDestroy(X86_64FrameScope *scope) {
+  if (scope->prologue != NULL) {
+    irVectorDestroy(scope->prologue);
+  }
+  if (scope->epilogue != NULL) {
+    irVectorDestroy(scope->epilogue);
+  }
+  free(scope);
+}
+
+typedef Stack X86_64FrameScopeStack;
+static void x86_64FrameScopeStackInit(X86_64FrameScopeStack *stack) {
+  stackInit(stack);
+}
+static void x86_64FrameScopeStackPush(X86_64FrameScopeStack *stack,
+                                      X86_64FrameScope *scope) {
+  stackPush(stack, scope);
+}
+static X86_64FrameScope *x86_64FrameScopeStackPeek(
+    X86_64FrameScopeStack *stack) {
+  return stackPeek(stack);
+}
+static X86_64FrameScope *x86_64FrameScopeStackPop(
+    X86_64FrameScopeStack *stack) {
+  return stackPop(stack);
+}
+static void x86_64FrameScopeStackUninit(X86_64FrameScopeStack *stack) {
+  stackUninit(stack, (void (*)(void *))x86_64FrameScopeDestroy);
+}
+
+typedef enum {
+  X86_64_PC_NO_CLASS,
+  X86_64_PC_POINTER,
+  X86_64_PC_INTEGER,
+  X86_64_PC_SSE,
+  X86_64_PC_MEMORY,
+} X86_64ParamClass;
+
+size_t const MAX_GP_ARGS = 6;
+X86_64Register const GP_ARG_REGISTERS[] = {
+    X86_64_RDI, X86_64_RSI, X86_64_RDX, X86_64_RCX, X86_64_R8, X86_64_R9,
+};
+size_t const MAX_SSE_ARGS = 8;
+X86_64Register const SSE_ARG_REGISTERS[] = {
+    X86_64_XMM0, X86_64_XMM1, X86_64_XMM2, X86_64_XMM3,
+    X86_64_XMM4, X86_64_XMM5, X86_64_XMM6, X86_64_XMM7,
+};
+
 typedef struct X86_64Frame {
-  Frame frame;
+  Frame base;
+
+  size_t nextGPArg;
+  size_t nextSSEArg;
+  int64_t nextMemArg;
+
+  int64_t bpOffset;
+  size_t frameSize;
+
+  IRVector *functionPrologue;
+  IRVector *functionEpilogue;
+
+  X86_64FrameScopeStack scopes;
 } X86_64Frame;
 FrameVTable *X86_64VTable = NULL;
-
 // assumes that the frame is an x86_64 frame
 static void x86_64FrameDtor(Frame *baseFrame) {
   X86_64Frame *frame = (X86_64Frame *)baseFrame;
+
+  if (frame->functionPrologue != NULL) {
+    irVectorDestroy(frame->functionPrologue);
+  }
+  if (frame->functionEpilogue != NULL) {
+    irVectorDestroy(frame->functionEpilogue);
+  }
+
+  x86_64FrameScopeStackUninit(&frame->scopes);
+
   free(frame);
+}
+static int64_t x86_64AllocStack(X86_64Frame *frame, size_t size) {
+  // FIXME: should refer to the top most frame
+  // size must not be too large
+  if (size > INT64_MAX) {
+    error(__FILE__, __LINE__, "overly large stack allocation requested");
+  }
+  int64_t retVal = frame->bpOffset;
+  frame->bpOffset -= (int64_t)size;
+  frame->frameSize += size;
+  return retVal;
+}
+static void x86_64FrameAlignTo(X86_64Frame *frame, size_t unsignedAlignment) {
+  // FIXME: should refer to the top most frame
+  // alignment is, at most, REGISTER_WIDTH
+  if (unsignedAlignment > REGISTER_WIDTH) {
+    error(__FILE__, __LINE__, "overly large alignment requested");
+  }
+  int64_t alignment = (int64_t)unsignedAlignment;
+  int64_t diff = frame->bpOffset % alignment;
+  int64_t offset =
+      (alignment + diff) % alignment;  // how much to take away from bpOffset,
+                                       // how much to add to frameSize
+                                       // is positive
+  frame->bpOffset -= offset;
+  frame->frameSize += (uint64_t)offset;
+}
+static Access *x86_64PassGP(X86_64Frame *frame, size_t size, bool escapes,
+                            TempAllocator *tempAllocator) {
+  // alignment == size for all T GP types
+  if (frame->nextGPArg >= MAX_GP_ARGS) {
+    // comes in via stack @ nextMemArg
+    if (escapes) {
+      // put it in aligned mem
+      x86_64FrameAlignTo(frame, size);
+      int64_t offset = x86_64AllocStack(frame, size);
+      size_t temp = NEW(tempAllocator);
+      IR(frame->functionPrologue,
+         STACK_LOAD(size, TEMP(temp, size, size, AH_GP), frame->nextMemArg));
+      frame->nextMemArg += 8;
+      IR(frame->functionPrologue,
+         STACK_STORE(size, offset, TEMP(temp, size, size, AH_GP)));
+      return x86_64StackAccessCtor(size, size, AH_GP, offset);
+    } else {
+      // put it in a GP temp
+      size_t destTemp = NEW(tempAllocator);
+      STACK_LOAD(size, TEMP(destTemp, size, size, AH_GP), frame->nextMemArg);
+      frame->nextMemArg += 8;
+      return x86_64TempAccessCtor(size, size, AH_GP, destTemp);
+    }
+  } else {
+    size_t regNum = GP_ARG_REGISTERS[frame->nextGPArg++];
+    // comes in via reg n, needs to be put in a temp or in mem
+    if (escapes) {
+      // put it in aligned mem
+      x86_64FrameAlignTo(frame, size);
+      int64_t offset = x86_64AllocStack(frame, size);
+      IR(frame->functionPrologue, STACK_STORE(size, offset, REG(regNum)));
+      return x86_64StackAccessCtor(size, size, AH_GP, offset);
+    } else {
+      // put it in a GP temp
+      size_t destTemp = NEW(tempAllocator);
+      IR(frame->functionPrologue,
+         MOVE(size, TEMP(destTemp, size, size, AH_GP), REG(regNum)));
+      return x86_64TempAccessCtor(size, size, AH_GP, destTemp);
+    }
+  }
+}
+static Access *x86_64PassSSE(X86_64Frame *frame, size_t size, bool escapes,
+                             TempAllocator *tempAllocator) {
+  // alignof == sizeof for all T SSE types
+  if (frame->nextSSEArg >= MAX_SSE_ARGS) {
+    // comes in via stack @ nextMemArg
+    if (escapes) {
+      // put it in aligned mem
+      x86_64FrameAlignTo(frame, size);
+      int64_t offset = x86_64AllocStack(frame, size);
+      size_t temp = NEW(tempAllocator);
+      IR(frame->functionPrologue,
+         STACK_LOAD(size, TEMP(temp, size, size, AH_SSE), frame->nextMemArg));
+      frame->nextMemArg += 8;
+      IR(frame->functionPrologue,
+         STACK_STORE(size, offset, TEMP(temp, size, size, AH_SSE)));
+      return x86_64StackAccessCtor(size, size, AH_SSE, offset);
+    } else {
+      // put it in a GP temp
+      size_t destTemp = NEW(tempAllocator);
+      STACK_LOAD(size, TEMP(destTemp, size, size, AH_SSE), frame->nextMemArg);
+      frame->nextMemArg += 8;
+      return x86_64TempAccessCtor(size, size, AH_SSE, destTemp);
+    }
+  } else {
+    size_t regNum = SSE_ARG_REGISTERS[frame->nextSSEArg++];
+    // comes in via reg n, needs to be put in a temp or in mem
+    if (escapes) {
+      // put it in aligned mem
+      x86_64FrameAlignTo(frame, size);
+      int64_t offset = x86_64AllocStack(frame, size);
+      IR(frame->functionPrologue, STACK_STORE(size, offset, REG(regNum)));
+      return x86_64StackAccessCtor(size, size, AH_SSE, offset);
+    } else {
+      // put it in a GP temps
+      size_t destTemp = NEW(tempAllocator);
+      IR(frame->functionPrologue,
+         MOVE(size, TEMP(destTemp, size, size, AH_SSE), REG(regNum)));
+      return x86_64TempAccessCtor(size, size, AH_SSE, destTemp);
+    }
+  }
 }
 static Access *x86_64AllocArg(Frame *baseFrame, Type const *type, bool escapes,
                               TempAllocator *tempAllocator) {
-  return NULL;  // TODO: write this
+  X86_64Frame *frame = (X86_64Frame *)baseFrame;
+  switch (type->kind) {
+    case K_UBYTE:
+    case K_BYTE:
+    case K_BOOL: {
+      // INTEGER
+      return x86_64PassGP(frame, BYTE_WIDTH, escapes, tempAllocator);
+    }
+    case K_CHAR: {
+      // INTEGER
+      return x86_64PassGP(frame, CHAR_WIDTH, escapes, tempAllocator);
+    }
+    case K_USHORT:
+    case K_SHORT: {
+      // INTEGER
+      return x86_64PassGP(frame, SHORT_WIDTH, escapes, tempAllocator);
+    }
+    case K_UINT:
+    case K_INT: {
+      // INTEGER
+      return x86_64PassGP(frame, INT_WIDTH, escapes, tempAllocator);
+    }
+    case K_WCHAR: {
+      // INTEGER
+      return x86_64PassGP(frame, WCHAR_WIDTH, escapes, tempAllocator);
+    }
+    case K_ULONG:
+    case K_LONG: {
+      // INTEGER
+      return x86_64PassGP(frame, LONG_WIDTH, escapes, tempAllocator);
+    }
+    case K_FLOAT: {
+      // SSE
+      return x86_64PassSSE(frame, FLOAT_WIDTH, escapes, tempAllocator);
+    }
+    case K_DOUBLE: {
+      // SSE
+      return x86_64PassSSE(frame, DOUBLE_WIDTH, escapes, tempAllocator);
+    }
+    case K_STRUCT: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_UNION: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_ENUM: {
+      return x86_64PassGP(frame, typeSizeof(type), escapes, tempAllocator);
+    }
+    case K_TYPEDEF: {
+      // Pass the actual type
+      return x86_64AllocArg(
+          baseFrame,
+          type->data.reference.referenced->data.type.data.typedefType.type,
+          escapes, tempAllocator);
+    }
+    case K_CONST: {
+      // Pass the actual type
+      return x86_64AllocArg(baseFrame, type->data.modifier.type, escapes,
+                            tempAllocator);
+    }
+    case K_ARRAY: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_PTR:
+    case K_FUNCTION_PTR: {
+      // POINTER
+      return x86_64PassGP(frame, POINTER_WIDTH, escapes, tempAllocator);
+    }
+    default: { error(__FILE__, __LINE__, "invalid type given to allocArg"); }
+  }
+}
+static Access *x86_64AllocLocalMem(X86_64Frame *frame, size_t size,
+                                   size_t alignment, AllocHint kind,
+                                   TempAllocator *tempAllocator) {
+  x86_64FrameAlignTo(frame, alignment);
+  int64_t offset = x86_64AllocStack(frame, size);
+  return x86_64StackAccessCtor(size, alignment, kind, offset);
+}
+static Access *x86_64AllocLocalTemp(X86_64Frame *frame, size_t size,
+                                    AllocHint kind,
+                                    TempAllocator *tempAllocator) {
+  // alignof == sizeof for all T GP and SSE types
+  return x86_64TempAccessCtor(size, size, kind, NEW(tempAllocator));
 }
 static Access *x86_64AllocLocal(Frame *baseFrame, Type const *type,
                                 bool escapes, TempAllocator *tempAllocator) {
-  return NULL;  // TODO: write this
+  X86_64Frame *frame = (X86_64Frame *)baseFrame;
+  switch (type->kind) {
+    case K_UBYTE:
+    case K_BYTE:
+    case K_BOOL: {
+      // INTEGER
+      if (escapes) {
+        return x86_64AllocLocalMem(frame, BYTE_WIDTH, BYTE_WIDTH, AH_GP,
+                                   tempAllocator);
+      } else {
+        return x86_64AllocLocalTemp(frame, BYTE_WIDTH, AH_GP, tempAllocator);
+      }
+    }
+    case K_CHAR: {
+      // INTEGER
+      if (escapes) {
+        return x86_64AllocLocalMem(frame, CHAR_WIDTH, CHAR_WIDTH, AH_GP,
+                                   tempAllocator);
+      } else {
+        return x86_64AllocLocalTemp(frame, CHAR_WIDTH, AH_GP, tempAllocator);
+      }
+    }
+    case K_USHORT:
+    case K_SHORT: {
+      // INTEGER
+      if (escapes) {
+        return x86_64AllocLocalMem(frame, SHORT_WIDTH, SHORT_WIDTH, AH_GP,
+                                   tempAllocator);
+      } else {
+        return x86_64AllocLocalTemp(frame, SHORT_WIDTH, AH_GP, tempAllocator);
+      }
+    }
+    case K_UINT:
+    case K_INT: {
+      // INTEGER
+      if (escapes) {
+        return x86_64AllocLocalMem(frame, INT_WIDTH, INT_WIDTH, AH_GP,
+                                   tempAllocator);
+      } else {
+        return x86_64AllocLocalTemp(frame, INT_WIDTH, AH_GP, tempAllocator);
+      }
+    }
+    case K_WCHAR: {
+      // INTEGER
+      if (escapes) {
+        return x86_64AllocLocalMem(frame, INT_WIDTH, INT_WIDTH, AH_GP,
+                                   tempAllocator);
+      } else {
+        return x86_64AllocLocalTemp(frame, INT_WIDTH, AH_GP, tempAllocator);
+      }
+    }
+    case K_ULONG:
+    case K_LONG: {
+      // INTEGER
+      if (escapes) {
+        return x86_64AllocLocalMem(frame, LONG_WIDTH, LONG_WIDTH, AH_GP,
+                                   tempAllocator);
+      } else {
+        return x86_64AllocLocalTemp(frame, LONG_WIDTH, AH_GP, tempAllocator);
+      }
+    }
+    case K_FLOAT: {
+      // SSE
+      if (escapes) {
+        return x86_64AllocLocalMem(frame, FLOAT_WIDTH, FLOAT_WIDTH, AH_SSE,
+                                   tempAllocator);
+      } else {
+        return x86_64AllocLocalTemp(frame, FLOAT_WIDTH, AH_SSE, tempAllocator);
+      }
+    }
+    case K_DOUBLE: {
+      // SSE
+      if (escapes) {
+        return x86_64AllocLocalMem(frame, DOUBLE_WIDTH, DOUBLE_WIDTH, AH_SSE,
+                                   tempAllocator);
+      } else {
+        return x86_64AllocLocalTemp(frame, DOUBLE_WIDTH, AH_SSE, tempAllocator);
+      }
+    }
+    case K_STRUCT: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_UNION: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_ENUM: {
+      // INTEGER
+      size_t size = typeSizeof(type);
+      if (escapes) {
+        return x86_64AllocLocalMem(frame, size, size, AH_GP, tempAllocator);
+      } else {
+        return x86_64AllocLocalTemp(frame, size, AH_GP, tempAllocator);
+      }
+    }
+    case K_TYPEDEF: {
+      // Pass the actual type
+      return x86_64AllocLocal(
+          baseFrame,
+          type->data.reference.referenced->data.type.data.typedefType.type,
+          escapes, tempAllocator);
+    }
+    case K_CONST: {
+      // Pass the actual type
+      return x86_64AllocLocal(baseFrame, type->data.modifier.type, escapes,
+                              tempAllocator);
+    }
+    case K_ARRAY: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_PTR:
+    case K_FUNCTION_PTR: {
+      // POINTER
+      if (escapes) {
+        return x86_64AllocLocalMem(frame, POINTER_WIDTH, POINTER_WIDTH, AH_GP,
+                                   tempAllocator);
+      } else {
+        return x86_64AllocLocalTemp(frame, POINTER_WIDTH, AH_GP, tempAllocator);
+      }
+    }
+    default: { error(__FILE__, __LINE__, "invalid type given to allocLocal"); }
+  }
+}
+static Access *x86_64ReturnGP(X86_64Frame *frame, size_t size) {
+  // alignof == sizeof for all T GP types
+  return x86_64RegAccessCtor(size, size, AH_GP, X86_64_RAX);
+}
+static Access *x86_64ReturnSSE(X86_64Frame *frame, size_t size) {
+  // alignof == sizeof for all T SSE types
+  return x86_64RegAccessCtor(size, size, AH_SSE, X86_64_XMM0);
 }
 static Access *x86_64AllocRetVal(Frame *baseFrame, Type const *type,
                                  TempAllocator *tempAllocator) {
-  return NULL;  // TODO: write this
+  X86_64Frame *frame = (X86_64Frame *)baseFrame;
+  switch (type->kind) {
+    case K_UBYTE:
+    case K_BYTE:
+    case K_BOOL: {
+      // INTEGER
+      return x86_64ReturnGP(frame, BYTE_WIDTH);
+    }
+    case K_CHAR: {
+      // INTEGER
+      return x86_64ReturnGP(frame, BYTE_WIDTH);
+    }
+    case K_USHORT:
+    case K_SHORT: {
+      // INTEGER
+      return x86_64ReturnGP(frame, SHORT_WIDTH);
+    }
+    case K_UINT:
+    case K_INT: {
+      // INTEGER
+      return x86_64ReturnGP(frame, INT_WIDTH);
+    }
+    case K_WCHAR: {
+      // INTEGER
+      return x86_64ReturnGP(frame, WCHAR_WIDTH);
+    }
+    case K_ULONG:
+    case K_LONG: {
+      // INTEGER
+      return x86_64ReturnGP(frame, LONG_WIDTH);
+    }
+    case K_FLOAT: {
+      // SSE
+      return x86_64ReturnSSE(frame, FLOAT_WIDTH);
+    }
+    case K_DOUBLE: {
+      // SSE
+      return x86_64ReturnSSE(frame, DOUBLE_WIDTH);
+    }
+    case K_STRUCT: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_UNION: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_ENUM: {
+      return x86_64ReturnGP(frame, typeSizeof(type));
+    }
+    case K_TYPEDEF: {
+      // Pass the actual type
+      return x86_64AllocRetVal(
+          baseFrame,
+          type->data.reference.referenced->data.type.data.typedefType.type,
+          tempAllocator);
+    }
+    case K_CONST: {
+      // Pass the actual type
+      return x86_64AllocRetVal(baseFrame, type->data.modifier.type,
+                               tempAllocator);
+    }
+    case K_ARRAY: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_PTR:
+    case K_FUNCTION_PTR: {
+      // POINTER
+      return x86_64ReturnGP(frame, POINTER_WIDTH);
+    }
+    default: { error(__FILE__, __LINE__, "invalid type given to allocRetVal"); }
+  }
 }
+// typedef struct X86_64Frame {
+//   Frame frame;
+//
+//   size_t nextGPArg;
+//   size_t nextSSEArg;
+//   int64_t nextMemArg;
+//
+//   int64_t bpOffset;
+//   size_t frameSize;
+//
+//   IRVector *functionPrologue;
+//   IRVector *functionEpilogue;
+//
+//   X86_64FrameScopeStack scopes;
+// } X86_64Frame;
 static void x86_64ScopeStart(Frame *baseFrame) {
-  return;  // TODO: write this
+  X86_64Frame *frame = (X86_64Frame *)baseFrame;
+  x86_64FrameScopeStackPush(&frame->scopes, x86_64FrameScopeCreate());
+  // TODO: write this
 }
 static IRVector *x86_64ScopeEnd(Frame *baseFrame, IRVector *body,
                                 TempAllocator *tempAllocator) {
+  X86_64Frame *frame = (X86_64Frame *)baseFrame;
+
   return body;  // TODO: write this
 }
 static FrameVTable *getX86_64VTable(void) {
@@ -268,8 +777,21 @@ static FrameVTable *getX86_64VTable(void) {
   }
   return X86_64VTable;
 }
-Frame *x86_64FrameCtor(void) {
+Frame *x86_64FrameCtor(char *name) {
   X86_64Frame *frame = malloc(sizeof(X86_64Frame));
-  frame->frame.vtable = getX86_64VTable();
+  frame->base.vtable = getX86_64VTable();
+  frame->base.name = name;
+
+  frame->nextGPArg = 0;
+  frame->nextSSEArg = 0;
+  frame->nextMemArg = 16;
+
+  frame->bpOffset = -8;
+  frame->frameSize = 0;
+
+  frame->functionPrologue = irVectorCreate();
+  frame->functionEpilogue = irVectorCreate();
+
+  x86_64FrameScopeStackInit(&frame->scopes);
   return (Frame *)frame;
 }

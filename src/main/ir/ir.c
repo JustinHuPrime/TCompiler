@@ -57,9 +57,12 @@ static IROperand *irOperandCreate(OperandKind kind) {
   o->kind = kind;
   return o;
 }
-IROperand *tempIROperandCreate(size_t n, AllocHint kind) {
+IROperand *tempIROperandCreate(size_t n, size_t size, size_t alignment,
+                               AllocHint kind) {
   IROperand *o = irOperandCreate(OK_TEMP);
   o->data.temp.n = n;
+  o->data.temp.size = size;
+  o->data.temp.alignment = alignment;
   o->data.temp.kind = kind;
   return o;
 }
@@ -179,18 +182,48 @@ IREntry *moveIREntryCreate(size_t size, IROperand *dest, IROperand *source) {
   e->arg1 = source;
   return e;
 }
-IREntry *storeIREntryCreate(size_t size, IROperand *destAddr,
-                            IROperand *source) {
-  IREntry *e = irEntryCreate(size, IO_STORE);
+IREntry *memStoreIREntryCreate(size_t size, IROperand *destAddr,
+                               IROperand *source) {
+  IREntry *e = irEntryCreate(size, IO_MEM_STORE);
   e->dest = destAddr;
   e->arg1 = source;
   return e;
 }
-IREntry *loadIREntryCreate(size_t size, IROperand *dest,
-                           IROperand *sourceAddr) {
-  IREntry *e = irEntryCreate(size, IO_LOAD);
+IREntry *memLoadIREntryCreate(size_t size, IROperand *dest,
+                              IROperand *sourceAddr) {
+  IREntry *e = irEntryCreate(size, IO_MEM_LOAD);
   e->dest = dest;
   e->arg1 = sourceAddr;
+  return e;
+}
+IREntry *stackStoreIREntryCreate(size_t size, IROperand *destOffset,
+                                 IROperand *source) {
+  IREntry *e = irEntryCreate(size, IO_STK_STORE);
+  e->dest = destOffset;
+  e->arg1 = source;
+  return e;
+}
+IREntry *stackLoadIREntryCreate(size_t size, IROperand *dest,
+                                IROperand *sourceOffset) {
+  IREntry *e = irEntryCreate(size, IO_STK_LOAD);
+  e->dest = dest;
+  e->arg1 = sourceOffset;
+  return e;
+}
+IREntry *offsetStoreIREntryCreate(size_t size, IROperand *destMemTemp,
+                                  IROperand *source, IROperand *offset) {
+  IREntry *e = irEntryCreate(size, IO_OFFSET_STORE);
+  e->dest = destMemTemp;
+  e->arg1 = source;
+  e->arg2 = offset;
+  return e;
+}
+IREntry *offsetLoadIREntryCreate(size_t size, IROperand *dest,
+                                 IROperand *sourceMemTemp, IROperand *offset) {
+  IREntry *e = irEntryCreate(size, IO_OFFSET_LOAD);
+  e->dest = dest;
+  e->arg1 = sourceMemTemp;
+  e->arg2 = offset;
   return e;
 }
 IREntry *binopIREntryCreate(size_t size, IROperator op, IROperand *dest,
