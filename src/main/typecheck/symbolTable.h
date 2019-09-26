@@ -157,6 +157,8 @@ Type *typeGetDereferenced(Type *);
 // strip arrayness and constness off of start of type, produces new type
 Type *typeGetArrayElement(Type *);
 char *typeToString(Type const *);
+// get offset of a field in a struct
+size_t typeOffset(Type const *, char const *fieldName);
 // in-place dtor
 void typeUninit(Type *);
 // dtor

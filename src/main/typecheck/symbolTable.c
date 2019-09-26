@@ -194,15 +194,14 @@ size_t typeSizeof(Type const *t) {
       return typeSizeof(t->data.modifier.type);
     }
     case K_STRUCT: {
-      size_t acc = 0;
+      // offset of last field, plus sizeof last field
       TypeVector *fieldTypes =
           &t->data.reference.referenced->data.type.data.structType.fields;
-
-      for (size_t idx = 0; idx < fieldTypes->size; idx++) {
-        acc += typeSizeof(fieldTypes->elements[idx]);
-      }
-
-      return acc;
+      StringVector *names =
+          &t->data.reference.referenced->data.type.data.structType.names;
+      size_t lastIdx = names->size - 1;  // names->size is at least 1
+      return typeOffset(t, names->elements[lastIdx]) +
+             typeSizeof(fieldTypes->elements[lastIdx]);
     }
     case K_UNION: {
       TypeVector *fieldTypes =
@@ -318,11 +317,11 @@ size_t typeAlignof(Type const *t) {
       }
     }
     case K_TYPEDEF: {
-      return typeSizeof(
+      return typeAlignof(
           t->data.reference.referenced->data.type.data.typedefType.type);
     }
     case K_ARRAY: {
-      return t->data.array.size * typeSizeof(t->data.array.type);
+      return typeAlignof(t->data.array.type);
     }
     default: {
       error(__FILE__, __LINE__,
@@ -2239,6 +2238,23 @@ Type *typeGetArrayElement(Type *type) {
   } else {
     return NULL;
   }
+}
+size_t typeOffset(Type const *type, char const *target) {
+  // assume that type is a struct, and that field is in fieldNames
+  size_t offset = 0;
+  TypeVector *fieldTypes =
+      &type->data.reference.referenced->data.type.data.structType.fields;
+  StringVector *fieldNames =
+      &type->data.reference.referenced->data.type.data.structType.names;
+  for (size_t idx = 0; strcmp(fieldNames->elements[idx], target) == 0; idx++) {
+    size_t alignment = typeAlignof(fieldTypes->elements[idx]);
+
+    // align the offset
+    offset += (alignment - (offset % alignment)) % alignment;
+    offset += typeSizeof(fieldTypes->elements[idx]);
+  }
+
+  return 0;
 }
 void typeUninit(Type *t) {
   switch (t->kind) {
