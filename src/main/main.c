@@ -18,6 +18,7 @@
 
 #include "architecture/x86_64/frame.h"
 #include "ast/printer.h"
+#include "ir/frame.h"
 #include "ir/ir.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
@@ -195,12 +196,14 @@ int main(int argc, char *argv[]) {
   // translation into IR
   FileFragmentVectorMap fragments;
 
-  // architecture specific functions
+  // architecture specific data
+  LabelGeneratorCtor labelGeneratorCtor;
   FrameCtor frameCtor;
   GlobalAccessCtor globalAccessCtor;
 
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
+      labelGeneratorCtor = x86_64LabelGeneratorCtor;
       frameCtor = x86_64FrameCtor;
       globalAccessCtor = x86_64GlobalAccessCtor;
       break;
@@ -208,7 +211,8 @@ int main(int argc, char *argv[]) {
     default: { error(__FILE__, __LINE__, "invalid architecture specified"); }
   }
 
-  translate(&fragments, &asts.codes, frameCtor, globalAccessCtor);
+  translate(&fragments, &asts.codes, labelGeneratorCtor, frameCtor,
+            globalAccessCtor);
 
   // debug stop for translate - displays the IR fragments for each file
   if (optionsGet(&options, optionDebugDump) == O_DD_IR) {

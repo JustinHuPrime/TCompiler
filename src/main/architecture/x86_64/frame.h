@@ -23,6 +23,7 @@
 
 struct Frame;
 struct Access;
+struct LabelGenerator;
 
 // symbolic constants for x86_64 register numbers
 typedef enum {
@@ -69,9 +70,10 @@ typedef enum {
   X86_64_XMM15,
 } X86_64Register;
 
-// constructors for x86_64 implementation of frames
+// constructors for x86_64
 struct Frame *x86_64FrameCtor(char *name);
 struct Access *x86_64GlobalAccessCtor(size_t size, size_t alignment,
                                       AllocHint kind, char *label);
+struct LabelGenerator *x86_64LabelGeneratorCtor(void);
 
 #endif  // TLC_ARCHITECTURE_X86_64_64_FRAME_H_

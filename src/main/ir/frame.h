@@ -26,6 +26,7 @@ struct Type;
 
 struct Frame;
 struct Access;
+struct LabelGenerator;
 
 typedef struct AccessVTable {
   void (*dtor)(struct Access *);
@@ -80,5 +81,15 @@ typedef struct Frame {
   FrameVTable *vtable;
   char *name;
 } Frame;
+
+typedef struct LabelGeneratorVTable {
+  void (*dtor)(struct LabelGenerator *);
+  char *(*generateCodeLabel)(struct LabelGenerator *);
+  char *(*generateDataLabel)(struct LabelGenerator *);
+} LabelGeneratorVTable;
+// an abstract label generator
+typedef struct LabelGenerator {
+  LabelGeneratorVTable *vtable;
+} LabelGenerator;
 
 #endif  // TLC_IR_FRAME_H_

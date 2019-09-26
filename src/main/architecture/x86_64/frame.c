@@ -739,21 +739,6 @@ static Access *x86_64AllocRetVal(Frame *baseFrame, Type const *type,
     default: { error(__FILE__, __LINE__, "invalid type given to allocRetVal"); }
   }
 }
-// typedef struct X86_64Frame {
-//   Frame frame;
-//
-//   size_t nextGPArg;
-//   size_t nextSSEArg;
-//   int64_t nextMemArg;
-//
-//   int64_t bpOffset;
-//   size_t frameSize;
-//
-//   IRVector *functionPrologue;
-//   IRVector *functionEpilogue;
-//
-//   X86_64FrameScopeStack scopes;
-// } X86_64Frame;
 static void x86_64ScopeStart(Frame *baseFrame) {
   X86_64Frame *frame = (X86_64Frame *)baseFrame;
   x86_64FrameScopeStackPush(&frame->scopes, x86_64FrameScopeCreate());
@@ -794,4 +779,43 @@ Frame *x86_64FrameCtor(char *name) {
 
   x86_64FrameScopeStackInit(&frame->scopes);
   return (Frame *)frame;
+}
+
+typedef struct X86_64LabelGenerator {
+  LabelGenerator base;
+  size_t nextCode;
+  size_t nextData;
+} X86_64LabelGenerator;
+static void x86_64LabelGeneratorDtor(LabelGenerator *baseGenerator) {
+  X86_64LabelGenerator *generator = (X86_64LabelGenerator *)baseGenerator;
+  free(generator);
+}
+static char *x86_64LabelGeneratorGenerateCodeLabel(
+    LabelGenerator *baseGenerator) {
+  X86_64LabelGenerator *generator = (X86_64LabelGenerator *)baseGenerator;
+  return format(".L%zu", generator->nextCode++);
+}
+static char *x86_64LabelGeneratorGenerateDataLabel(
+    LabelGenerator *baseGenerator) {
+  X86_64LabelGenerator *generator = (X86_64LabelGenerator *)baseGenerator;
+  return format(".LC%zu", generator->nextData++);
+}
+LabelGeneratorVTable *X86_64LabelGeneratorVTable = NULL;
+static LabelGeneratorVTable *getX86_64LabelGeneratorVTable(void) {
+  if (X86_64LabelGeneratorVTable == NULL) {
+    X86_64LabelGeneratorVTable = malloc(sizeof(LabelGeneratorVTable));
+    X86_64LabelGeneratorVTable->dtor = x86_64LabelGeneratorDtor;
+    X86_64LabelGeneratorVTable->generateCodeLabel =
+        x86_64LabelGeneratorGenerateCodeLabel;
+    X86_64LabelGeneratorVTable->generateDataLabel =
+        x86_64LabelGeneratorGenerateDataLabel;
+  }
+  return X86_64LabelGeneratorVTable;
+}
+LabelGenerator *x86_64LabelGeneratorCtor(void) {
+  X86_64LabelGenerator *generator = malloc(sizeof(X86_64LabelGenerator));
+  generator->base.vtable = getX86_64LabelGeneratorVTable();
+  generator->nextCode = 0;
+  generator->nextData = 0;
+  return (LabelGenerator *)generator;
 }

@@ -28,6 +28,7 @@ typedef HashMap ModuleAstMap;
 typedef Vector IRVector;
 struct Frame;
 struct Access;
+struct LabelGenerator;
 
 typedef enum {
   FK_BSS,
@@ -85,12 +86,14 @@ int fileFragmentVectorMapPut(FileFragmentVectorMap *, char const *key,
 // in-place dtor
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
 
+typedef struct LabelGenerator *(*LabelGeneratorCtor)(void);
 typedef struct Frame *(*FrameCtor)(char *name);
 typedef struct Access *(*GlobalAccessCtor)(size_t size, size_t alignment,
                                            AllocHint kind, char *name);
 
 // translates an abstract syntax tree into a series of fragments
 void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes,
-               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor);
+               LabelGeneratorCtor labelGenerator, FrameCtor frameCtor,
+               GlobalAccessCtor globalAccessCtor);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_
