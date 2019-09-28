@@ -32,7 +32,7 @@ typedef enum {
   OK_TEMP,
   OK_REG,
   OK_CONSTANT,
-  OK_LABEL,
+  OK_NAME,
   OK_ASM,
   OK_STRING,
   OK_WSTRING,
@@ -55,7 +55,7 @@ typedef struct IROperand {
     } constant;
     struct {
       char *name;
-    } label;
+    } name;
     struct {
       char *assembly;
     } assembly;
@@ -81,7 +81,7 @@ IROperand *ulongIROperandCreate(uint64_t value);
 IROperand *longIROperandCreate(int64_t value);
 IROperand *floatIROperandCreate(uint32_t bits);
 IROperand *doubleIROperandCreate(uint64_t bits);
-IROperand *labelIROperandCreate(char *name);
+IROperand *nameIROperandCreate(char *name);
 IROperand *asmIROperandCreate(char *assembly);
 IROperand *stringIROperandCreate(uint8_t *data);
 IROperand *wstringIROperandCreate(uint32_t *data);

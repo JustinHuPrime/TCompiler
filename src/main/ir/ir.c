@@ -121,9 +121,9 @@ IROperand *doubleIROperandCreate(uint64_t bits) {
   o->data.constant.bits = bits;
   return o;
 }
-IROperand *labelIROperandCreate(char *name) {
-  IROperand *o = irOperandCreate(OK_LABEL);
-  o->data.label.name = name;
+IROperand *nameIROperandCreate(char *name) {
+  IROperand *o = irOperandCreate(OK_NAME);
+  o->data.name.name = name;
   return o;
 }
 IROperand *asmIROperandCreate(char *assembly) {
@@ -152,12 +152,20 @@ void irOperandDestroy(IROperand *o) {
     case OK_CONSTANT: {
       break;
     }
-    case OK_LABEL: {
-      free(o->data.label.name);
+    case OK_NAME: {
+      free(o->data.name.name);
       break;
     }
     case OK_ASM: {
       free(o->data.assembly.assembly);
+      break;
+    }
+    case OK_STRING: {
+      free(o->data.string.data);
+      break;
+    }
+    case OK_WSTRING: {
+      free(o->data.wstring.data);
       break;
     }
   }

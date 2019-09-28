@@ -286,6 +286,70 @@ static char *mangleFunctionName(char const *moduleName, char const *id,
   return retVal;
 }
 
+// typeof
+static Type const *typeofExpression(Node const *exp) {
+  switch (exp->type) {
+    case NT_SEQEXP: {
+      return exp->data.seqExp.resultType;
+    }
+    case NT_BINOPEXP: {
+      return exp->data.binOpExp.resultType;
+    }
+    case NT_UNOPEXP: {
+      return exp->data.unOpExp.resultType;
+    }
+    case NT_COMPOPEXP: {
+      return exp->data.compOpExp.resultType;
+    }
+    case NT_LANDASSIGNEXP: {
+      return exp->data.landAssignExp.resultType;
+    }
+    case NT_LORASSIGNEXP: {
+      return exp->data.lorAssignExp.resultType;
+    }
+    case NT_TERNARYEXP: {
+      return exp->data.ternaryExp.resultType;
+    }
+    case NT_LANDEXP: {
+      return exp->data.landExp.resultType;
+    }
+    case NT_LOREXP: {
+      return exp->data.lorExp.resultType;
+    }
+    case NT_STRUCTACCESSEXP: {
+      return exp->data.structAccessExp.resultType;
+    }
+    case NT_STRUCTPTRACCESSEXP: {
+      return exp->data.structPtrAccessExp.resultType;
+    }
+    case NT_FNCALLEXP: {
+      return exp->data.fnCallExp.resultType;
+    }
+    case NT_CONSTEXP: {
+      return exp->data.constExp.resultType;
+    }
+    case NT_AGGREGATEINITEXP: {
+      return exp->data.aggregateInitExp.resultType;
+    }
+    case NT_CASTEXP: {
+      return exp->data.castExp.resultType;
+    }
+    case NT_SIZEOFTYPEEXP: {
+      return exp->data.sizeofTypeExp.resultType;
+    }
+    case NT_SIZEOFEXPEXP: {
+      return exp->data.sizeofExpExp.resultType;
+    }
+    case NT_ID: {
+      return exp->data.id.resultType;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered a non-expression in an expression position");
+    }
+  }
+}
+
 // constant stuff
 static bool constantIsZero(Node *initializer) {
   switch (initializer->type) {
@@ -430,23 +494,21 @@ static void constantToData(Node *initializer, IRVector *out,
           return;
         }
         case CT_STRING: {
-          Fragment *f = rodataFragmentCreate(
-              labelGenerator->vtable->generateDataLabel(labelGenerator));
+          Fragment *f = rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator));
           IR(f->data.rodata.ir,
              CONST(0, STRING(tstrdup(
                           initializer->data.constExp.value.stringVal))));
           fragmentVectorInsert(fragments, f);
-          IR(out, CONST(POINTER_WIDTH, LABEL(f->label)));
+          IR(out, CONST(POINTER_WIDTH, NAME(strdup(f->label))));
           return;
         }
         case CT_WSTRING: {
-          Fragment *f = rodataFragmentCreate(
-              labelGenerator->vtable->generateDataLabel(labelGenerator));
+          Fragment *f = rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator));
           IR(f->data.rodata.ir,
              CONST(0, WSTRING(twstrdup(
                           initializer->data.constExp.value.wstringVal))));
           fragmentVectorInsert(fragments, f);
-          IR(out, CONST(POINTER_WIDTH, LABEL(f->label)));
+          IR(out, CONST(POINTER_WIDTH, NAME(strdup(f->label))));
           return;
         }
         case CT_NULL: {
@@ -496,7 +558,458 @@ static void addGlobalAccesses(SymbolTable *stab, char const *moduleName,
   }
 }
 
-// translation
+// translation - branching
+static void translateJumpIfNot(Node *condition, IRVector *out,
+                               LabelGenerator *labelGenerator,
+                               TempAllocator *tempAllocator,
+                               char const *target) {
+  // TODO: write this
+}
+static void translateJumpIf(Node *condition, IRVector *out,
+                            LabelGenerator *labelGenerator,
+                            TempAllocator *tempAllocator, char const *target) {
+  // TODO: write this
+}
+
+// translation - expressions
+static IROperand *translateCast(IROperand *from, Type const *fromType,
+                                Type const *toType, IRVector *out,
+                                TempAllocator *tempAllocator) {
+  return from;  // TODO: write this
+}
+static IROperand *translateExpression(Node *exp, IRVector *out,
+                                      LabelGenerator *labelGenerator,
+                                      TempAllocator *tempAllocator) {
+  switch (exp->type) {
+    case NT_SEQEXP: {
+      irOperandDestroy(translateExpression(exp->data.seqExp.prefix, out,
+                                           labelGenerator, tempAllocator));
+      return translateExpression(exp->data.seqExp.last, out, labelGenerator,
+                                 tempAllocator);
+    }
+    case NT_BINOPEXP: {
+      switch (exp->data.binOpExp.op) {
+        case BO_ASSIGN: {
+          // TODO: write this
+        }
+        case BO_MULASSIGN: {
+          // TODO: write this
+        }
+        case BO_DIVASSIGN: {
+          // TODO: write this
+        }
+        case BO_MODASSIGN: {
+          // TODO: write this
+        }
+        case BO_ADDASSIGN: {
+          // TODO: write this
+        }
+        case BO_SUBASSIGN: {
+          // TODO: write this
+        }
+        case BO_LSHIFTASSIGN: {
+          // TODO: write this
+        }
+        case BO_LRSHIFTASSIGN: {
+          // TODO: write this
+        }
+        case BO_ARSHIFTASSIGN: {
+          // TODO: write this
+        }
+        case BO_BITANDASSIGN: {
+          // TODO: write this
+        }
+        case BO_BITXORASSIGN: {
+          // TODO: write this
+        }
+        case BO_BITORASSIGN: {
+          // TODO: write this
+        }
+        case BO_BITAND: {
+          // TODO: write this
+        }
+        case BO_BITOR: {
+          // TODO: write this
+        }
+        case BO_BITXOR: {
+          // TODO: write this
+        }
+        case BO_SPACESHIP: {
+          // TODO: write this
+        }
+        case BO_LSHIFT: {
+          // TODO: write this
+        }
+        case BO_LRSHIFT: {
+          // TODO: write this
+        }
+        case BO_ARSHIFT: {
+          // TODO: write this
+        }
+        case BO_ADD: {
+          // TODO: write this
+        }
+        case BO_SUB: {
+          // TODO: write this
+        }
+        case BO_MUL: {
+          // TODO: write this
+        }
+        case BO_DIV: {
+          // TODO: write this
+        }
+        case BO_MOD: {
+          // TODO: write this
+        }
+        case BO_ARRAYACCESS: {
+          // TODO: write this
+        }
+        default: { error(__FILE__, __LINE__, "invalid BinOpType enum"); }
+      }
+    }
+    case NT_UNOPEXP: {
+      switch (exp->data.unOpExp.op) {
+        case UO_DEREF: {
+          Type const *resultType = exp->data.unOpExp.resultType;
+          size_t resultSize = typeSizeof(resultType);
+          size_t resultAlignment = typeAlignof(resultType);
+          AllocHint kind = typeKindof(resultType);
+          size_t temp = NEW(tempAllocator);
+          IR(out,
+             MEM_LOAD(resultSize, TEMP(temp, resultSize, resultAlignment, kind),
+                      translateExpression(exp->data.unOpExp.target, out,
+                                          labelGenerator, tempAllocator)));
+          return TEMP(temp, resultSize, resultAlignment, kind);
+        }
+        case UO_ADDROF: {
+          // TODO: write this
+        }
+        case UO_PREINC: {
+          // TODO: write this
+        }
+        case UO_PREDEC: {
+          // TODO: write this
+        }
+        case UO_NEG: {
+          // TODO: write this
+        }
+        case UO_LNOT: {
+          // TODO: write this
+        }
+        case UO_BITNOT: {
+          // TODO: write this
+        }
+        case UO_POSTINC: {
+          // TODO: write this
+        }
+        case UO_POSTDEC: {
+          // TODO: write this
+        }
+        default: { error(__FILE__, __LINE__, "invalid UnOpType enum"); }
+      }
+    }
+    case NT_COMPOPEXP: {
+      // TODO: write this
+    }
+    case NT_LANDASSIGNEXP: {
+      // TODO: write this
+    }
+    case NT_LORASSIGNEXP: {
+      // TODO: write this
+    }
+    case NT_TERNARYEXP: {
+      // var x
+      // jump if not (condition) to elseCase
+      // x = trueCase
+      // jump to end
+      // elseCase:
+      // x = falseCase
+      // end:
+
+      size_t resultTemp = NEW(tempAllocator);
+      Type const *resultType = exp->data.ternaryExp.resultType;
+      size_t resultSize = typeSizeof(resultType);
+      size_t resultAlignment = typeAlignof(resultType);
+      AllocHint kind = typeKindof(resultType);
+
+      char *elseCase = NEW_LABEL(labelGenerator);
+      char *end = NEW_LABEL(labelGenerator);
+
+      translateJumpIfNot(exp->data.ternaryExp.condition, out, labelGenerator,
+                         tempAllocator, elseCase);
+      IR(out,
+         MOVE(resultSize, TEMP(resultTemp, resultSize, resultAlignment, kind),
+              translateCast(
+                  translateExpression(exp->data.ternaryExp.thenExp, out,
+                                      labelGenerator, tempAllocator),
+                  typeofExpression(exp->data.ternaryExp.thenExp), resultType,
+                  out, tempAllocator)));
+      IR(out, JUMP(strdup(end)));
+      IR(out, LABEL(elseCase));
+      IR(out,
+         MOVE(resultSize, TEMP(resultTemp, resultSize, resultAlignment, kind),
+              translateCast(
+                  translateExpression(exp->data.ternaryExp.elseExp, out,
+                                      labelGenerator, tempAllocator),
+                  typeofExpression(exp->data.ternaryExp.elseExp), resultType,
+                  out, tempAllocator)));
+      IR(out, LABEL(end));
+      return TEMP(resultTemp, resultSize, resultAlignment, kind);
+    }
+    case NT_LANDEXP: {
+      // TODO: write this
+    }
+    case NT_LOREXP: {
+      // TODO: write this
+    }
+    case NT_STRUCTACCESSEXP: {
+      // TODO: write this
+    }
+    case NT_STRUCTPTRACCESSEXP: {
+      // TODO: write this
+    }
+    case NT_FNCALLEXP: {
+      // TODO: write this
+    }
+    case NT_CONSTEXP: {
+      // TODO: write this
+    }
+    case NT_AGGREGATEINITEXP: {
+      // TODO: write this
+    }
+    case NT_CASTEXP: {
+      // TODO: write this
+    }
+    case NT_SIZEOFTYPEEXP: {
+      // TODO: write this
+    }
+    case NT_SIZEOFEXPEXP: {
+      // TODO: write this
+    }
+    case NT_ID: {
+      // TODO: write this
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered a non-expression in an expression position");
+    }
+  }
+}
+
+// translation - statements
+static void translateStmt(Node *stmt, IRVector *out, Frame *frame,
+                          Access *outArg, char const *breakLabel,
+                          char const *continueLabel, char const *exitLabel,
+                          LabelGenerator *labelGenerator,
+                          TempAllocator *tempAllocator,
+                          Type const *returnType) {
+  if (stmt == NULL) {
+    return;
+  }
+
+  switch (stmt->type) {
+    case NT_COMPOUNDSTMT: {
+      NodeList *stmts = stmt->data.compoundStmt.statements;
+      for (size_t idx = 0; idx < stmts->size; idx++) {
+        translateStmt(stmts->elements[idx], out, frame, outArg, breakLabel,
+                      continueLabel, exitLabel, labelGenerator, tempAllocator,
+                      returnType);
+      }
+      break;
+    }
+    case NT_IFSTMT: {
+      if (stmt->data.ifStmt.elseStmt == NULL) {
+        // jump if not (condition) to end
+        // thenBody
+        // end:
+        char *skip = labelGenerator->vtable->generateCodeLabel(labelGenerator);
+
+        translateJumpIfNot(stmt->data.ifStmt.condition, out, labelGenerator,
+                           tempAllocator, skip);
+        translateStmt(stmt->data.ifStmt.thenStmt, out, frame, outArg,
+                      breakLabel, continueLabel, exitLabel, labelGenerator,
+                      tempAllocator, returnType);
+        IR(out, LABEL(skip));
+      } else {
+        // jump if not (condition) to elseCase
+        // thenBody
+        // jump to end
+        // elseCase:
+        // elseBody
+        // end:
+        char *elseCase = NEW_LABEL(labelGenerator);
+        char *end = NEW_LABEL(labelGenerator);
+
+        translateJumpIfNot(stmt->data.ifStmt.condition, out, labelGenerator,
+                           tempAllocator, elseCase);
+        translateStmt(stmt->data.ifStmt.thenStmt, out, frame, outArg,
+                      breakLabel, continueLabel, exitLabel, labelGenerator,
+                      tempAllocator, returnType);
+        IR(out, JUMP(strdup(end)));
+        IR(out, LABEL(elseCase));
+        translateStmt(stmt->data.ifStmt.elseStmt, out, frame, outArg,
+                      breakLabel, continueLabel, exitLabel, labelGenerator,
+                      tempAllocator, returnType);
+        IR(out, LABEL(end));
+      }
+      break;
+    }
+    case NT_WHILESTMT: {
+      // start:
+      // jump if not (condition) to end
+      // body
+      // jump to start
+      // end:
+      char *start = NEW_LABEL(labelGenerator);
+      char *end = NEW_LABEL(labelGenerator);
+
+      IR(out, LABEL(strdup(start)));
+      translateJumpIfNot(stmt->data.whileStmt.condition, out, labelGenerator,
+                         tempAllocator, end);
+      translateStmt(stmt->data.whileStmt.body, out, frame, outArg, end, start,
+                    exitLabel, labelGenerator, tempAllocator, returnType);
+      IR(out, JUMP(start));
+      IR(out, LABEL(end));
+      break;
+    }
+    case NT_DOWHILESTMT: {
+      // start:
+      // body
+      // continue:
+      // jump if (condition) to start
+      // end:
+      char *start = NEW_LABEL(labelGenerator);
+      char *loopContinue = NEW_LABEL(labelGenerator);
+      char *end = NEW_LABEL(labelGenerator);
+
+      IR(out, LABEL(start));
+      translateStmt(stmt->data.doWhileStmt.body, out, frame, outArg, end,
+                    loopContinue, exitLabel, labelGenerator, tempAllocator,
+                    returnType);
+      IR(out, LABEL(loopContinue));
+      translateJumpIf(stmt->data.doWhileStmt.condition, out, labelGenerator,
+                      tempAllocator, start);
+      IR(out, LABEL(end));
+      break;
+    }
+    case NT_FORSTMT: {
+      // {
+      //  initialize
+      //  start:
+      //  jump if not (condition) to end
+      //  body
+      //  update
+      //  jump to start
+      //  end:
+      // }
+      IRVector *body = irVectorCreate();
+      frame->vtable->scopeStart(frame);
+
+      char *start = NEW_LABEL(labelGenerator);
+      char *end = NEW_LABEL(labelGenerator);
+
+      Node *initialize = stmt->data.forStmt.initialize;
+      if (initialize != NULL) {
+        if (initialize->type == NT_VARDECL) {
+          translateStmt(stmt->data.forStmt.initialize, body, frame, outArg,
+                        breakLabel, continueLabel, exitLabel, labelGenerator,
+                        tempAllocator, returnType);
+        } else {
+          irOperandDestroy(translateExpression(initialize, body, labelGenerator,
+                                               tempAllocator));
+        }
+      }
+
+      IR(body, LABEL(strdup(start)));
+      translateJumpIfNot(stmt->data.forStmt.condition, body, labelGenerator,
+                         tempAllocator, end);
+      translateStmt(stmt->data.forStmt.body, body, frame, outArg, end, start,
+                    exitLabel, labelGenerator, tempAllocator, returnType);
+      irOperandDestroy(translateExpression(stmt->data.forStmt.update, body,
+                                           labelGenerator, tempAllocator));
+      IR(body, JUMP(start));
+      IR(body, LABEL(end));
+
+      out = irVectorMerge(out,
+                          frame->vtable->scopeEnd(frame, body, tempAllocator));
+      break;
+    }
+    case NT_SWITCHSTMT: {
+      // TODO: write this
+      break;
+    }
+    case NT_BREAKSTMT: {
+      IR(out, JUMP(strdup(breakLabel)));
+      break;
+    }
+    case NT_CONTINUESTMT: {
+      IR(out, JUMP(strdup(continueLabel)));
+      break;
+    }
+    case NT_RETURNSTMT: {
+      if (stmt->data.returnStmt.value != NULL) {
+        outArg->vtable->store(
+            outArg, out,
+            translateCast(translateExpression(stmt->data.returnStmt.value, out,
+                                              labelGenerator, tempAllocator),
+                          typeofExpression(stmt->data.returnStmt.value),
+                          returnType, out, tempAllocator),
+            tempAllocator);
+      }
+      IR(out, JUMP(strdup(exitLabel)));
+      break;
+    }
+    case NT_ASMSTMT: {
+      IR(out, ASM(strdup(stmt->data.asmStmt.assembly)));
+      break;
+    }
+    case NT_EXPRESSIONSTMT: {
+      irOperandDestroy(translateExpression(stmt->data.expressionStmt.expression,
+                                           out, labelGenerator, tempAllocator));
+      break;
+    }
+    case NT_NULLSTMT:
+    case NT_STRUCTDECL:
+    case NT_STRUCTFORWARDDECL:
+    case NT_UNIONDECL:
+    case NT_UNIONFORWARDDECL:
+    case NT_ENUMDECL:
+    case NT_ENUMFORWARDDECL:
+    case NT_TYPEDEFDECL: {
+      // semantics only - no generated code
+      break;
+    }
+    case NT_VARDECL: {
+      NodePairList *idValuePairs = stmt->data.varDecl.idValuePairs;
+      for (size_t idx = 0; idx < idValuePairs->size; idx++) {
+        Node *id = idValuePairs->firstElements[idx];
+        Node *initializer = idValuePairs->secondElements[idx];
+
+        SymbolInfo *info = id->data.id.symbol;
+        Access *access = info->data.var.access = frame->vtable->allocLocal(
+            frame, info->data.var.type, info->data.var.escapes, tempAllocator);
+
+        if (initializer != NULL) {
+          access->vtable->store(
+              access, out,
+              translateCast(translateExpression(initializer, out,
+                                                labelGenerator, tempAllocator),
+                            typeofExpression(initializer), info->data.var.type,
+                            out, tempAllocator),
+              tempAllocator);
+        }
+      }
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "bad syntax past parse phase - encountered non-statement in "
+            "statement position");
+    }
+  }
+}
+
+// translation - top level
 static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
                                char const *moduleName,
                                LabelGenerator *labelGenerator) {
@@ -527,39 +1040,44 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
 static void translateFunction(Node *function, FragmentVector *fragments,
                               char const *moduleName, FrameCtor frameCtor,
                               LabelGenerator *labelGenerator) {
-  // Frame *frame = frameCtor();
-  // Access *functionAccess =
-  // function->data.function.id->data.id.overload->access; char *mangledName =
-  // functionAccess->vtable->getLabel(functionAccess); Fragment *fragment =
-  // functionFragmentCreate(mangledName, frame); IRStmVector *body =
-  // irStmVectorCreate();
+  // get function information
+  Access *functionAccess = function->data.function.id->data.id.overload->access;
+  char *mangledName = functionAccess->vtable->getLabel(functionAccess);
+  Type const *returnType =
+      function->data.function.id->data.id.overload->returnType;
 
-  // Node *statements = function->data.function.body;
-  // Access *outArg = frame->vtable->allocOutArg(
-  //     frame,
-  //     typeSizeof(function->data.function.id->data.id.overload->returnType));
-  // for (size_t idx = 0; idx < function->data.function.formals->size; idx++)
-  // {
-  //   Node *id = function->data.function.formals->secondElements[idx];
-  //   SymbolInfo *info = id->data.id.symbol;
-  //   // info->data.var.access = frame->vtable->allocInArg(
-  //   //     frame, typeSizeof(info->data.var.type), info->data.var.escapes);
-  // }
+  Frame *frame = frameCtor(strdup(mangledName));
 
-  // char *exitLabel =
-  // labelGenerator->vtable->generateCodeLabel(labelGenerator);
-  // translateStmt(statements, body, frame, outArg, NULL, NULL, exitLabel,
-  //               labelGenerator, tempGenerator,
-  //               function->data.function.id->data.id.overload->returnType);
+  Fragment *f = textFragmentCreate(mangledName, frame);
 
-  // outArg->vtable->dtor(outArg);
+  TempAllocator tempAllocator;
+  tempAllocatorInit(&tempAllocator);
 
-  // body = frame->vtable->generateEntryExit(frame, body, exitLabel);
-  // irStmVectorUninit(&fragment->data.function.body);
-  // memcpy(&fragment->data.function.body, body, sizeof(IRStmVector));
+  // allocate function accesses
+  for (size_t idx = 0; idx < function->data.function.formals->size; idx++) {
+    Node *id = function->data.function.formals->secondElements[idx];
+    SymbolInfo *info = id->data.id.symbol;
+    info->data.var.access = frame->vtable->allocArg(
+        frame, info->data.var.type, info->data.var.escapes, &tempAllocator);
+  }
 
-  // fragmentVectorInsert(fragments, fragment);
-  // return;
+  Access *outArg =
+      returnType->kind == K_VOID
+          ? NULL
+          : frame->vtable->allocRetVal(frame, returnType, &tempAllocator);
+
+  char *exitLabel = labelGenerator->vtable->generateCodeLabel(labelGenerator);
+  translateStmt(function->data.function.body, f->data.text.ir, frame, outArg,
+                NULL, NULL, exitLabel, labelGenerator, &tempAllocator,
+                returnType);
+  IR(f->data.text.ir, LABEL(exitLabel));
+
+  if (outArg != NULL) {
+    outArg->vtable->dtor(outArg);
+  }
+
+  fragmentVectorInsert(fragments, f);
+  return;
 }
 static void translateBody(Node *body, FragmentVector *fragments,
                           char const *moduleName, FrameCtor frameCtor,

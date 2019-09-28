@@ -47,7 +47,7 @@ static IROperand *x86_64GlobalAccessLoad(Access *baseAccess, IRVector *code,
   IR(code, MEM_LOAD(access->base.size,
                     TEMP(result, access->base.size, access->base.alignment,
                          access->base.kind),
-                    LABEL(strdup(access->label))));
+                    NAME(strdup(access->label))));
   return TEMP(result, access->base.size, access->base.alignment,
               access->base.kind);
 }
@@ -56,13 +56,13 @@ static void x86_64GlobalAccessStore(Access *baseAccess, IRVector *code,
                                     TempAllocator *tempAllocator) {
   X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
 
-  IR(code, MEM_STORE(access->base.size, LABEL(strdup(access->label)), input));
+  IR(code, MEM_STORE(access->base.size, NAME(strdup(access->label)), input));
 }
 static IROperand *x86_64GlobalAccessAddrof(Access *baseAccess, IRVector *code,
                                            TempAllocator *tempAllocator) {
   X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
 
-  return LABEL(strdup(access->label));
+  return NAME(strdup(access->label));
 }
 static char *x86_64GlobalAccessGetLabel(Access *baseAccess) {
   X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
@@ -261,7 +261,7 @@ static IROperand *x86_64FunctionAccessLoad(Access *baseAccess, IRVector *code,
                                            TempAllocator *tempAllocator) {
   X86_64FunctionAccess *access = (X86_64FunctionAccess *)baseAccess;
 
-  return LABEL(strdup(access->name));
+  return NAME(strdup(access->name));
 }
 static char *x86_64FunctionAccessGetLabel(Access *baseAccess) {
   X86_64FunctionAccess *access = (X86_64FunctionAccess *)baseAccess;

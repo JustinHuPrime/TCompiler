@@ -18,9 +18,15 @@
 
 #include "ir/shorthand.h"
 
+#include "ir/frame.h"
 #include "ir/ir.h"
 
 size_t NEW(TempAllocator *t) { return tempAllocatorAllocate(t); }
+
+char *NEW_LABEL(LabelGenerator *l) { return l->vtable->generateCodeLabel(l); }
+char *NEW_DATA_LABEL(LabelGenerator *l) {
+  return l->vtable->generateDataLabel(l);
+}
 
 IROperand *TEMP(size_t n, size_t size, size_t alignment, AllocHint kind) {
   return tempIROperandCreate(n, size, alignment, kind);
@@ -36,7 +42,7 @@ IROperand *ULONG(uint64_t value) { return ulongIROperandCreate(value); }
 IROperand *LONG(int64_t value) { return longIROperandCreate(value); }
 IROperand *FLOAT(uint32_t bits) { return floatIROperandCreate(bits); }
 IROperand *DOUBLE(uint64_t bits) { return doubleIROperandCreate(bits); }
-IROperand *LABEL(char *name) { return labelIROperandCreate(name); }
+IROperand *NAME(char *name) { return nameIROperandCreate(name); }
 IROperand *STRING(uint8_t *string) { return stringIROperandCreate(string); }
 IROperand *WSTRING(uint32_t *wstring) {
   return wstringIROperandCreate(wstring);
@@ -48,7 +54,7 @@ IREntry *CONST(size_t size, IROperand *constant) {
 IREntry *ASM(char *assembly) {
   return asmIREntryCreate(asmIROperandCreate(assembly));
 }
-IREntry *LABEL_DEF(IROperand *label) { return labelIREntryCreate(label); }
+IREntry *LABEL(char *label) { return labelIREntryCreate(NAME(label)); }
 IREntry *MOVE(size_t size, IROperand *dest, IROperand *source) {
   return moveIREntryCreate(size, dest, source);
 }
@@ -79,10 +85,10 @@ IREntry *BINOP(size_t size, IROperator op, IROperand *dest, IROperand *arg1,
 IREntry *UNOP(size_t size, IROperator op, IROperand *dest, IROperand *arg) {
   return unopIREntryCreate(size, op, dest, arg);
 }
-IREntry *JUMP(IROperand *dest) { return jumpIREntryCreate(dest); }
-IREntry *CJUMP(size_t size, IROperator op, IROperand *dest, IROperand *lhs,
+IREntry *JUMP(char *dest) { return jumpIREntryCreate(NAME(dest)); }
+IREntry *CJUMP(size_t size, IROperator op, char *dest, IROperand *lhs,
                IROperand *rhs) {
-  return cjumpIREntryCreate(size, op, dest, lhs, rhs);
+  return cjumpIREntryCreate(size, op, NAME(dest), lhs, rhs);
 }
 IREntry *CALL(IROperand *who) { return callIREntryCreate(who); }
 IREntry *RETURN(void) { return returnIREntryCreate(); }

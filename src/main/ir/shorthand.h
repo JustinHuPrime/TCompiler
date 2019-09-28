@@ -24,8 +24,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+struct LabelGenerator;
+
 // equivalent to tempAllocatorAllocate
 size_t NEW(TempAllocator *);
+
+// equivalent to calling
+// labelGenerator->vtable->generateCodeLabel(labelGenerator)
+char *NEW_LABEL(struct LabelGenerator *);
+// equivalent to calling
+// labelGenerator->vtable->generateDataLabel(labelGenerator)
+char *NEW_DATA_LABEL(struct LabelGenerator *);
 
 // shorthands for IROperand construction
 IROperand *TEMP(size_t n, size_t size, size_t alignment, AllocHint kind);
@@ -40,14 +49,14 @@ IROperand *ULONG(uint64_t value);
 IROperand *LONG(int64_t value);
 IROperand *FLOAT(uint32_t bits);
 IROperand *DOUBLE(uint64_t bits);
-IROperand *LABEL(char *name);
+IROperand *NAME(char *name);
 IROperand *STRING(uint8_t *string);
 IROperand *WSTRING(uint32_t *wstring);
 
 // shorthands for IREntry construction
 IREntry *CONST(size_t size, IROperand *);
 IREntry *ASM(char *assembly);  // constructs the IROperand as well
-IREntry *LABEL_DEF(IROperand *label);
+IREntry *LABEL(char *label);   // constructs the IROperand as well
 IREntry *MOVE(size_t size, IROperand *dest, IROperand *source);
 IREntry *MEM_STORE(size_t size, IROperand *destAddr, IROperand *source);
 IREntry *MEM_LOAD(size_t size, IROperand *dest, IROperand *sourceAddr);
@@ -62,9 +71,9 @@ IREntry *OFFSET_LOAD(size_t size, IROperand *dest, IROperand *sourceMemTemp,
 IREntry *BINOP(size_t size, IROperator op, IROperand *dest, IROperand *arg1,
                IROperand *arg2);
 IREntry *UNOP(size_t size, IROperator op, IROperand *dest, IROperand *arg);
-IREntry *JUMP(IROperand *dest);
-IREntry *CJUMP(size_t size, IROperator op, IROperand *dest, IROperand *lhs,
-               IROperand *rhs);
+IREntry *JUMP(char *dest);  // constructs the NAME iroperand as well
+IREntry *CJUMP(size_t size, IROperator op, char *dest, IROperand *lhs,
+               IROperand *rhs);  // constructs the NAME iroperand as well
 IREntry *CALL(IROperand *who);
 IREntry *RETURN(void);
 
