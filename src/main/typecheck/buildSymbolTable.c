@@ -1162,14 +1162,14 @@ static void buildStabCode(Node *ast, Report *report, Options const *options,
 
 void buildSymbolTables(Report *report, Options const *options,
                        ModuleAstMapPair const *asts) {
-  for (size_t idx = 0; idx < asts->decls.size; idx++) {
+  for (size_t idx = 0; idx < asts->decls.capacity; idx++) {
     // if this is a decl, and it hasn't been processed
     if (asts->decls.keys[idx] != NULL &&
         ((Node *)asts->decls.values[idx])->data.file.symbols == NULL) {
       buildStabDecl(asts->decls.values[idx], report, options, &asts->decls);
     }
   }
-  for (size_t idx = 0; idx < asts->codes.size; idx++) {
+  for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
     // all codes that are valid haven't been processed by this loop.
     if (asts->codes.keys[idx] != NULL) {
       buildStabCode(asts->codes.values[idx], report, options, &asts->decls);

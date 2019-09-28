@@ -2694,11 +2694,11 @@ SymbolTable *symbolTableCopy(SymbolTable const *from) {
   SymbolTable *to = malloc(sizeof(SymbolTable));
   to->capacity = from->capacity;
   to->size = from->size;
-  to->keys = calloc(to->capacity, sizeof(char const *));
+  to->keys = malloc(to->capacity * sizeof(char const *));
   to->values = malloc(to->capacity * sizeof(void *));
   memcpy(to->keys, from->keys, to->capacity * sizeof(char const *));
 
-  for (size_t idx = 0; idx < to->size; idx++) {
+  for (size_t idx = 0; idx < to->capacity; idx++) {
     if (to->keys[idx] != NULL) {
       to->values[idx] = symbolInfoCopy(from->values[idx]);
     }
