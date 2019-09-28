@@ -152,6 +152,10 @@ typedef enum IROperator {
   IO_JNE,
   IO_JGE,
   IO_JG,
+  IO_JA,
+  IO_JAE,
+  IO_JB,
+  IO_JBE,
 
   IO_CALL,    // function call: opSize = 0, dest = NULL, arg1 = function call
               // target, arg2 = NULL Note that the argument list is set up

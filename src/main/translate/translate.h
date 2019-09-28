@@ -37,7 +37,7 @@ typedef enum {
   FK_TEXT,
 } FragmentKind;
 // a fragment of assembly data or code
-typedef struct {
+typedef struct Fragment {
   FragmentKind kind;
   char *label;
   union {
