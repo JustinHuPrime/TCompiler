@@ -1,4 +1,4 @@
-# The T Programming Language
+# The T Programming Language version 0.1.0
 
 ![GitHub](https://img.shields.io/github/license/JustinHuPrime/TCompiler.svg)
 
