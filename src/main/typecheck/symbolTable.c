@@ -239,6 +239,14 @@ size_t typeSizeof(Type const *t) {
     case K_ARRAY: {
       return t->data.array.size * typeSizeof(t->data.array.type);
     }
+    case K_AGGREGATE_INIT: {
+      size_t acc = 0;
+      for (size_t idx = 0; idx < t->data.aggregateInit.elementTypes->size;
+           idx++) {
+        acc += typeSizeof(t->data.aggregateInit.elementTypes->elements[idx]);
+      }
+      return acc;
+    }
     default: {
       error(__FILE__, __LINE__,
             "encountered an invalid TypeKind enum constant");

@@ -47,6 +47,9 @@ IROperand *STRING(uint8_t *string) { return stringIROperandCreate(string); }
 IROperand *WSTRING(uint32_t *wstring) {
   return wstringIROperandCreate(wstring);
 }
+IROperand *STACKOFFSET(int64_t baseOffset) {
+  return stackOffsetIROperandCreate(baseOffset);
+}
 
 IREntry *CONST(size_t size, IROperand *constant) {
   return constantIREntryCreate(size, constant);

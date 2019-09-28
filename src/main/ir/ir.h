@@ -36,6 +36,7 @@ typedef enum {
   OK_ASM,
   OK_STRING,
   OK_WSTRING,
+  OK_STACKOFFSET,
 } OperandKind;
 // an operand in an IR entry
 typedef struct IROperand {
@@ -65,6 +66,9 @@ typedef struct IROperand {
     struct {
       uint32_t *data;
     } wstring;
+    struct {
+      int64_t stackOffset;
+    } stackOffset;
   } data;
 } IROperand;
 // ctors
@@ -85,6 +89,7 @@ IROperand *nameIROperandCreate(char *name);
 IROperand *asmIROperandCreate(char *assembly);
 IROperand *stringIROperandCreate(uint8_t *data);
 IROperand *wstringIROperandCreate(uint32_t *data);
+IROperand *stackOffsetIROperandCreate(int64_t baseOffset);
 // dtor
 void irOperandDestroy(IROperand *);
 

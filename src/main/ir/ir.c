@@ -141,15 +141,17 @@ IROperand *wstringIROperandCreate(uint32_t *data) {
   o->data.wstring.data = data;
   return o;
 }
+IROperand *stackOffsetIROperandCreate(int64_t baseOffset) {
+  IROperand *o = irOperandCreate(OK_STACKOFFSET);
+  o->data.stackOffset.stackOffset = baseOffset;
+  return o;
+}
 void irOperandDestroy(IROperand *o) {
   switch (o->kind) {
-    case OK_TEMP: {
-      break;
-    }
-    case OK_REG: {
-      break;
-    }
-    case OK_CONSTANT: {
+    case OK_TEMP:
+    case OK_REG:
+    case OK_CONSTANT:
+    case OK_STACKOFFSET: {
       break;
     }
     case OK_NAME: {

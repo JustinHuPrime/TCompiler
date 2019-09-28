@@ -221,7 +221,7 @@ static IROperand *x86_64StackAccessAddrof(Access *baseAccess, IRVector *code,
   size_t address = NEW(tempAllocator);
   IR(code, BINOP(POINTER_WIDTH, IO_ADD,
                  TEMP(address, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                 REG(X86_64_RBP), LONG(access->bpOffset)));
+                 REG(X86_64_RBP), STACKOFFSET(access->bpOffset)));
   return TEMP(address, access->base.size, access->base.alignment,
               access->base.kind);
 }

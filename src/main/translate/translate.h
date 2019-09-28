@@ -43,12 +43,15 @@ typedef struct {
   union {
     struct {
       size_t size;
+      size_t alignment;
     } bss;
     struct {
       IRVector *ir;
+      size_t alignment;
     } rodata;
     struct {
       IRVector *ir;
+      size_t alignment;
     } data;
     struct {
       struct Frame *frame;
@@ -57,9 +60,9 @@ typedef struct {
   } data;
 } Fragment;
 // ctors
-Fragment *bssFragmentCreate(char *label, size_t size);
-Fragment *rodataFragmentCreate(char *label);
-Fragment *dataFragmentCreate(char *label);
+Fragment *bssFragmentCreate(char *label, size_t size, size_t alignment);
+Fragment *rodataFragmentCreate(char *label, size_t alignment);
+Fragment *dataFragmentCreate(char *label, size_t alignment);
 Fragment *textFragmentCreate(char *label, struct Frame *frame);
 // dtor
 void fragmentDestroy(Fragment *);

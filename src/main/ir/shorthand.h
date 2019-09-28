@@ -52,6 +52,7 @@ IROperand *DOUBLE(uint64_t bits);
 IROperand *NAME(char *name);
 IROperand *STRING(uint8_t *string);
 IROperand *WSTRING(uint32_t *wstring);
+IROperand *STACKOFFSET(int64_t baseOffset);
 
 // shorthands for IREntry construction
 IREntry *CONST(size_t size, IROperand *);
