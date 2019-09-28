@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
     return SUCCESS;
   } else if (versionRequested((size_t)argc, argv)) {
     printf(
-        "T Language Compiler (tlc) version 0.0.1\n"
+        "T Language Compiler (tlc) version 0.1.0\n"
         "Copyright 2019 Justin Hu and Bronwyn Damm\n"
         "This software is licensed under the Apache License, Version 2.0.\n"
         "See the \"LICENSE\" file for copying conditions.\n"
@@ -200,26 +200,29 @@ int main(int argc, char *argv[]) {
   LabelGeneratorCtor labelGeneratorCtor;
   FrameCtor frameCtor;
   GlobalAccessCtor globalAccessCtor;
+  FunctionAccessCtor functionAccessCtor;
 
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
       labelGeneratorCtor = x86_64LabelGeneratorCtor;
       frameCtor = x86_64FrameCtor;
       globalAccessCtor = x86_64GlobalAccessCtor;
+      functionAccessCtor = x86_64FunctionAccessCtor;
       break;
     }
     default: { error(__FILE__, __LINE__, "invalid architecture specified"); }
   }
 
-  translate(&fragments, &asts.codes, labelGeneratorCtor, frameCtor,
-            globalAccessCtor);
+  translate(&fragments, &asts, labelGeneratorCtor, frameCtor, globalAccessCtor,
+            functionAccessCtor);
 
   // debug stop for translate - displays the IR fragments for each file
   if (optionsGet(&options, optionDebugDump) == O_DD_IR) {
     error(__FILE__, __LINE__, "not yet implemented");
   }
 
-  // convert into SSA form
+  // convert into SSA form (mostly SSA - mem temps are excluded except for move
+  // relations)
 
   // optimize
   // TODO: write optimizations
