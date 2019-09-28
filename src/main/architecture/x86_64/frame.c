@@ -366,7 +366,7 @@ typedef struct X86_64Frame {
 
   X86_64FrameScopeStack scopes;
 } X86_64Frame;
-FrameVTable *X86_64VTable = NULL;
+FrameVTable *X86_64FrameVTable = NULL;
 // assumes that the frame is an x86_64 frame
 static void x86_64FrameDtor(Frame *baseFrame) {
   X86_64Frame *frame = (X86_64Frame *)baseFrame;
@@ -798,21 +798,21 @@ static IRVector *x86_64ScopeEnd(Frame *baseFrame, IRVector *body,
 
   return body;  // TODO: write this
 }
-static FrameVTable *getX86_64VTable(void) {
-  if (X86_64VTable == NULL) {
-    X86_64VTable = malloc(sizeof(FrameVTable));
-    X86_64VTable->dtor = x86_64FrameDtor;
-    X86_64VTable->allocArg = x86_64AllocArg;
-    X86_64VTable->allocLocal = x86_64AllocLocal;
-    X86_64VTable->allocRetVal = x86_64AllocRetVal;
-    X86_64VTable->scopeStart = x86_64ScopeStart;
-    X86_64VTable->scopeEnd = x86_64ScopeEnd;
+static FrameVTable *getX86_64FrameVTable(void) {
+  if (X86_64FrameVTable == NULL) {
+    X86_64FrameVTable = malloc(sizeof(FrameVTable));
+    X86_64FrameVTable->dtor = x86_64FrameDtor;
+    X86_64FrameVTable->allocArg = x86_64AllocArg;
+    X86_64FrameVTable->allocLocal = x86_64AllocLocal;
+    X86_64FrameVTable->allocRetVal = x86_64AllocRetVal;
+    X86_64FrameVTable->scopeStart = x86_64ScopeStart;
+    X86_64FrameVTable->scopeEnd = x86_64ScopeEnd;
   }
-  return X86_64VTable;
+  return X86_64FrameVTable;
 }
 Frame *x86_64FrameCtor(char *name) {
   X86_64Frame *frame = malloc(sizeof(X86_64Frame));
-  frame->base.vtable = getX86_64VTable();
+  frame->base.vtable = getX86_64FrameVTable();
   frame->base.name = name;
 
   frame->nextGPArg = 0;
