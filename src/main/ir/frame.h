@@ -42,6 +42,9 @@ typedef struct AccessVTable {
   // gets the address of the var
   IROperand *(*addrof)(struct Access *this, IRVector *code,
                        struct TempAllocator *tempAllocator);
+  // getLabel is nullable - will be invalid in non-global accesses
+  // gets the label of the var
+  char *(*getLabel)(struct Access *this);
 } AccessVTable;
 // an abstract access to some value, of some size and some kind
 typedef struct Access {

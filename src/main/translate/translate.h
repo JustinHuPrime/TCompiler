@@ -24,8 +24,8 @@
 #include "util/container/hashMap.h"
 #include "util/container/vector.h"
 
-typedef HashMap ModuleAstMap;
 typedef Vector IRVector;
+struct ModuleAstMapPair;
 struct Frame;
 struct Access;
 struct LabelGenerator;
@@ -57,10 +57,10 @@ typedef struct {
   } data;
 } Fragment;
 // ctors
-Fragment *bssFragmentCreate(void);
-Fragment *rodataFragmentCreate(void);
-Fragment *dataFragmentCreate(void);
-Fragment *textFragmentCreate(void);
+Fragment *bssFragmentCreate(char *label, size_t size);
+Fragment *rodataFragmentCreate(char *label);
+Fragment *dataFragmentCreate(char *label);
+Fragment *textFragmentCreate(char *label, struct Frame *frame);
 // dtor
 void fragmentDestroy(Fragment *);
 
@@ -90,10 +90,12 @@ typedef struct LabelGenerator *(*LabelGeneratorCtor)(void);
 typedef struct Frame *(*FrameCtor)(char *name);
 typedef struct Access *(*GlobalAccessCtor)(size_t size, size_t alignment,
                                            AllocHint kind, char *name);
+typedef struct Access *(*FunctionAccessCtor)(char *name);
 
 // translates an abstract syntax tree into a series of fragments
-void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMap *codes,
-               LabelGeneratorCtor labelGenerator, FrameCtor frameCtor,
-               GlobalAccessCtor globalAccessCtor);
+void translate(FileFragmentVectorMap *fragmentMap,
+               struct ModuleAstMapPair *asts, LabelGeneratorCtor labelGenerator,
+               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor,
+               FunctionAccessCtor functionAccessCtor);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_

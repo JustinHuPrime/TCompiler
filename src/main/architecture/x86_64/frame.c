@@ -64,6 +64,10 @@ static IROperand *x86_64GlobalAccessAddrof(Access *baseAccess, IRVector *code,
 
   return LABEL(strdup(access->label));
 }
+static char *x86_64GlobalAccessGetLabel(Access *baseAccess) {
+  X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
+  return strdup(access->label);
+}
 AccessVTable *X86_64GlobalAccessVTable = NULL;
 static AccessVTable *getX86_64GlobalAccessVTable(void) {
   if (X86_64GlobalAccessVTable == NULL) {
@@ -72,6 +76,7 @@ static AccessVTable *getX86_64GlobalAccessVTable(void) {
     X86_64GlobalAccessVTable->load = x86_64GlobalAccessLoad;
     X86_64GlobalAccessVTable->store = x86_64GlobalAccessStore;
     X86_64GlobalAccessVTable->addrof = x86_64GlobalAccessAddrof;
+    X86_64GlobalAccessVTable->getLabel = x86_64GlobalAccessGetLabel;
   }
   return X86_64GlobalAccessVTable;
 }
@@ -121,6 +126,7 @@ static AccessVTable *getX86_64TempAccessVTable(void) {
     X86_64TempAccessVTable->addrof =
         (IROperand * (*)(Access *, IRVector *, TempAllocator *))
             invalidFunction;
+    X86_64TempAccessVTable->getLabel = (char *(*)(Access *))invalidFunction;
   }
   return X86_64TempAccessVTable;
 }
@@ -166,6 +172,7 @@ static AccessVTable *getX86_64RegAccessVTable(void) {
     X86_64RegAccessVTable->addrof =
         (IROperand * (*)(Access *, IRVector *, TempAllocator *))
             invalidFunction;
+    X86_64RegAccessVTable->getLabel = (char *(*)(Access *))invalidFunction;
   }
   return X86_64RegAccessVTable;
 }
@@ -226,6 +233,7 @@ static AccessVTable *getX86_64StackAccessVTable(void) {
     X86_64StackAccessVTable->load = x86_64StackAccessLoad;
     X86_64StackAccessVTable->store = x86_64StackAccessStore;
     X86_64StackAccessVTable->addrof = x86_64StackAccessAddrof;
+    X86_64StackAccessVTable->getLabel = (char *(*)(Access *))invalidFunction;
   }
   return X86_64StackAccessVTable;
 }
@@ -237,6 +245,49 @@ static Access *x86_64StackAccessCtor(size_t size, size_t alignment,
   access->base.alignment = alignment;
   access->base.kind = kind;
   access->bpOffset = bpOffset;
+  return (Access *)access;
+}
+
+typedef struct X86_64FunctionAccess {
+  Access base;
+  char *name;
+} X86_64FunctionAccess;
+static void x86_64FunctionAccessDtor(Access *baseAccess) {
+  X86_64FunctionAccess *access = (X86_64FunctionAccess *)baseAccess;
+  free(access->name);
+  free(access);
+}
+static IROperand *x86_64FunctionAccessLoad(Access *baseAccess, IRVector *code,
+                                           TempAllocator *tempAllocator) {
+  X86_64FunctionAccess *access = (X86_64FunctionAccess *)baseAccess;
+
+  return LABEL(strdup(access->name));
+}
+static char *x86_64FunctionAccessGetLabel(Access *baseAccess) {
+  X86_64FunctionAccess *access = (X86_64FunctionAccess *)baseAccess;
+  return strdup(access->name);
+}
+AccessVTable *X86_64FunctionAccessVTable = NULL;
+static AccessVTable *getX86_64FunctionAccessVTable(void) {
+  if (X86_64FunctionAccessVTable == NULL) {
+    X86_64FunctionAccessVTable = malloc(sizeof(AccessVTable));
+    X86_64FunctionAccessVTable->dtor = x86_64FunctionAccessDtor;
+    X86_64FunctionAccessVTable->load = x86_64FunctionAccessLoad;
+    X86_64FunctionAccessVTable->store = (void (*)(
+        Access *, IRVector *, IROperand *, TempAllocator *))invalidFunction;
+    X86_64FunctionAccessVTable->addrof =
+        (IROperand * (*)(Access *, IRVector *, TempAllocator *))
+            invalidFunction;
+    X86_64FunctionAccessVTable->getLabel = x86_64FunctionAccessGetLabel;
+  }
+  return X86_64FunctionAccessVTable;
+}
+Access *x86_64FunctionAccessCtor(char *name) {
+  X86_64FunctionAccess *access = malloc(sizeof(X86_64FunctionAccess));
+  access->base.vtable = getX86_64FunctionAccessVTable();
+  access->base.size = POINTER_WIDTH;
+  access->base.kind = AH_GP;
+  access->name = name;
   return (Access *)access;
 }
 
@@ -345,9 +396,6 @@ static int64_t x86_64AllocStack(X86_64Frame *frame, size_t size) {
 static void x86_64FrameAlignTo(X86_64Frame *frame, size_t unsignedAlignment) {
   // FIXME: should refer to the top most frame
   // alignment is, at most, REGISTER_WIDTH
-  if (unsignedAlignment > REGISTER_WIDTH) {
-    error(__FILE__, __LINE__, "overly large alignment requested");
-  }
   int64_t alignment = (int64_t)unsignedAlignment;
   int64_t diff = frame->bpOffset % alignment;
   int64_t offset =

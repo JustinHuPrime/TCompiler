@@ -37,6 +37,10 @@ IROperand *LONG(int64_t value) { return longIROperandCreate(value); }
 IROperand *FLOAT(uint32_t bits) { return floatIROperandCreate(bits); }
 IROperand *DOUBLE(uint64_t bits) { return doubleIROperandCreate(bits); }
 IROperand *LABEL(char *name) { return labelIROperandCreate(name); }
+IROperand *STRING(uint8_t *string) { return stringIROperandCreate(string); }
+IROperand *WSTRING(uint32_t *wstring) {
+  return wstringIROperandCreate(wstring);
+}
 
 IREntry *CONST(size_t size, IROperand *constant) {
   return constantIREntryCreate(size, constant);

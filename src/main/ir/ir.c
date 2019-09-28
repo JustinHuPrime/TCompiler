@@ -131,6 +131,16 @@ IROperand *asmIROperandCreate(char *assembly) {
   o->data.assembly.assembly = assembly;
   return o;
 }
+IROperand *stringIROperandCreate(uint8_t *data) {
+  IROperand *o = irOperandCreate(OK_STRING);
+  o->data.string.data = data;
+  return o;
+}
+IROperand *wstringIROperandCreate(uint32_t *data) {
+  IROperand *o = irOperandCreate(OK_WSTRING);
+  o->data.wstring.data = data;
+  return o;
+}
 void irOperandDestroy(IROperand *o) {
   switch (o->kind) {
     case OK_TEMP: {

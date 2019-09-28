@@ -41,6 +41,8 @@ IROperand *LONG(int64_t value);
 IROperand *FLOAT(uint32_t bits);
 IROperand *DOUBLE(uint64_t bits);
 IROperand *LABEL(char *name);
+IROperand *STRING(uint8_t *string);
+IROperand *WSTRING(uint32_t *wstring);
 
 // shorthands for IREntry construction
 IREntry *CONST(size_t size, IROperand *);

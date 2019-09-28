@@ -34,6 +34,8 @@ typedef enum {
   OK_CONSTANT,
   OK_LABEL,
   OK_ASM,
+  OK_STRING,
+  OK_WSTRING,
 } OperandKind;
 // an operand in an IR entry
 typedef struct IROperand {
@@ -57,6 +59,12 @@ typedef struct IROperand {
     struct {
       char *assembly;
     } assembly;
+    struct {
+      uint8_t *data;
+    } string;
+    struct {
+      uint32_t *data;
+    } wstring;
   } data;
 } IROperand;
 // ctors
@@ -75,12 +83,14 @@ IROperand *floatIROperandCreate(uint32_t bits);
 IROperand *doubleIROperandCreate(uint64_t bits);
 IROperand *labelIROperandCreate(char *name);
 IROperand *asmIROperandCreate(char *assembly);
+IROperand *stringIROperandCreate(uint8_t *data);
+IROperand *wstringIROperandCreate(uint32_t *data);
 // dtor
 void irOperandDestroy(IROperand *);
 
 typedef enum IROperator {
-  IO_CONST,  // constant value in memory: opSize = sizeof(constant), dest =
-             // NULL, arg1 = constant bits or label, arg2 = NULL
+  IO_CONST,  // constant value in memory: opSize = sizeof(constant) or zero if a
+             // string, dest = NULL, arg1 = constant bits or label, arg2 = NULL
 
   IO_ASM,  // inline assembly: opSize = 0, dest = NULL, arg1 = assembly, arg2 =
            // NULL
