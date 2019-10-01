@@ -78,7 +78,7 @@ IREntry *CJUMP(size_t size, IROperator op, char *dest, IROperand *lhs,
 IREntry *CALL(IROperand *who);
 IREntry *RETURN(void);
 
-// equivalent to irVectorInsert
-void IR(IRVector *, IREntry *);
+// equivalent to irEntryVectorInsert
+void IR(IREntryVector *, IREntry *);
 
 #endif  // TLC_IR_SHORTHAND_H_

@@ -21,9 +21,27 @@
 
 #include "ir/ir.h"
 
+// Frame layout (using the System V ABI):
+// Note that everything below 8(%rbp) is allocated and deallocated by the caller
+//
+//        8n + 16(%rbp) | memory argument eightbyte n
+//             16(%rbp) | memory argument eightbyte 0
+//              8(%rbp) | return address - current frame starts here
+//              0(%rbp) | spilled registers, saved registers, and mem temps,
+//                        aligned to 8 bytes each, totaling m eightbytes
+//            -8m(%rbp) | escaping local variables, aligned to data type,
+//                        totaling p eightbytes
+// 0(%rsp) OR -8p(%rbp) | top of stack frame
+
+// when a function call is made, the stack frame is extended thus:
+//                  -8p(%rbp) | in-memory actual argument eightbyte q
+// o(%rsp) OR -8(p + q)(%rbp) | in-memory actual argument eightbyte 0
+
 struct Frame;
 struct Access;
 struct LabelGenerator;
+typedef Vector TypeVector;
+struct Type;
 
 // symbolic constants for x86_64 register numbers
 typedef enum {

@@ -27,20 +27,21 @@ struct Type;
 struct Frame;
 struct Access;
 struct LabelGenerator;
+struct OverloadSetElement;
 
 typedef struct AccessVTable {
   void (*dtor)(struct Access *);
   // inserts instructions into code to load the var, produces the operand
   // where the result can be found
-  IROperand *(*load)(struct Access *this, IRVector *code,
+  IROperand *(*load)(struct Access *this, IREntryVector *code,
                      struct TempAllocator *tempAllocator);
   // inserts instructions into code to store to the var, takes an operand to
   // store
-  void (*store)(struct Access *this, IRVector *code, IROperand *input,
+  void (*store)(struct Access *this, IREntryVector *code, IROperand *input,
                 struct TempAllocator *tempAllocator);
   // addrof is nullable - will be invalid in non-escaping/non-global accesses
   // gets the address of the var
-  IROperand *(*addrof)(struct Access *this, IRVector *code,
+  IROperand *(*addrof)(struct Access *this, IREntryVector *code,
                        struct TempAllocator *tempAllocator);
   // getLabel is nullable - will be invalid in non-global accesses
   // gets the label of the var
@@ -76,8 +77,19 @@ typedef struct FrameVTable {
   void (*scopeStart)(struct Frame *this);
   // ends a scope, and generates code for it
   // also called to end the whole function's scope
-  IRVector *(*scopeEnd)(struct Frame *this, IRVector *body,
-                        struct TempAllocator *tempAllocator);
+  IREntryVector *(*scopeEnd)(struct Frame *this, IREntryVector *out,
+                             struct TempAllocator *tempAllocator);
+  // generates code to call, clean up after, and produce the return value for a
+  // function
+  // returns NULL if function's return type is void
+  IROperand *(*indirectCall)(struct Frame *this, IROperand *who,
+                             IROperandVector *actualArgs,
+                             struct Type const *functionType,
+                             IREntryVector *out, TempAllocator *tempAllocator);
+  IROperand *(*directCall)(struct Frame *this, char *who,
+                           IROperandVector *actualArgs,
+                           struct OverloadSetElement const *function,
+                           IREntryVector *out, TempAllocator *tempAllocator);
 } FrameVTable;
 // an abstract function frame
 typedef struct Frame {

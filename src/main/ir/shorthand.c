@@ -96,4 +96,4 @@ IREntry *CJUMP(size_t size, IROperator op, char *dest, IROperand *lhs,
 IREntry *CALL(IROperand *who) { return callIREntryCreate(who); }
 IREntry *RETURN(void) { return returnIREntryCreate(); }
 
-void IR(IRVector *v, IREntry *e) { irVectorInsert(v, e); }
+void IR(IREntryVector *v, IREntry *e) { irEntryVectorInsert(v, e); }

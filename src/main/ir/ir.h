@@ -90,6 +90,7 @@ IROperand *asmIROperandCreate(char *assembly);
 IROperand *stringIROperandCreate(uint8_t *data);
 IROperand *wstringIROperandCreate(uint32_t *data);
 IROperand *stackOffsetIROperandCreate(int64_t baseOffset);
+IROperand *irOperandCopy(IROperand const *);
 // dtor
 void irOperandDestroy(IROperand *);
 
@@ -201,14 +202,22 @@ IREntry *returnIREntryCreate(void);
 // dtor
 void irEntryDestroy(IREntry *);
 
+// vector of IROperands - used for function calling
+typedef Vector IROperandVector;
+IROperandVector *irOperandVectorCreate(void);
+void irOperandVectorInit(IROperandVector *);
+void irOperandVectorInsert(IROperandVector *, IROperand *);
+void irOperandVectorUninit(IROperandVector *);
+void irOperandVectorDestroy(IROperandVector *);
+
 // vector of IREntries - used for data, rodata, and code fragments
-typedef Vector IRVector;
-IRVector *irVectorCreate(void);
-void irVectorInit(IRVector *);
-void irVectorInsert(IRVector *, IREntry *);
-IRVector *irVectorMerge(IRVector *, IRVector *);
-void irVectorUninit(IRVector *);
-void irVectorDestroy(IRVector *);
+typedef Vector IREntryVector;
+IREntryVector *irEntryVectorCreate(void);
+void irEntryVectorInit(IREntryVector *);
+void irEntryVectorInsert(IREntryVector *, IREntry *);
+IREntryVector *irEntryVectorMerge(IREntryVector *, IREntryVector *);
+void irEntryVectorUninit(IREntryVector *);
+void irEntryVectorDestroy(IREntryVector *);
 
 // a linear allocator for temporary numbers
 typedef struct TempAllocator {

@@ -24,7 +24,7 @@
 #include "util/container/hashMap.h"
 #include "util/container/vector.h"
 
-typedef Vector IRVector;
+typedef Vector IREntryVector;
 struct ModuleAstMapPair;
 struct Frame;
 struct Access;
@@ -46,16 +46,16 @@ typedef struct Fragment {
       size_t alignment;
     } bss;
     struct {
-      IRVector *ir;
+      IREntryVector *ir;
       size_t alignment;
     } rodata;
     struct {
-      IRVector *ir;
+      IREntryVector *ir;
       size_t alignment;
     } data;
     struct {
       struct Frame *frame;
-      IRVector *ir;
+      IREntryVector *ir;
     } text;
   } data;
 } Fragment;

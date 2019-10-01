@@ -78,7 +78,7 @@ static void irOperandPrint(IROperand *operand) {
   }
 }
 
-static void irVectorPrint(IRVector const *ir) {
+static void irEntryVectorPrint(IREntryVector const *ir) {
   for (size_t idx = 0; idx < ir->size; idx++) {
     IREntry *entry = ir->elements[idx];
     switch (entry->op) {
@@ -414,18 +414,18 @@ void fragmentPrint(Fragment const *f) {
     }
     case FK_DATA: {
       printf("data, aligned to %zu bytes:\n", f->data.data.alignment);
-      irVectorPrint(f->data.data.ir);
+      irEntryVectorPrint(f->data.data.ir);
       break;
     }
     case FK_RODATA: {
       printf("read-only data, aligned to %zu bytes:\n",
              f->data.rodata.alignment);
-      irVectorPrint(f->data.rodata.ir);
+      irEntryVectorPrint(f->data.rodata.ir);
       break;
     }
     case FK_TEXT: {
       printf("function body:\n");
-      irVectorPrint(f->data.text.ir);
+      irEntryVectorPrint(f->data.text.ir);
       break;
     }
   }

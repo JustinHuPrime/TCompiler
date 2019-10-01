@@ -18,7 +18,10 @@
 
 #include "ir/ir.h"
 
+#include "util/tstring.h"
+
 #include <stdlib.h>
+#include <string.h>
 
 static uint8_t punByteToUByte(int8_t value) {
   union {
@@ -145,6 +148,37 @@ IROperand *stackOffsetIROperandCreate(int64_t baseOffset) {
   IROperand *o = irOperandCreate(OK_STACKOFFSET);
   o->data.stackOffset.stackOffset = baseOffset;
   return o;
+}
+IROperand *irOperandCopy(IROperand const *o2) {
+  IROperand *o1 = irOperandCreate(o2->kind);
+  switch (o2->kind) {
+    case OK_TEMP: {
+      o1->data.temp = o2->data.temp;
+    }
+    case OK_REG: {
+      o1->data.reg = o2->data.reg;
+    }
+    case OK_CONSTANT: {
+      o1->data.constant = o2->data.constant;
+    }
+    case OK_STACKOFFSET: {
+      o1->data.stackOffset = o2->data.stackOffset;
+    }
+    case OK_NAME: {
+      o1->data.name.name = strdup(o2->data.name.name);
+    }
+    case OK_ASM: {
+      o1->data.assembly.assembly = strdup(o2->data.assembly.assembly);
+    }
+    case OK_STRING: {
+      o1->data.string.data = tstrdup(o2->data.string.data);
+    }
+    case OK_WSTRING: {
+      o1->data.wstring.data = twstrdup(o2->data.wstring.data);
+    }
+  }
+
+  return o1;
 }
 void irOperandDestroy(IROperand *o) {
   switch (o->kind) {
@@ -293,16 +327,28 @@ void irEntryDestroy(IREntry *e) {
   free(e);
 }
 
-IRVector *irVectorCreate(void) { return vectorCreate(); }
-void irVectorInit(IRVector *v) { vectorInit(v); }
-void irVectorInsert(IRVector *v, IREntry *e) { vectorInsert(v, e); }
-IRVector *irVectorMerge(IRVector *v1, IRVector *v2) {
+IROperandVector *irOperandVectorCreate(void) { return vectorCreate(); }
+void irOperandVectorInit(IROperandVector *v) { vectorInit(v); }
+void irOperandVectorInsert(IROperandVector *v, IROperand *o) {
+  vectorInsert(v, o);
+}
+void irOperandVectorUninit(IROperandVector *v) {
+  vectorUninit(v, (void (*)(void *))irOperandDestroy);
+}
+void irOperandVectorDestroy(IROperandVector *v) {
+  vectorDestroy(v, (void (*)(void *))irOperandDestroy);
+}
+
+IREntryVector *irEntryVectorCreate(void) { return vectorCreate(); }
+void irEntryVectorInit(IREntryVector *v) { vectorInit(v); }
+void irEntryVectorInsert(IREntryVector *v, IREntry *e) { vectorInsert(v, e); }
+IREntryVector *irEntryVectorMerge(IREntryVector *v1, IREntryVector *v2) {
   return vectorMerge(v1, v2);
 }
-void irVectorUninit(IRVector *v) {
+void irEntryVectorUninit(IREntryVector *v) {
   vectorUninit(v, (void (*)(void *))irEntryDestroy);
 }
-void irVectorDestroy(IRVector *v) {
+void irEntryVectorDestroy(IREntryVector *v) {
   vectorDestroy(v, (void (*)(void *))irEntryDestroy);
 }
 
