@@ -23,6 +23,7 @@
 #include "typecheck/symbolTable.h"
 #include "util/charSet.h"
 #include "util/container/stringBuilder.h"
+#include "util/internalError.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -680,7 +681,7 @@ Node *constFloatExpNodeCreate(size_t line, size_t character,
   uint64_t mantissa = 0;
   uint16_t exponent = 0;
 
-  // TODO: write
+  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write
 
   free(originalString);
   return node;

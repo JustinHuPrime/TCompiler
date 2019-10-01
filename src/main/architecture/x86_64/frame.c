@@ -795,29 +795,27 @@ static Access *x86_64AllocRetVal(Frame *baseFrame, Type const *type,
 static void x86_64ScopeStart(Frame *baseFrame) {
   X86_64Frame *frame = (X86_64Frame *)baseFrame;
   x86_64FrameScopeStackPush(&frame->scopes, x86_64FrameScopeCreate());
-  // TODO: write this
+  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
 }
 static IREntryVector *x86_64ScopeEnd(Frame *baseFrame, IREntryVector *body,
                                      TempAllocator *tempAllocator) {
   X86_64Frame *frame = (X86_64Frame *)baseFrame;
 
-  return body;  // TODO: write this
+  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
 }
 static IROperand *x86_64IndirectCall(Frame *this, IROperand *who,
                                      IROperandVector *actualArgs,
                                      Type const *functionType,
                                      IREntryVector *out,
                                      TempAllocator *tempAllocator) {
-  // TODO: write this
-  return NULL;
+  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
 }
 static IROperand *x86_64DirectCall(Frame *this, char *who,
                                    IROperandVector *actualArgs,
                                    OverloadSetElement const *function,
                                    IREntryVector *out,
                                    TempAllocator *tempAllocator) {
-  // TODO: write this
-  return NULL;
+  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
 }
 static FrameVTable *getX86_64FrameVTable(void) {
   if (X86_64FrameVTable == NULL) {

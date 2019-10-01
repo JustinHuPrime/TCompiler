@@ -670,20 +670,20 @@ static void translateJumpIfNot(Node *condition, IREntryVector *out,
                                LabelGenerator *labelGenerator,
                                TempAllocator *tempAllocator,
                                char const *target) {
-  // TODO: write this
+  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
 }
 static void translateJumpIf(Node *condition, IREntryVector *out,
                             FragmentVector *fragments,
                             LabelGenerator *labelGenerator,
                             TempAllocator *tempAllocator, char const *target) {
-  // TODO: write this
+  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
 }
 
 // translation - expressions
 static IROperand *translateCast(IROperand *from, Type const *fromType,
                                 Type const *toType, IREntryVector *out,
                                 TempAllocator *tempAllocator) {
-  return from;  // TODO: write this
+  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
 }
 static IROperand *translateExpression(Node *exp, IREntryVector *out,
                                       FragmentVector *fragments, Frame *frame,
@@ -1323,7 +1323,7 @@ static IREntryVector *translateStmt(
           out, frame->vtable->scopeEnd(frame, body, tempAllocator));
     }
     case NT_SWITCHSTMT: {
-      // TODO: write this
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
       return out;
     }
     case NT_BREAKSTMT: {
