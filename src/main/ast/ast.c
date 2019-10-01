@@ -452,7 +452,6 @@ Node *structAccessExpNodeCreate(size_t line, size_t character, Node *base,
   node->data.structAccessExp.base = base;
   node->data.structAccessExp.element = element;
   node->data.structAccessExp.resultType = NULL;
-  node->data.structAccessExp.offset = 0;
   return node;
 }
 Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *base,
@@ -462,7 +461,6 @@ Node *structPtrAccessExpNodeCreate(size_t line, size_t character, Node *base,
   node->data.structPtrAccessExp.base = base;
   node->data.structPtrAccessExp.element = element;
   node->data.structPtrAccessExp.resultType = NULL;
-  node->data.structPtrAccessExp.offset = 0;
   return node;
 }
 Node *fnCallExpNodeCreate(size_t line, size_t character, Node *who,

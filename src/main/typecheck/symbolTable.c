@@ -2230,7 +2230,7 @@ Type *typeGetNonConst(Type *type) {
   return type->kind == K_CONST ? typeGetNonConst(type->data.modifier.type)
                                : type;
 }
-Type *typeGetDereferenced(Type *type) {
+Type *typeGetDereferenced(Type const *type) {
   if (type->kind == K_PTR) {
     return typeCopy(type->data.modifier.type);
   } else if (type->kind == K_CONST) {

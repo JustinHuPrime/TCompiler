@@ -298,7 +298,7 @@ static char *mangleFunctionName(char const *moduleName, char const *id,
 }
 
 // typeof
-static Type const *typeofExpression(Node const *exp) {
+static Type const *expressionTypeof(Node const *exp) {
   switch (exp->type) {
     case NT_SEQEXP: {
       return exp->data.seqExp.resultType;
@@ -890,7 +890,7 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
               translateCast(translateExpression(exp->data.ternaryExp.thenExp,
                                                 out, fragments, frame,
                                                 labelGenerator, tempAllocator),
-                            typeofExpression(exp->data.ternaryExp.thenExp),
+                            expressionTypeof(exp->data.ternaryExp.thenExp),
                             resultType, out, tempAllocator)));
       IR(out, JUMP(strdup(end)));
       IR(out, LABEL(elseCase));
@@ -899,7 +899,7 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
               translateCast(translateExpression(exp->data.ternaryExp.elseExp,
                                                 out, fragments, frame,
                                                 labelGenerator, tempAllocator),
-                            typeofExpression(exp->data.ternaryExp.elseExp),
+                            expressionTypeof(exp->data.ternaryExp.elseExp),
                             resultType, out, tempAllocator)));
       IR(out, LABEL(end));
       return TEMP(resultTemp, resultSize, resultAlignment, kind);
@@ -951,12 +951,57 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
       return TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_STRUCTACCESSEXP: {
-      // TODO: write this
-      return NULL;
+      Type const *baseType = expressionTypeof(exp->data.structAccessExp.base);
+      size_t temp = NEW(tempAllocator);
+      Type const *resultType = exp->data.structAccessExp.resultType;
+      AllocHint kind = typeKindof(resultType);
+      size_t size = typeSizeof(resultType);
+      size_t alignment = typeAlignof(resultType);
+      if (baseType->kind == K_STRUCT) {
+        IR(out,
+           OFFSET_LOAD(
+               size, TEMP(temp, size, alignment, kind),
+               translateExpression(exp->data.structAccessExp.base, out,
+                                   fragments, frame, labelGenerator,
+                                   tempAllocator),
+               ULONG(typeOffset(
+                   baseType, exp->data.structAccessExp.element->data.id.id))));
+        return TEMP(temp, size, alignment, kind);
+      } else {  // is union
+        IR(out, MOVE(size, TEMP(temp, size, alignment, kind),
+                     translateExpression(exp->data.structAccessExp.base, out,
+                                         fragments, frame, labelGenerator,
+                                         tempAllocator)));
+        return TEMP(temp, size, alignment, kind);
+      }
     }
     case NT_STRUCTPTRACCESSEXP: {
-      // TODO: write this
-      return NULL;
+      Type *baseType = typeGetDereferenced(
+          expressionTypeof(exp->data.structPtrAccessExp.base));
+      size_t temp = NEW(tempAllocator);
+      Type const *resultType = exp->data.structPtrAccessExp.resultType;
+      AllocHint kind = typeKindof(resultType);
+      size_t size = typeSizeof(resultType);
+      size_t alignment = typeAlignof(resultType);
+      size_t pointer = NEW(tempAllocator);
+      if (baseType->kind == K_STRUCT) {
+        IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                      TEMP(pointer, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                      translateExpression(exp->data.structPtrAccessExp.base,
+                                          out, fragments, frame, labelGenerator,
+                                          tempAllocator),
+                      ULONG(typeOffset(
+                          baseType,
+                          exp->data.structPtrAccessExp.element->data.id.id))));
+        IR(out, MEM_LOAD(size, TEMP(temp, size, alignment, kind),
+                         TEMP(pointer, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
+      } else {  // is union
+        IR(out, MEM_LOAD(size, TEMP(temp, size, alignment, kind),
+                         translateExpression(exp->data.structPtrAccessExp.base,
+                                             out, fragments, frame,
+                                             labelGenerator, tempAllocator)));
+      }
+      return TEMP(temp, size, alignment, kind);
     }
     case NT_FNCALLEXP: {
       // if who is a function id, then do a direct call.
@@ -981,7 +1026,7 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
               translateCast(
                   translateExpression(args->elements[idx], out, fragments,
                                       frame, labelGenerator, tempAllocator),
-                  typeofExpression(args->elements[idx]),
+                  expressionTypeof(args->elements[idx]),
                   elm->argumentTypes.elements[idx], out, tempAllocator));
         }
         size_t numRequired = elm->argumentTypes.size - elm->numOptional;
@@ -998,7 +1043,7 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
             args, elm, out, tempAllocator);
       } else {
         // indirect call - is call *<temp>, with no default args
-        Type const *functionType = typeofExpression(who);
+        Type const *functionType = expressionTypeof(who);
         IROperand *function = translateExpression(
             who, out, fragments, frame, labelGenerator, tempAllocator);
         IROperandVector *actualArgs = irOperandVectorCreate();
@@ -1010,7 +1055,7 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
               translateCast(
                   translateExpression(args->elements[idx], out, fragments,
                                       frame, labelGenerator, tempAllocator),
-                  typeofExpression(args->elements[idx]),
+                  expressionTypeof(args->elements[idx]),
                   functionType->data.functionPtr.argumentTypes->elements[idx],
                   out, tempAllocator));
         }
@@ -1095,7 +1140,7 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
       // constantToData(exp, f->data.rodata.ir, fragments, labelGenerator);
 
       // size_t temp = NEW(tempAllocator);
-      // Type const *type = typeofExpression(exp);
+      // Type const *type = expressionTypeof(exp);
       // size_t size = typeSizeof(type);
       // AllocHint kind = typeKindof(type);
 
@@ -1107,7 +1152,7 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
       return translateCast(
           translateExpression(exp->data.castExp.target, out, fragments, frame,
                               labelGenerator, tempAllocator),
-          typeofExpression(exp->data.castExp.target),
+          expressionTypeof(exp->data.castExp.target),
           exp->data.castExp.resultType, out, tempAllocator);
     }
     case NT_SIZEOFTYPEEXP: {
@@ -1119,7 +1164,7 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
                                            fragments, frame, labelGenerator,
                                            tempAllocator));
       return ULONG((uint64_t)typeSizeof(
-          typeofExpression(exp->data.sizeofExpExp.target)));
+          expressionTypeof(exp->data.sizeofExpExp.target)));
     }
     case NT_ID: {
       Access *access = exp->data.id.symbol->data.var.access;
@@ -1296,7 +1341,7 @@ static IREntryVector *translateStmt(
             translateCast(
                 translateExpression(stmt->data.returnStmt.value, out, fragments,
                                     frame, labelGenerator, tempAllocator),
-                typeofExpression(stmt->data.returnStmt.value), returnType, out,
+                expressionTypeof(stmt->data.returnStmt.value), returnType, out,
                 tempAllocator),
             tempAllocator);
       }
@@ -1340,7 +1385,7 @@ static IREntryVector *translateStmt(
               translateCast(
                   translateExpression(initializer, out, fragments, frame,
                                       labelGenerator, tempAllocator),
-                  typeofExpression(initializer), info->data.var.type, out,
+                  expressionTypeof(initializer), info->data.var.type, out,
                   tempAllocator),
               tempAllocator);
         }

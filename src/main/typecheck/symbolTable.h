@@ -155,7 +155,7 @@ Type *typeExpMerge(Type const *, Type const *);
 // strip constness off of start of type, non-destructively
 Type *typeGetNonConst(Type *);
 // strip pointerness and constness off of start of type, produces new type
-Type *typeGetDereferenced(Type *);
+Type *typeGetDereferenced(Type const *);
 // strip arrayness and constness off of start of type, produces new type
 Type *typeGetArrayElement(Type *);
 char *typeToString(Type const *);

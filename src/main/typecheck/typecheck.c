@@ -1019,15 +1019,12 @@ static Type *typecheckExpression(Node *expression, Report *report,
           expression->data.structAccessExp.element->data.id.id;
 
       size_t fieldIdx;
-      size_t offset = 0;
       bool found = false;
       for (size_t idx = 0; idx < names->size; idx++) {
         if (strcmp(names->elements[idx], fieldName) == 0) {
           found = true;
           fieldIdx = idx;
           break;
-        } else {
-          offset += typeSizeof(types->elements[idx]);
         }
       }
       if (!found) {
@@ -1035,8 +1032,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     expression->line, expression->character);
         return NULL;
       } else {
-        expression->data.structAccessExp.offset =
-            definition->data.type.kind == TDK_STRUCT ? offset : 0;
         return expression->data.structAccessExp.resultType =
                    typeCopy(types->elements[fieldIdx]);
       }
@@ -1100,8 +1095,6 @@ static Type *typecheckExpression(Node *expression, Report *report,
               typeCopy(types->elements[fieldIdx]);
         }
         typeDestroy(dereferenced);
-        expression->data.structPtrAccessExp.offset =
-            definition->data.type.kind == TDK_STRUCT ? offset : 0;
         return expression->data.structPtrAccessExp.resultType;
       }
     }

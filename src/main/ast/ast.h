@@ -379,13 +379,11 @@ typedef struct Node {
       struct Node *base;
       struct Node *element;
       struct Type *resultType;
-      size_t offset;
     } structAccessExp;
     struct {
       struct Node *base;
       struct Node *element;
       struct Type *resultType;
-      size_t offset;
     } structPtrAccessExp;
     struct {
       struct Node *who;
