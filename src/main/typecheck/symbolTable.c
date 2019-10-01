@@ -2317,6 +2317,7 @@ OverloadSetElement *overloadSetElementCreate(void) {
   typeVectorInit(&elm->argumentTypes);
   elm->returnType = NULL;
   elm->access = NULL;
+  irOperandVectorInit(&elm->defaultArgs);
   return elm;
 }
 OverloadSetElement *overloadSetElementCopy(OverloadSetElement const *from) {
@@ -2333,6 +2334,13 @@ OverloadSetElement *overloadSetElementCopy(OverloadSetElement const *from) {
     to->argumentTypes.elements[idx] =
         typeCopy(from->argumentTypes.elements[idx]);
   }
+  to->defaultArgs.capacity = from->defaultArgs.capacity;
+  to->defaultArgs.size = from->defaultArgs.size;
+  to->defaultArgs.elements = malloc(to->defaultArgs.capacity * sizeof(void *));
+  for (size_t idx = 0; idx < to->argumentTypes.size; idx++) {
+    to->argumentTypes.elements[idx] =
+        irOperandCopy(from->argumentTypes.elements[idx]);
+  }
   to->access = from->access;
 
   return to;
@@ -2345,6 +2353,7 @@ void overloadSetElementDestroy(OverloadSetElement *elm) {
   if (elm->access != NULL) {
     elm->access->vtable->dtor(elm->access);
   }
+  irOperandVectorUninit(&elm->defaultArgs);
   free(elm);
 }
 

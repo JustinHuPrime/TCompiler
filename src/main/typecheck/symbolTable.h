@@ -28,6 +28,7 @@ struct Type;
 struct Environment;
 struct SymbolInfo;
 struct Access;
+typedef Vector IROperandVector;
 
 typedef enum {
   K_VOID,
@@ -172,6 +173,7 @@ typedef struct OverloadSetElement {
   size_t numOptional;
   bool defined;
   struct Access *access;
+  IROperandVector defaultArgs;
 } OverloadSetElement;
 // ctor
 OverloadSetElement *overloadSetElementCreate(void);

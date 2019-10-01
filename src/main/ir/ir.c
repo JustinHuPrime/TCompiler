@@ -154,27 +154,35 @@ IROperand *irOperandCopy(IROperand const *o2) {
   switch (o2->kind) {
     case OK_TEMP: {
       o1->data.temp = o2->data.temp;
+      break;
     }
     case OK_REG: {
       o1->data.reg = o2->data.reg;
+      break;
     }
     case OK_CONSTANT: {
       o1->data.constant = o2->data.constant;
+      break;
     }
     case OK_STACKOFFSET: {
       o1->data.stackOffset = o2->data.stackOffset;
+      break;
     }
     case OK_NAME: {
       o1->data.name.name = strdup(o2->data.name.name);
+      break;
     }
     case OK_ASM: {
       o1->data.assembly.assembly = strdup(o2->data.assembly.assembly);
+      break;
     }
     case OK_STRING: {
       o1->data.string.data = tstrdup(o2->data.string.data);
+      break;
     }
     case OK_WSTRING: {
       o1->data.wstring.data = twstrdup(o2->data.wstring.data);
+      break;
     }
   }
 

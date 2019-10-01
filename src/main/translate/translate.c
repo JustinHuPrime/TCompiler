@@ -106,6 +106,13 @@ void fileFragmentVectorMapUninit(FileFragmentVectorMap *map) {
   hashMapUninit(map, (void (*)(void *))fragmentVectorDestroy);
 }
 
+// labelGeneratorDestructor
+static void labelGeneratorDestructor(LabelGenerator *lg) {
+  if (lg != NULL) {
+    lg->vtable->dtor(lg);
+  }
+}
+
 // typeKindof
 static AllocHint typeKindof(Type const *type) {
   switch (type->kind) {
@@ -564,6 +571,99 @@ static void addGlobalAccesses(SymbolTable *stab, char const *moduleName,
   }
 }
 
+// default args
+static IROperand *defaultArgToOperand(Node *initializer, Type const *argType,
+                                      FragmentVector *fragments,
+                                      LabelGenerator *labelGenerator) {
+  switch (initializer->type) {
+    case NT_CONSTEXP: {
+      switch (initializer->data.constExp.type) {
+        case CT_UBYTE: {
+          return NULL;
+        }
+        case CT_BYTE: {
+          return NULL;
+        }
+        case CT_CHAR: {
+          return NULL;
+        }
+        case CT_USHORT: {
+          return NULL;
+        }
+        case CT_SHORT: {
+          return NULL;
+        }
+        case CT_UINT: {
+          return NULL;
+        }
+        case CT_INT: {
+          return NULL;
+        }
+        case CT_WCHAR: {
+          return NULL;
+        }
+        case CT_ULONG: {
+          return NULL;
+        }
+        case CT_LONG: {
+          return NULL;
+        }
+        case CT_FLOAT: {
+          return NULL;
+        }
+        case CT_DOUBLE: {
+          return NULL;
+        }
+        case CT_BOOL: {
+          return NULL;
+        }
+        case CT_STRING: {
+          return NULL;
+        }
+        case CT_WSTRING: {
+          return NULL;
+        }
+        case CT_NULL: {
+          return NULL;
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "encountered an invalid ConstType enum constant");
+        }
+      }
+    }
+    case NT_AGGREGATEINITEXP: {
+      return NULL;
+    }
+    default: {
+      error(__FILE__, __LINE__, "expected a constant, found something else");
+    }
+  }
+}
+static FragmentVector *addDefaultArgs(Node *file,
+                                      LabelGenerator *labelGenerator) {
+  FragmentVector *fragments = fragmentVectorCreate();
+
+  NodeList *bodies = file->data.file.bodies;
+  for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
+    Node *body = bodies->elements[bodyIdx];
+    if (body->type == NT_FUNCTION) {
+      NodeTripleList *formals = body->data.function.formals;
+      OverloadSetElement *elm = body->data.function.id->data.id.overload;
+      IROperandVector *defaultArgs = &elm->defaultArgs;
+      for (size_t idx = elm->argumentTypes.size - elm->numOptional;
+           idx < elm->argumentTypes.size; idx++) {
+        irOperandVectorInsert(
+            defaultArgs, defaultArgToOperand(formals->thirdElements[idx],
+                                             elm->argumentTypes.elements[idx],
+                                             fragments, labelGenerator));
+      }
+    }
+  }
+
+  return fragments;
+}
+
 // translation - branching
 static void translateJumpIfNot(Node *condition, IREntryVector *out,
                                FragmentVector *fragments,
@@ -805,12 +905,50 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
       return TEMP(resultTemp, resultSize, resultAlignment, kind);
     }
     case NT_LANDEXP: {
-      // TODO: write this
-      return NULL;
+      // bool x
+      // if lhs
+      // x = rhs
+      // else
+      // x = false
+      // x
+
+      size_t resultTemp = NEW(tempAllocator);
+      char *elseCase = NEW_LABEL(labelGenerator);
+      char *end = NEW_LABEL(labelGenerator);
+      translateJumpIfNot(exp->data.landExp.lhs, out, fragments, labelGenerator,
+                         tempAllocator, elseCase);
+      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                   translateExpression(exp->data.landExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator)));
+      IR(out, JUMP(strdup(end)));
+      IR(out, LABEL(elseCase));
+      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                   UBYTE(0)));
+      IR(out, LABEL(end));
+      return TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_LOREXP: {
-      // TODO: write this
-      return NULL;
+      // bool x
+      // if lhs
+      // x = true
+      // else
+      // x = rhs
+      // x
+
+      size_t resultTemp = NEW(tempAllocator);
+      char *elseCase = NEW_LABEL(labelGenerator);
+      char *end = NEW_LABEL(labelGenerator);
+      translateJumpIfNot(exp->data.landExp.lhs, out, fragments, labelGenerator,
+                         tempAllocator, elseCase);
+      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                   UBYTE(1)));
+      IR(out, JUMP(strdup(end)));
+      IR(out, LABEL(elseCase));
+      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                   translateExpression(exp->data.landExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator)));
+      IR(out, LABEL(end));
+      return TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_STRUCTACCESSEXP: {
       // TODO: write this
@@ -846,8 +984,12 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
                   typeofExpression(args->elements[idx]),
                   elm->argumentTypes.elements[idx], out, tempAllocator));
         }
+        size_t numRequired = elm->argumentTypes.size - elm->numOptional;
         for (; idx < elm->argumentTypes.size; idx++) {
           // default args
+          irOperandVectorInsert(
+              actualArgs,
+              irOperandCopy(elm->defaultArgs.elements[idx - numRequired]));
         }
         result = frame->vtable->directCall(
             frame,
@@ -1289,32 +1431,25 @@ static void translateFunction(Node *function, FragmentVector *fragments,
   fragmentVectorInsert(fragments, f);
   return;
 }
-static void translateBody(Node *body, FragmentVector *fragments,
-                          char const *moduleName, FrameCtor frameCtor,
-                          LabelGenerator *labelGenerator) {
-  switch (body->type) {
-    case NT_VARDECL: {
-      translateGlobalVar(body, fragments, moduleName, labelGenerator);
-      return;
-    }
-    case NT_FUNCTION: {
-      translateFunction(body, fragments, moduleName, frameCtor, labelGenerator);
-      return;
-    }
-    default: { return; }
-  }
-}
-static FragmentVector *translateFile(Node *file, FrameCtor frameCtor,
-                                     LabelGenerator *labelGenerator) {
-  FragmentVector *fragments = fragmentVectorCreate();
-
+static void translateFile(Node *file, FragmentVector *fragments,
+                          FrameCtor frameCtor, LabelGenerator *labelGenerator) {
   NodeList *bodies = file->data.file.bodies;
   for (size_t idx = 0; idx < bodies->size; idx++) {
-    translateBody(bodies->elements[idx], fragments,
-                  file->data.module.id->data.id.id, frameCtor, labelGenerator);
+    Node *body = bodies->elements[idx];
+    char const *moduleName = file->data.module.id->data.id.id;
+    switch (body->type) {
+      case NT_VARDECL: {
+        translateGlobalVar(body, fragments, moduleName, labelGenerator);
+        return;
+      }
+      case NT_FUNCTION: {
+        translateFunction(body, fragments, moduleName, frameCtor,
+                          labelGenerator);
+        return;
+      }
+      default: { return; }
+    }
   }
-
-  return fragments;
 }
 
 void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMapPair *asts,
@@ -1331,21 +1466,33 @@ void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMapPair *asts,
                         globalAccessCtor, functionAccessCtor);
     }
   }
+  Vector labelGenerators;
+  vectorInit(&labelGenerators);
   for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
     if (asts->codes.keys[idx] != NULL) {
       Node *file = asts->codes.values[idx];
       addGlobalAccesses(file->data.file.symbols,
                         file->data.file.module->data.module.id->data.id.id,
                         globalAccessCtor, functionAccessCtor);
+      vectorInsert(&labelGenerators, labelGeneratorCtor());
+      char *filename = codeFilenameToAssembyFilename(file->data.file.filename);
+      fileFragmentVectorMapPut(
+          fragmentMap, filename,
+          addDefaultArgs(file, labelGenerators.elements[idx]));
+    } else {
+      vectorInsert(&labelGenerators, NULL);
     }
   }
 
   for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
     if (asts->codes.keys[idx] != NULL) {
       Node *file = asts->codes.values[idx];
-      fileFragmentVectorMapPut(
-          fragmentMap, codeFilenameToAssembyFilename(file->data.file.filename),
-          translateFile(file, frameCtor, labelGeneratorCtor()));
+      char *filename = codeFilenameToAssembyFilename(file->data.file.filename);
+      translateFile(file, fileFragmentVectorMapGet(fragmentMap, filename),
+                    frameCtor, labelGenerators.elements[idx]);
+      free(filename);
     }
   }
+
+  vectorUninit(&labelGenerators, (void (*)(void *))labelGeneratorDestructor);
 }
