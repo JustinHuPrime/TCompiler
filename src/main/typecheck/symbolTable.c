@@ -2034,8 +2034,11 @@ Type *typeExpMerge(Type const *lhs, Type const *rhs) {
                 K_PTR, modifierTypeCreate(
                            K_CONST,
                            typeCopy(typeGetNonConst(lhs->data.modifier.type))));
+          } else if (lhs->kind == K_CONST || rhs->kind == K_CONST) {
+            return modifierTypeCreate(
+                K_PTR, modifierTypeCreate(K_CONST, keywordTypeCreate(K_VOID)));
           } else {
-            return NULL;
+            return modifierTypeCreate(K_PTR, keywordTypeCreate(K_VOID));
           }
         }
         case K_CONST: {
@@ -2048,7 +2051,11 @@ Type *typeExpMerge(Type const *lhs, Type const *rhs) {
     case K_FUNCTION_PTR: {
       switch (rhs->kind) {
         case K_FUNCTION_PTR: {
-          return typeEqual(lhs, rhs) ? typeCopy(lhs) : NULL;
+          return typeEqual(lhs, rhs)
+                     ? typeCopy(lhs)
+                     : modifierTypeCreate(
+                           K_PTR, modifierTypeCreate(
+                                      K_CONST, keywordTypeCreate(K_VOID)));
         }
         case K_CONST: {
           return modifierTypeCreate(K_CONST,
