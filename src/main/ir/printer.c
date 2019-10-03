@@ -276,6 +276,166 @@ static void irEntryVectorPrint(IREntryVector const *ir) {
         printf(")\n");
         break;
       }
+      case IO_L: {
+        printf("L(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_LE: {
+        printf("LE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_E: {
+        printf("E(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_NE: {
+        printf("NE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_GE: {
+        printf("GE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_G: {
+        printf("G(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_A: {
+        printf("A(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_AE: {
+        printf("AE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_B: {
+        printf("B(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_BE: {
+        printf("BE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_L: {
+        printf("FP_L(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_LE: {
+        printf("FP_LE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_E: {
+        printf("FP_E(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_NE: {
+        printf("FP_NE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_GE: {
+        printf("FP_GE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_G: {
+        printf("FP_G(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
       case IO_NEG: {
         printf("NEG(%zu, ", entry->opSize);
         irOperandPrint(entry->dest);
@@ -382,6 +542,66 @@ static void irEntryVectorPrint(IREntryVector const *ir) {
       }
       case IO_JBE: {
         printf("JBE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_JL: {
+        printf("FP_JL(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_JLE: {
+        printf("FP_JLE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_JE: {
+        printf("FP_JE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_JNE: {
+        printf("FP_JNE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_JGE: {
+        printf("FP_JGE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_FP_JG: {
+        printf("FP_JG(%zu, ", entry->opSize);
         irOperandPrint(entry->dest);
         printf(", ");
         irOperandPrint(entry->arg1);

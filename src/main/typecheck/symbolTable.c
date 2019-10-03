@@ -1075,37 +1075,13 @@ bool typeComparable(Type const *a, Type const *b) {
       }
     }
     case K_BOOL: {
-      switch (b->kind) {
-        case K_BOOL: {
-          return true;
-        }
-        case K_CONST: {
-          return typeComparable(a, b->data.modifier.type);
-        }
-        default: { return false; }
-      }
+      return false;
     }
     case K_STRUCT: {
-      switch (b->kind) {
-        case K_STRUCT: {
-          return a->data.reference.referenced == b->data.reference.referenced;
-        }
-        case K_CONST: {
-          return typeComparable(a, b->data.modifier.type);
-        }
-        default: { return false; }
-      }
+      return false;
     }
     case K_UNION: {
-      switch (b->kind) {
-        case K_UNION: {
-          return a->data.reference.referenced == b->data.reference.referenced;
-        }
-        case K_CONST: {
-          return typeComparable(a, b->data.modifier.type);
-        }
-        default: { return false; }
-      }
+      return false;
     }
     case K_ENUM: {
       switch (b->kind) {
@@ -1121,7 +1097,11 @@ bool typeComparable(Type const *a, Type const *b) {
     case K_TYPEDEF: {
       switch (b->kind) {
         case K_TYPEDEF: {
-          return a->data.reference.referenced == b->data.reference.referenced;
+          return a->data.reference.referenced == b->data.reference.referenced &&
+                 typeComparable(a->data.reference.referenced->data.type.data
+                                    .typedefType.type,
+                                b->data.reference.referenced->data.type.data
+                                    .typedefType.type);
         }
         case K_CONST: {
           return typeComparable(a, b->data.modifier.type);
@@ -1133,15 +1113,7 @@ bool typeComparable(Type const *a, Type const *b) {
       return typeComparable(a->data.modifier.type, b);
     }
     case K_ARRAY: {
-      switch (b->kind) {
-        case K_ARRAY: {
-          return typeEqual(a, b);
-        }
-        case K_CONST: {
-          return typeComparable(a, b->data.modifier.type);
-        }
-        default: { return false; }
-      }
+      return false;
     }
     case K_PTR: {
       switch (b->kind) {

@@ -854,8 +854,139 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
       }
     }
     case NT_COMPOPEXP: {
-      // TODO: write this
-      return NULL;
+      Type *mutualType =
+          typeExpMerge(expressionTypeof(exp->data.compOpExp.lhs),
+                       expressionTypeof(exp->data.compOpExp.rhs));
+      size_t resultTemp = NEW(tempAllocator);
+      size_t lhsTemp = NEW(tempAllocator);
+      size_t rhsTemp = NEW(tempAllocator);
+      size_t inputSize = typeSizeof(mutualType);
+      size_t inputAlignment = typeAlignof(mutualType);
+      size_t inputKind = typeKindof(mutualType);
+
+      IR(out,
+         MOVE(inputSize, TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+              translateCast(
+                  translateExpression(exp->data.compOpExp.lhs, out, fragments,
+                                      frame, labelGenerator, tempAllocator),
+                  expressionTypeof(exp->data.compOpExp.lhs), mutualType, out,
+                  tempAllocator)));
+      IR(out,
+         MOVE(inputSize, TEMP(rhsTemp, inputSize, inputAlignment, inputKind),
+              translateCast(
+                  translateExpression(exp->data.compOpExp.rhs, out, fragments,
+                                      frame, labelGenerator, tempAllocator),
+                  expressionTypeof(exp->data.compOpExp.rhs), mutualType, out,
+                  tempAllocator)));
+
+      switch (exp->data.compOpExp.op) {
+        case CO_EQ: {
+          if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_E,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {
+            IR(out, BINOP(inputSize, IO_E,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_NEQ: {
+          if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_NE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {
+            IR(out, BINOP(inputSize, IO_NE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_LT: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, BINOP(inputSize, IO_L,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_L,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, BINOP(inputSize, IO_B,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_GT: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, BINOP(inputSize, IO_G,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_G,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, BINOP(inputSize, IO_A,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_LTEQ: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, BINOP(inputSize, IO_LE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_LE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, BINOP(inputSize, IO_BE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_GTEQ: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, BINOP(inputSize, IO_GE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_GE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, BINOP(inputSize, IO_AE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+      }
+
+      return TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_LANDASSIGNEXP: {
       // TODO: write this

@@ -137,6 +137,22 @@ typedef enum IROperator {
   IO_FP_DIV,
   IO_SMOD,
   IO_UMOD,
+  IO_L,  // produce 1 if comparison is true, 0 if false
+  IO_LE,
+  IO_E,
+  IO_NE,
+  IO_GE,
+  IO_G,
+  IO_A,
+  IO_AE,
+  IO_B,
+  IO_BE,
+  IO_FP_L,
+  IO_FP_LE,
+  IO_FP_E,
+  IO_FP_NE,
+  IO_FP_GE,
+  IO_FP_G,
   // TODO: other arithmetic operations
 
   IO_NEG,  // plain unary operations: opSize = sizeof(operand), dest = result
@@ -157,6 +173,12 @@ typedef enum IROperator {
   IO_JAE,
   IO_JB,
   IO_JBE,
+  IO_FP_JL,
+  IO_FP_JLE,
+  IO_FP_JE,
+  IO_FP_JNE,
+  IO_FP_JGE,
+  IO_FP_JG,
 
   IO_CALL,    // function call: opSize = 0, dest = NULL, arg1 = function call
               // target, arg2 = NULL Note that the argument list is set up
