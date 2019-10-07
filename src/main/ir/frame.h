@@ -54,7 +54,14 @@ typedef struct Access {
   size_t alignment;
   AllocHint kind;
 } Access;
-
+void accessDtor(Access *);
+IROperand *accessLoad(Access *, IREntryVector *code,
+                      struct TempAllocator *tempAllocator);
+void accessStore(Access *, IREntryVector *code, IROperand *input,
+                 struct TempAllocator *tempAllocator);
+IROperand *accessAddrof(struct Access *, IREntryVector *code,
+                        struct TempAllocator *tempAllocator);
+char *accessGetLabel(Access *);
 // typedef Vector AccessVector;
 // AccessVector *accessVectorCreate(void);
 // void accessVectorInsert(AccessVector *, Access *);
@@ -96,6 +103,23 @@ typedef struct Frame {
   FrameVTable *vtable;
   char *name;
 } Frame;
+void frameDtor(Frame *);
+Access *frameAllocArg(Frame *, struct Type const *type, bool escapes,
+                      struct TempAllocator *tempAllocator);
+Access *frameAllocLocal(Frame *, struct Type const *type, bool escapes,
+                        struct TempAllocator *tempAllocator);
+Access *frameAllocRetVal(Frame *, struct Type const *type,
+                         struct TempAllocator *tempAllocator);
+void frameScopeStart(Frame *);
+IREntryVector *frameScopeEnd(Frame *, IREntryVector *out,
+                             struct TempAllocator *tempAllocator);
+IROperand *frameIndirectCall(Frame *, IROperand *who,
+                             IROperandVector *actualArgs,
+                             struct Type const *functionType,
+                             IREntryVector *out, TempAllocator *tempAllocator);
+IROperand *frameDirectCall(Frame *, char *who, IROperandVector *actualArgs,
+                           struct OverloadSetElement const *function,
+                           IREntryVector *out, TempAllocator *tempAllocator);
 
 typedef struct LabelGeneratorVTable {
   void (*dtor)(struct LabelGenerator *);
@@ -106,5 +130,8 @@ typedef struct LabelGeneratorVTable {
 typedef struct LabelGenerator {
   LabelGeneratorVTable *vtable;
 } LabelGenerator;
+void labelGeneratorDtor(LabelGenerator *);
+char *labelGeneratorGenerateCodeLabel(LabelGenerator *);
+char *labelGeneratorGenerateDataLabel(LabelGenerator *);
 
 #endif  // TLC_IR_FRAME_H_
