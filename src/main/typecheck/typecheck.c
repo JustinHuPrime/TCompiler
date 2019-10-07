@@ -786,7 +786,8 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     ? "increment"
                     : "decrement");
             return NULL;
-          } else if (!typeIsIntegral(target) && !typeIsPointer(target)) {
+          } else if (!typeIsIntegral(target) && !typeIsPointer(target) &&
+                     !typeIsFloat(target)) {
             char *typeString = typeToString(target);
             reportError(report,
                         "%s:%zu:%zu: error: cannot %s a value of type '%s'",
