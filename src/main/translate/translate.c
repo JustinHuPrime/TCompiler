@@ -17,6 +17,7 @@
 // Implementation of translation
 
 #include "translate/translate.h"
+
 #include "constants.h"
 #include "ir/frame.h"
 #include "ir/ir.h"
@@ -26,6 +27,7 @@
 #include "util/format.h"
 #include "util/internalError.h"
 #include "util/nameUtils.h"
+#include "util/numeric.h"
 #include "util/tstring.h"
 
 #include <stdlib.h>
@@ -104,13 +106,6 @@ int fileFragmentVectorMapPut(FileFragmentVectorMap *map, char const *key,
 }
 void fileFragmentVectorMapUninit(FileFragmentVectorMap *map) {
   hashMapUninit(map, (void (*)(void *))fragmentVectorDestroy);
-}
-
-// labelGeneratorDestructor
-static void labelGeneratorDestructor(LabelGenerator *lg) {
-  if (lg != NULL) {
-    lg->vtable->dtor(lg);
-  }
 }
 
 // typeKindof
@@ -664,140 +659,336 @@ static FragmentVector *addDefaultArgs(Node *file,
   return fragments;
 }
 
-// translation - branching
-static void translateJumpIfNot(Node *condition, IREntryVector *out,
-                               FragmentVector *fragments,
-                               LabelGenerator *labelGenerator,
-                               TempAllocator *tempAllocator,
-                               char const *target) {
-  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+// translation - expressions
+struct Lvalue;
+typedef struct {
+  void (*dtor)(struct Lvalue *this);
+  IROperand *(*load)(struct Lvalue *this, IREntryVector *out,
+                     TempAllocator *tempAllocator);
+  void (*store)(struct Lvalue *this, IREntryVector *out, IROperand *value,
+                TempAllocator *tempAllocator);
+  IROperand *(*addrof)(struct Lvalue *this, IREntryVector *out,
+                       TempAllocator *tempAllocator);
+} LvalueVTable;
+typedef struct Lvalue {
+  LvalueVTable *vtable;
+} Lvalue;
+static void lvalueDtor(Lvalue *this) { this->vtable->dtor(this); }
+static IROperand *lvalueLoad(Lvalue *this, IREntryVector *out,
+                             TempAllocator *tempAllocator) {
+  return this->vtable->load(this, out, tempAllocator);
 }
-static void translateJumpIf(Node *condition, IREntryVector *out,
-                            FragmentVector *fragments,
-                            LabelGenerator *labelGenerator,
-                            TempAllocator *tempAllocator, char const *target) {
-  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+static void lvalueStore(Lvalue *this, IREntryVector *out, IROperand *value,
+                        TempAllocator *tempAllocator) {
+  this->vtable->store(this, out, value, tempAllocator);
+}
+static IROperand *lvalueAddrof(Lvalue *this, IREntryVector *out,
+                               TempAllocator *tempAllocator) {
+  return this->vtable->addrof(this, out, tempAllocator);
 }
 
-// translation - expressions
 static IROperand *translateCast(IROperand *from, Type const *fromType,
                                 Type const *toType, IREntryVector *out,
                                 TempAllocator *tempAllocator) {
   error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
 }
-static IROperand *translateExpression(Node *exp, IREntryVector *out,
-                                      FragmentVector *fragments, Frame *frame,
-                                      LabelGenerator *labelGenerator,
-                                      TempAllocator *tempAllocator) {
+static Lvalue *translateLvalue(Node *, IREntryVector *, FragmentVector *,
+                               Frame *, LabelGenerator *, TempAllocator *);
+static IROperand *translateRvalue(Node *, IREntryVector *, FragmentVector *,
+                                  Frame *, LabelGenerator *, TempAllocator *);
+static void translateJumpIfNot(Node *, IREntryVector *, FragmentVector *,
+                               Frame *, LabelGenerator *, TempAllocator *,
+                               char const *);
+
+static void translateJumpIf(Node *, IREntryVector *, FragmentVector *, Frame *,
+                            LabelGenerator *, TempAllocator *, char const *);
+static void translateVoiddedValue(Node *exp, IREntryVector *out,
+                                  FragmentVector *fragments, Frame *frame,
+                                  LabelGenerator *labelGenerator,
+                                  TempAllocator *tempAllocator) {
   switch (exp->type) {
     case NT_SEQEXP: {
-      irOperandDestroy(translateExpression(exp->data.seqExp.prefix, out,
-                                           fragments, frame, labelGenerator,
-                                           tempAllocator));
-      return translateExpression(exp->data.seqExp.last, out, fragments, frame,
-                                 labelGenerator, tempAllocator);
+      translateVoiddedValue(exp->data.seqExp.prefix, out, fragments, frame,
+                            labelGenerator, tempAllocator);
+      translateVoiddedValue(exp->data.seqExp.last, out, fragments, frame,
+                            labelGenerator, tempAllocator);
+      break;
     }
     case NT_BINOPEXP: {
       switch (exp->data.binOpExp.op) {
         case BO_ASSIGN: {
-          // TODO: write this
-          return NULL;
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          lvalueStore(
+              lhs, out,
+              translateCast(
+                  translateRvalue(exp->data.binOpExp.rhs, out, fragments, frame,
+                                  labelGenerator, tempAllocator),
+                  expressionTypeof(exp->data.binOpExp.rhs),
+                  exp->data.binOpExp.resultType, out, tempAllocator),
+              tempAllocator);
+
+          lvalueDtor(lhs);
+          break;
         }
         case BO_MULASSIGN: {
-          // TODO: write this
-          return NULL;
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IROperator op;
+          if (typeIsFloat(resultType)) {
+            op = IO_FP_MUL;
+          } else if (typeIsSignedIntegral(resultType)) {
+            op = IO_SMUL;
+          } else {
+            op = IO_UMUL;
+          }
+          IR(out,
+             BINOP(size, op, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, kind),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          break;
         }
         case BO_DIVASSIGN: {
-          // TODO: write this
-          return NULL;
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IROperator op;
+          if (typeIsFloat(resultType)) {
+            op = IO_FP_DIV;
+          } else if (typeIsSignedIntegral(resultType)) {
+            op = IO_SDIV;
+          } else {
+            op = IO_UDIV;
+          }
+          IR(out,
+             BINOP(size, op, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, kind),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          break;
         }
         case BO_MODASSIGN: {
-          // TODO: write this
-          return NULL;
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          // kind isn't needed - this is integral only
+
+          IROperator op;
+          if (typeIsSignedIntegral(resultType)) {
+            op = IO_SMOD;
+          } else {
+            op = IO_UMOD;
+          }
+          IR(out,
+             BINOP(size, op, TEMP(temp, size, size, AH_GP),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, AH_GP),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          break;
         }
         case BO_ADDASSIGN: {
-          // TODO: write this
-          return NULL;
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+
+          if (typeIsPointer(lhsType)) {
+            Type *dereferenced = typeGetDereferenced(lhsType);
+            size_t temp = NEW(tempAllocator);
+            size_t rhsValue = NEW(tempAllocator);
+
+            // cast to uint64_t safe only if on <= 64 bit platform - caught by
+            // static asserts
+            IR(out,
+               BINOP(POINTER_WIDTH, IO_SMUL,
+                     TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         expressionTypeof(exp->data.binOpExp.rhs), lhsType, out,
+                         tempAllocator),
+                     ULONG((uint64_t)typeSizeof(dereferenced))));
+            IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          lvalueLoad(lhs, out, tempAllocator),
+                          TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
+
+            typeDestroy(dereferenced);
+          } else {
+            Type const *resultType = exp->data.binOpExp.resultType;
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(resultType);
+            AllocHint kind = typeKindof(resultType);
+            IROperator op;
+
+            if (typeIsFloat(resultType)) {
+              op = IO_FP_ADD;
+            } else {
+              op = IO_ADD;
+            }
+            IR(out,
+               BINOP(size, op, TEMP(temp, size, size, kind),
+                     translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                   resultType, out, tempAllocator),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                         out, tempAllocator)));
+            lvalueStore(lhs, out,
+                        translateCast(TEMP(temp, size, size, kind),
+                                      exp->data.binOpExp.resultType, lhsType,
+                                      out, tempAllocator),
+                        tempAllocator);
+          }
+
+          lvalueDtor(lhs);
+          break;
         }
         case BO_SUBASSIGN: {
-          // TODO: write this
-          return NULL;
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+
+          if (typeIsPointer(lhsType)) {
+            Type *dereferenced = typeGetDereferenced(lhsType);
+            size_t temp = NEW(tempAllocator);
+            size_t rhsValue = NEW(tempAllocator);
+
+            // cast to uint64_t safe only if on <= 64 bit platform - caught by
+            // static asserts
+            IR(out,
+               BINOP(POINTER_WIDTH, IO_SMUL,
+                     TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         expressionTypeof(exp->data.binOpExp.rhs), lhsType, out,
+                         tempAllocator),
+                     ULONG((uint64_t)typeSizeof(dereferenced))));
+            IR(out, BINOP(POINTER_WIDTH, IO_SUB,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          lvalueLoad(lhs, out, tempAllocator),
+                          TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
+
+            typeDestroy(dereferenced);
+          } else {
+            Type const *resultType = exp->data.binOpExp.resultType;
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(resultType);
+            AllocHint kind = typeKindof(resultType);
+            IROperator op;
+
+            if (typeIsFloat(resultType)) {
+              op = IO_FP_SUB;
+            } else {
+              op = IO_SUB;
+            }
+            IR(out,
+               BINOP(size, op, TEMP(temp, size, size, kind),
+                     translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                   resultType, out, tempAllocator),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                         out, tempAllocator)));
+            lvalueStore(lhs, out,
+                        translateCast(TEMP(temp, size, size, kind),
+                                      exp->data.binOpExp.resultType, lhsType,
+                                      out, tempAllocator),
+                        tempAllocator);
+          }
+
+          lvalueDtor(lhs);
+          break;
         }
         case BO_LSHIFTASSIGN: {
-          // TODO: write this
-          return NULL;
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case BO_LRSHIFTASSIGN: {
-          // TODO: write this
-          return NULL;
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case BO_ARSHIFTASSIGN: {
-          // TODO: write this
-          return NULL;
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case BO_BITANDASSIGN: {
-          // TODO: write this
-          return NULL;
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case BO_BITXORASSIGN: {
-          // TODO: write this
-          return NULL;
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case BO_BITORASSIGN: {
-          // TODO: write this
-          return NULL;
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
-        case BO_BITAND: {
-          // TODO: write this
-          return NULL;
-        }
-        case BO_BITOR: {
-          // TODO: write this
-          return NULL;
-        }
-        case BO_BITXOR: {
-          // TODO: write this
-          return NULL;
-        }
-        case BO_SPACESHIP: {
-          // TODO: write this
-          return NULL;
-        }
-        case BO_LSHIFT: {
-          // TODO: write this
-          return NULL;
-        }
-        case BO_LRSHIFT: {
-          // TODO: write this
-          return NULL;
-        }
-        case BO_ARSHIFT: {
-          // TODO: write this
-          return NULL;
-        }
-        case BO_ADD: {
-          // TODO: write this
-          return NULL;
-        }
-        case BO_SUB: {
-          // TODO: write this
-          return NULL;
-        }
-        case BO_MUL: {
-          // TODO: write this
-          return NULL;
-        }
-        case BO_DIV: {
-          // TODO: write this
-          return NULL;
-        }
+        case BO_BITAND:
+        case BO_BITOR:
+        case BO_BITXOR:
+        case BO_SPACESHIP:
+        case BO_LSHIFT:
+        case BO_LRSHIFT:
+        case BO_ARSHIFT:
+        case BO_ADD:
+        case BO_SUB:
+        case BO_MUL:
+        case BO_DIV:
         case BO_MOD: {
-          // TODO: write this
-          return NULL;
+          // these operations are side effect free
+          translateVoiddedValue(exp->data.binOpExp.lhs, out, fragments, frame,
+                                labelGenerator, tempAllocator);
+          translateVoiddedValue(exp->data.binOpExp.rhs, out, fragments, frame,
+                                labelGenerator, tempAllocator);
+          break;
         }
         case BO_ARRAYACCESS: {
-          // TODO: write this
-          return NULL;
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         default: { error(__FILE__, __LINE__, "invalid BinOpType enum"); }
       }
@@ -806,339 +997,221 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
     case NT_UNOPEXP: {
       switch (exp->data.unOpExp.op) {
         case UO_DEREF: {
-          Type const *resultType = exp->data.unOpExp.resultType;
-          size_t resultSize = typeSizeof(resultType);
-          size_t resultAlignment = typeAlignof(resultType);
-          AllocHint kind = typeKindof(resultType);
-          size_t temp = NEW(tempAllocator);
-          IR(out,
-             MEM_LOAD(
-                 resultSize, TEMP(temp, resultSize, resultAlignment, kind),
-                 translateExpression(exp->data.unOpExp.target, out, fragments,
-                                     frame, labelGenerator, tempAllocator)));
-          return TEMP(temp, resultSize, resultAlignment, kind);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case UO_ADDROF: {
-          // TODO: write this
-          return NULL;
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
-        case UO_PREINC: {
-          // TODO: write this
-          return NULL;
+        case UO_PREINC:
+        case UO_POSTINC: {  // no value produced, so it's just an increment
+          Lvalue *value =
+              translateLvalue(exp->data.unOpExp.target, out, fragments, frame,
+                              labelGenerator, tempAllocator);
+          if (typeIsPointer(exp->data.unOpExp.resultType)) {
+            // is pointer
+            Type *dereferenced =
+                typeGetDereferenced(exp->data.unOpExp.resultType);
+            size_t temp = NEW(tempAllocator);
+            // note - size_t to 64 bit conversion only safe on <= 64 bit
+            // platforms - static assert catches that
+            IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          lvalueLoad(value, out, tempAllocator),
+                          ULONG((size_t)typeSizeof(dereferenced))));
+            lvalueStore(value, out,
+                        TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        tempAllocator);
+          } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
+            // is integral
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = malloc(sizeof(IROperand));
+            one->kind = OK_CONSTANT;
+            one->data.constant.bits =
+                0x1;  // constant one, unsized, sign-agnostic
+            IR(out, BINOP(size, IO_ADD, TEMP(temp, size, size, AH_GP),
+                          lvalueLoad(value, out, tempAllocator), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+                        tempAllocator);
+          } else {
+            // is float/double
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
+                                                 : ULONG(DOUBLE_BITS_ONE);
+            IR(out, BINOP(size, IO_FP_ADD, TEMP(temp, size, size, AH_SSE),
+                          lvalueLoad(value, out, tempAllocator), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+                        tempAllocator);
+          }
+
+          lvalueDtor(value);
+          break;
         }
-        case UO_PREDEC: {
-          // TODO: write this
-          return NULL;
+        case UO_PREDEC:
+        case UO_POSTDEC: {  // no value produced, so it's just a decrement
+          Lvalue *value =
+              translateLvalue(exp->data.unOpExp.target, out, fragments, frame,
+                              labelGenerator, tempAllocator);
+          if (typeIsPointer(exp->data.unOpExp.resultType)) {
+            // is pointer
+            Type *dereferenced =
+                typeGetDereferenced(exp->data.unOpExp.resultType);
+            size_t temp = NEW(tempAllocator);
+            // note - size_t to 64 bit conversion only safe on <= 64 bit
+            // platforms - static assert catches that
+            IR(out, BINOP(POINTER_WIDTH, IO_SUB,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          lvalueLoad(value, out, tempAllocator),
+                          ULONG((size_t)typeSizeof(dereferenced))));
+            lvalueStore(value, out,
+                        TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        tempAllocator);
+          } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
+            // is integral
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = malloc(sizeof(IROperand));
+            one->kind = OK_CONSTANT;
+            one->data.constant.bits =
+                0x1;  // constant one, unsized, sign-agnostic
+            IR(out, BINOP(size, IO_SUB, TEMP(temp, size, size, AH_GP),
+                          lvalueLoad(value, out, tempAllocator), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+                        tempAllocator);
+          } else {
+            // is float/double
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
+                                                 : ULONG(DOUBLE_BITS_ONE);
+            IR(out, BINOP(size, IO_FP_SUB, TEMP(temp, size, size, AH_SSE),
+                          lvalueLoad(value, out, tempAllocator), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+                        tempAllocator);
+          }
+
+          lvalueDtor(value);
+          break;
         }
-        case UO_NEG: {
-          // TODO: write this
-          return NULL;
-        }
-        case UO_LNOT: {
-          // TODO: write this
-          return NULL;
-        }
+        case UO_NEG:
+        case UO_LNOT:
         case UO_BITNOT: {
-          // TODO: write this
-          return NULL;
-        }
-        case UO_POSTINC: {
-          // TODO: write this
-          return NULL;
-        }
-        case UO_POSTDEC: {
-          // TODO: write this
-          return NULL;
+          // these operations are side effect free
+          translateVoiddedValue(exp->data.unOpExp.target, out, fragments, frame,
+                                labelGenerator, tempAllocator);
+          break;
         }
         default: { error(__FILE__, __LINE__, "invalid UnOpType enum"); }
       }
+      break;
     }
     case NT_COMPOPEXP: {
-      Type *mutualType =
-          typeExpMerge(expressionTypeof(exp->data.compOpExp.lhs),
-                       expressionTypeof(exp->data.compOpExp.rhs));
-      size_t resultTemp = NEW(tempAllocator);
-      size_t lhsTemp = NEW(tempAllocator);
-      size_t rhsTemp = NEW(tempAllocator);
-      size_t inputSize = typeSizeof(mutualType);
-      size_t inputAlignment = typeAlignof(mutualType);
-      size_t inputKind = typeKindof(mutualType);
-
-      IR(out,
-         MOVE(inputSize, TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-              translateCast(
-                  translateExpression(exp->data.compOpExp.lhs, out, fragments,
-                                      frame, labelGenerator, tempAllocator),
-                  expressionTypeof(exp->data.compOpExp.lhs), mutualType, out,
-                  tempAllocator)));
-      IR(out,
-         MOVE(inputSize, TEMP(rhsTemp, inputSize, inputAlignment, inputKind),
-              translateCast(
-                  translateExpression(exp->data.compOpExp.rhs, out, fragments,
-                                      frame, labelGenerator, tempAllocator),
-                  expressionTypeof(exp->data.compOpExp.rhs), mutualType, out,
-                  tempAllocator)));
-
-      switch (exp->data.compOpExp.op) {
-        case CO_EQ: {
-          if (typeIsFloat(mutualType)) {
-            IR(out, BINOP(inputSize, IO_FP_E,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          } else {
-            IR(out, BINOP(inputSize, IO_E,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          }
-          break;
-        }
-        case CO_NEQ: {
-          if (typeIsFloat(mutualType)) {
-            IR(out, BINOP(inputSize, IO_FP_NE,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          } else {
-            IR(out, BINOP(inputSize, IO_NE,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          }
-          break;
-        }
-        case CO_LT: {
-          if (typeIsSignedIntegral(mutualType)) {
-            IR(out, BINOP(inputSize, IO_L,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          } else if (typeIsFloat(mutualType)) {
-            IR(out, BINOP(inputSize, IO_FP_L,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          } else {  // unsigned integrral
-            IR(out, BINOP(inputSize, IO_B,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          }
-          break;
-        }
-        case CO_GT: {
-          if (typeIsSignedIntegral(mutualType)) {
-            IR(out, BINOP(inputSize, IO_G,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          } else if (typeIsFloat(mutualType)) {
-            IR(out, BINOP(inputSize, IO_FP_G,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          } else {  // unsigned integrral
-            IR(out, BINOP(inputSize, IO_A,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          }
-          break;
-        }
-        case CO_LTEQ: {
-          if (typeIsSignedIntegral(mutualType)) {
-            IR(out, BINOP(inputSize, IO_LE,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          } else if (typeIsFloat(mutualType)) {
-            IR(out, BINOP(inputSize, IO_FP_LE,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          } else {  // unsigned integrral
-            IR(out, BINOP(inputSize, IO_BE,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          }
-          break;
-        }
-        case CO_GTEQ: {
-          if (typeIsSignedIntegral(mutualType)) {
-            IR(out, BINOP(inputSize, IO_GE,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          } else if (typeIsFloat(mutualType)) {
-            IR(out, BINOP(inputSize, IO_FP_GE,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          } else {  // unsigned integrral
-            IR(out, BINOP(inputSize, IO_AE,
-                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
-                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
-          }
-          break;
-        }
-      }
-
-      return TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
+      // comparisons are side effect free
+      translateVoiddedValue(exp->data.compOpExp.lhs, out, fragments, frame,
+                            labelGenerator, tempAllocator);
+      translateVoiddedValue(exp->data.compOpExp.rhs, out, fragments, frame,
+                            labelGenerator, tempAllocator);
+      break;
     }
     case NT_LANDASSIGNEXP: {
-      // TODO: write this
-      return NULL;
+      // load lhs
+      // if !lhs goto end
+      // store rhs
+      // end:
+      Lvalue *lhs = translateLvalue(exp->data.landAssignExp.lhs, out, fragments,
+                                    frame, labelGenerator, tempAllocator);
+      char *end = NEW_LABEL(labelGenerator);
+      IR(out, CJUMP(BYTE_WIDTH, IO_JE, strdup(end),
+                    lvalueLoad(lhs, out, tempAllocator), UBYTE(0)));
+      lvalueStore(lhs, out,
+                  translateRvalue(exp->data.landAssignExp.rhs, out, fragments,
+                                  frame, labelGenerator, tempAllocator),
+                  tempAllocator);
+      IR(out, LABEL(end));
+
+      lvalueDtor(lhs);
+      break;
     }
     case NT_LORASSIGNEXP: {
-      // TODO: write this
-      return NULL;
-    }
-    case NT_TERNARYEXP: {
-      // var x
-      // jump if not (condition) to elseCase
-      // x = trueCase
-      // jump to end
-      // elseCase:
-      // x = falseCase
+      // load lhs
+      // if lhs goto end
+      // store rhs
       // end:
 
-      size_t resultTemp = NEW(tempAllocator);
-      Type const *resultType = exp->data.ternaryExp.resultType;
-      size_t resultSize = typeSizeof(resultType);
-      size_t resultAlignment = typeAlignof(resultType);
-      AllocHint kind = typeKindof(resultType);
+      Lvalue *lhs = translateLvalue(exp->data.landAssignExp.lhs, out, fragments,
+                                    frame, labelGenerator, tempAllocator);
+      char *end = NEW_LABEL(labelGenerator);
+      IR(out, CJUMP(BYTE_WIDTH, IO_JNE, strdup(end),
+                    lvalueLoad(lhs, out, tempAllocator), UBYTE(0)));
+      lvalueStore(lhs, out,
+                  translateRvalue(exp->data.landAssignExp.rhs, out, fragments,
+                                  frame, labelGenerator, tempAllocator),
+                  tempAllocator);
+      IR(out, LABEL(end));
+
+      lvalueDtor(lhs);
+      break;
+    }
+    case NT_TERNARYEXP: {
+      // jump if not (condition) to elseCase
+      // trueCase
+      // jump to end
+      // elseCase:
+      // falseCase
+      // end:
 
       char *elseCase = NEW_LABEL(labelGenerator);
       char *end = NEW_LABEL(labelGenerator);
 
-      translateJumpIfNot(exp->data.ternaryExp.condition, out, fragments,
+      translateJumpIfNot(exp->data.ternaryExp.condition, out, fragments, frame,
                          labelGenerator, tempAllocator, elseCase);
-      IR(out,
-         MOVE(resultSize, TEMP(resultTemp, resultSize, resultAlignment, kind),
-              translateCast(translateExpression(exp->data.ternaryExp.thenExp,
-                                                out, fragments, frame,
-                                                labelGenerator, tempAllocator),
-                            expressionTypeof(exp->data.ternaryExp.thenExp),
-                            resultType, out, tempAllocator)));
+      translateVoiddedValue(exp->data.ternaryExp.thenExp, out, fragments, frame,
+                            labelGenerator, tempAllocator);
       IR(out, JUMP(strdup(end)));
       IR(out, LABEL(elseCase));
-      IR(out,
-         MOVE(resultSize, TEMP(resultTemp, resultSize, resultAlignment, kind),
-              translateCast(translateExpression(exp->data.ternaryExp.elseExp,
-                                                out, fragments, frame,
-                                                labelGenerator, tempAllocator),
-                            expressionTypeof(exp->data.ternaryExp.elseExp),
-                            resultType, out, tempAllocator)));
+      translateVoiddedValue(exp->data.ternaryExp.elseExp, out, fragments, frame,
+                            labelGenerator, tempAllocator);
       IR(out, LABEL(end));
-      return TEMP(resultTemp, resultSize, resultAlignment, kind);
+      break;
     }
     case NT_LANDEXP: {
-      // bool x
       // if lhs
-      // x = rhs
-      // else
-      // x = false
-      // x
+      // rhs
 
-      size_t resultTemp = NEW(tempAllocator);
-      char *elseCase = NEW_LABEL(labelGenerator);
       char *end = NEW_LABEL(labelGenerator);
-      translateJumpIfNot(exp->data.landExp.lhs, out, fragments, labelGenerator,
-                         tempAllocator, elseCase);
-      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                   translateExpression(exp->data.landExp.rhs, out, fragments,
-                                       frame, labelGenerator, tempAllocator)));
-      IR(out, JUMP(strdup(end)));
-      IR(out, LABEL(elseCase));
-      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                   UBYTE(0)));
+      translateJumpIfNot(exp->data.landExp.lhs, out, fragments, frame,
+                         labelGenerator, tempAllocator, end);
+      translateVoiddedValue(exp->data.landExp.rhs, out, fragments, frame,
+                            labelGenerator, tempAllocator);
       IR(out, LABEL(end));
-      return TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
+      break;
     }
     case NT_LOREXP: {
-      // bool x
-      // if lhs
-      // x = true
-      // else
-      // x = rhs
-      // x
+      // if !lhs
+      // rhs
 
-      size_t resultTemp = NEW(tempAllocator);
-      char *elseCase = NEW_LABEL(labelGenerator);
       char *end = NEW_LABEL(labelGenerator);
-      translateJumpIfNot(exp->data.landExp.lhs, out, fragments, labelGenerator,
-                         tempAllocator, elseCase);
-      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                   UBYTE(1)));
-      IR(out, JUMP(strdup(end)));
-      IR(out, LABEL(elseCase));
-      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                   translateExpression(exp->data.landExp.rhs, out, fragments,
-                                       frame, labelGenerator, tempAllocator)));
+      translateJumpIf(exp->data.lorExp.lhs, out, fragments, frame,
+                      labelGenerator, tempAllocator, end);
+      translateVoiddedValue(exp->data.lorExp.rhs, out, fragments, frame,
+                            labelGenerator, tempAllocator);
       IR(out, LABEL(end));
-      return TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
+      break;
     }
     case NT_STRUCTACCESSEXP: {
-      Type const *baseType = expressionTypeof(exp->data.structAccessExp.base);
-      size_t temp = NEW(tempAllocator);
-      Type const *resultType = exp->data.structAccessExp.resultType;
-      AllocHint kind = typeKindof(resultType);
-      size_t size = typeSizeof(resultType);
-      size_t alignment = typeAlignof(resultType);
-      if (baseType->kind == K_STRUCT) {
-        IR(out,
-           OFFSET_LOAD(
-               size, TEMP(temp, size, alignment, kind),
-               translateExpression(exp->data.structAccessExp.base, out,
-                                   fragments, frame, labelGenerator,
-                                   tempAllocator),
-               ULONG(typeOffset(
-                   baseType, exp->data.structAccessExp.element->data.id.id))));
-        return TEMP(temp, size, alignment, kind);
-      } else {  // is union
-        IR(out, MOVE(size, TEMP(temp, size, alignment, kind),
-                     translateExpression(exp->data.structAccessExp.base, out,
-                                         fragments, frame, labelGenerator,
-                                         tempAllocator)));
-        return TEMP(temp, size, alignment, kind);
-      }
+      translateVoiddedValue(exp->data.structAccessExp.base, out, fragments,
+                            frame, labelGenerator, tempAllocator);
+      break;
     }
     case NT_STRUCTPTRACCESSEXP: {
-      Type *baseType = typeGetDereferenced(
-          expressionTypeof(exp->data.structPtrAccessExp.base));
-      size_t temp = NEW(tempAllocator);
-      Type const *resultType = exp->data.structPtrAccessExp.resultType;
-      AllocHint kind = typeKindof(resultType);
-      size_t size = typeSizeof(resultType);
-      size_t alignment = typeAlignof(resultType);
-      size_t pointer = NEW(tempAllocator);
-      if (baseType->kind == K_STRUCT) {
-        IR(out, BINOP(POINTER_WIDTH, IO_ADD,
-                      TEMP(pointer, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                      translateExpression(exp->data.structPtrAccessExp.base,
-                                          out, fragments, frame, labelGenerator,
-                                          tempAllocator),
-                      ULONG(typeOffset(
-                          baseType,
-                          exp->data.structPtrAccessExp.element->data.id.id))));
-        IR(out, MEM_LOAD(size, TEMP(temp, size, alignment, kind),
-                         TEMP(pointer, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
-      } else {  // is union
-        IR(out, MEM_LOAD(size, TEMP(temp, size, alignment, kind),
-                         translateExpression(exp->data.structPtrAccessExp.base,
-                                             out, fragments, frame,
-                                             labelGenerator, tempAllocator)));
-      }
-      return TEMP(temp, size, alignment, kind);
+      translateVoiddedValue(exp->data.structPtrAccessExp.base, out, fragments,
+                            frame, labelGenerator, tempAllocator);
+      break;
     }
     case NT_FNCALLEXP: {
       // if who is a function id, then do a direct call.
       // otherwise, do an indirect call.
-      // if void, returns CONST(0) - will be deallocated immediately if not
-      // used, and should never be used.
       IROperand *result;
 
       Node *who = exp->data.fnCallExp.who;
@@ -1155,8 +1228,8 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
           irOperandVectorInsert(
               actualArgs,
               translateCast(
-                  translateExpression(args->elements[idx], out, fragments,
-                                      frame, labelGenerator, tempAllocator),
+                  translateRvalue(args->elements[idx], out, fragments, frame,
+                                  labelGenerator, tempAllocator),
                   expressionTypeof(args->elements[idx]),
                   elm->argumentTypes.elements[idx], out, tempAllocator));
         }
@@ -1167,16 +1240,16 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
               actualArgs,
               irOperandCopy(elm->defaultArgs.elements[idx - numRequired]));
         }
-        result = frame->vtable->directCall(
-            frame,
-            mangleFunctionName(info->module, who->data.id.id,
-                               &elm->argumentTypes),
-            args, elm, out, tempAllocator);
+        result =
+            frameDirectCall(frame,
+                            mangleFunctionName(info->module, who->data.id.id,
+                                               &elm->argumentTypes),
+                            args, elm, out, tempAllocator);
       } else {
         // indirect call - is call *<temp>, with no default args
         Type const *functionType = expressionTypeof(who);
-        IROperand *function = translateExpression(
-            who, out, fragments, frame, labelGenerator, tempAllocator);
+        IROperand *function = translateRvalue(who, out, fragments, frame,
+                                              labelGenerator, tempAllocator);
         IROperandVector *actualArgs = irOperandVectorCreate();
         // get args
         NodeList *args = exp->data.fnCallExp.args;
@@ -1184,81 +1257,267 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
           irOperandVectorInsert(
               actualArgs,
               translateCast(
-                  translateExpression(args->elements[idx], out, fragments,
-                                      frame, labelGenerator, tempAllocator),
+                  translateRvalue(args->elements[idx], out, fragments, frame,
+                                  labelGenerator, tempAllocator),
                   expressionTypeof(args->elements[idx]),
                   functionType->data.functionPtr.argumentTypes->elements[idx],
                   out, tempAllocator));
         }
-        result = frame->vtable->indirectCall(frame, function, actualArgs,
-                                             functionType, out, tempAllocator);
+        result = frameIndirectCall(frame, function, actualArgs, functionType,
+                                   out, tempAllocator);
       }
 
-      if (result == NULL) {
-        return ULONG(0);
-      } else {
-        return result;
+      if (result != NULL) {
+        irOperandDestroy(result);
       }
+
+      break;
+    }
+    case NT_CONSTEXP:
+    case NT_AGGREGATEINITEXP:
+    case NT_SIZEOFTYPEEXP: {
+      break;  // constants are side effect free
+              // note - constants, aggregate initializers, and sizeof(type) are
+              // all considered constants
+    }
+    case NT_CASTEXP: {
+      // casts are side effect free
+      translateVoiddedValue(exp->data.castExp.target, out, fragments, frame,
+                            labelGenerator, tempAllocator);
+      break;
+    }
+    case NT_SIZEOFEXPEXP: {
+      translateVoiddedValue(exp->data.sizeofExpExp.target, out, fragments,
+                            frame, labelGenerator, tempAllocator);
+      break;
+    }
+    case NT_ID: {
+      // value accesses are side effect free
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered a non-expression in an expression position");
+    }
+  }
+}
+static Lvalue *translateLvalue(Node *exp, IREntryVector *out,
+                               FragmentVector *fragments, Frame *frame,
+                               LabelGenerator *labelGenerator,
+                               TempAllocator *tempAllocator) {
+  switch (exp->type) {
+    case NT_SEQEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_BINOPEXP: {
+      switch (exp->data.binOpExp.op) {
+        case BO_ASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_MULASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_DIVASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_MODASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_ADDASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_SUBASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_LSHIFTASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_LRSHIFTASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_ARSHIFTASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITANDASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITXORASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITORASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITAND: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITOR: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITXOR: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_SPACESHIP: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_LSHIFT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_LRSHIFT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_ARSHIFT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_ADD: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_SUB: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_MUL: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_DIV: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_MOD: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_ARRAYACCESS: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        default: { error(__FILE__, __LINE__, "invalid BinOpType enum"); }
+      }
+      break;
+    }
+    case NT_UNOPEXP: {
+      switch (exp->data.unOpExp.op) {
+        case UO_DEREF: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_ADDROF: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_PREINC: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_PREDEC: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_NEG: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_LNOT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_BITNOT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_POSTINC: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_POSTDEC: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        default: { error(__FILE__, __LINE__, "invalid UnOpType enum"); }
+      }
+    }
+    case NT_COMPOPEXP: {
+      switch (exp->data.compOpExp.op) {
+        case CO_EQ: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CO_NEQ: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CO_LT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CO_GT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CO_LTEQ: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CO_GTEQ: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        default: { error(__FILE__, __LINE__, "invalid CompOpType enum"); }
+      }
+    }
+    case NT_LANDASSIGNEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_LORASSIGNEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_TERNARYEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_LANDEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_LOREXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_STRUCTACCESSEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_STRUCTPTRACCESSEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_FNCALLEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
     }
     case NT_CONSTEXP: {
       switch (exp->data.constExp.type) {
         case CT_UBYTE: {
-          return UBYTE(exp->data.constExp.value.ubyteVal);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_BYTE: {
-          return BYTE(exp->data.constExp.value.byteVal);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_CHAR: {
-          return UBYTE(exp->data.constExp.value.charVal);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_USHORT: {
-          return USHORT(exp->data.constExp.value.ushortVal);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_SHORT: {
-          return SHORT(exp->data.constExp.value.shortVal);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_UINT: {
-          return UINT(exp->data.constExp.value.uintVal);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_INT: {
-          return INT(exp->data.constExp.value.intVal);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_WCHAR: {
-          return UINT(exp->data.constExp.value.wcharVal);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_ULONG: {
-          return ULONG(exp->data.constExp.value.ulongVal);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_LONG: {
-          return LONG(exp->data.constExp.value.longVal);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_FLOAT: {
-          return FLOAT(exp->data.constExp.value.floatBits);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_DOUBLE: {
-          return DOUBLE(exp->data.constExp.value.doubleBits);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_BOOL: {
-          return UBYTE(exp->data.constExp.value.boolVal ? 1 : 0);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_STRING: {
-          Fragment *f =
-              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
-          IR(f->data.rodata.ir,
-             CONST(0, STRING(tstrdup(exp->data.constExp.value.stringVal))));
-          fragmentVectorInsert(fragments, f);
-          return NAME(strdup(f->label));
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_WSTRING: {
-          Fragment *f =
-              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
-          IR(f->data.rodata.ir,
-             CONST(0, WSTRING(twstrdup(exp->data.constExp.value.wstringVal))));
-          fragmentVectorInsert(fragments, f);
-          return NAME(strdup(f->label));
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         case CT_NULL: {
-          return ULONG(0);
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
         default: {
           error(__FILE__, __LINE__,
@@ -1267,45 +1526,285 @@ static IROperand *translateExpression(Node *exp, IREntryVector *out,
       }
     }
     case NT_AGGREGATEINITEXP: {
-      // Fragment *f = rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator));
-      // constantToData(exp, f->data.rodata.ir, fragments, labelGenerator);
-
-      // size_t temp = NEW(tempAllocator);
-      // Type const *type = expressionTypeof(exp);
-      // size_t size = typeSizeof(type);
-      // AllocHint kind = typeKindof(type);
-
-      // IR(out, MOVE(size, TEMP(temp, size, )))
-      // TODO: write this
-      return NULL;
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
     }
     case NT_CASTEXP: {
-      return translateCast(
-          translateExpression(exp->data.castExp.target, out, fragments, frame,
-                              labelGenerator, tempAllocator),
-          expressionTypeof(exp->data.castExp.target),
-          exp->data.castExp.resultType, out, tempAllocator);
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
     }
     case NT_SIZEOFTYPEEXP: {
-      // safe unless on a 128 bit platform - static asserts catch that.
-      return ULONG((uint64_t)typeSizeof(exp->data.sizeofTypeExp.targetType));
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
     }
     case NT_SIZEOFEXPEXP: {
-      irOperandDestroy(translateExpression(exp->data.sizeofExpExp.target, out,
-                                           fragments, frame, labelGenerator,
-                                           tempAllocator));
-      return ULONG((uint64_t)typeSizeof(
-          expressionTypeof(exp->data.sizeofExpExp.target)));
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
     }
     case NT_ID: {
-      Access *access = exp->data.id.symbol->data.var.access;
-      return access->vtable->load(access, out, tempAllocator);
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
     }
     default: {
       error(__FILE__, __LINE__,
             "encountered a non-expression in an expression position");
     }
   }
+}
+static IROperand *translateRvalue(Node *exp, IREntryVector *out,
+                                  FragmentVector *fragments, Frame *frame,
+                                  LabelGenerator *labelGenerator,
+                                  TempAllocator *tempAllocator) {
+  switch (exp->type) {
+    case NT_SEQEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_BINOPEXP: {
+      switch (exp->data.binOpExp.op) {
+        case BO_ASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_MULASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_DIVASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_MODASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_ADDASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_SUBASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_LSHIFTASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_LRSHIFTASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_ARSHIFTASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITANDASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITXORASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITORASSIGN: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITAND: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITOR: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_BITXOR: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_SPACESHIP: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_LSHIFT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_LRSHIFT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_ARSHIFT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_ADD: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_SUB: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_MUL: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_DIV: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_MOD: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case BO_ARRAYACCESS: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        default: { error(__FILE__, __LINE__, "invalid BinOpType enum"); }
+      }
+      break;
+    }
+    case NT_UNOPEXP: {
+      switch (exp->data.unOpExp.op) {
+        case UO_DEREF: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_ADDROF: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_PREINC: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_PREDEC: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_NEG: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_LNOT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_BITNOT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_POSTINC: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case UO_POSTDEC: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        default: { error(__FILE__, __LINE__, "invalid UnOpType enum"); }
+      }
+    }
+    case NT_COMPOPEXP: {
+      switch (exp->data.compOpExp.op) {
+        case CO_EQ: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CO_NEQ: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CO_LT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CO_GT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CO_LTEQ: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CO_GTEQ: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        default: { error(__FILE__, __LINE__, "invalid CompOpType enum"); }
+      }
+    }
+    case NT_LANDASSIGNEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_LORASSIGNEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_TERNARYEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_LANDEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_LOREXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_STRUCTACCESSEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_STRUCTPTRACCESSEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_FNCALLEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_CONSTEXP: {
+      switch (exp->data.constExp.type) {
+        case CT_UBYTE: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_BYTE: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_CHAR: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_USHORT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_SHORT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_UINT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_INT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_WCHAR: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_ULONG: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_LONG: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_FLOAT: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_DOUBLE: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_BOOL: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_STRING: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_WSTRING: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        case CT_NULL: {
+          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "encountered an invalid ConstType enum constant");
+        }
+      }
+    }
+    case NT_AGGREGATEINITEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_CASTEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_SIZEOFTYPEEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_SIZEOFEXPEXP: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    case NT_ID: {
+      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered a non-expression in an expression position");
+    }
+  }
+}
+
+// translation - branching
+static void translateJumpIfNot(Node *condition, IREntryVector *out,
+                               FragmentVector *fragments, Frame *frame,
+                               LabelGenerator *labelGenerator,
+                               TempAllocator *tempAllocator,
+                               char const *target) {
+  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+}
+static void translateJumpIf(Node *condition, IREntryVector *out,
+                            FragmentVector *fragments, Frame *frame,
+                            LabelGenerator *labelGenerator,
+                            TempAllocator *tempAllocator, char const *target) {
+  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
 }
 
 // translation - statements
@@ -1320,7 +1819,7 @@ static IREntryVector *translateStmt(
 
   switch (stmt->type) {
     case NT_COMPOUNDSTMT: {
-      frame->vtable->scopeStart(frame);
+      frameScopeStart(frame);
 
       IREntryVector *body = irEntryVectorCreate();
       NodeList *stmts = stmt->data.compoundStmt.statements;
@@ -1330,17 +1829,16 @@ static IREntryVector *translateStmt(
                              labelGenerator, tempAllocator, returnType);
       }
 
-      return irEntryVectorMerge(
-          out, frame->vtable->scopeEnd(frame, body, tempAllocator));
+      return irEntryVectorMerge(out, frameScopeEnd(frame, body, tempAllocator));
     }
     case NT_IFSTMT: {
       if (stmt->data.ifStmt.elseStmt == NULL) {
         // jump if not (condition) to end
         // thenBody
         // end:
-        char *skip = labelGenerator->vtable->generateCodeLabel(labelGenerator);
+        char *skip = NEW_LABEL(labelGenerator);
 
-        translateJumpIfNot(stmt->data.ifStmt.condition, out, fragments,
+        translateJumpIfNot(stmt->data.ifStmt.condition, out, fragments, frame,
                            labelGenerator, tempAllocator, skip);
         translateStmt(stmt->data.ifStmt.thenStmt, out, fragments, frame, outArg,
                       breakLabel, continueLabel, exitLabel, labelGenerator,
@@ -1356,7 +1854,7 @@ static IREntryVector *translateStmt(
         char *elseCase = NEW_LABEL(labelGenerator);
         char *end = NEW_LABEL(labelGenerator);
 
-        translateJumpIfNot(stmt->data.ifStmt.condition, out, fragments,
+        translateJumpIfNot(stmt->data.ifStmt.condition, out, fragments, frame,
                            labelGenerator, tempAllocator, elseCase);
         translateStmt(stmt->data.ifStmt.thenStmt, out, fragments, frame, outArg,
                       breakLabel, continueLabel, exitLabel, labelGenerator,
@@ -1380,7 +1878,7 @@ static IREntryVector *translateStmt(
       char *end = NEW_LABEL(labelGenerator);
 
       IR(out, LABEL(strdup(start)));
-      translateJumpIfNot(stmt->data.whileStmt.condition, out, fragments,
+      translateJumpIfNot(stmt->data.whileStmt.condition, out, fragments, frame,
                          labelGenerator, tempAllocator, end);
       translateStmt(stmt->data.whileStmt.body, out, fragments, frame, outArg,
                     end, start, exitLabel, labelGenerator, tempAllocator,
@@ -1404,7 +1902,7 @@ static IREntryVector *translateStmt(
                     end, loopContinue, exitLabel, labelGenerator, tempAllocator,
                     returnType);
       IR(out, LABEL(loopContinue));
-      translateJumpIf(stmt->data.doWhileStmt.condition, out, fragments,
+      translateJumpIf(stmt->data.doWhileStmt.condition, out, fragments, frame,
                       labelGenerator, tempAllocator, start);
       IR(out, LABEL(end));
       return out;
@@ -1420,7 +1918,7 @@ static IREntryVector *translateStmt(
       //  end:
       // }
       IREntryVector *body = irEntryVectorCreate();
-      frame->vtable->scopeStart(frame);
+      frameScopeStart(frame);
 
       char *start = NEW_LABEL(labelGenerator);
       char *end = NEW_LABEL(labelGenerator);
@@ -1432,26 +1930,23 @@ static IREntryVector *translateStmt(
                         outArg, breakLabel, continueLabel, exitLabel,
                         labelGenerator, tempAllocator, returnType);
         } else {
-          irOperandDestroy(translateExpression(initialize, body, fragments,
-                                               frame, labelGenerator,
-                                               tempAllocator));
+          translateVoiddedValue(initialize, body, fragments, frame,
+                                labelGenerator, tempAllocator);
         }
       }
 
       IR(body, LABEL(strdup(start)));
-      translateJumpIfNot(stmt->data.forStmt.condition, body, fragments,
+      translateJumpIfNot(stmt->data.forStmt.condition, body, fragments, frame,
                          labelGenerator, tempAllocator, end);
       translateStmt(stmt->data.forStmt.body, body, fragments, frame, outArg,
                     end, start, exitLabel, labelGenerator, tempAllocator,
                     returnType);
-      irOperandDestroy(translateExpression(stmt->data.forStmt.update, body,
-                                           fragments, frame, labelGenerator,
-                                           tempAllocator));
+      translateVoiddedValue(stmt->data.forStmt.update, body, fragments, frame,
+                            labelGenerator, tempAllocator);
       IR(body, JUMP(start));
       IR(body, LABEL(end));
 
-      return irEntryVectorMerge(
-          out, frame->vtable->scopeEnd(frame, body, tempAllocator));
+      return irEntryVectorMerge(out, frameScopeEnd(frame, body, tempAllocator));
     }
     case NT_SWITCHSTMT: {
       error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
@@ -1467,11 +1962,11 @@ static IREntryVector *translateStmt(
     }
     case NT_RETURNSTMT: {
       if (stmt->data.returnStmt.value != NULL) {
-        outArg->vtable->store(
+        accessStore(
             outArg, out,
             translateCast(
-                translateExpression(stmt->data.returnStmt.value, out, fragments,
-                                    frame, labelGenerator, tempAllocator),
+                translateRvalue(stmt->data.returnStmt.value, out, fragments,
+                                frame, labelGenerator, tempAllocator),
                 expressionTypeof(stmt->data.returnStmt.value), returnType, out,
                 tempAllocator),
             tempAllocator);
@@ -1484,9 +1979,8 @@ static IREntryVector *translateStmt(
       return out;
     }
     case NT_EXPRESSIONSTMT: {
-      irOperandDestroy(translateExpression(stmt->data.expressionStmt.expression,
-                                           out, fragments, frame,
-                                           labelGenerator, tempAllocator));
+      translateVoiddedValue(stmt->data.expressionStmt.expression, out,
+                            fragments, frame, labelGenerator, tempAllocator);
       return out;
     }
     case NT_NULLSTMT:
@@ -1507,17 +2001,16 @@ static IREntryVector *translateStmt(
         Node *initializer = idValuePairs->secondElements[idx];
 
         SymbolInfo *info = id->data.id.symbol;
-        Access *access = info->data.var.access = frame->vtable->allocLocal(
+        Access *access = info->data.var.access = frameAllocLocal(
             frame, info->data.var.type, info->data.var.escapes, tempAllocator);
 
         if (initializer != NULL) {
-          access->vtable->store(
+          accessStore(
               access, out,
-              translateCast(
-                  translateExpression(initializer, out, fragments, frame,
-                                      labelGenerator, tempAllocator),
-                  expressionTypeof(initializer), info->data.var.type, out,
-                  tempAllocator),
+              translateCast(translateRvalue(initializer, out, fragments, frame,
+                                            labelGenerator, tempAllocator),
+                            expressionTypeof(initializer), info->data.var.type,
+                            out, tempAllocator),
               tempAllocator);
         }
       }
@@ -1539,9 +2032,7 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
   for (size_t idx = 0; idx < idValuePairs->size; idx++) {
     Node *id = idValuePairs->firstElements[idx];
     Node *initializer = idValuePairs->secondElements[idx];
-    Access *access = id->data.id.symbol->data.var.access;
-    char *mangledName =
-        access->vtable->getLabel(id->data.id.symbol->data.var.access);
+    char *mangledName = accessGetLabel(id->data.id.symbol->data.var.access);
     Fragment *f;
     if (initializer == NULL || constantIsZero(initializer)) {
       Type const *type = id->data.id.symbol->data.var.type;
@@ -1566,7 +2057,7 @@ static void translateFunction(Node *function, FragmentVector *fragments,
                               LabelGenerator *labelGenerator) {
   // get function information
   Access *functionAccess = function->data.function.id->data.id.overload->access;
-  char *mangledName = functionAccess->vtable->getLabel(functionAccess);
+  char *mangledName = accessGetLabel(functionAccess);
   Type const *returnType =
       function->data.function.id->data.id.overload->returnType;
 
@@ -1581,16 +2072,15 @@ static void translateFunction(Node *function, FragmentVector *fragments,
   for (size_t idx = 0; idx < function->data.function.formals->size; idx++) {
     Node *id = function->data.function.formals->secondElements[idx];
     SymbolInfo *info = id->data.id.symbol;
-    info->data.var.access = frame->vtable->allocArg(
+    info->data.var.access = frameAllocArg(
         frame, info->data.var.type, info->data.var.escapes, &tempAllocator);
   }
 
-  Access *outArg =
-      returnType->kind == K_VOID
-          ? NULL
-          : frame->vtable->allocRetVal(frame, returnType, &tempAllocator);
+  Access *outArg = returnType->kind == K_VOID
+                       ? NULL
+                       : frameAllocRetVal(frame, returnType, &tempAllocator);
 
-  char *exitLabel = labelGenerator->vtable->generateCodeLabel(labelGenerator);
+  char *exitLabel = NEW_LABEL(labelGenerator);
   NodeList *statements =
       function->data.function.body->data.compoundStmt.statements;
   for (size_t idx = 0; idx < statements->size; idx++) {
@@ -1601,7 +2091,7 @@ static void translateFunction(Node *function, FragmentVector *fragments,
   IR(f->data.text.ir, LABEL(exitLabel));
 
   if (outArg != NULL) {
-    outArg->vtable->dtor(outArg);
+    accessDtor(outArg);
   }
 
   fragmentVectorInsert(fragments, f);
@@ -1670,5 +2160,5 @@ void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMapPair *asts,
     }
   }
 
-  vectorUninit(&labelGenerators, (void (*)(void *))labelGeneratorDestructor);
+  vectorUninit(&labelGenerators, (void (*)(void *))labelGeneratorDtor);
 }
