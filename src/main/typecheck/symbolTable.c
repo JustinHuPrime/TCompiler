@@ -2330,7 +2330,7 @@ void overloadSetElementDestroy(OverloadSetElement *elm) {
   }
   typeVectorUninit(&elm->argumentTypes);
   if (elm->access != NULL) {
-    elm->access->vtable->dtor(elm->access);
+    accessDtor(elm->access);
   }
   irOperandVectorUninit(&elm->defaultArgs);
   free(elm);
@@ -2650,7 +2650,7 @@ void symbolInfoDestroy(SymbolInfo *si) {
     case SK_VAR: {
       typeDestroy(si->data.var.type);
       if (si->data.var.access != NULL) {
-        si->data.var.access->vtable->dtor(si->data.var.access);
+        accessDtor(si->data.var.access);
       }
       break;
     }

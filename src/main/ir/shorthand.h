@@ -30,10 +30,10 @@ struct LabelGenerator;
 size_t NEW(TempAllocator *);
 
 // equivalent to calling
-// labelGenerator->vtable->generateCodeLabel(labelGenerator)
+// labelGeneratorGenerateCodeLabel(labelGenerator)
 char *NEW_LABEL(struct LabelGenerator *);
 // equivalent to calling
-// labelGenerator->vtable->generateDataLabel(labelGenerator)
+// labelGeneratorGenerateDataLabel(labelGenerator)
 char *NEW_DATA_LABEL(struct LabelGenerator *);
 
 // shorthands for IROperand construction

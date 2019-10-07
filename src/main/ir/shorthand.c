@@ -23,9 +23,11 @@
 
 size_t NEW(TempAllocator *t) { return tempAllocatorAllocate(t); }
 
-char *NEW_LABEL(LabelGenerator *l) { return l->vtable->generateCodeLabel(l); }
+char *NEW_LABEL(LabelGenerator *l) {
+  return labelGeneratorGenerateCodeLabel(l);
+}
 char *NEW_DATA_LABEL(LabelGenerator *l) {
-  return l->vtable->generateDataLabel(l);
+  return labelGeneratorGenerateDataLabel(l);
 }
 
 IROperand *TEMP(size_t n, size_t size, size_t alignment, AllocHint kind) {
