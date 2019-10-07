@@ -276,6 +276,37 @@ static void irEntryVectorPrint(IREntryVector const *ir) {
         printf(")\n");
         break;
       }
+
+      case IO_SLL: {
+        printf("SLL(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_SLR: {
+        printf("SLR(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_SAR: {
+        printf("SAR(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
       case IO_L: {
         printf("L(%zu, ", entry->opSize);
         irOperandPrint(entry->dest);

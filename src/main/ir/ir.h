@@ -137,7 +137,10 @@ typedef enum IROperator {
   IO_FP_DIV,
   IO_SMOD,
   IO_UMOD,
-  IO_L,  // produce 1 if comparison is true, 0 if false
+  IO_SLL,  // shift logical left - note that for all shifts, rhs size is 1
+  IO_SLR,  // shift logical right
+  IO_SAR,  // shift arithmetic right
+  IO_L,    // produce 1 if comparison is true, 0 if false
   IO_LE,
   IO_E,
   IO_NE,
