@@ -32,25 +32,8 @@
 // alternatively, produce true if given expression has an address
 static bool expressionIsLvalue(Node const *expression) {
   switch (expression->type) {
-    case NT_SEQEXP: {
-      return expressionIsLvalue(expression->data.seqExp.last);
-    }
     case NT_BINOPEXP: {
       switch (expression->data.binOpExp.op) {
-        case BO_ASSIGN:
-        case BO_MULASSIGN:
-        case BO_DIVASSIGN:
-        case BO_MODASSIGN:
-        case BO_ADDASSIGN:
-        case BO_SUBASSIGN:
-        case BO_LSHIFTASSIGN:
-        case BO_LRSHIFTASSIGN:
-        case BO_ARSHIFTASSIGN:
-        case BO_BITANDASSIGN:
-        case BO_BITXORASSIGN:
-        case BO_BITORASSIGN: {
-          return true;  // lhs must have been an lvalue to get here
-        }
         case BO_ARRAYACCESS: {
           return expressionIsLvalue(expression->data.binOpExp.lhs);
         }
@@ -59,16 +42,12 @@ static bool expressionIsLvalue(Node const *expression) {
     }
     case NT_UNOPEXP: {
       switch (expression->data.unOpExp.op) {
-        case UO_DEREF:
-        case UO_PREINC:
-        case UO_PREDEC: {
+        case UO_DEREF: {
           return true;  // post produces temp value containing original value
         }
         default: { return false; }
       }
     }
-    case NT_LANDASSIGNEXP:
-    case NT_LORASSIGNEXP:
     case NT_STRUCTPTRACCESSEXP:
     case NT_ID: {
       return true;

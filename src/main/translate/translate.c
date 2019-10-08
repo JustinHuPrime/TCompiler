@@ -594,10 +594,10 @@ static IROperand *defaultArgToOperand(Node *initializer, Type const *argType,
     case NT_CONSTEXP: {
       switch (initializer->data.constExp.type) {
         case CT_UBYTE: {
-          return NULL;
+          return UBYTE(exp->data.constExp.value.ubyteVal);
         }
         case CT_BYTE: {
-          return NULL;
+          return BYTE(exp->data.constExp.value.byteVal);
         }
         case CT_CHAR: {
           return NULL;
@@ -1497,83 +1497,8 @@ static Lvalue *translateLvalue(Node *exp, IREntryVector *out,
                                LabelGenerator *labelGenerator,
                                TempAllocator *tempAllocator) {
   switch (exp->type) {
-    case NT_SEQEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-    }
     case NT_BINOPEXP: {
       switch (exp->data.binOpExp.op) {
-        case BO_ASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_MULASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_DIVASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_MODASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_ADDASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_SUBASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_LSHIFTASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_LRSHIFTASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_ARSHIFTASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_BITANDASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_BITXORASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_BITORASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_BITAND: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_BITOR: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_BITXOR: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_SPACESHIP: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_LSHIFT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_LRSHIFT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_ARSHIFT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_ADD: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_SUB: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_MUL: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_DIV: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case BO_MOD: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
         case BO_ARRAYACCESS: {
           error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
@@ -1586,146 +1511,13 @@ static Lvalue *translateLvalue(Node *exp, IREntryVector *out,
         case UO_DEREF: {
           error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
         }
-        case UO_ADDROF: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case UO_PREINC: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case UO_PREDEC: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case UO_NEG: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case UO_LNOT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case UO_BITNOT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case UO_POSTINC: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case UO_POSTDEC: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
         default: { error(__FILE__, __LINE__, "invalid UnOpType enum"); }
       }
-    }
-    case NT_COMPOPEXP: {
-      switch (exp->data.compOpExp.op) {
-        case CO_EQ: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CO_NEQ: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CO_LT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CO_GT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CO_LTEQ: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CO_GTEQ: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        default: { error(__FILE__, __LINE__, "invalid CompOpType enum"); }
-      }
-    }
-    case NT_LANDASSIGNEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-    }
-    case NT_LORASSIGNEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-    }
-    case NT_TERNARYEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-    }
-    case NT_LANDEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-    }
-    case NT_LOREXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
     }
     case NT_STRUCTACCESSEXP: {
       error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
     }
     case NT_STRUCTPTRACCESSEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-    }
-    case NT_FNCALLEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-    }
-    case NT_CONSTEXP: {
-      switch (exp->data.constExp.type) {
-        case CT_UBYTE: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_BYTE: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_CHAR: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_USHORT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_SHORT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_UINT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_INT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_WCHAR: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_ULONG: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_LONG: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_FLOAT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_DOUBLE: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_BOOL: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_STRING: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_WSTRING: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        case CT_NULL: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
-        default: {
-          error(__FILE__, __LINE__,
-                "encountered an invalid ConstType enum constant");
-        }
-      }
-    }
-    case NT_AGGREGATEINITEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-    }
-    case NT_CASTEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-    }
-    case NT_SIZEOFTYPEEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-    }
-    case NT_SIZEOFEXPEXP: {
       error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
     }
     case NT_ID: {
