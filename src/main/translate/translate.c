@@ -951,22 +951,148 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
           break;
         }
         case BO_LSHIFTASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type *byteType = keywordTypeCreate(K_UBYTE);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(expressionTypeof(exp->data.binOpExp.lhs));
+
+          IR(out,
+             BINOP(size, IO_SLL, TEMP(temp, size, size, AH_GP),
+                   lvalueLoad(lhs, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
+                       tempAllocator)));
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+
+          typeDestroy(byteType);
+          lvalueDtor(lhs);
+          break;
         }
         case BO_LRSHIFTASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type *byteType = keywordTypeCreate(K_UBYTE);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(expressionTypeof(exp->data.binOpExp.lhs));
+
+          IR(out,
+             BINOP(size, IO_SLR, TEMP(temp, size, size, AH_GP),
+                   lvalueLoad(lhs, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
+                       tempAllocator)));
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+
+          typeDestroy(byteType);
+          lvalueDtor(lhs);
+          break;
         }
         case BO_ARSHIFTASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type *byteType = keywordTypeCreate(K_UBYTE);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(expressionTypeof(exp->data.binOpExp.lhs));
+
+          IR(out,
+             BINOP(size, IO_SAR, TEMP(temp, size, size, AH_GP),
+                   lvalueLoad(lhs, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
+                       tempAllocator)));
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+
+          typeDestroy(byteType);
+          lvalueDtor(lhs);
+          break;
         }
         case BO_BITANDASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IR(out,
+             BINOP(size, IO_AND, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, kind),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          break;
         }
         case BO_BITXORASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IR(out,
+             BINOP(size, IO_XOR, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, kind),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          break;
         }
         case BO_BITORASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IR(out,
+             BINOP(size, IO_OR, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, kind),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          break;
         }
         case BO_BITAND:
         case BO_BITOR:
@@ -979,7 +1105,8 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
         case BO_SUB:
         case BO_MUL:
         case BO_DIV:
-        case BO_MOD: {
+        case BO_MOD:
+        case BO_ARRAYACCESS: {
           // these operations are side effect free
           translateVoiddedValue(exp->data.binOpExp.lhs, out, fragments, frame,
                                 labelGenerator, tempAllocator);
@@ -987,20 +1114,18 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
                                 labelGenerator, tempAllocator);
           break;
         }
-        case BO_ARRAYACCESS: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
         default: { error(__FILE__, __LINE__, "invalid BinOpType enum"); }
       }
       break;
     }
     case NT_UNOPEXP: {
       switch (exp->data.unOpExp.op) {
-        case UO_DEREF: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
-        }
+        case UO_DEREF:
         case UO_ADDROF: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          // these operations are side effect free
+          translateVoiddedValue(exp->data.unOpExp.target, out, fragments, frame,
+                                labelGenerator, tempAllocator);
+          break;
         }
         case UO_PREINC:
         case UO_POSTINC: {  // no value produced, so it's just an increment
