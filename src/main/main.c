@@ -20,6 +20,7 @@
 #include "ast/printer.h"
 #include "ir/frame.h"
 #include "ir/ir.h"
+#include "ir/printer.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "translate/translate.h"
@@ -218,7 +219,17 @@ int main(int argc, char *argv[]) {
 
   // debug stop for translate - displays the IR fragments for each file
   if (optionsGet(&options, optionDebugDump) == O_DD_IR) {
-    error(__FILE__, __LINE__, "not yet implemented");
+    for (size_t idx = 0; idx < fileMap.capacity; idx++) {
+      if (fileMap.keys[idx] != NULL) {
+        IRFile *file = fileMap.values[idx];
+        printf("%s:\n", file->filename);
+        FragmentVector *fragments = &file->fragments;
+        for (size_t fragmentIdx = 0; fragmentIdx < fragments->size;
+             fragmentIdx++) {
+          fragmentPrint(fragments->elements[fragmentIdx]);
+        }
+      }
+    }
   }
 
   // post translate cleanup
