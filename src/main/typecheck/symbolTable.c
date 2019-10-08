@@ -313,12 +313,21 @@ size_t typeAlignof(Type const *t) {
     }
     case K_STRUCT: {
       TypeVector *fieldTypes =
-          &t->data.reference.referenced->data.type.data.structType.fields;
-      return typeAlignof(fieldTypes->elements[0]);
+          &t->data.reference.referenced->data.type.data.unionType.fields;
+      size_t acc = typeAlignof(fieldTypes->elements[0]);
+
+      for (size_t idx = 1; idx < fieldTypes->size; idx++) {
+        size_t fieldSize = typeAlignof(fieldTypes->elements[idx]);
+        if (fieldSize > acc) {
+          acc = fieldSize;
+        }
+      }
+
+      return acc;
     }
     case K_UNION: {
       TypeVector *fieldTypes =
-          &t->data.reference.referenced->data.type.data.structType.fields;
+          &t->data.reference.referenced->data.type.data.unionType.fields;
       size_t acc = typeAlignof(fieldTypes->elements[0]);
 
       for (size_t idx = 1; idx < fieldTypes->size; idx++) {
