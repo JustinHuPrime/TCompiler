@@ -25,6 +25,7 @@
 #include "util/functional.h"
 #include "util/internalError.h"
 #include "util/nameUtils.h"
+#include "util/numeric.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -216,7 +217,25 @@ size_t typeSizeof(Type const *t) {
         }
       }
 
-      return acc;
+      switch (acc) {
+        case 1:
+        case 2:
+        case 4: {
+          return acc;
+        }
+        case 3: {
+          return 4;
+        }
+        case 5:
+        case 6:
+        case 7: {
+          return 8;
+        }
+        default: {
+          // pad to a multiple of 8 bytes
+          return increaseToMultipleOf(acc, 8);
+        }
+      }
     }
     case K_ENUM: {
       size_t numFields =
