@@ -2244,12 +2244,12 @@ static void translateFile(Node *file, FragmentVector *fragments,
     switch (body->type) {
       case NT_VARDECL: {
         translateGlobalVar(body, fragments, moduleName, labelGenerator);
-        return;
+        break;
       }
       case NT_FUNCTION: {
         translateFunction(body, fragments, moduleName, frameCtor,
                           labelGenerator);
-        return;
+        break;
       }
       default: { return; }
     }
