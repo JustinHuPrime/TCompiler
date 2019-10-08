@@ -505,6 +505,30 @@ static void irEntryVectorPrint(IREntryVector const *ir) {
         printf(")\n");
         break;
       }
+      case IO_FP_NEG: {
+        printf("FP_NEG(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_LNOT: {
+        printf("LNOT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_NOT: {
+        printf("NOT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
       case IO_JUMP: {
         printf("JUMP(");
         irOperandPrint(entry->dest);

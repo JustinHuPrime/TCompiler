@@ -162,6 +162,9 @@ typedef enum IROperator {
 
   IO_NEG,  // plain unary operations: opSize = sizeof(operand), dest = result
            // storage, arg1 = target, arg2 = NULL
+  IO_FP_NEG,
+  IO_LNOT,
+  IO_NOT,
 
   IO_JUMP,  // unconditional jump: opSize = 0, dest = jump target
             // address, arg1 = NULL, arg2 = NULL
