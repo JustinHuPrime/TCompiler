@@ -142,6 +142,7 @@ bool typeCastable(Type const *to, Type const *from);
 bool typeIsBoolean(Type const *);
 bool typeIsIntegral(Type const *);
 bool typeIsSignedIntegral(Type const *);
+bool typeIsUnsignedIntegeral(Type const *);
 bool typeIsFloat(Type const *);
 bool typeIsNumeric(Type const *);
 bool typeIsValuePointer(Type const *);

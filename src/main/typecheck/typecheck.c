@@ -443,15 +443,15 @@ static Type *typecheckExpression(Node *expression, Report *report,
                             : "logical right");
             bad = true;
           }
-          if (!typeIsIntegral(rhs)) {
-            reportError(report,
-                        "%s:%zu:%zu: error: attempted to apply compound %s "
-                        "shift and assignment operator on non-integral value",
-                        filename, expression->data.binOpExp.rhs->line,
-                        expression->data.binOpExp.rhs->character,
-                        expression->data.binOpExp.op == BO_LSHIFT
-                            ? "left"
-                            : "logical right");
+          if (!typeIsUnsignedIntegral(rhs)) {
+            reportError(
+                report,
+                "%s:%zu:%zu: error: attempted to apply compound %s "
+                "shift and assignment operator on non-unsigned integral value",
+                filename, expression->data.binOpExp.rhs->line,
+                expression->data.binOpExp.rhs->character,
+                expression->data.binOpExp.op == BO_LSHIFT ? "left"
+                                                          : "logical right");
             bad = true;
           }
           if (bad) {
@@ -486,11 +486,11 @@ static Type *typecheckExpression(Node *expression, Report *report,
                 expression->data.binOpExp.lhs->character);
             bad = true;
           }
-          if (!typeIsIntegral(rhs)) {
+          if (!typeIsUnsignedIntegral(rhs)) {
             reportError(report,
                         "%s:%zu:%zu: error: attempted to apply compound "
                         "arithmetic right shift and assignemt operator on "
-                        "non-integral value",
+                        "non-unsigned integral value",
                         filename, expression->data.binOpExp.rhs->line,
                         expression->data.binOpExp.rhs->character);
             bad = true;

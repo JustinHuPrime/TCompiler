@@ -2157,6 +2157,12 @@ bool typeIsSignedIntegral(Type const *type) {
          (type->kind == K_CONST &&
           typeIsSignedIntegral(type->data.modifier.type));
 }
+bool typeIsUnsignedIntegeral(Type const *type) {
+  return type->kind == K_UBYTE || type->kind == K_USHORT ||
+         type->kind == K_UINT || type->kind == K_ULONG ||
+         (type->kind == K_CONST &&
+          typeIsUnsignedIntegral(type->data.modifier.type));
+}
 bool typeIsFloat(Type const *type) {
   return typeIsXOrY(type, K_FLOAT, K_DOUBLE);
 }
