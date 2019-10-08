@@ -376,6 +376,8 @@ FrameVTable *X86_64FrameVTable = NULL;
 static void x86_64FrameDtor(Frame *baseFrame) {
   X86_64Frame *frame = (X86_64Frame *)baseFrame;
 
+  free(frame->base.name);
+
   if (frame->functionPrologue != NULL) {
     irEntryVectorDestroy(frame->functionPrologue);
   }

@@ -252,10 +252,10 @@ typedef struct TempAllocator {
   size_t next;
 } TempAllocator;
 // in-place ctor
-void tempAllocatorInit(TempAllocator *);
+TempAllocator *tempAllocatorCreate(void);
 // produce a number
 size_t tempAllocatorAllocate(TempAllocator *);
 // in-place dtor
-void tempAllocatorUninit(TempAllocator *);
+void tempAllocatorDestroy(TempAllocator *);
 
 #endif  // TLC_IR_IR_H_

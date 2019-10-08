@@ -20,6 +20,7 @@
 
 #include "util/tstring.h"
 
+#include <stdio.h>  // FIXME: debug only
 #include <stdlib.h>
 #include <string.h>
 
@@ -150,6 +151,7 @@ IROperand *stackOffsetIROperandCreate(int64_t baseOffset) {
   return o;
 }
 IROperand *irOperandCopy(IROperand const *o2) {
+  printf("FIXME: DEBUG ONLY: copying ir operand of kind %d\n", o2->kind);
   IROperand *o1 = irOperandCreate(o2->kind);
   switch (o2->kind) {
     case OK_TEMP: {
@@ -360,12 +362,12 @@ void irEntryVectorDestroy(IREntryVector *v) {
   vectorDestroy(v, (void (*)(void *))irEntryDestroy);
 }
 
-void tempAllocatorInit(TempAllocator *allocator) {
-  allocator->next = 1;  // skipping zero
+TempAllocator *tempAllocatorCreate(void) {
+  TempAllocator *a = malloc(sizeof(TempAllocator));
+  a->next = 1;
+  return a;
 }
 size_t tempAllocatorAllocate(TempAllocator *allocator) {
   return allocator->next++;
 }
-void tempAllocatorUninit(TempAllocator *allocator) {
-  (void)allocator;  // do nothing
-}
+void tempAllocatorDestroy(TempAllocator *allocator) { free(allocator); }

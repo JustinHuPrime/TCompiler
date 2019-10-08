@@ -2121,7 +2121,7 @@ char *typeToString(Type const *type) {
       return format("{%s}",
                     typeVectorToString(type->data.functionPtr.argumentTypes));
     }
-    default: { return NULL; }
+    default: { error(__FILE__, __LINE__, "invalid TypeKind enum"); }
   }
 }
 static bool typeIsX(Type const *type, TypeKind x) {
@@ -2322,9 +2322,9 @@ OverloadSetElement *overloadSetElementCopy(OverloadSetElement const *from) {
   to->defaultArgs.capacity = from->defaultArgs.capacity;
   to->defaultArgs.size = from->defaultArgs.size;
   to->defaultArgs.elements = malloc(to->defaultArgs.capacity * sizeof(void *));
-  for (size_t idx = 0; idx < to->argumentTypes.size; idx++) {
-    to->argumentTypes.elements[idx] =
-        irOperandCopy(from->argumentTypes.elements[idx]);
+  for (size_t idx = 0; idx < to->defaultArgs.size; idx++) {
+    to->defaultArgs.elements[idx] =
+        irOperandCopy(from->defaultArgs.elements[idx]);
   }
   to->access = from->access;
 

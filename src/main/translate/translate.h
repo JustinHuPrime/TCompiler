@@ -55,6 +55,7 @@ typedef struct Fragment {
     } data;
     struct {
       struct Frame *frame;
+      TempAllocator *tempAllocator;
       IREntryVector *ir;
     } text;
   } data;
@@ -63,7 +64,8 @@ typedef struct Fragment {
 Fragment *bssFragmentCreate(char *label, size_t size, size_t alignment);
 Fragment *rodataFragmentCreate(char *label, size_t alignment);
 Fragment *dataFragmentCreate(char *label, size_t alignment);
-Fragment *textFragmentCreate(char *label, struct Frame *frame);
+Fragment *textFragmentCreate(char *label, struct Frame *frame,
+                             TempAllocator *tempAllocator);
 // dtor
 void fragmentDestroy(Fragment *);
 
@@ -71,23 +73,35 @@ void fragmentDestroy(Fragment *);
 typedef Vector FragmentVector;
 // ctor
 FragmentVector *fragmentVectorCreate(void);
+// in-place ctor
+void fragmentVectorInit(FragmentVector *);
 // insert
 void fragmentVectorInsert(FragmentVector *, Fragment *);
+// in-place dtor
+void fragmentVectorUninit(FragmentVector *);
 // dtor
 void fragmentVectorDestroy(FragmentVector *);
 
+// data used by a file
+typedef struct {
+  FragmentVector fragments;
+  char *filename;
+  struct LabelGenerator *labelGenerator;
+} IRFile;
+// ctor
+IRFile *irFileCreate(char *filename, struct LabelGenerator *labelGenerator);
+void irFileDestroy(IRFile *);
+
 // associates the fragments in a file with the file
-typedef HashMap FileFragmentVectorMap;
+typedef HashMap FileIRFileMap;
 // in-place ctor
-void fileFragmentVectorMapInit(FileFragmentVectorMap *);
+void fileIRFileMapInit(FileIRFileMap *);
 // get
-FragmentVector *fileFragmentVectorMapGet(FileFragmentVectorMap *,
-                                         char const *key);
+IRFile *fileIRFileMapGet(FileIRFileMap *, char const *key);
 // put
-int fileFragmentVectorMapPut(FileFragmentVectorMap *, char const *key,
-                             FragmentVector *vector);
+int fileIRFileMapPut(FileIRFileMap *, char const *key, IRFile *file);
 // in-place dtor
-void fileFragmentVectorMapUninit(FileFragmentVectorMap *);
+void fileIRFileMapUninit(FileIRFileMap *);
 
 typedef struct LabelGenerator *(*LabelGeneratorCtor)(void);
 typedef struct Frame *(*FrameCtor)(char *name);
@@ -96,9 +110,9 @@ typedef struct Access *(*GlobalAccessCtor)(size_t size, size_t alignment,
 typedef struct Access *(*FunctionAccessCtor)(char *name);
 
 // translates an abstract syntax tree into a series of fragments
-void translate(FileFragmentVectorMap *fragmentMap,
-               struct ModuleAstMapPair *asts, LabelGeneratorCtor labelGenerator,
-               FrameCtor frameCtor, GlobalAccessCtor globalAccessCtor,
+void translate(FileIRFileMap *fileMap, struct ModuleAstMapPair *asts,
+               LabelGeneratorCtor labelGenerator, FrameCtor frameCtor,
+               GlobalAccessCtor globalAccessCtor,
                FunctionAccessCtor functionAccessCtor);
 
 #endif  // TLC_TRANSLATE_TRANSLATE_H_

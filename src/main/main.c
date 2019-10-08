@@ -194,7 +194,7 @@ int main(int argc, char *argv[]) {
   reportUninit(&report);
 
   // translation into IR
-  FileFragmentVectorMap fragments;
+  FileIRFileMap fileMap;
 
   // architecture specific data
   LabelGeneratorCtor labelGeneratorCtor;
@@ -213,7 +213,7 @@ int main(int argc, char *argv[]) {
     default: { error(__FILE__, __LINE__, "invalid architecture specified"); }
   }
 
-  translate(&fragments, &asts, labelGeneratorCtor, frameCtor, globalAccessCtor,
+  translate(&fileMap, &asts, labelGeneratorCtor, frameCtor, globalAccessCtor,
             functionAccessCtor);
 
   // debug stop for translate - displays the IR fragments for each file
@@ -221,8 +221,8 @@ int main(int argc, char *argv[]) {
     error(__FILE__, __LINE__, "not yet implemented");
   }
 
-  // convert into SSA form (mostly SSA - mem temps are excluded except for move
-  // relations)
+  // post translate cleanup
+  moduleAstMapPairUninit(&asts);  // no longer using asts
 
   // optimize
   // TODO: write optimizations
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
   }
 
   // clean up
-  fileFragmentVectorMapUninit(&fragments);
+  fileIRFileMapUninit(&fileMap);
   optionsUninit(&options);
 
   return SUCCESS;

@@ -58,10 +58,12 @@ Fragment *dataFragmentCreate(char *label, size_t alignment) {
   f->data.data.alignment = alignment;
   return f;
 }
-Fragment *textFragmentCreate(char *label, Frame *frame) {
+Fragment *textFragmentCreate(char *label, Frame *frame,
+                             TempAllocator *tempAllocator) {
   Fragment *f = fragmentCreate(FK_TEXT, label);
   f->data.text.frame = frame;
   f->data.text.ir = irEntryVectorCreate();
+  f->data.text.tempAllocator = tempAllocator;
   return f;
 }
 void fragmentDestroy(Fragment *f) {
@@ -70,15 +72,17 @@ void fragmentDestroy(Fragment *f) {
       break;
     }
     case FK_RODATA: {
-      fragmentVectorDestroy(f->data.rodata.ir);
+      irEntryVectorDestroy(f->data.rodata.ir);
       break;
     }
     case FK_DATA: {
-      fragmentVectorDestroy(f->data.data.ir);
+      irEntryVectorDestroy(f->data.data.ir);
       break;
     }
     case FK_TEXT: {
-      fragmentVectorDestroy(f->data.text.ir);
+      irEntryVectorDestroy(f->data.text.ir);
+      frameDtor(f->data.text.frame);
+      tempAllocatorDestroy(f->data.text.tempAllocator);
       break;
     }
   }
@@ -88,24 +92,40 @@ void fragmentDestroy(Fragment *f) {
 
 // fragment vector
 FragmentVector *fragmentVectorCreate(void) { return vectorCreate(); }
+void fragmentVectorInit(FragmentVector *v) { vectorInit(v); }
 void fragmentVectorInsert(FragmentVector *v, Fragment *f) {
   vectorInsert(v, f);
+}
+void fragmentVectorUninit(FragmentVector *v) {
+  vectorUninit(v, (void (*)(void *))fragmentDestroy);
 }
 void fragmentVectorDestroy(FragmentVector *v) {
   vectorDestroy(v, (void (*)(void *))fragmentDestroy);
 }
 
-void fileFragmentVectorMapInit(FileFragmentVectorMap *map) { hashMapInit(map); }
-FragmentVector *fileFragmentVectorMapGet(FileFragmentVectorMap *map,
-                                         char const *key) {
+IRFile *irFileCreate(char *filename, LabelGenerator *labelGenerator) {
+  IRFile *file = malloc(sizeof(IRFile));
+  fragmentVectorInit(&file->fragments);
+  file->filename = filename;
+  file->labelGenerator = labelGenerator;
+  return file;
+}
+void irFileDestroy(IRFile *file) {
+  fragmentVectorUninit(&file->fragments);
+  free(file->filename);
+  labelGeneratorDtor(file->labelGenerator);
+  free(file);
+}
+
+void fileIRFileMapInit(FileIRFileMap *map) { hashMapInit(map); }
+IRFile *fileIRFileMapGet(FileIRFileMap *map, char const *key) {
   return hashMapGet(map, key);
 }
-int fileFragmentVectorMapPut(FileFragmentVectorMap *map, char const *key,
-                             FragmentVector *vector) {
-  return hashMapPut(map, key, vector, (void (*)(void *))fragmentVectorDestroy);
+int fileIRFileMapPut(FileIRFileMap *map, char const *key, IRFile *file) {
+  return hashMapPut(map, key, file, (void (*)(void *))irFileDestroy);
 }
-void fileFragmentVectorMapUninit(FileFragmentVectorMap *map) {
-  hashMapUninit(map, (void (*)(void *))fragmentVectorDestroy);
+void fileIRFileMapUninit(FileIRFileMap *map) {
+  hashMapUninit(map, (void (*)(void *))irFileDestroy);
 }
 
 // typeKindof
@@ -635,10 +655,8 @@ static IROperand *defaultArgToOperand(Node *initializer, Type const *argType,
     }
   }
 }
-static FragmentVector *addDefaultArgs(Node *file,
-                                      LabelGenerator *labelGenerator) {
-  FragmentVector *fragments = fragmentVectorCreate();
-
+static void addDefaultArgs(Node *file, FragmentVector *fragments,
+                           LabelGenerator *labelGenerator) {
   NodeList *bodies = file->data.file.bodies;
   for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
     Node *body = bodies->elements[bodyIdx];
@@ -655,8 +673,6 @@ static FragmentVector *addDefaultArgs(Node *file,
       }
     }
   }
-
-  return fragments;
 }
 
 // translation - expressions
@@ -2187,23 +2203,20 @@ static void translateFunction(Node *function, FragmentVector *fragments,
       function->data.function.id->data.id.overload->returnType;
 
   Frame *frame = frameCtor(strdup(mangledName));
-
-  Fragment *f = textFragmentCreate(mangledName, frame);
-
-  TempAllocator tempAllocator;
-  tempAllocatorInit(&tempAllocator);
+  TempAllocator *allocator = tempAllocatorCreate();
+  Fragment *f = textFragmentCreate(mangledName, frame, allocator);
 
   // allocate function accesses
   for (size_t idx = 0; idx < function->data.function.formals->size; idx++) {
     Node *id = function->data.function.formals->secondElements[idx];
     SymbolInfo *info = id->data.id.symbol;
-    info->data.var.access = frameAllocArg(
-        frame, info->data.var.type, info->data.var.escapes, &tempAllocator);
+    info->data.var.access = frameAllocArg(frame, info->data.var.type,
+                                          info->data.var.escapes, allocator);
   }
 
   Access *outArg = returnType->kind == K_VOID
                        ? NULL
-                       : frameAllocRetVal(frame, returnType, &tempAllocator);
+                       : frameAllocRetVal(frame, returnType, allocator);
 
   char *exitLabel = NEW_LABEL(labelGenerator);
   NodeList *statements =
@@ -2211,7 +2224,7 @@ static void translateFunction(Node *function, FragmentVector *fragments,
   for (size_t idx = 0; idx < statements->size; idx++) {
     f->data.text.ir = translateStmt(
         statements->elements[idx], f->data.text.ir, fragments, frame, outArg,
-        NULL, NULL, exitLabel, labelGenerator, &tempAllocator, returnType);
+        NULL, NULL, exitLabel, labelGenerator, allocator, returnType);
   }
   IR(f->data.text.ir, LABEL(exitLabel));
 
@@ -2243,11 +2256,11 @@ static void translateFile(Node *file, FragmentVector *fragments,
   }
 }
 
-void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMapPair *asts,
+void translate(FileIRFileMap *fileMap, ModuleAstMapPair *asts,
                LabelGeneratorCtor labelGeneratorCtor, FrameCtor frameCtor,
                GlobalAccessCtor globalAccessCtor,
                FunctionAccessCtor functionAccessCtor) {
-  fileFragmentVectorMapInit(fragmentMap);
+  fileIRFileMapInit(fileMap);
 
   for (size_t idx = 0; idx < asts->decls.capacity; idx++) {
     if (asts->decls.keys[idx] != NULL) {
@@ -2257,21 +2270,16 @@ void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMapPair *asts,
                         globalAccessCtor, functionAccessCtor);
     }
   }
-  Vector labelGenerators;
-  vectorInit(&labelGenerators);
   for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
     if (asts->codes.keys[idx] != NULL) {
       Node *file = asts->codes.values[idx];
       addGlobalAccesses(file->data.file.symbols,
                         file->data.file.module->data.module.id->data.id.id,
                         globalAccessCtor, functionAccessCtor);
-      vectorInsert(&labelGenerators, labelGeneratorCtor());
       char *filename = codeFilenameToAssembyFilename(file->data.file.filename);
-      fileFragmentVectorMapPut(
-          fragmentMap, filename,
-          addDefaultArgs(file, labelGenerators.elements[idx]));
-    } else {
-      vectorInsert(&labelGenerators, NULL);
+      IRFile *irFile = irFileCreate(filename, labelGeneratorCtor());
+      addDefaultArgs(file, &irFile->fragments, irFile->labelGenerator);
+      fileIRFileMapPut(fileMap, filename, irFile);
     }
   }
 
@@ -2279,11 +2287,10 @@ void translate(FileFragmentVectorMap *fragmentMap, ModuleAstMapPair *asts,
     if (asts->codes.keys[idx] != NULL) {
       Node *file = asts->codes.values[idx];
       char *filename = codeFilenameToAssembyFilename(file->data.file.filename);
-      translateFile(file, fileFragmentVectorMapGet(fragmentMap, filename),
-                    frameCtor, labelGenerators.elements[idx]);
+      IRFile *irFile = fileIRFileMapGet(fileMap, filename);
+      translateFile(file, &irFile->fragments, frameCtor,
+                    irFile->labelGenerator);
       free(filename);
     }
   }
-
-  vectorUninit(&labelGenerators, (void (*)(void *))labelGeneratorDtor);
 }
