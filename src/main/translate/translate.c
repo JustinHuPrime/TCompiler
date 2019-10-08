@@ -718,16 +718,16 @@ static void translateJumpIfNot(Node *, IREntryVector *, FragmentVector *,
 
 static void translateJumpIf(Node *, IREntryVector *, FragmentVector *, Frame *,
                             LabelGenerator *, TempAllocator *, char const *);
-static void translateVoiddedValue(Node *exp, IREntryVector *out,
-                                  FragmentVector *fragments, Frame *frame,
-                                  LabelGenerator *labelGenerator,
-                                  TempAllocator *tempAllocator) {
+static void translateVoidedValue(Node *exp, IREntryVector *out,
+                                 FragmentVector *fragments, Frame *frame,
+                                 LabelGenerator *labelGenerator,
+                                 TempAllocator *tempAllocator) {
   switch (exp->type) {
     case NT_SEQEXP: {
-      translateVoiddedValue(exp->data.seqExp.prefix, out, fragments, frame,
-                            labelGenerator, tempAllocator);
-      translateVoiddedValue(exp->data.seqExp.last, out, fragments, frame,
-                            labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.seqExp.prefix, out, fragments, frame,
+                           labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.seqExp.last, out, fragments, frame,
+                           labelGenerator, tempAllocator);
       break;
     }
     case NT_BINOPEXP: {
@@ -855,26 +855,52 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
                                         frame, labelGenerator, tempAllocator);
           Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
 
-          if (typeIsPointer(lhsType)) {
+          if (typeIsValuePointer(lhsType)) {
             Type *dereferenced = typeGetDereferenced(lhsType);
+            Type const *rhsType = expressionTypeof(exp->data.binOpExp.rhs);
             size_t temp = NEW(tempAllocator);
             size_t rhsValue = NEW(tempAllocator);
 
             // cast to uint64_t safe only if on <= 64 bit platform - caught by
             // static asserts
-            IR(out,
-               BINOP(POINTER_WIDTH, IO_SMUL,
-                     TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                     translateCast(
-                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+            if (typeIsUnsignedIntegral(rhsType)) {
+              Type *ulong = keywordTypeCreate(K_ULONG);
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
                                          frame, labelGenerator, tempAllocator),
-                         expressionTypeof(exp->data.binOpExp.rhs), lhsType, out,
-                         tempAllocator),
-                     ULONG((uint64_t)typeSizeof(dereferenced))));
-            IR(out, BINOP(POINTER_WIDTH, IO_ADD,
-                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                          lvalueLoad(lhs, out, tempAllocator),
-                          TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
+                                     rhsType, ulong, out, tempAllocator),
+                       ULONG((uint64_t)typeSizeof(dereferenced))));
+              IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                            TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            lvalueLoad(lhs, out, tempAllocator),
+                            translateCast(
+                                TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                                ulong, lhsType, out, tempAllocator)));
+              typeDestroy(ulong);
+            } else {
+              Type *slong = keywordTypeCreate(K_LONG);
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, slong, out, tempAllocator),
+                       LONG((int64_t)typeSizeof(dereferenced))));
+              IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                            TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            lvalueLoad(lhs, out, tempAllocator),
+                            translateCast(
+                                TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                                slong, lhsType, out, tempAllocator)));
+              typeDestroy(slong);
+            }
+            lvalueStore(lhs, out,
+                        TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        tempAllocator);
 
             typeDestroy(dereferenced);
           } else {
@@ -913,26 +939,53 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
                                         frame, labelGenerator, tempAllocator);
           Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
 
-          if (typeIsPointer(lhsType)) {
+          if (typeIsValuePointer(lhsType)) {
             Type *dereferenced = typeGetDereferenced(lhsType);
+            Type const *rhsType = expressionTypeof(exp->data.binOpExp.rhs);
             size_t temp = NEW(tempAllocator);
             size_t rhsValue = NEW(tempAllocator);
 
             // cast to uint64_t safe only if on <= 64 bit platform - caught by
             // static asserts
-            IR(out,
-               BINOP(POINTER_WIDTH, IO_SMUL,
-                     TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                     translateCast(
-                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+
+            if (typeIsUnsignedIntegral(rhsType)) {
+              Type *ulong = keywordTypeCreate(K_ULONG);
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
                                          frame, labelGenerator, tempAllocator),
-                         expressionTypeof(exp->data.binOpExp.rhs), lhsType, out,
-                         tempAllocator),
-                     ULONG((uint64_t)typeSizeof(dereferenced))));
-            IR(out, BINOP(POINTER_WIDTH, IO_SUB,
-                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                          lvalueLoad(lhs, out, tempAllocator),
-                          TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
+                                     rhsType, ulong, out, tempAllocator),
+                       ULONG((uint64_t)typeSizeof(dereferenced))));
+              IR(out, BINOP(POINTER_WIDTH, IO_SUB,
+                            TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            lvalueLoad(lhs, out, tempAllocator),
+                            translateCast(
+                                TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                                ulong, lhsType, out, tempAllocator)));
+              typeDestroy(ulong);
+            } else {
+              Type *slong = keywordTypeCreate(K_LONG);
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, slong, out, tempAllocator),
+                       LONG((int64_t)typeSizeof(dereferenced))));
+              IR(out, BINOP(POINTER_WIDTH, IO_SUB,
+                            TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            lvalueLoad(lhs, out, tempAllocator),
+                            translateCast(
+                                TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                                slong, lhsType, out, tempAllocator)));
+              typeDestroy(slong);
+            }
+            lvalueStore(lhs, out,
+                        TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        tempAllocator);
 
             typeDestroy(dereferenced);
           } else {
@@ -1036,10 +1089,9 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
           Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
           size_t temp = NEW(tempAllocator);
           size_t size = typeSizeof(resultType);
-          AllocHint kind = typeKindof(resultType);
 
           IR(out,
-             BINOP(size, IO_AND, TEMP(temp, size, size, kind),
+             BINOP(size, IO_AND, TEMP(temp, size, size, AH_GP),
                    translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
                                  resultType, out, tempAllocator),
                    translateCast(
@@ -1048,7 +1100,7 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
                        expressionTypeof(exp->data.binOpExp.rhs), resultType,
                        out, tempAllocator)));
           lvalueStore(lhs, out,
-                      translateCast(TEMP(temp, size, size, kind),
+                      translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
                       tempAllocator);
@@ -1063,10 +1115,9 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
           Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
           size_t temp = NEW(tempAllocator);
           size_t size = typeSizeof(resultType);
-          AllocHint kind = typeKindof(resultType);
 
           IR(out,
-             BINOP(size, IO_XOR, TEMP(temp, size, size, kind),
+             BINOP(size, IO_XOR, TEMP(temp, size, size, AH_GP),
                    translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
                                  resultType, out, tempAllocator),
                    translateCast(
@@ -1075,7 +1126,7 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
                        expressionTypeof(exp->data.binOpExp.rhs), resultType,
                        out, tempAllocator)));
           lvalueStore(lhs, out,
-                      translateCast(TEMP(temp, size, size, kind),
+                      translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
                       tempAllocator);
@@ -1090,10 +1141,9 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
           Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
           size_t temp = NEW(tempAllocator);
           size_t size = typeSizeof(resultType);
-          AllocHint kind = typeKindof(resultType);
 
           IR(out,
-             BINOP(size, IO_OR, TEMP(temp, size, size, kind),
+             BINOP(size, IO_OR, TEMP(temp, size, size, AH_GP),
                    translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
                                  resultType, out, tempAllocator),
                    translateCast(
@@ -1102,7 +1152,7 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
                        expressionTypeof(exp->data.binOpExp.rhs), resultType,
                        out, tempAllocator)));
           lvalueStore(lhs, out,
-                      translateCast(TEMP(temp, size, size, kind),
+                      translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
                       tempAllocator);
@@ -1124,10 +1174,10 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
         case BO_MOD:
         case BO_ARRAYACCESS: {
           // these operations are side effect free
-          translateVoiddedValue(exp->data.binOpExp.lhs, out, fragments, frame,
-                                labelGenerator, tempAllocator);
-          translateVoiddedValue(exp->data.binOpExp.rhs, out, fragments, frame,
-                                labelGenerator, tempAllocator);
+          translateVoidedValue(exp->data.binOpExp.lhs, out, fragments, frame,
+                               labelGenerator, tempAllocator);
+          translateVoidedValue(exp->data.binOpExp.rhs, out, fragments, frame,
+                               labelGenerator, tempAllocator);
           break;
         }
         default: { error(__FILE__, __LINE__, "invalid BinOpType enum"); }
@@ -1139,8 +1189,8 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
         case UO_DEREF:
         case UO_ADDROF: {
           // these operations are side effect free
-          translateVoiddedValue(exp->data.unOpExp.target, out, fragments, frame,
-                                labelGenerator, tempAllocator);
+          translateVoidedValue(exp->data.unOpExp.target, out, fragments, frame,
+                               labelGenerator, tempAllocator);
           break;
         }
         case UO_PREINC:
@@ -1148,7 +1198,7 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
           Lvalue *value =
               translateLvalue(exp->data.unOpExp.target, out, fragments, frame,
                               labelGenerator, tempAllocator);
-          if (typeIsPointer(exp->data.unOpExp.resultType)) {
+          if (typeIsValuePointer(exp->data.unOpExp.resultType)) {
             // is pointer
             Type *dereferenced =
                 typeGetDereferenced(exp->data.unOpExp.resultType);
@@ -1194,7 +1244,7 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
           Lvalue *value =
               translateLvalue(exp->data.unOpExp.target, out, fragments, frame,
                               labelGenerator, tempAllocator);
-          if (typeIsPointer(exp->data.unOpExp.resultType)) {
+          if (typeIsValuePointer(exp->data.unOpExp.resultType)) {
             // is pointer
             Type *dereferenced =
                 typeGetDereferenced(exp->data.unOpExp.resultType);
@@ -1239,8 +1289,8 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
         case UO_LNOT:
         case UO_BITNOT: {
           // these operations are side effect free
-          translateVoiddedValue(exp->data.unOpExp.target, out, fragments, frame,
-                                labelGenerator, tempAllocator);
+          translateVoidedValue(exp->data.unOpExp.target, out, fragments, frame,
+                               labelGenerator, tempAllocator);
           break;
         }
         default: { error(__FILE__, __LINE__, "invalid UnOpType enum"); }
@@ -1249,10 +1299,10 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
     }
     case NT_COMPOPEXP: {
       // comparisons are side effect free
-      translateVoiddedValue(exp->data.compOpExp.lhs, out, fragments, frame,
-                            labelGenerator, tempAllocator);
-      translateVoiddedValue(exp->data.compOpExp.rhs, out, fragments, frame,
-                            labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.compOpExp.lhs, out, fragments, frame,
+                           labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.compOpExp.rhs, out, fragments, frame,
+                           labelGenerator, tempAllocator);
       break;
     }
     case NT_LANDASSIGNEXP: {
@@ -1307,12 +1357,12 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
 
       translateJumpIfNot(exp->data.ternaryExp.condition, out, fragments, frame,
                          labelGenerator, tempAllocator, elseCase);
-      translateVoiddedValue(exp->data.ternaryExp.thenExp, out, fragments, frame,
-                            labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.ternaryExp.thenExp, out, fragments, frame,
+                           labelGenerator, tempAllocator);
       IR(out, JUMP(strdup(end)));
       IR(out, LABEL(elseCase));
-      translateVoiddedValue(exp->data.ternaryExp.elseExp, out, fragments, frame,
-                            labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.ternaryExp.elseExp, out, fragments, frame,
+                           labelGenerator, tempAllocator);
       IR(out, LABEL(end));
       break;
     }
@@ -1323,8 +1373,8 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
       char *end = NEW_LABEL(labelGenerator);
       translateJumpIfNot(exp->data.landExp.lhs, out, fragments, frame,
                          labelGenerator, tempAllocator, end);
-      translateVoiddedValue(exp->data.landExp.rhs, out, fragments, frame,
-                            labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.landExp.rhs, out, fragments, frame,
+                           labelGenerator, tempAllocator);
       IR(out, LABEL(end));
       break;
     }
@@ -1335,19 +1385,19 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
       char *end = NEW_LABEL(labelGenerator);
       translateJumpIf(exp->data.lorExp.lhs, out, fragments, frame,
                       labelGenerator, tempAllocator, end);
-      translateVoiddedValue(exp->data.lorExp.rhs, out, fragments, frame,
-                            labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.lorExp.rhs, out, fragments, frame,
+                           labelGenerator, tempAllocator);
       IR(out, LABEL(end));
       break;
     }
     case NT_STRUCTACCESSEXP: {
-      translateVoiddedValue(exp->data.structAccessExp.base, out, fragments,
-                            frame, labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.structAccessExp.base, out, fragments,
+                           frame, labelGenerator, tempAllocator);
       break;
     }
     case NT_STRUCTPTRACCESSEXP: {
-      translateVoiddedValue(exp->data.structPtrAccessExp.base, out, fragments,
-                            frame, labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.structPtrAccessExp.base, out, fragments,
+                           frame, labelGenerator, tempAllocator);
       break;
     }
     case NT_FNCALLEXP: {
@@ -1423,13 +1473,13 @@ static void translateVoiddedValue(Node *exp, IREntryVector *out,
     }
     case NT_CASTEXP: {
       // casts are side effect free
-      translateVoiddedValue(exp->data.castExp.target, out, fragments, frame,
-                            labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.castExp.target, out, fragments, frame,
+                           labelGenerator, tempAllocator);
       break;
     }
     case NT_SIZEOFEXPEXP: {
-      translateVoiddedValue(exp->data.sizeofExpExp.target, out, fragments,
-                            frame, labelGenerator, tempAllocator);
+      translateVoidedValue(exp->data.sizeofExpExp.target, out, fragments, frame,
+                           labelGenerator, tempAllocator);
       break;
     }
     case NT_ID: {
@@ -1693,84 +1743,950 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                                   TempAllocator *tempAllocator) {
   switch (exp->type) {
     case NT_SEQEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      translateVoidedValue(exp->data.seqExp.prefix, out, fragments, frame,
+                           labelGenerator, tempAllocator);
+      return translateRvalue(exp->data.seqExp.last, out, fragments, frame,
+                             labelGenerator, tempAllocator);
     }
     case NT_BINOPEXP: {
       switch (exp->data.binOpExp.op) {
         case BO_ASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          size_t alignment = typeAlignof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IR(out, MOVE(size, TEMP(temp, size, alignment, kind),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     expressionTypeof(exp->data.binOpExp.rhs),
+                                     resultType, out, tempAllocator)));
+          lvalueStore(lhs, out, TEMP(temp, size, alignment, kind),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          return TEMP(temp, size, alignment, kind);
         }
         case BO_MULASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IROperator op;
+          if (typeIsFloat(resultType)) {
+            op = IO_FP_MUL;
+          } else if (typeIsSignedIntegral(resultType)) {
+            op = IO_SMUL;
+          } else {
+            op = IO_UMUL;
+          }
+          IR(out,
+             BINOP(size, op, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, kind),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          return TEMP(temp, size, size, kind);
         }
         case BO_DIVASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IROperator op;
+          if (typeIsFloat(resultType)) {
+            op = IO_FP_DIV;
+          } else if (typeIsSignedIntegral(resultType)) {
+            op = IO_SDIV;
+          } else {
+            op = IO_UDIV;
+          }
+          IR(out,
+             BINOP(size, op, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, kind),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          return TEMP(temp, size, size, kind);
         }
         case BO_MODASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          // kind isn't needed - this is integral only
+
+          IROperator op;
+          if (typeIsSignedIntegral(resultType)) {
+            op = IO_SMOD;
+          } else {
+            op = IO_UMOD;
+          }
+          IR(out,
+             BINOP(size, op, TEMP(temp, size, size, AH_GP),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, AH_GP),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_ADDASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+
+          if (typeIsValuePointer(lhsType)) {
+            Type *dereferenced = typeGetDereferenced(lhsType);
+            size_t temp = NEW(tempAllocator);
+            size_t rhsValue = NEW(tempAllocator);
+
+            // cast to uint64_t safe only if on <= 64 bit platform - caught by
+            // static asserts
+            IR(out,
+               BINOP(POINTER_WIDTH, IO_SMUL,
+                     TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         expressionTypeof(exp->data.binOpExp.rhs), lhsType, out,
+                         tempAllocator),
+                     ULONG((uint64_t)typeSizeof(dereferenced))));
+            IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          lvalueLoad(lhs, out, tempAllocator),
+                          TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
+            lvalueStore(lhs, out,
+                        TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        tempAllocator);
+
+            typeDestroy(dereferenced);
+
+            lvalueDtor(lhs);
+            return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+          } else {
+            Type const *resultType = exp->data.binOpExp.resultType;
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(resultType);
+            AllocHint kind = typeKindof(resultType);
+            IROperator op;
+
+            if (typeIsFloat(resultType)) {
+              op = IO_FP_ADD;
+            } else {
+              op = IO_ADD;
+            }
+            IR(out,
+               BINOP(size, op, TEMP(temp, size, size, kind),
+                     translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                   resultType, out, tempAllocator),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                         out, tempAllocator)));
+            lvalueStore(lhs, out,
+                        translateCast(TEMP(temp, size, size, kind),
+                                      exp->data.binOpExp.resultType, lhsType,
+                                      out, tempAllocator),
+                        tempAllocator);
+
+            lvalueDtor(lhs);
+            return TEMP(temp, size, size, kind);
+          }
         }
         case BO_SUBASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+
+          if (typeIsValuePointer(lhsType)) {
+            Type *dereferenced = typeGetDereferenced(lhsType);
+            size_t temp = NEW(tempAllocator);
+            size_t rhsValue = NEW(tempAllocator);
+
+            // cast to uint64_t safe only if on <= 64 bit platform - caught by
+            // static asserts
+            IR(out,
+               BINOP(POINTER_WIDTH, IO_SMUL,
+                     TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         expressionTypeof(exp->data.binOpExp.rhs), lhsType, out,
+                         tempAllocator),
+                     ULONG((uint64_t)typeSizeof(dereferenced))));
+            IR(out, BINOP(POINTER_WIDTH, IO_SUB,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          lvalueLoad(lhs, out, tempAllocator),
+                          TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
+            lvalueStore(lhs, out,
+                        TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        tempAllocator);
+
+            typeDestroy(dereferenced);
+
+            lvalueDtor(lhs);
+            return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+          } else {
+            Type const *resultType = exp->data.binOpExp.resultType;
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(resultType);
+            AllocHint kind = typeKindof(resultType);
+            IROperator op;
+
+            if (typeIsFloat(resultType)) {
+              op = IO_FP_SUB;
+            } else {
+              op = IO_SUB;
+            }
+            IR(out,
+               BINOP(size, op, TEMP(temp, size, size, kind),
+                     translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                   resultType, out, tempAllocator),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                         out, tempAllocator)));
+            lvalueStore(lhs, out,
+                        translateCast(TEMP(temp, size, size, kind),
+                                      exp->data.binOpExp.resultType, lhsType,
+                                      out, tempAllocator),
+                        tempAllocator);
+
+            lvalueDtor(lhs);
+            return TEMP(temp, size, size, kind);
+          }
         }
         case BO_LSHIFTASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type *byteType = keywordTypeCreate(K_UBYTE);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(expressionTypeof(exp->data.binOpExp.lhs));
+
+          IR(out,
+             BINOP(size, IO_SLL, TEMP(temp, size, size, AH_GP),
+                   lvalueLoad(lhs, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
+                       tempAllocator)));
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+
+          typeDestroy(byteType);
+          lvalueDtor(lhs);
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_LRSHIFTASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type *byteType = keywordTypeCreate(K_UBYTE);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(expressionTypeof(exp->data.binOpExp.lhs));
+
+          IR(out,
+             BINOP(size, IO_SLR, TEMP(temp, size, size, AH_GP),
+                   lvalueLoad(lhs, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
+                       tempAllocator)));
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+
+          typeDestroy(byteType);
+          lvalueDtor(lhs);
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_ARSHIFTASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type *byteType = keywordTypeCreate(K_UBYTE);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(expressionTypeof(exp->data.binOpExp.lhs));
+
+          IR(out,
+             BINOP(size, IO_SAR, TEMP(temp, size, size, AH_GP),
+                   lvalueLoad(lhs, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
+                       tempAllocator)));
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+
+          typeDestroy(byteType);
+          lvalueDtor(lhs);
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_BITANDASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+
+          IR(out,
+             BINOP(size, IO_AND, TEMP(temp, size, size, AH_GP),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, AH_GP),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_BITXORASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+
+          IR(out,
+             BINOP(size, IO_XOR, TEMP(temp, size, size, AH_GP),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, AH_GP),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_BITORASSIGN: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *lhs = translateLvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator);
+          Type const *resultType = exp->data.binOpExp.resultType;
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+
+          IR(out,
+             BINOP(size, IO_OR, TEMP(temp, size, size, AH_GP),
+                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
+                                 resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          lvalueStore(lhs, out,
+                      translateCast(TEMP(temp, size, size, AH_GP),
+                                    exp->data.binOpExp.resultType, lhsType, out,
+                                    tempAllocator),
+                      tempAllocator);
+
+          lvalueDtor(lhs);
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_BITAND: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *resultType = exp->data.binOpExp.resultType;
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+
+          IR(out,
+             BINOP(size, IO_AND, TEMP(temp, size, size, AH_GP),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.lhs), resultType,
+                       out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_BITOR: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *resultType = exp->data.binOpExp.resultType;
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+
+          IR(out,
+             BINOP(size, IO_OR, TEMP(temp, size, size, AH_GP),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.lhs), resultType,
+                       out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_BITXOR: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *resultType = exp->data.binOpExp.resultType;
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+
+          IR(out,
+             BINOP(size, IO_XOR, TEMP(temp, size, size, AH_GP),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.lhs), resultType,
+                       out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_SPACESHIP: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          // x
+          // if lhs >= rhs goto l1
+          // x = -1
+          // goto end
+          // l1:
+          // if lhs == rhs goto l2
+          // x = 1
+          // goto end
+          // l2:
+          // x = 0
+          // end:
+          // x
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          Type const *rhsType = expressionTypeof(exp->data.binOpExp.rhs);
+          Type *mergedType = typeExpMerge(lhsType, rhsType);
+
+          size_t temp = NEW(tempAllocator);
+          size_t lhsTemp = NEW(tempAllocator);
+          size_t rhsTemp = NEW(tempAllocator);
+          size_t size = typeSizeof(mergedType);
+          AllocHint kind = typeKindof(mergedType);
+
+          char *l1 = NEW_LABEL(labelGenerator);
+          char *l2 = NEW_LABEL(labelGenerator);
+          char *end = NEW_LABEL(labelGenerator);
+
+          IR(out, MOVE(size, TEMP(lhsTemp, size, size, kind),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.lhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     lhsType, mergedType, out, tempAllocator)));
+          IR(out, MOVE(size, TEMP(rhsTemp, size, size, kind),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, mergedType, out, tempAllocator)));
+
+          IROperator ge;
+          IROperator eq;
+          if (typeIsFloat(mergedType)) {
+            ge = IO_FP_GE;
+            eq = IO_FP_E;
+          } else if (typeIsUnsignedIntegral(mergedType)) {
+            ge = IO_AE;
+            eq = IO_E;
+          } else {
+            // is signed integral
+            ge = IO_GE;
+            eq = IO_E;
+          }
+
+          IR(out, CJUMP(size, ge, strdup(l1), TEMP(lhsTemp, size, size, kind),
+                        TEMP(rhsTemp, size, size, kind)));
+          IR(out, MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                       BYTE(-1)));
+          IR(out, JUMP(strdup(end)));
+          IR(out, LABEL(l1));
+          IR(out, CJUMP(size, eq, strdup(l2), TEMP(lhsTemp, size, size, kind),
+                        TEMP(rhsTemp, size, size, kind)));
+          IR(out, MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                       BYTE(1)));
+          IR(out, JUMP(strdup(end)));
+          IR(out, LABEL(l2));
+          IR(out, MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                       BYTE(0)));
+          IR(out, LABEL(end));
+
+          typeDestroy(mergedType);
+          return TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
         }
         case BO_LSHIFT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type *byteType = keywordTypeCreate(K_UBYTE);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(expressionTypeof(exp->data.binOpExp.lhs));
+
+          IR(out,
+             BINOP(size, IO_SLL, TEMP(temp, size, size, AH_GP),
+                   translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                   frame, labelGenerator, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
+                       tempAllocator)));
+
+          typeDestroy(byteType);
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_LRSHIFT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type *byteType = keywordTypeCreate(K_UBYTE);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(expressionTypeof(exp->data.binOpExp.lhs));
+
+          IR(out,
+             BINOP(size, IO_SLR, TEMP(temp, size, size, AH_GP),
+                   translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                   frame, labelGenerator, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
+                       tempAllocator)));
+
+          typeDestroy(byteType);
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_ARSHIFT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type *byteType = keywordTypeCreate(K_UBYTE);
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(expressionTypeof(exp->data.binOpExp.lhs));
+
+          IR(out,
+             BINOP(size, IO_SAR, TEMP(temp, size, size, AH_GP),
+                   translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                   frame, labelGenerator, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
+                       tempAllocator)));
+
+          typeDestroy(byteType);
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_ADD: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          Type const *rhsType = expressionTypeof(exp->data.binOpExp.rhs);
+
+          if (typeIsValuePointer(lhsType)) {
+            Type *dereferenced = typeGetDereferenced(lhsType);
+            size_t temp = NEW(tempAllocator);
+            size_t lhsTemp = NEW(tempAllocator);
+            size_t rhsValue = NEW(tempAllocator);
+
+            IR(out,
+               MOVE(POINTER_WIDTH,
+                    TEMP(lhsTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                    translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                    frame, labelGenerator, tempAllocator)));
+
+            // cast to uint64_t safe only if on <= 64 bit platform - caught by
+            // static asserts
+            if (typeIsUnsignedIntegral(rhsType)) {
+              Type *ulong = keywordTypeCreate(K_ULONG);
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, ulong, out, tempAllocator),
+                       ULONG((uint64_t)typeSizeof(dereferenced))));
+              IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                            TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            TEMP(lhsTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            translateCast(
+                                TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                                ulong, lhsType, out, tempAllocator)));
+              typeDestroy(ulong);
+            } else {
+              Type *slong = keywordTypeCreate(K_LONG);
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, slong, out, tempAllocator),
+                       LONG((int64_t)typeSizeof(dereferenced))));
+              IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                            TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            TEMP(lhsTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            translateCast(
+                                TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                                slong, lhsType, out, tempAllocator)));
+              typeDestroy(slong);
+            }
+
+            typeDestroy(dereferenced);
+            return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+          } else if (typeIsValuePointer(rhsType)) {
+            Type *dereferenced = typeGetDereferenced(rhsType);
+            size_t temp = NEW(tempAllocator);
+            size_t lhsValue = NEW(tempAllocator);
+
+            // cast to uint64_t safe only if on <= 64 bit platform - caught by
+            // static asserts
+            if (typeIsUnsignedIntegral(rhsType)) {
+              Type *ulong = keywordTypeCreate(K_ULONG);
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(lhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.lhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     lhsType, ulong, out, tempAllocator),
+                       ULONG((uint64_t)typeSizeof(dereferenced))));
+              IR(out,
+                 BINOP(POINTER_WIDTH, IO_ADD,
+                       TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       translateCast(
+                           TEMP(lhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP), ulong,
+                           rhsType, out, tempAllocator)));
+              typeDestroy(ulong);
+            } else {
+              Type *slong = keywordTypeCreate(K_LONG);
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(lhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.lhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     lhsType, slong, out, tempAllocator),
+                       LONG((int64_t)typeSizeof(dereferenced))));
+              IR(out,
+                 BINOP(POINTER_WIDTH, IO_ADD,
+                       TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       translateCast(
+                           TEMP(lhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP), slong,
+                           rhsType, out, tempAllocator)));
+              typeDestroy(slong);
+            }
+
+            typeDestroy(dereferenced);
+            return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+          } else {
+            // both numeric
+            Type const *resultType = exp->data.binOpExp.resultType;
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(resultType);
+            AllocHint kind = typeKindof(resultType);
+
+            IROperator op;
+            if (typeIsFloat(resultType)) {
+              op = IO_FP_ADD;
+            } else {
+              op = IO_ADD;
+            }
+            IR(out,
+               BINOP(size, op, TEMP(temp, size, size, kind),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         lhsType, resultType, out, tempAllocator),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         rhsType, resultType, out, tempAllocator)));
+            return TEMP(temp, size, size, kind);
+          }
         }
         case BO_SUB: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          Type const *rhsType = expressionTypeof(exp->data.binOpExp.rhs);
+
+          if (typeIsValuePointer(lhsType)) {
+            Type *dereferenced = typeGetDereferenced(lhsType);
+            size_t temp = NEW(tempAllocator);
+            size_t lhsTemp = NEW(tempAllocator);
+            size_t rhsValue = NEW(tempAllocator);
+
+            IR(out,
+               MOVE(POINTER_WIDTH,
+                    TEMP(lhsTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                    translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                    frame, labelGenerator, tempAllocator)));
+
+            // cast to uint64_t safe only if on <= 64 bit platform - caught by
+            // static asserts
+            if (typeIsUnsignedIntegral(rhsType)) {
+              Type *ulong = keywordTypeCreate(K_ULONG);
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, ulong, out, tempAllocator),
+                       ULONG((uint64_t)typeSizeof(dereferenced))));
+              IR(out, BINOP(POINTER_WIDTH, IO_SUB,
+                            TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            TEMP(lhsTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            translateCast(
+                                TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                                ulong, lhsType, out, tempAllocator)));
+              typeDestroy(ulong);
+            } else {
+              Type *slong = keywordTypeCreate(K_LONG);
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, slong, out, tempAllocator),
+                       LONG((int64_t)typeSizeof(dereferenced))));
+              IR(out, BINOP(POINTER_WIDTH, IO_SUB,
+                            TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            TEMP(lhsTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                            translateCast(
+                                TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                                slong, lhsType, out, tempAllocator)));
+              typeDestroy(slong);
+            }
+
+            typeDestroy(dereferenced);
+            return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+          } else {
+            // both numeric
+            Type const *resultType = exp->data.binOpExp.resultType;
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(resultType);
+            AllocHint kind = typeKindof(resultType);
+
+            IROperator op;
+            if (typeIsFloat(resultType)) {
+              op = IO_FP_SUB;
+            } else {
+              op = IO_SUB;
+            }
+            IR(out,
+               BINOP(size, op, TEMP(temp, size, size, kind),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         lhsType, resultType, out, tempAllocator),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         rhsType, resultType, out, tempAllocator)));
+            return TEMP(temp, size, size, kind);
+          }
         }
         case BO_MUL: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *resultType = exp->data.binOpExp.resultType;
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IROperator op;
+          if (typeIsFloat(resultType)) {
+            op = IO_FP_MUL;
+          } else if (typeIsSignedIntegral(resultType)) {
+            op = IO_SMUL;
+          } else {
+            // unsigned integral
+            op = IO_UMUL;
+          }
+          IR(out,
+             BINOP(size, op, TEMP(temp, size, size, kind),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.lhs), resultType,
+                       out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          return TEMP(temp, size, size, kind);
         }
         case BO_DIV: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *resultType = exp->data.binOpExp.resultType;
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IROperator op;
+          if (typeIsFloat(resultType)) {
+            op = IO_FP_DIV;
+          } else if (typeIsSignedIntegral(resultType)) {
+            op = IO_SDIV;
+          } else {
+            // unsigned integral
+            op = IO_UDIV;
+          }
+          IR(out,
+             BINOP(size, op, TEMP(temp, size, size, kind),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.lhs), resultType,
+                       out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          return TEMP(temp, size, size, kind);
         }
         case BO_MOD: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *resultType = exp->data.binOpExp.resultType;
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+
+          IROperator op;
+          if (typeIsSignedIntegral(resultType)) {
+            op = IO_SMOD;
+          } else {
+            // unsigned integral
+            op = IO_UMOD;
+          }
+          IR(out,
+             BINOP(size, op, TEMP(temp, size, size, AH_GP),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.lhs), resultType,
+                       out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
+          return TEMP(temp, size, size, AH_GP);
         }
         case BO_ARRAYACCESS: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          Type const *rhsType = expressionTypeof(exp->data.binOpExp.rhs);
+          Type const *resultType = exp->data.binOpExp.resultType;
+
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          size_t alignment = typeAlignof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          size_t offsetTemp = NEW(tempAllocator);
+          Type *slong = keywordTypeCreate(K_LONG);
+          Type *ulong = keywordTypeCreate(K_ULONG);
+          Type const *offsetType;
+
+          // only valid if on <= 64 bit platform. static assert checks for this
+          if (typeIsUnsignedIntegral(rhsType)) {
+            IR(out,
+               BINOP(LONG_WIDTH, IO_UMUL,
+                     TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         rhsType, ulong, out, tempAllocator),
+                     ULONG((uint64_t)size)));
+            offsetType = ulong;
+          } else {
+            // rhs is signed
+            IR(out,
+               BINOP(LONG_WIDTH, IO_SMUL,
+                     TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                     translateCast(
+                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                         rhsType, slong, out, tempAllocator),
+                     LONG((int64_t)size)));
+            offsetType = slong;
+          }
+
+          if (typeIsValuePointer(lhsType)) {
+            size_t pointerTemp = NEW(tempAllocator);
+
+            IR(out,
+               BINOP(POINTER_WIDTH, IO_ADD,
+                     TEMP(pointerTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                     translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                     frame, labelGenerator, tempAllocator),
+                     translateCast(
+                         TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                         offsetType, lhsType, out, tempAllocator)));
+            IR(out, MEM_LOAD(size, TEMP(temp, size, alignment, kind),
+                             TEMP(pointerTemp, POINTER_WIDTH, POINTER_WIDTH,
+                                  AH_GP)));
+          } else {
+            // lhs is array
+            IR(out, OFFSET_LOAD(
+                        size, TEMP(temp, size, alignment, kind),
+                        translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                        frame, labelGenerator, tempAllocator),
+                        TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP)));
+          }
+
+          typeDestroy(slong);
+          typeDestroy(ulong);
+          return TEMP(temp, size, alignment, kind);
         }
         default: { error(__FILE__, __LINE__, "invalid BinOpType enum"); }
       }
@@ -1779,131 +2695,746 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
     case NT_UNOPEXP: {
       switch (exp->data.unOpExp.op) {
         case UO_DEREF: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *resultType = exp->data.unOpExp.resultType;
+          size_t resultSize = typeSizeof(resultType);
+          size_t resultAlignment = typeAlignof(resultType);
+          AllocHint kind = typeKindof(resultType);
+          size_t temp = NEW(tempAllocator);
+          IR(out,
+             MEM_LOAD(resultSize, TEMP(temp, resultSize, resultAlignment, kind),
+                      translateRvalue(exp->data.unOpExp.target, out, fragments,
+                                      frame, labelGenerator, tempAllocator)));
+          return TEMP(temp, resultSize, resultAlignment, kind);
         }
         case UO_ADDROF: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *value =
+              translateLvalue(exp->data.unOpExp.target, out, fragments, frame,
+                              labelGenerator, tempAllocator);
+          IROperand *retVal = lvalueAddrof(value, out, tempAllocator);
+          lvalueDtor(value);
+          return retVal;
         }
         case UO_PREINC: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *value =
+              translateLvalue(exp->data.unOpExp.target, out, fragments, frame,
+                              labelGenerator, tempAllocator);
+          if (typeIsValuePointer(exp->data.unOpExp.resultType)) {
+            // is pointer
+            Type *dereferenced =
+                typeGetDereferenced(exp->data.unOpExp.resultType);
+            size_t temp = NEW(tempAllocator);
+            // note - size_t to 64 bit conversion only safe on <= 64 bit
+            // platforms - static assert catches that
+            IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          lvalueLoad(value, out, tempAllocator),
+                          ULONG((size_t)typeSizeof(dereferenced))));
+            lvalueStore(value, out,
+                        TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+          } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
+            // is integral
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = malloc(sizeof(IROperand));
+            one->kind = OK_CONSTANT;
+            one->data.constant.bits =
+                0x1;  // constant one, unsized, sign-agnostic
+            IR(out, BINOP(size, IO_ADD, TEMP(temp, size, size, AH_GP),
+                          lvalueLoad(value, out, tempAllocator), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(temp, size, size, AH_GP);
+          } else {
+            // is float/double
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
+                                                 : ULONG(DOUBLE_BITS_ONE);
+            IR(out, BINOP(size, IO_FP_ADD, TEMP(temp, size, size, AH_SSE),
+                          lvalueLoad(value, out, tempAllocator), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(temp, size, size, AH_SSE);
+          }
         }
         case UO_PREDEC: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *value =
+              translateLvalue(exp->data.unOpExp.target, out, fragments, frame,
+                              labelGenerator, tempAllocator);
+          if (typeIsValuePointer(exp->data.unOpExp.resultType)) {
+            // is pointer
+            Type *dereferenced =
+                typeGetDereferenced(exp->data.unOpExp.resultType);
+            size_t temp = NEW(tempAllocator);
+            // note - size_t to 64 bit conversion only safe on <= 64 bit
+            // platforms - static assert catches that
+            IR(out, BINOP(POINTER_WIDTH, IO_SUB,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          lvalueLoad(value, out, tempAllocator),
+                          ULONG((size_t)typeSizeof(dereferenced))));
+            lvalueStore(value, out,
+                        TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+          } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
+            // is integral
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = malloc(sizeof(IROperand));
+            one->kind = OK_CONSTANT;
+            one->data.constant.bits =
+                0x1;  // constant one, unsized, sign-agnostic
+            IR(out, BINOP(size, IO_SUB, TEMP(temp, size, size, AH_GP),
+                          lvalueLoad(value, out, tempAllocator), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(temp, size, size, AH_GP);
+          } else {
+            // is float/double
+            size_t temp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
+                                                 : ULONG(DOUBLE_BITS_ONE);
+            IR(out, BINOP(size, IO_FP_SUB, TEMP(temp, size, size, AH_SSE),
+                          lvalueLoad(value, out, tempAllocator), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(temp, size, size, AH_SSE);
+          }
         }
         case UO_NEG: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Type const *resultType = exp->data.unOpExp.resultType;
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(resultType);
+          AllocHint kind = typeKindof(resultType);
+
+          IROperator op;
+          if (typeIsFloat(resultType)) {
+            op = IO_FP_NEG;
+          } else {
+            // is signed integral
+            op = IO_NEG;
+          }
+          IR(out, UNOP(size, op, TEMP(temp, size, size, kind),
+                       translateRvalue(exp->data.unOpExp.target, out, fragments,
+                                       frame, labelGenerator, tempAllocator)));
+          return TEMP(temp, size, size, kind);
         }
         case UO_LNOT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          size_t temp = NEW(tempAllocator);
+
+          IR(out, UNOP(BYTE_WIDTH, IO_LNOT,
+                       TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                       translateRvalue(exp->data.unOpExp.target, out, fragments,
+                                       frame, labelGenerator, tempAllocator)));
+          return TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
         }
         case UO_BITNOT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          size_t temp = NEW(tempAllocator);
+          size_t size = typeSizeof(exp->data.unOpExp.resultType);
+
+          IR(out, UNOP(size, IO_NOT, TEMP(temp, size, size, AH_GP),
+                       translateRvalue(exp->data.unOpExp.target, out, fragments,
+                                       frame, labelGenerator, tempAllocator)));
+          return TEMP(temp, size, size, AH_GP);
         }
         case UO_POSTINC: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *value =
+              translateLvalue(exp->data.unOpExp.target, out, fragments, frame,
+                              labelGenerator, tempAllocator);
+          if (typeIsValuePointer(exp->data.unOpExp.resultType)) {
+            // is pointer
+            Type *dereferenced =
+                typeGetDereferenced(exp->data.unOpExp.resultType);
+            size_t temp = NEW(tempAllocator);
+            size_t outTemp = NEW(tempAllocator);
+            // note - size_t to 64 bit conversion only safe on <= 64 bit
+            // platforms - static assert catches that
+            IR(out, MOVE(POINTER_WIDTH,
+                         TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                         lvalueLoad(value, out, tempAllocator)));
+            IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          ULONG((size_t)typeSizeof(dereferenced))));
+            lvalueStore(value, out,
+                        TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+          } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
+            // is integral
+            size_t temp = NEW(tempAllocator);
+            size_t outTemp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = malloc(sizeof(IROperand));
+            one->kind = OK_CONSTANT;
+            one->data.constant.bits =
+                0x1;  // constant one, unsized, sign-agnostic
+            IR(out, MOVE(size, TEMP(outTemp, size, size, AH_GP),
+                         lvalueLoad(value, out, tempAllocator)));
+            IR(out, BINOP(size, IO_ADD, TEMP(temp, size, size, AH_GP),
+                          TEMP(outTemp, size, size, AH_GP), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(outTemp, size, size, AH_GP);
+          } else {
+            // is float/double
+            size_t temp = NEW(tempAllocator);
+            size_t outTemp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
+                                                 : ULONG(DOUBLE_BITS_ONE);
+            IR(out, MOVE(size, TEMP(outTemp, size, size, AH_SSE),
+                         lvalueLoad(value, out, tempAllocator)));
+            IR(out, BINOP(size, IO_FP_ADD, TEMP(temp, size, size, AH_SSE),
+                          TEMP(outTemp, size, size, AH_SSE), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(outTemp, size, size, AH_SSE);
+          }
         }
         case UO_POSTDEC: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Lvalue *value =
+              translateLvalue(exp->data.unOpExp.target, out, fragments, frame,
+                              labelGenerator, tempAllocator);
+          if (typeIsValuePointer(exp->data.unOpExp.resultType)) {
+            // is pointer
+            Type *dereferenced =
+                typeGetDereferenced(exp->data.unOpExp.resultType);
+            size_t temp = NEW(tempAllocator);
+            size_t outTemp = NEW(tempAllocator);
+            // note - size_t to 64 bit conversion only safe on <= 64 bit
+            // platforms - static assert catches that
+            IR(out, MOVE(POINTER_WIDTH,
+                         TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                         lvalueLoad(value, out, tempAllocator)));
+            IR(out, BINOP(POINTER_WIDTH, IO_SUB,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          ULONG((size_t)typeSizeof(dereferenced))));
+            lvalueStore(value, out,
+                        TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+          } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
+            // is integral
+            size_t temp = NEW(tempAllocator);
+            size_t outTemp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = malloc(sizeof(IROperand));
+            one->kind = OK_CONSTANT;
+            one->data.constant.bits =
+                0x1;  // constant one, unsized, sign-agnostic
+            IR(out, MOVE(size, TEMP(outTemp, size, size, AH_GP),
+                         lvalueLoad(value, out, tempAllocator)));
+            IR(out, BINOP(size, IO_SUB, TEMP(temp, size, size, AH_GP),
+                          TEMP(outTemp, size, size, AH_GP), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(outTemp, size, size, AH_GP);
+          } else {
+            // is float/double
+            size_t temp = NEW(tempAllocator);
+            size_t outTemp = NEW(tempAllocator);
+            size_t size = typeSizeof(exp->data.unOpExp.resultType);
+            IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
+                                                 : ULONG(DOUBLE_BITS_ONE);
+            IR(out, MOVE(size, TEMP(outTemp, size, size, AH_SSE),
+                         lvalueLoad(value, out, tempAllocator)));
+            IR(out, BINOP(size, IO_FP_SUB, TEMP(temp, size, size, AH_SSE),
+                          TEMP(outTemp, size, size, AH_SSE), one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+                        tempAllocator);
+
+            lvalueDtor(value);
+            return TEMP(outTemp, size, size, AH_SSE);
+          }
         }
         default: { error(__FILE__, __LINE__, "invalid UnOpType enum"); }
       }
     }
     case NT_COMPOPEXP: {
+      Type *mutualType =
+          typeExpMerge(expressionTypeof(exp->data.compOpExp.lhs),
+                       expressionTypeof(exp->data.compOpExp.rhs));
+      size_t resultTemp = NEW(tempAllocator);
+      size_t lhsTemp = NEW(tempAllocator);
+      size_t rhsTemp = NEW(tempAllocator);
+      size_t inputSize = typeSizeof(mutualType);
+      size_t inputAlignment = typeAlignof(mutualType);
+      size_t inputKind = typeKindof(mutualType);
+
+      IR(out,
+         MOVE(inputSize, TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+              translateCast(
+                  translateRvalue(exp->data.compOpExp.lhs, out, fragments,
+                                  frame, labelGenerator, tempAllocator),
+                  expressionTypeof(exp->data.compOpExp.lhs), mutualType, out,
+                  tempAllocator)));
+      IR(out,
+         MOVE(inputSize, TEMP(rhsTemp, inputSize, inputAlignment, inputKind),
+              translateCast(
+                  translateRvalue(exp->data.compOpExp.rhs, out, fragments,
+                                  frame, labelGenerator, tempAllocator),
+                  expressionTypeof(exp->data.compOpExp.rhs), mutualType, out,
+                  tempAllocator)));
+
       switch (exp->data.compOpExp.op) {
         case CO_EQ: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_E,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {
+            IR(out, BINOP(inputSize, IO_E,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
         }
         case CO_NEQ: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_NE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {
+            IR(out, BINOP(inputSize, IO_NE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
         }
         case CO_LT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, BINOP(inputSize, IO_L,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_L,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, BINOP(inputSize, IO_B,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
         }
         case CO_GT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, BINOP(inputSize, IO_G,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_G,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, BINOP(inputSize, IO_A,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
         }
         case CO_LTEQ: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, BINOP(inputSize, IO_LE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_LE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, BINOP(inputSize, IO_BE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
         }
         case CO_GTEQ: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, BINOP(inputSize, IO_GE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, BINOP(inputSize, IO_FP_GE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, BINOP(inputSize, IO_AE,
+                          TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
         }
-        default: { error(__FILE__, __LINE__, "invalid CompOpType enum"); }
       }
+
+      return TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_LANDASSIGNEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      // load lhs
+      // var x
+      // if !lhs goto else
+      // store rhs
+      // x = rhs
+      // goto end
+      // else:
+      // x = false
+      // end:
+      // x
+      Lvalue *lhs = translateLvalue(exp->data.landAssignExp.lhs, out, fragments,
+                                    frame, labelGenerator, tempAllocator);
+      char *end = NEW_LABEL(labelGenerator);
+      char *elseCase = NEW_LABEL(labelGenerator);
+      size_t temp = NEW(tempAllocator);
+      IR(out, CJUMP(BYTE_WIDTH, IO_JE, strdup(elseCase),
+                    lvalueLoad(lhs, out, tempAllocator), UBYTE(0)));
+      IR(out, MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                   translateRvalue(exp->data.landAssignExp.rhs, out, fragments,
+                                   frame, labelGenerator, tempAllocator)));
+      lvalueStore(lhs, out, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                  tempAllocator);
+      IR(out, JUMP(strdup(end)));
+      IR(out, LABEL(elseCase));
+      IR(out,
+         MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP), UBYTE(0)));
+      IR(out, LABEL(end));
+
+      lvalueDtor(lhs);
+      return TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_LORASSIGNEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      // load lhs
+      // var x
+      // if lhs goto else
+      // store rhs
+      // x = rhs
+      // goto end
+      // else:
+      // x = true
+      // end:
+      // x
+      Lvalue *lhs = translateLvalue(exp->data.landAssignExp.lhs, out, fragments,
+                                    frame, labelGenerator, tempAllocator);
+      char *end = NEW_LABEL(labelGenerator);
+      char *elseCase = NEW_LABEL(labelGenerator);
+      size_t temp = NEW(tempAllocator);
+      IR(out, CJUMP(BYTE_WIDTH, IO_JNE, strdup(elseCase),
+                    lvalueLoad(lhs, out, tempAllocator), UBYTE(0)));
+      IR(out, MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                   translateRvalue(exp->data.landAssignExp.rhs, out, fragments,
+                                   frame, labelGenerator, tempAllocator)));
+      lvalueStore(lhs, out, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                  tempAllocator);
+      IR(out, JUMP(strdup(end)));
+      IR(out, LABEL(elseCase));
+      IR(out,
+         MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP), UBYTE(1)));
+      IR(out, LABEL(end));
+
+      lvalueDtor(lhs);
+      return TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_TERNARYEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      // var x
+      // jump if not (condition) to elseCase
+      // x = trueCase
+      // jump to end
+      // elseCase:
+      // x = falseCase
+      // end:
+      // x
+
+      size_t resultTemp = NEW(tempAllocator);
+      Type const *resultType = exp->data.ternaryExp.resultType;
+      size_t resultSize = typeSizeof(resultType);
+      size_t resultAlignment = typeAlignof(resultType);
+      AllocHint kind = typeKindof(resultType);
+
+      char *elseCase = NEW_LABEL(labelGenerator);
+      char *end = NEW_LABEL(labelGenerator);
+
+      translateJumpIfNot(exp->data.ternaryExp.condition, out, fragments, frame,
+                         labelGenerator, tempAllocator, elseCase);
+      IR(out,
+         MOVE(resultSize, TEMP(resultTemp, resultSize, resultAlignment, kind),
+              translateCast(
+                  translateRvalue(exp->data.ternaryExp.thenExp, out, fragments,
+                                  frame, labelGenerator, tempAllocator),
+                  expressionTypeof(exp->data.ternaryExp.thenExp), resultType,
+                  out, tempAllocator)));
+      IR(out, JUMP(strdup(end)));
+      IR(out, LABEL(elseCase));
+      IR(out,
+         MOVE(resultSize, TEMP(resultTemp, resultSize, resultAlignment, kind),
+              translateCast(
+                  translateRvalue(exp->data.ternaryExp.elseExp, out, fragments,
+                                  frame, labelGenerator, tempAllocator),
+                  expressionTypeof(exp->data.ternaryExp.elseExp), resultType,
+                  out, tempAllocator)));
+      IR(out, LABEL(end));
+      return TEMP(resultTemp, resultSize, resultAlignment, kind);
     }
     case NT_LANDEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      // bool x
+      // if lhs
+      // x = rhs
+      // else
+      // x = false
+      // x
+
+      size_t resultTemp = NEW(tempAllocator);
+      char *elseCase = NEW_LABEL(labelGenerator);
+      char *end = NEW_LABEL(labelGenerator);
+      translateJumpIfNot(exp->data.landExp.lhs, out, fragments, frame,
+                         labelGenerator, tempAllocator, elseCase);
+      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                   translateRvalue(exp->data.landExp.rhs, out, fragments, frame,
+                                   labelGenerator, tempAllocator)));
+      IR(out, JUMP(strdup(end)));
+      IR(out, LABEL(elseCase));
+      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                   UBYTE(0)));
+      IR(out, LABEL(end));
+      return TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_LOREXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      // bool x
+      // if lhs
+      // x = true
+      // else
+      // x = rhs
+      // x
+
+      size_t resultTemp = NEW(tempAllocator);
+      char *elseCase = NEW_LABEL(labelGenerator);
+      char *end = NEW_LABEL(labelGenerator);
+      translateJumpIfNot(exp->data.landExp.lhs, out, fragments, frame,
+                         labelGenerator, tempAllocator, elseCase);
+      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                   UBYTE(1)));
+      IR(out, JUMP(strdup(end)));
+      IR(out, LABEL(elseCase));
+      IR(out, MOVE(BYTE_WIDTH, TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
+                   translateRvalue(exp->data.landExp.rhs, out, fragments, frame,
+                                   labelGenerator, tempAllocator)));
+      IR(out, LABEL(end));
+      return TEMP(resultTemp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_STRUCTACCESSEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      Type const *baseType = expressionTypeof(exp->data.structAccessExp.base);
+      size_t temp = NEW(tempAllocator);
+      Type const *resultType = exp->data.structAccessExp.resultType;
+      AllocHint kind = typeKindof(resultType);
+      size_t size = typeSizeof(resultType);
+      size_t alignment = typeAlignof(resultType);
+      if (baseType->kind == K_STRUCT) {
+        IR(out,
+           OFFSET_LOAD(
+               size, TEMP(temp, size, alignment, kind),
+               translateRvalue(exp->data.structAccessExp.base, out, fragments,
+                               frame, labelGenerator, tempAllocator),
+               ULONG(typeOffset(
+                   baseType, exp->data.structAccessExp.element->data.id.id))));
+        return TEMP(temp, size, alignment, kind);
+      } else {  // is union
+        IR(out,
+           MOVE(size, TEMP(temp, size, alignment, kind),
+                translateRvalue(exp->data.structAccessExp.base, out, fragments,
+                                frame, labelGenerator, tempAllocator)));
+        return TEMP(temp, size, alignment, kind);
+      }
     }
     case NT_STRUCTPTRACCESSEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      Type *baseType = typeGetDereferenced(
+          expressionTypeof(exp->data.structPtrAccessExp.base));
+      size_t temp = NEW(tempAllocator);
+      Type const *resultType = exp->data.structPtrAccessExp.resultType;
+      AllocHint kind = typeKindof(resultType);
+      size_t size = typeSizeof(resultType);
+      size_t alignment = typeAlignof(resultType);
+      size_t pointer = NEW(tempAllocator);
+      if (baseType->kind == K_STRUCT) {
+        IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                      TEMP(pointer, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                      translateRvalue(exp->data.structPtrAccessExp.base, out,
+                                      fragments, frame, labelGenerator,
+                                      tempAllocator),
+                      ULONG(typeOffset(
+                          baseType,
+                          exp->data.structPtrAccessExp.element->data.id.id))));
+        IR(out, MEM_LOAD(size, TEMP(temp, size, alignment, kind),
+                         TEMP(pointer, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
+      } else {  // is union
+        IR(out, MEM_LOAD(size, TEMP(temp, size, alignment, kind),
+                         translateRvalue(exp->data.structPtrAccessExp.base, out,
+                                         fragments, frame, labelGenerator,
+                                         tempAllocator)));
+      }
+      return TEMP(temp, size, alignment, kind);
     }
     case NT_FNCALLEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      // if who is a function id, then do a direct call.
+      // otherwise, do an indirect call.
+      // if void, is internal compiler error - should have gone to
+      // translateVoidedValue or been caught at typecheck
+      IROperand *result;
+
+      Node *who = exp->data.fnCallExp.who;
+      if (who->type == NT_ID && who->data.id.symbol->kind == SK_FUNCTION) {
+        // direct call - is call <name>, with default args
+        OverloadSetElement *elm = who->data.id.overload;
+        SymbolInfo *info = who->data.id.symbol;
+        IROperandVector *actualArgs = irOperandVectorCreate();
+        // get args and default args
+        NodeList *args = exp->data.fnCallExp.args;
+        size_t idx = 0;
+        for (; idx < args->size; idx++) {
+          // args
+          irOperandVectorInsert(
+              actualArgs,
+              translateCast(
+                  translateRvalue(args->elements[idx], out, fragments, frame,
+                                  labelGenerator, tempAllocator),
+                  expressionTypeof(args->elements[idx]),
+                  elm->argumentTypes.elements[idx], out, tempAllocator));
+        }
+        size_t numRequired = elm->argumentTypes.size - elm->numOptional;
+        for (; idx < elm->argumentTypes.size; idx++) {
+          // default args
+          irOperandVectorInsert(
+              actualArgs,
+              irOperandCopy(elm->defaultArgs.elements[idx - numRequired]));
+        }
+        result = frame->vtable->directCall(
+            frame,
+            mangleFunctionName(info->module, who->data.id.id,
+                               &elm->argumentTypes),
+            args, elm, out, tempAllocator);
+      } else {
+        // indirect call - is call *<temp>, with no default args
+        Type const *functionType = expressionTypeof(who);
+        IROperand *function = translateRvalue(who, out, fragments, frame,
+                                              labelGenerator, tempAllocator);
+        IROperandVector *actualArgs = irOperandVectorCreate();
+        // get args
+        NodeList *args = exp->data.fnCallExp.args;
+        for (size_t idx = 0; idx < args->size; idx++) {
+          irOperandVectorInsert(
+              actualArgs,
+              translateCast(
+                  translateRvalue(args->elements[idx], out, fragments, frame,
+                                  labelGenerator, tempAllocator),
+                  expressionTypeof(args->elements[idx]),
+                  functionType->data.functionPtr.argumentTypes->elements[idx],
+                  out, tempAllocator));
+        }
+        result = frame->vtable->indirectCall(frame, function, actualArgs,
+                                             functionType, out, tempAllocator);
+      }
+
+      return result;
     }
     case NT_CONSTEXP: {
       switch (exp->data.constExp.type) {
         case CT_UBYTE: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return UBYTE(exp->data.constExp.value.ubyteVal);
         }
         case CT_BYTE: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return BYTE(exp->data.constExp.value.byteVal);
         }
         case CT_CHAR: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return UBYTE(exp->data.constExp.value.charVal);
         }
         case CT_USHORT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return USHORT(exp->data.constExp.value.ushortVal);
         }
         case CT_SHORT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return SHORT(exp->data.constExp.value.shortVal);
         }
         case CT_UINT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return UINT(exp->data.constExp.value.uintVal);
         }
         case CT_INT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return INT(exp->data.constExp.value.intVal);
         }
         case CT_WCHAR: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return UINT(exp->data.constExp.value.wcharVal);
         }
         case CT_ULONG: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return ULONG(exp->data.constExp.value.ulongVal);
         }
         case CT_LONG: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return LONG(exp->data.constExp.value.longVal);
         }
         case CT_FLOAT: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return FLOAT(exp->data.constExp.value.floatBits);
         }
         case CT_DOUBLE: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return DOUBLE(exp->data.constExp.value.doubleBits);
         }
         case CT_BOOL: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return UBYTE(exp->data.constExp.value.boolVal ? 1 : 0);
         }
         case CT_STRING: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Fragment *f =
+              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
+          IR(f->data.rodata.ir,
+             CONST(0, STRING(tstrdup(exp->data.constExp.value.stringVal))));
+          fragmentVectorInsert(fragments, f);
+          return NAME(strdup(f->label));
         }
         case CT_WSTRING: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          Fragment *f =
+              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
+          IR(f->data.rodata.ir,
+             CONST(0, WSTRING(twstrdup(exp->data.constExp.value.wstringVal))));
+          fragmentVectorInsert(fragments, f);
+          return NAME(strdup(f->label));
         }
         case CT_NULL: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          return ULONG(0);
         }
         default: {
           error(__FILE__, __LINE__,
@@ -1915,16 +3446,25 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
       error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
     }
     case NT_CASTEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      return translateCast(
+          translateRvalue(exp->data.castExp.target, out, fragments, frame,
+                          labelGenerator, tempAllocator),
+          expressionTypeof(exp->data.castExp.target),
+          exp->data.castExp.resultType, out, tempAllocator);
     }
     case NT_SIZEOFTYPEEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      // safe unless on a >64 bit platform - static asserts catch that.
+      return ULONG((uint64_t)typeSizeof(exp->data.sizeofTypeExp.targetType));
     }
     case NT_SIZEOFEXPEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      translateVoidedValue(exp->data.sizeofExpExp.target, out, fragments, frame,
+                           labelGenerator, tempAllocator);
+      return ULONG((uint64_t)typeSizeof(
+          expressionTypeof(exp->data.sizeofExpExp.target)));
     }
     case NT_ID: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      Access *access = exp->data.id.symbol->data.var.access;
+      return access->vtable->load(access, out, tempAllocator);
     }
     default: {
       error(__FILE__, __LINE__,
@@ -2071,8 +3611,8 @@ static IREntryVector *translateStmt(
                         outArg, breakLabel, continueLabel, exitLabel,
                         labelGenerator, tempAllocator, returnType);
         } else {
-          translateVoiddedValue(initialize, body, fragments, frame,
-                                labelGenerator, tempAllocator);
+          translateVoidedValue(initialize, body, fragments, frame,
+                               labelGenerator, tempAllocator);
         }
       }
 
@@ -2082,8 +3622,8 @@ static IREntryVector *translateStmt(
       translateStmt(stmt->data.forStmt.body, body, fragments, frame, outArg,
                     end, start, exitLabel, labelGenerator, tempAllocator,
                     returnType);
-      translateVoiddedValue(stmt->data.forStmt.update, body, fragments, frame,
-                            labelGenerator, tempAllocator);
+      translateVoidedValue(stmt->data.forStmt.update, body, fragments, frame,
+                           labelGenerator, tempAllocator);
       IR(body, JUMP(start));
       IR(body, LABEL(end));
 
@@ -2120,8 +3660,8 @@ static IREntryVector *translateStmt(
       return out;
     }
     case NT_EXPRESSIONSTMT: {
-      translateVoiddedValue(stmt->data.expressionStmt.expression, out,
-                            fragments, frame, labelGenerator, tempAllocator);
+      translateVoidedValue(stmt->data.expressionStmt.expression, out, fragments,
+                           frame, labelGenerator, tempAllocator);
       return out;
     }
     case NT_NULLSTMT:
