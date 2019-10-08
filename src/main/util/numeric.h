@@ -19,9 +19,12 @@
 #ifndef TLC_UTIL_NUMERIC_H_
 #define TLC_UTIL_NUMERIC_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 extern uint32_t const FLOAT_BITS_ONE;
 extern uint64_t const DOUBLE_BITS_ONE;
+
+size_t increaseToMultipleOf(size_t n, size_t m);
 
 #endif  // TLC_UTIL_NUMERIC_H_

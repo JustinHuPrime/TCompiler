@@ -24,3 +24,7 @@ uint32_t const FLOAT_BITS_ONE = 0x3f800000;
 // sign 0, exponent 1023 - 1023, fraction 1.0
 // 0b0 01111111111 0000000000000000000000000000000000000000000000000000
 uint64_t const DOUBLE_BITS_ONE = 0x3ff0000000000000;
+
+size_t increaseToMultipleOf(size_t n, size_t m) {
+  return n + ((m - (n % m)) % m);
+}
