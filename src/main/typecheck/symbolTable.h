@@ -151,7 +151,7 @@ bool typeIsPointer(Type const *);
 bool typeIsCompound(Type const *);   // can use . operator
 bool typeIsComposite(Type const *);  // has parts to address
 bool typeIsArray(Type const *);
-// merge types from conditional or arithmetic branches
+// merge types from conditional, arithmetic, or comparison branches
 Type *typeExpMerge(Type const *, Type const *);
 // strip constness off of start of type, non-destructively
 Type *typeGetNonConst(Type *);

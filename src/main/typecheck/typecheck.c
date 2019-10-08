@@ -394,7 +394,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
               return expression->data.binOpExp.resultType = resultType;
             }
           } else {
-            if (typeIsPointer(lhs) && typeIsIntegral(rhs)) {
+            if (typeIsValuePointer(lhs) && typeIsIntegral(rhs)) {
               return expression->data.binOpExp.resultType = typeCopy(lhs);
             } else {
               char *lhsString = typeToString(lhs);
@@ -581,7 +581,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
                             : "logical right");
             bad = true;
           }
-          if (!typeIsIntegral(rhs)) {
+          if (!typeIsUnsignedIntegral(rhs)) {
             reportError(report,
                         "%s:%zu:%zu: error: attempted to apply %s shift "
                         "operator on non-integral value",
@@ -616,7 +616,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
                 expression->data.binOpExp.lhs->character);
             bad = true;
           }
-          if (!typeIsIntegral(rhs)) {
+          if (!typeIsUnsignedIntegral(rhs)) {
             reportError(
                 report,
                 "%s:%zu:%zu: error: attempted to apply arithmetic right shift "
@@ -630,8 +630,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
           }
           return expression->data.binOpExp.resultType = typeCopy(lhs);
         }
-        case BO_ADD:
-        case BO_SUB: {
+        case BO_ADD: {
           Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
                                           options, filename, NULL, false);
           Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
@@ -660,9 +659,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
               return expression->data.binOpExp.resultType;
             }
           } else {
-            if (typeIsPointer(lhs) && typeIsIntegral(rhs)) {
+            if (typeIsValuePointer(lhs) && typeIsIntegral(rhs)) {
               return expression->data.binOpExp.resultType = typeCopy(lhs);
-            } else if (typeIsIntegral(lhs) && typeIsPointer(rhs)) {
+            } else if (typeIsIntegral(lhs) && typeIsValuePointer(rhs)) {
               return expression->data.binOpExp.resultType = typeCopy(rhs);
             } else {
               char *lhsString = typeToString(lhs);
@@ -675,6 +674,50 @@ static Type *typecheckExpression(Node *expression, Report *report,
                               ? "addition"
                               : "subtraction",
                           lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              return NULL;
+            }
+          }
+        }
+        case BO_SUB: {
+          Type *lhs = typecheckExpression(expression->data.binOpExp.lhs, report,
+                                          options, filename, NULL, false);
+          Type *rhs = typecheckExpression(expression->data.binOpExp.rhs, report,
+                                          options, filename, NULL, false);
+          if (lhs == NULL || rhs == NULL) {
+            return NULL;
+          }
+
+          if (typeIsNumeric(lhs) && typeIsNumeric(rhs)) {
+            expression->data.binOpExp.resultType = typeExpMerge(lhs, rhs);
+            if (expression->data.binOpExp.resultType == NULL) {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              reportError(
+                  report,
+                  "%s:%zu:%zu: error: cannot apply subtraction operator to a "
+                  "value of type '%s' with a value of type '%s'",
+                  filename, expression->line, expression->character, lhsString,
+                  rhsString);
+              free(lhsString);
+              free(rhsString);
+              return NULL;
+            } else {
+              return expression->data.binOpExp.resultType;
+            }
+          } else {
+            if (typeIsValuePointer(lhs) && typeIsIntegral(rhs)) {
+              return expression->data.binOpExp.resultType = typeCopy(lhs);
+            } else {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              reportError(
+                  report,
+                  "%s:%zu:%zu: error: cannot apply subtraction operator to a "
+                  "value of type '%s' and a value of type '%s'",
+                  filename, expression->line, expression->character, lhsString,
+                  rhsString);
               free(lhsString);
               free(rhsString);
               return NULL;
@@ -714,10 +757,9 @@ static Type *typecheckExpression(Node *expression, Report *report,
                   filename, expression->line, expression->character);
               return NULL;
             }
-            return isPtr ? (expression->data.binOpExp.resultType =
-                                typeGetDereferenced(lhs))
-                         : (expression->data.binOpExp.resultType =
-                                typeGetArrayElement(lhs));
+            return expression->data.binOpExp.resultType =
+                       (isPtr ? typeGetDereferenced(lhs)
+                              : typeGetArrayElement(lhs));
           } else {
             reportError(report,
                         "%s:%zu:%zu: error: expected an array or a pointer",
@@ -786,7 +828,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
                     ? "increment"
                     : "decrement");
             return NULL;
-          } else if (!typeIsIntegral(target) && !typeIsPointer(target) &&
+          } else if (!typeIsIntegral(target) && !typeIsValuePointer(target) &&
                      !typeIsFloat(target)) {
             char *typeString = typeToString(target);
             reportError(report,
