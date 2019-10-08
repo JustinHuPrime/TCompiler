@@ -307,6 +307,36 @@ static void irEntryVectorPrint(IREntryVector const *ir) {
         printf(")\n");
         break;
       }
+      case IO_AND: {
+        printf("AND(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_XOR: {
+        printf("XOR(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
+      case IO_OR: {
+        printf("OR(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(", ");
+        irOperandPrint(entry->arg2);
+        printf(")\n");
+        break;
+      }
       case IO_L: {
         printf("L(%zu, ", entry->opSize);
         irOperandPrint(entry->dest);
