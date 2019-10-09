@@ -1190,7 +1190,9 @@ bool typeCastable(Type const *to, Type const *from) {
     case K_FLOAT:
     case K_DOUBLE:
     case K_BOOL:
-    case K_ENUM: {
+    case K_ENUM:
+    case K_PTR:
+    case K_FUNCTION_PTR: {
       switch (to->kind) {
         case K_UBYTE:
         case K_BYTE:
@@ -1354,62 +1356,6 @@ bool typeCastable(Type const *to, Type const *from) {
         case K_PTR: {
           return pointerAssignable(to->data.modifier.type,
                                    from->data.array.type);
-        }
-        case K_UNION: {
-          TypeVector *possibleTypes =
-              &to->data.reference.referenced->data.type.data.unionType.fields;
-          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
-            if (typeCastable(possibleTypes->elements[idx], from)) {
-              return true;
-            }
-          }
-          return false;
-        }
-        case K_TYPEDEF: {
-          return to->data.reference.referenced ==
-                     from->data.reference.referenced ||
-                 typeCastable(to->data.reference.referenced->data.type.data
-                                  .typedefType.type,
-                              from);
-        }
-        case K_CONST: {
-          return typeCastable(to->data.modifier.type, from);
-        }
-        default: { return false; }
-      }
-    }
-    case K_PTR: {
-      switch (to->kind) {
-        case K_PTR: {
-          return true;
-        }
-        case K_UNION: {
-          TypeVector *possibleTypes =
-              &to->data.reference.referenced->data.type.data.unionType.fields;
-          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
-            if (typeCastable(possibleTypes->elements[idx], from)) {
-              return true;
-            }
-          }
-          return false;
-        }
-        case K_TYPEDEF: {
-          return to->data.reference.referenced ==
-                     from->data.reference.referenced ||
-                 typeCastable(to->data.reference.referenced->data.type.data
-                                  .typedefType.type,
-                              from);
-        }
-        case K_CONST: {
-          return typeCastable(to->data.modifier.type, from);
-        }
-        default: { return false; }
-      }
-    }
-    case K_FUNCTION_PTR: {
-      switch (to->kind) {
-        case K_FUNCTION_PTR: {
-          return true;
         }
         case K_UNION: {
           TypeVector *possibleTypes =
