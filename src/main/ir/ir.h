@@ -178,6 +178,13 @@ typedef enum IROperator {
   IO_S_TO_DOUBLE,
   IO_F_TO_FLOAT,  // float size changes
   IO_F_TO_DOUBLE,
+  IO_TRUNC_BYTE,  // truncate integer to size
+  IO_TRUNC_SHORT,
+  IO_TRUNC_INT,
+  IO_F_TO_BYTE,  // float to ints
+  IO_F_TO_SHORT,
+  IO_F_TO_INT,
+  IO_F_TO_LONG,
 
   IO_JUMP,  // unconditional jump: opSize = 0, dest = jump target
             // address, arg1 = NULL, arg2 = NULL

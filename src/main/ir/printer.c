@@ -577,6 +577,110 @@ static void irEntryVectorPrint(IREntryVector const *ir) {
         printf(")\n");
         break;
       }
+      case IO_TRUNC_BYTE: {
+        printf("TRUNC_BYTE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_TRUNC_SHORT: {
+        printf("TRUNC_SHORT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_TRUNC_INT: {
+        printf("TRUNC_INT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_F_TO_BYTE: {
+        printf("F_TO_BYTE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_F_TO_SHORT: {
+        printf("F_TO_SHORT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_F_TO_INT: {
+        printf("F_TO_INT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_F_TO_LONG: {
+        printf("F_TO_LONG(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_U_TO_FLOAT: {
+        printf("U_TO_FLOAT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_U_TO_DOUBLE: {
+        printf("U_TO_DOUBLE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_S_TO_FLOAT: {
+        printf("S_TO_FLOAT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_S_TO_DOUBLE: {
+        printf("S_TO_DOUBLE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_F_TO_FLOAT: {
+        printf("F_TO_FLOAT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_F_TO_DOUBLE: {
+        printf("F_TO_DOUBLE(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
       case IO_JUMP: {
         printf("JUMP(");
         irOperandPrint(entry->dest);
