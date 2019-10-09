@@ -529,6 +529,54 @@ static void irEntryVectorPrint(IREntryVector const *ir) {
         printf(")\n");
         break;
       }
+      case IO_SX_SHORT: {
+        printf("SX_SHORT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_SX_INT: {
+        printf("SX_INT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_SX_LONG: {
+        printf("SX_LONG(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_ZX_SHORT: {
+        printf("ZX_SHORT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_ZX_INT: {
+        printf("ZX_INT(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
+      case IO_ZX_LONG: {
+        printf("ZX_LONG(%zu, ", entry->opSize);
+        irOperandPrint(entry->dest);
+        printf(", ");
+        irOperandPrint(entry->arg1);
+        printf(")\n");
+        break;
+      }
       case IO_JUMP: {
         printf("JUMP(");
         irOperandPrint(entry->dest);

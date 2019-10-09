@@ -166,6 +166,18 @@ typedef enum IROperator {
   IO_FP_NEG,
   IO_LNOT,
   IO_NOT,
+  IO_SX_SHORT,  // sign extend integers, dest has size short
+  IO_SX_INT,
+  IO_SX_LONG,
+  IO_ZX_SHORT,
+  IO_ZX_INT,
+  IO_ZX_LONG,
+  IO_U_TO_FLOAT,  // integer to float
+  IO_U_TO_DOUBLE,
+  IO_S_TO_FLOAT,
+  IO_S_TO_DOUBLE,
+  IO_F_TO_FLOAT,  // float size changes
+  IO_F_TO_DOUBLE,
 
   IO_JUMP,  // unconditional jump: opSize = 0, dest = jump target
             // address, arg1 = NULL, arg2 = NULL
