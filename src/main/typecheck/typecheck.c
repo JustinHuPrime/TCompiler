@@ -1829,12 +1829,12 @@ static void typecheckCode(Node *ast, Report *report, Options const *options) {
 }
 void typecheck(Report *report, Options const *options,
                ModuleAstMapPair const *asts) {
-  for (size_t idx = 0; idx < asts->decls.size; idx++) {
+  for (size_t idx = 0; idx < asts->decls.capacity; idx++) {
     if (asts->decls.keys[idx] != NULL) {
       typecheckDecl(asts->decls.values[idx], report, options);
     }
   }
-  for (size_t idx = 0; idx < asts->codes.size; idx++) {
+  for (size_t idx = 0; idx < asts->codes.capacity; idx++) {
     if (asts->codes.keys[idx] != NULL) {
       typecheckCode(asts->codes.values[idx], report, options);
     }
