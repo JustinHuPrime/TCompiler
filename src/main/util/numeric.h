@@ -24,6 +24,8 @@
 
 extern uint32_t const FLOAT_BITS_ONE;
 extern uint64_t const DOUBLE_BITS_ONE;
+extern uint32_t const FLOAT_BITS_ZERO;
+extern uint64_t const DOUBLE_BITS_ZERO;
 
 size_t increaseToMultipleOf(size_t n, size_t m);
 
