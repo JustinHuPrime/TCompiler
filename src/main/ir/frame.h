@@ -33,19 +33,19 @@ typedef struct AccessVTable {
   void (*dtor)(struct Access *);
   // inserts instructions into code to load the var, produces the operand
   // where the result can be found
-  IROperand *(*load)(struct Access *this, IREntryVector *code,
+  IROperand *(*load)(struct Access const *this, IREntryVector *code,
                      struct TempAllocator *tempAllocator);
   // inserts instructions into code to store to the var, takes an operand to
   // store
-  void (*store)(struct Access *this, IREntryVector *code, IROperand *input,
-                struct TempAllocator *tempAllocator);
+  void (*store)(struct Access const *this, IREntryVector *code,
+                IROperand *input, struct TempAllocator *tempAllocator);
   // addrof is nullable - will be invalid in non-escaping/non-global accesses
   // gets the address of the var
-  IROperand *(*addrof)(struct Access *this, IREntryVector *code,
+  IROperand *(*addrof)(struct Access const *this, IREntryVector *code,
                        struct TempAllocator *tempAllocator);
   // getLabel is nullable - will be invalid in non-global accesses
   // gets the label of the var
-  char *(*getLabel)(struct Access *this);
+  char *(*getLabel)(struct Access const *this);
 } AccessVTable;
 // an abstract access to some value, of some size and some kind
 typedef struct Access {
@@ -55,13 +55,13 @@ typedef struct Access {
   AllocHint kind;
 } Access;
 void accessDtor(Access *);
-IROperand *accessLoad(Access *, IREntryVector *code,
+IROperand *accessLoad(Access const *, IREntryVector *code,
                       struct TempAllocator *tempAllocator);
-void accessStore(Access *, IREntryVector *code, IROperand *input,
+void accessStore(Access const *, IREntryVector *code, IROperand *input,
                  struct TempAllocator *tempAllocator);
-IROperand *accessAddrof(struct Access *, IREntryVector *code,
+IROperand *accessAddrof(struct Access const *, IREntryVector *code,
                         struct TempAllocator *tempAllocator);
-char *accessGetLabel(Access *);
+char *accessGetLabel(Access const *);
 // typedef Vector AccessVector;
 // AccessVector *accessVectorCreate(void);
 // void accessVectorInsert(AccessVector *, Access *);

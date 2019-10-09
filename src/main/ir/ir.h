@@ -113,16 +113,17 @@ typedef enum IROperator {
                     // reg), dest = destination temp or reg, arg1 = source
                     // address, arg2 = NULL
   IO_STK_STORE,     // move from temp or reg to stack at constant offset
-                    // dest = destination offset (long), arg1 = source data
+                    // dest = destination offset (POINTER_WIDTH), arg1 = source
+                    // data
   IO_STK_LOAD,      // move from stack at constant offset to register or temp
                     // dest = destination temp or reg, arg1 = destination offset
-                    // (long)
+                    // (POINTER_WIDTH)
   IO_OFFSET_STORE,  // move from temp or reg to part of a mem temp
                     // dest = destination memtemp, arg1 = source temp or reg,
-                    // arg2 = offset
+                    // arg2 = offset (POINTER_WIDTH)
   IO_OFFSET_LOAD,   // move from mem temp to temp or reg
                     // dest = destination temp or reg, arg1 = source memtemp,
-                    // arg2 = offset
+                    // arg2 = offset (POINTER_WIDTH)
 
   IO_ADD,  // plain binary operations: opSize = sizeof(operands), dest = result
            // storage, arg1 = argument 1, arg2 = argument 2

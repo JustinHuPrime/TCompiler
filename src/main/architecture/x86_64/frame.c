@@ -39,10 +39,10 @@ static void x86_64GlobalAccessDtor(Access *baseAccess) {
   free(access->label);
   free(access);
 }
-static IROperand *x86_64GlobalAccessLoad(Access *baseAccess,
+static IROperand *x86_64GlobalAccessLoad(Access const *baseAccess,
                                          IREntryVector *code,
                                          TempAllocator *tempAllocator) {
-  X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
+  X86_64GlobalAccess const *access = (X86_64GlobalAccess const *)baseAccess;
 
   size_t result = NEW(tempAllocator);
   IR(code, MEM_LOAD(access->base.size,
@@ -52,22 +52,22 @@ static IROperand *x86_64GlobalAccessLoad(Access *baseAccess,
   return TEMP(result, access->base.size, access->base.alignment,
               access->base.kind);
 }
-static void x86_64GlobalAccessStore(Access *baseAccess, IREntryVector *code,
-                                    IROperand *input,
+static void x86_64GlobalAccessStore(Access const *baseAccess,
+                                    IREntryVector *code, IROperand *input,
                                     TempAllocator *tempAllocator) {
-  X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
+  X86_64GlobalAccess const *access = (X86_64GlobalAccess const *)baseAccess;
 
   IR(code, MEM_STORE(access->base.size, NAME(strdup(access->label)), input));
 }
-static IROperand *x86_64GlobalAccessAddrof(Access *baseAccess,
+static IROperand *x86_64GlobalAccessAddrof(Access const *baseAccess,
                                            IREntryVector *code,
                                            TempAllocator *tempAllocator) {
-  X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
+  X86_64GlobalAccess const *access = (X86_64GlobalAccess const *)baseAccess;
 
   return NAME(strdup(access->label));
 }
-static char *x86_64GlobalAccessGetLabel(Access *baseAccess) {
-  X86_64GlobalAccess *access = (X86_64GlobalAccess *)baseAccess;
+static char *x86_64GlobalAccessGetLabel(Access const *baseAccess) {
+  X86_64GlobalAccess const *access = (X86_64GlobalAccess const *)baseAccess;
   return strdup(access->label);
 }
 AccessVTable *X86_64GlobalAccessVTable = NULL;
@@ -101,17 +101,18 @@ static void x86_64TempAccessDtor(Access *baseAccess) {
   X86_64TempAccess *access = (X86_64TempAccess *)baseAccess;
   free(access);
 }
-static IROperand *x86_64TempAccessLoad(Access *baseAccess, IREntryVector *code,
+static IROperand *x86_64TempAccessLoad(Access const *baseAccess,
+                                       IREntryVector *code,
                                        TempAllocator *tempAllocator) {
-  X86_64TempAccess *access = (X86_64TempAccess *)baseAccess;
+  X86_64TempAccess const *access = (X86_64TempAccess const *)baseAccess;
 
   return TEMP(access->tempNum, access->base.size, access->base.alignment,
               access->base.kind);
 }
-static void x86_64TempAccessStore(Access *baseAccess, IREntryVector *code,
+static void x86_64TempAccessStore(Access const *baseAccess, IREntryVector *code,
                                   IROperand *input,
                                   TempAllocator *tempAllocator) {
-  X86_64TempAccess *access = (X86_64TempAccess *)baseAccess;
+  X86_64TempAccess const *access = (X86_64TempAccess const *)baseAccess;
 
   IR(code, MOVE(access->base.size,
                 TEMP(access->tempNum, access->base.size, access->base.alignment,
@@ -126,9 +127,10 @@ static AccessVTable *getX86_64TempAccessVTable(void) {
     X86_64TempAccessVTable->load = x86_64TempAccessLoad;
     X86_64TempAccessVTable->store = x86_64TempAccessStore;
     X86_64TempAccessVTable->addrof =
-        (IROperand * (*)(Access *, IREntryVector *, TempAllocator *))
+        (IROperand * (*)(Access const *, IREntryVector *, TempAllocator *))
             invalidFunction;
-    X86_64TempAccessVTable->getLabel = (char *(*)(Access *))invalidFunction;
+    X86_64TempAccessVTable->getLabel =
+        (char *(*)(Access const *))invalidFunction;
   }
   return X86_64TempAccessVTable;
 }
@@ -151,16 +153,17 @@ static void x86_64RegAccessDtor(Access *baseAccess) {
   X86_64RegAccess *access = (X86_64RegAccess *)baseAccess;
   free(access);
 }
-static IROperand *x86_64RegAccessLoad(Access *baseAccess, IREntryVector *code,
+static IROperand *x86_64RegAccessLoad(Access const *baseAccess,
+                                      IREntryVector *code,
                                       TempAllocator *tempAllocator) {
-  X86_64RegAccess *access = (X86_64RegAccess *)baseAccess;
+  X86_64RegAccess const *access = (X86_64RegAccess const *)baseAccess;
 
   return REG(access->regNum);
 }
-static void x86_64RegAccessStore(Access *baseAccess, IREntryVector *code,
+static void x86_64RegAccessStore(Access const *baseAccess, IREntryVector *code,
                                  IROperand *input,
                                  TempAllocator *tempAllocator) {
-  X86_64RegAccess *access = (X86_64RegAccess *)baseAccess;
+  X86_64RegAccess const *access = (X86_64RegAccess const *)baseAccess;
 
   IR(code, MOVE(access->base.size, REG(access->regNum), input));
 }
@@ -172,9 +175,10 @@ static AccessVTable *getX86_64RegAccessVTable(void) {
     X86_64RegAccessVTable->load = x86_64RegAccessLoad;
     X86_64RegAccessVTable->store = x86_64RegAccessStore;
     X86_64RegAccessVTable->addrof =
-        (IROperand * (*)(Access *, IREntryVector *, TempAllocator *))
+        (IROperand * (*)(Access const *, IREntryVector *, TempAllocator *))
             invalidFunction;
-    X86_64RegAccessVTable->getLabel = (char *(*)(Access *))invalidFunction;
+    X86_64RegAccessVTable->getLabel =
+        (char *(*)(Access const *))invalidFunction;
   }
   return X86_64RegAccessVTable;
 }
@@ -197,9 +201,10 @@ static void x86_64StackAccessDtor(Access *baseAccess) {
   X86_64StackAccess *access = (X86_64StackAccess *)baseAccess;
   free(access);
 }
-static IROperand *x86_64StackAccessLoad(Access *baseAccess, IREntryVector *code,
+static IROperand *x86_64StackAccessLoad(Access const *baseAccess,
+                                        IREntryVector *code,
                                         TempAllocator *tempAllocator) {
-  X86_64StackAccess *access = (X86_64StackAccess *)baseAccess;
+  X86_64StackAccess const *access = (X86_64StackAccess const *)baseAccess;
 
   size_t result = NEW(tempAllocator);
   IR(code, STACK_LOAD(access->base.size,
@@ -209,17 +214,17 @@ static IROperand *x86_64StackAccessLoad(Access *baseAccess, IREntryVector *code,
   return TEMP(result, access->base.size, access->base.alignment,
               access->base.kind);
 }
-static void x86_64StackAccessStore(Access *baseAccess, IREntryVector *code,
-                                   IROperand *input,
+static void x86_64StackAccessStore(Access const *baseAccess,
+                                   IREntryVector *code, IROperand *input,
                                    TempAllocator *tempAllocator) {
-  X86_64StackAccess *access = (X86_64StackAccess *)baseAccess;
+  X86_64StackAccess const *access = (X86_64StackAccess const *)baseAccess;
 
   IR(code, STACK_STORE(access->base.size, access->bpOffset, input));
 }
-static IROperand *x86_64StackAccessAddrof(Access *baseAccess,
+static IROperand *x86_64StackAccessAddrof(Access const *baseAccess,
                                           IREntryVector *code,
                                           TempAllocator *tempAllocator) {
-  X86_64StackAccess *access = (X86_64StackAccess *)baseAccess;
+  X86_64StackAccess const *access = (X86_64StackAccess const *)baseAccess;
 
   size_t address = NEW(tempAllocator);
   IR(code, BINOP(POINTER_WIDTH, IO_ADD,
@@ -236,7 +241,8 @@ static AccessVTable *getX86_64StackAccessVTable(void) {
     X86_64StackAccessVTable->load = x86_64StackAccessLoad;
     X86_64StackAccessVTable->store = x86_64StackAccessStore;
     X86_64StackAccessVTable->addrof = x86_64StackAccessAddrof;
-    X86_64StackAccessVTable->getLabel = (char *(*)(Access *))invalidFunction;
+    X86_64StackAccessVTable->getLabel =
+        (char *(*)(Access const *))invalidFunction;
   }
   return X86_64StackAccessVTable;
 }
@@ -260,15 +266,15 @@ static void x86_64FunctionAccessDtor(Access *baseAccess) {
   free(access->name);
   free(access);
 }
-static IROperand *x86_64FunctionAccessLoad(Access *baseAccess,
+static IROperand *x86_64FunctionAccessLoad(Access const *baseAccess,
                                            IREntryVector *code,
                                            TempAllocator *tempAllocator) {
-  X86_64FunctionAccess *access = (X86_64FunctionAccess *)baseAccess;
+  X86_64FunctionAccess const *access = (X86_64FunctionAccess const *)baseAccess;
 
   return NAME(strdup(access->name));
 }
-static char *x86_64FunctionAccessGetLabel(Access *baseAccess) {
-  X86_64FunctionAccess *access = (X86_64FunctionAccess *)baseAccess;
+static char *x86_64FunctionAccessGetLabel(Access const *baseAccess) {
+  X86_64FunctionAccess const *access = (X86_64FunctionAccess const *)baseAccess;
   return strdup(access->name);
 }
 AccessVTable *X86_64FunctionAccessVTable = NULL;
@@ -278,10 +284,10 @@ static AccessVTable *getX86_64FunctionAccessVTable(void) {
     X86_64FunctionAccessVTable->dtor = x86_64FunctionAccessDtor;
     X86_64FunctionAccessVTable->load = x86_64FunctionAccessLoad;
     X86_64FunctionAccessVTable->store =
-        (void (*)(Access *, IREntryVector *, IROperand *,
+        (void (*)(Access const *, IREntryVector *, IROperand *,
                   TempAllocator *))invalidFunction;
     X86_64FunctionAccessVTable->addrof =
-        (IROperand * (*)(Access *, IREntryVector *, TempAllocator *))
+        (IROperand * (*)(Access const *, IREntryVector *, TempAllocator *))
             invalidFunction;
     X86_64FunctionAccessVTable->getLabel = x86_64FunctionAccessGetLabel;
   }

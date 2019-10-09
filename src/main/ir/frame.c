@@ -22,19 +22,21 @@
 #include "typecheck/symbolTable.h"
 
 void accessDtor(Access *this) { this->vtable->dtor(this); }
-IROperand *accessLoad(Access *this, IREntryVector *code,
+IROperand *accessLoad(Access const *this, IREntryVector *code,
                       TempAllocator *tempAllocator) {
   return this->vtable->load(this, code, tempAllocator);
 }
-void accessStore(Access *this, IREntryVector *code, IROperand *input,
+void accessStore(Access const *this, IREntryVector *code, IROperand *input,
                  TempAllocator *tempAllocator) {
   this->vtable->store(this, code, input, tempAllocator);
 }
-IROperand *accessAddrof(struct Access *this, IREntryVector *code,
+IROperand *accessAddrof(struct Access const *this, IREntryVector *code,
                         TempAllocator *tempAllocator) {
   return this->vtable->addrof(this, code, tempAllocator);
 }
-char *accessGetLabel(Access *this) { return this->vtable->getLabel(this); }
+char *accessGetLabel(Access const *this) {
+  return this->vtable->getLabel(this);
+}
 
 void frameDtor(Frame *this) { this->vtable->dtor(this); }
 Access *frameAllocArg(Frame *this, Type const *type, bool escapes,
