@@ -1189,7 +1189,8 @@ bool typeCastable(Type const *to, Type const *from) {
     case K_LONG:
     case K_FLOAT:
     case K_DOUBLE:
-    case K_BOOL: {
+    case K_BOOL:
+    case K_ENUM: {
       switch (to->kind) {
         case K_UBYTE:
         case K_BYTE:
@@ -1269,65 +1270,6 @@ bool typeCastable(Type const *to, Type const *from) {
               from->data.reference.referenced) {
             return true;
           }
-          TypeVector *possibleTypes =
-              &to->data.reference.referenced->data.type.data.unionType.fields;
-          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
-            if (typeCastable(possibleTypes->elements[idx], from)) {
-              return true;
-            }
-          }
-          return false;
-        }
-        case K_TYPEDEF: {
-          return typeCastable(
-              to->data.reference.referenced->data.type.data.typedefType.type,
-              from);
-        }
-        case K_CONST: {
-          return typeCastable(to->data.modifier.type, from);
-        }
-        default: { return false; }
-      }
-    }
-    case K_ENUM: {
-      switch (to->kind) {
-        case K_UBYTE: {
-          return from->data.reference.referenced->data.type.data.enumType.fields
-                     .size <= UBYTE_MAX;
-        }
-        case K_BYTE: {
-          return from->data.reference.referenced->data.type.data.enumType.fields
-                     .size <= BYTE_MAX;
-        }
-        case K_USHORT: {
-          return from->data.reference.referenced->data.type.data.enumType.fields
-                     .size <= USHORT_MAX;
-        }
-        case K_SHORT: {
-          return from->data.reference.referenced->data.type.data.enumType.fields
-                     .size <= SHORT_MAX;
-        }
-        case K_UINT: {
-          return from->data.reference.referenced->data.type.data.enumType.fields
-                     .size <= UINT_MAX;
-        }
-        case K_INT: {
-          return from->data.reference.referenced->data.type.data.enumType.fields
-                     .size <= INT_MAX;
-        }
-        case K_ULONG: {
-          return from->data.reference.referenced->data.type.data.enumType.fields
-                     .size <= ULONG_MAX;
-        }
-        case K_LONG: {
-          return from->data.reference.referenced->data.type.data.enumType.fields
-                     .size <= LONG_MAX;
-        }
-        case K_ENUM: {
-          return to->data.reference.referenced ==
-                 from->data.reference.referenced;
-        }
-        case K_UNION: {
           TypeVector *possibleTypes =
               &to->data.reference.referenced->data.type.data.unionType.fields;
           for (size_t idx = 0; idx < possibleTypes->size; idx++) {
