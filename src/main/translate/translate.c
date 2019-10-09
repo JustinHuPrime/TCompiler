@@ -590,56 +590,70 @@ static void addGlobalAccesses(SymbolTable *stab, char const *moduleName,
 static IROperand *defaultArgToOperand(Node *initializer, Type const *argType,
                                       FragmentVector *fragments,
                                       LabelGenerator *labelGenerator) {
+  // TODO: write this, properly, accounting for the argType.
   switch (initializer->type) {
     case NT_CONSTEXP: {
       switch (initializer->data.constExp.type) {
+        // note: numeric types may need to be sign- or zero-extended
         case CT_UBYTE: {
-          return UBYTE(exp->data.constExp.value.ubyteVal);
+          return UBYTE(initializer->data.constExp.value.ubyteVal);
         }
         case CT_BYTE: {
-          return BYTE(exp->data.constExp.value.byteVal);
+          return BYTE(initializer->data.constExp.value.byteVal);
         }
         case CT_CHAR: {
-          return NULL;
+          return UBYTE(initializer->data.constExp.value.charVal);
         }
         case CT_USHORT: {
-          return NULL;
+          return USHORT(initializer->data.constExp.value.ushortVal);
         }
         case CT_SHORT: {
-          return NULL;
+          return SHORT(initializer->data.constExp.value.shortVal);
         }
         case CT_UINT: {
-          return NULL;
+          return UINT(initializer->data.constExp.value.uintVal);
         }
         case CT_INT: {
-          return NULL;
+          return INT(initializer->data.constExp.value.intVal);
         }
         case CT_WCHAR: {
-          return NULL;
+          return UINT(initializer->data.constExp.value.wcharVal);
         }
         case CT_ULONG: {
-          return NULL;
+          return ULONG(initializer->data.constExp.value.ulongVal);
         }
         case CT_LONG: {
-          return NULL;
+          return LONG(initializer->data.constExp.value.longVal);
         }
         case CT_FLOAT: {
-          return NULL;
+          return FLOAT(initializer->data.constExp.value.floatBits);
         }
         case CT_DOUBLE: {
-          return NULL;
+          return DOUBLE(initializer->data.constExp.value.doubleBits);
         }
         case CT_BOOL: {
-          return NULL;
+          return UBYTE(initializer->data.constExp.value.boolVal ? 1 : 0);
         }
         case CT_STRING: {
-          return NULL;
+          Fragment *f =
+              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
+          IR(f->data.rodata.ir,
+             CONST(0, STRING(tstrdup(
+                          initializer->data.constExp.value.stringVal))));
+          fragmentVectorInsert(fragments, f);
+          return NAME(strdup(f->label));
         }
         case CT_WSTRING: {
-          return NULL;
+          Fragment *f =
+              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
+          IR(f->data.rodata.ir,
+             CONST(0, WSTRING(twstrdup(
+                          initializer->data.constExp.value.wstringVal))));
+          fragmentVectorInsert(fragments, f);
+          return NAME(strdup(f->label));
         }
         case CT_NULL: {
-          return NULL;
+          return ULONG(0);
         }
         default: {
           error(__FILE__, __LINE__,
@@ -676,31 +690,138 @@ static void addDefaultArgs(Node *file, FragmentVector *fragments,
 }
 
 // translation - expressions
-struct Lvalue;
-typedef struct {
-  void (*dtor)(struct Lvalue *this);
-  IROperand *(*load)(struct Lvalue *this, IREntryVector *out,
-                     TempAllocator *tempAllocator);
-  void (*store)(struct Lvalue *this, IREntryVector *out, IROperand *value,
-                TempAllocator *tempAllocator);
-  IROperand *(*addrof)(struct Lvalue *this, IREntryVector *out,
-                       TempAllocator *tempAllocator);
-} LvalueVTable;
+typedef enum {
+  LK_ACCESS,
+  LK_MEM,
+  LK_ACCESS_OFFSET,
+} LvalueKind;
 typedef struct Lvalue {
-  LvalueVTable *vtable;
+  LvalueKind kind;
+  union {
+    struct {
+      Access const *access;
+    } access;
+    struct {
+      IROperand *address;
+    } mem;
+    struct {
+      Access const *access;
+      IROperand *offset;
+    } accessOffset;
+  } data;
 } Lvalue;
-static void lvalueDtor(Lvalue *this) { this->vtable->dtor(this); }
-static IROperand *lvalueLoad(Lvalue *this, IREntryVector *out,
+static Lvalue *lvalueCreate(LvalueKind kind) {
+  Lvalue *value = malloc(sizeof(Lvalue));
+  value->kind = kind;
+  return value;
+}
+static Lvalue *accessLvalueCreate(Access const *access) {
+  Lvalue *value = lvalueCreate(LK_ACCESS);
+  value->data.access.access = access;
+  return value;
+}
+static Lvalue *memLvalueCreate(IROperand *address) {
+  Lvalue *value = lvalueCreate(LK_MEM);
+  value->data.mem.address = address;
+  return value;
+}
+static Lvalue *accessOffsetLvalueCreate(Access const *access,
+                                        IROperand *offset) {
+  Lvalue *value = lvalueCreate(LK_ACCESS_OFFSET);
+  value->data.accessOffset.access = access;
+  value->data.accessOffset.offset = offset;
+  return value;
+}
+static IROperand *lvalueLoad(Lvalue *value, IREntryVector *out, size_t size,
+                             size_t alignment, AllocHint kind,
                              TempAllocator *tempAllocator) {
-  return this->vtable->load(this, out, tempAllocator);
+  switch (value->kind) {
+    case LK_ACCESS: {
+      return accessLoad(value->data.access.access, out, tempAllocator);
+    }
+    case LK_MEM: {
+      size_t temp = NEW(tempAllocator);
+      IR(out, MEM_LOAD(size, TEMP(temp, size, alignment, kind),
+                       irOperandCopy(value->data.mem.address)));
+      return TEMP(temp, size, alignment, kind);
+    }
+    case LK_ACCESS_OFFSET: {
+      size_t temp = NEW(tempAllocator);
+      IR(out, OFFSET_LOAD(size, TEMP(temp, size, alignment, kind),
+                          accessLoad(value->data.accessOffset.access, out,
+                                     tempAllocator),
+                          irOperandCopy(value->data.accessOffset.offset)));
+      return TEMP(temp, size, alignment, kind);
+    }
+    default: { error(__FILE__, __LINE__, "invalid LvalueKind enum"); }
+  }
 }
-static void lvalueStore(Lvalue *this, IREntryVector *out, IROperand *value,
-                        TempAllocator *tempAllocator) {
-  this->vtable->store(this, out, value, tempAllocator);
+static void lvalueStore(Lvalue *value, IREntryVector *out, IROperand *in,
+                        size_t size, TempAllocator *tempAllocator) {
+  switch (value->kind) {
+    case LK_ACCESS: {
+      accessStore(value->data.access.access, out, in, tempAllocator);
+      break;
+    }
+    case LK_MEM: {
+      IR(out, MEM_STORE(size, irOperandCopy(value->data.mem.address), in));
+      break;
+    }
+    case LK_ACCESS_OFFSET: {
+      size_t temp = NEW(tempAllocator);
+      IR(out,
+         MOVE(value->data.accessOffset.access->size,
+              TEMP(temp, value->data.accessOffset.access->size,
+                   value->data.accessOffset.access->alignment,
+                   value->data.accessOffset.access->kind),
+              accessLoad(value->data.accessOffset.access, out, tempAllocator)));
+      IR(out, OFFSET_STORE(size,
+                           TEMP(temp, value->data.accessOffset.access->size,
+                                value->data.accessOffset.access->alignment,
+                                value->data.accessOffset.access->kind),
+                           in, irOperandCopy(value->data.accessOffset.offset)));
+      break;
+    }
+    default: { error(__FILE__, __LINE__, "invalid LvalueKind enum"); }
+  }
 }
-static IROperand *lvalueAddrof(Lvalue *this, IREntryVector *out,
+static IROperand *lvalueAddrof(Lvalue *value, IREntryVector *out,
                                TempAllocator *tempAllocator) {
-  return this->vtable->addrof(this, out, tempAllocator);
+  switch (value->kind) {
+    case LK_ACCESS: {
+      return accessAddrof(value->data.access.access, out, tempAllocator);
+    }
+    case LK_MEM: {
+      return irOperandCopy(value->data.mem.address);
+    }
+    case LK_ACCESS_OFFSET: {
+      size_t temp = NEW(tempAllocator);
+      IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                    TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                    accessAddrof(value->data.accessOffset.access, out,
+                                 tempAllocator),
+                    irOperandCopy(value->data.accessOffset.offset)));
+      return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+    }
+    default: { error(__FILE__, __LINE__, "invalid LvalueKind enum"); }
+  }
+}
+static void lvalueDestroy(Lvalue *value) {
+  switch (value->kind) {
+    case LK_ACCESS: {
+      break;
+    }
+    case LK_MEM: {
+      irOperandDestroy(value->data.mem.address);
+      break;
+    }
+    case LK_ACCESS_OFFSET: {
+      irOperandDestroy(value->data.accessOffset.offset);
+      break;
+    }
+    default: { error(__FILE__, __LINE__, "invalid LvalueKind enum"); }
+  }
+  free(value);
 }
 
 static IROperand *translateCast(IROperand *from, Type const *fromType,
@@ -742,9 +863,9 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                                   labelGenerator, tempAllocator),
                   expressionTypeof(exp->data.binOpExp.rhs),
                   exp->data.binOpExp.resultType, out, tempAllocator),
-              tempAllocator);
+              typeSizeof(exp->data.binOpExp.resultType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_MULASSIGN: {
@@ -766,8 +887,10 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
           }
           IR(out,
              BINOP(size, op, TEMP(temp, size, size, kind),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -777,9 +900,9 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, kind),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(exp->data.binOpExp.resultType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_DIVASSIGN: {
@@ -801,8 +924,10 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
           }
           IR(out,
              BINOP(size, op, TEMP(temp, size, size, kind),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -812,9 +937,9 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, kind),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(exp->data.binOpExp.resultType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_MODASSIGN: {
@@ -834,8 +959,10 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
           }
           IR(out,
              BINOP(size, op, TEMP(temp, size, size, AH_GP),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(
+                       lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                  typeAlignof(lhsType), AH_GP, tempAllocator),
+                       lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -845,9 +972,9 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(exp->data.binOpExp.resultType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_ADDASSIGN: {
@@ -875,7 +1002,8 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                        ULONG((uint64_t)typeSizeof(dereferenced))));
               IR(out, BINOP(POINTER_WIDTH, IO_ADD,
                             TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                            lvalueLoad(lhs, out, tempAllocator),
+                            lvalueLoad(lhs, out, POINTER_WIDTH, POINTER_WIDTH,
+                                       AH_GP, tempAllocator),
                             translateCast(
                                 TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
                                 ulong, lhsType, out, tempAllocator)));
@@ -892,7 +1020,8 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                        LONG((int64_t)typeSizeof(dereferenced))));
               IR(out, BINOP(POINTER_WIDTH, IO_ADD,
                             TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                            lvalueLoad(lhs, out, tempAllocator),
+                            lvalueLoad(lhs, out, POINTER_WIDTH, POINTER_WIDTH,
+                                       AH_GP, tempAllocator),
                             translateCast(
                                 TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
                                 slong, lhsType, out, tempAllocator)));
@@ -900,7 +1029,7 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
             }
             lvalueStore(lhs, out,
                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                        tempAllocator);
+                        POINTER_WIDTH, tempAllocator);
 
             typeDestroy(dereferenced);
           } else {
@@ -916,22 +1045,26 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
               op = IO_ADD;
             }
             IR(out,
-               BINOP(size, op, TEMP(temp, size, size, kind),
-                     translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                   resultType, out, tempAllocator),
-                     translateCast(
-                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
-                                         frame, labelGenerator, tempAllocator),
-                         expressionTypeof(exp->data.binOpExp.rhs), resultType,
-                         out, tempAllocator)));
+               BINOP(
+                   size, op, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
             lvalueStore(lhs, out,
                         translateCast(TEMP(temp, size, size, kind),
                                       exp->data.binOpExp.resultType, lhsType,
                                       out, tempAllocator),
+                        typeSizeof(exp->data.binOpExp.resultType),
                         tempAllocator);
           }
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_SUBASSIGN: {
@@ -960,7 +1093,8 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                        ULONG((uint64_t)typeSizeof(dereferenced))));
               IR(out, BINOP(POINTER_WIDTH, IO_SUB,
                             TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                            lvalueLoad(lhs, out, tempAllocator),
+                            lvalueLoad(lhs, out, POINTER_WIDTH, POINTER_WIDTH,
+                                       AH_GP, tempAllocator),
                             translateCast(
                                 TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
                                 ulong, lhsType, out, tempAllocator)));
@@ -977,7 +1111,8 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                        LONG((int64_t)typeSizeof(dereferenced))));
               IR(out, BINOP(POINTER_WIDTH, IO_SUB,
                             TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                            lvalueLoad(lhs, out, tempAllocator),
+                            lvalueLoad(lhs, out, POINTER_WIDTH, POINTER_WIDTH,
+                                       AH_GP, tempAllocator),
                             translateCast(
                                 TEMP(rhsValue, LONG_WIDTH, LONG_WIDTH, AH_GP),
                                 slong, lhsType, out, tempAllocator)));
@@ -985,7 +1120,7 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
             }
             lvalueStore(lhs, out,
                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                        tempAllocator);
+                        POINTER_WIDTH, tempAllocator);
 
             typeDestroy(dereferenced);
           } else {
@@ -1001,22 +1136,26 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
               op = IO_SUB;
             }
             IR(out,
-               BINOP(size, op, TEMP(temp, size, size, kind),
-                     translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                   resultType, out, tempAllocator),
-                     translateCast(
-                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
-                                         frame, labelGenerator, tempAllocator),
-                         expressionTypeof(exp->data.binOpExp.rhs), resultType,
-                         out, tempAllocator)));
+               BINOP(
+                   size, op, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
             lvalueStore(lhs, out,
                         translateCast(TEMP(temp, size, size, kind),
                                       exp->data.binOpExp.resultType, lhsType,
                                       out, tempAllocator),
+                        typeSizeof(exp->data.binOpExp.resultType),
                         tempAllocator);
           }
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_LSHIFTASSIGN: {
@@ -1028,16 +1167,17 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_SLL, TEMP(temp, size, size, AH_GP),
-                   lvalueLoad(lhs, out, tempAllocator),
+                   lvalueLoad(lhs, out, size, size, AH_GP, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
                        expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
                        tempAllocator)));
-          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), size,
+                      tempAllocator);
 
           typeDestroy(byteType);
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_LRSHIFTASSIGN: {
@@ -1049,16 +1189,17 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_SLR, TEMP(temp, size, size, AH_GP),
-                   lvalueLoad(lhs, out, tempAllocator),
+                   lvalueLoad(lhs, out, size, size, AH_GP, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
                        expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
                        tempAllocator)));
-          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), size,
+                      tempAllocator);
 
           typeDestroy(byteType);
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_ARSHIFTASSIGN: {
@@ -1070,16 +1211,17 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_SAR, TEMP(temp, size, size, AH_GP),
-                   lvalueLoad(lhs, out, tempAllocator),
+                   lvalueLoad(lhs, out, size, size, AH_GP, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
                        expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
                        tempAllocator)));
-          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), size,
+                      tempAllocator);
 
           typeDestroy(byteType);
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_BITANDASSIGN: {
@@ -1092,8 +1234,10 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_AND, TEMP(temp, size, size, AH_GP),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -1103,9 +1247,9 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(exp->data.binOpExp.resultType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_BITXORASSIGN: {
@@ -1118,8 +1262,10 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_XOR, TEMP(temp, size, size, AH_GP),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -1129,9 +1275,9 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(exp->data.binOpExp.resultType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_BITORASSIGN: {
@@ -1144,8 +1290,10 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_OR, TEMP(temp, size, size, AH_GP),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -1155,9 +1303,9 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(exp->data.binOpExp.resultType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           break;
         }
         case BO_BITAND:
@@ -1207,11 +1355,12 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
             // platforms - static assert catches that
             IR(out, BINOP(POINTER_WIDTH, IO_ADD,
                           TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                          lvalueLoad(value, out, tempAllocator),
+                          lvalueLoad(value, out, POINTER_WIDTH, POINTER_WIDTH,
+                                     AH_GP, tempAllocator),
                           ULONG((size_t)typeSizeof(dereferenced))));
             lvalueStore(value, out,
                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                        tempAllocator);
+                        POINTER_WIDTH, tempAllocator);
           } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
             // is integral
             size_t temp = NEW(tempAllocator);
@@ -1220,9 +1369,11 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
             one->kind = OK_CONSTANT;
             one->data.constant.bits =
                 0x1;  // constant one, unsized, sign-agnostic
-            IR(out, BINOP(size, IO_ADD, TEMP(temp, size, size, AH_GP),
-                          lvalueLoad(value, out, tempAllocator), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+            IR(out,
+               BINOP(size, IO_ADD, TEMP(temp, size, size, AH_GP),
+                     lvalueLoad(value, out, size, size, AH_GP, tempAllocator),
+                     one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP), size,
                         tempAllocator);
           } else {
             // is float/double
@@ -1230,13 +1381,15 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
             size_t size = typeSizeof(exp->data.unOpExp.resultType);
             IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
                                                  : ULONG(DOUBLE_BITS_ONE);
-            IR(out, BINOP(size, IO_FP_ADD, TEMP(temp, size, size, AH_SSE),
-                          lvalueLoad(value, out, tempAllocator), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+            IR(out,
+               BINOP(size, IO_FP_ADD, TEMP(temp, size, size, AH_SSE),
+                     lvalueLoad(value, out, size, size, AH_SSE, tempAllocator),
+                     one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE), size,
                         tempAllocator);
           }
 
-          lvalueDtor(value);
+          lvalueDestroy(value);
           break;
         }
         case UO_PREDEC:
@@ -1253,11 +1406,12 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
             // platforms - static assert catches that
             IR(out, BINOP(POINTER_WIDTH, IO_SUB,
                           TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                          lvalueLoad(value, out, tempAllocator),
+                          lvalueLoad(value, out, POINTER_WIDTH, POINTER_WIDTH,
+                                     AH_GP, tempAllocator),
                           ULONG((size_t)typeSizeof(dereferenced))));
             lvalueStore(value, out,
                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                        tempAllocator);
+                        POINTER_WIDTH, tempAllocator);
           } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
             // is integral
             size_t temp = NEW(tempAllocator);
@@ -1266,9 +1420,11 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
             one->kind = OK_CONSTANT;
             one->data.constant.bits =
                 0x1;  // constant one, unsized, sign-agnostic
-            IR(out, BINOP(size, IO_SUB, TEMP(temp, size, size, AH_GP),
-                          lvalueLoad(value, out, tempAllocator), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+            IR(out,
+               BINOP(size, IO_SUB, TEMP(temp, size, size, AH_GP),
+                     lvalueLoad(value, out, size, size, AH_GP, tempAllocator),
+                     one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP), size,
                         tempAllocator);
           } else {
             // is float/double
@@ -1276,13 +1432,15 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
             size_t size = typeSizeof(exp->data.unOpExp.resultType);
             IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
                                                  : ULONG(DOUBLE_BITS_ONE);
-            IR(out, BINOP(size, IO_FP_SUB, TEMP(temp, size, size, AH_SSE),
-                          lvalueLoad(value, out, tempAllocator), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+            IR(out,
+               BINOP(size, IO_FP_SUB, TEMP(temp, size, size, AH_SSE),
+                     lvalueLoad(value, out, size, size, AH_SSE, tempAllocator),
+                     one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE), size,
                         tempAllocator);
           }
 
-          lvalueDtor(value);
+          lvalueDestroy(value);
           break;
         }
         case UO_NEG:
@@ -1314,14 +1472,16 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                                     frame, labelGenerator, tempAllocator);
       char *end = NEW_LABEL(labelGenerator);
       IR(out, CJUMP(BYTE_WIDTH, IO_JE, strdup(end),
-                    lvalueLoad(lhs, out, tempAllocator), UBYTE(0)));
+                    lvalueLoad(lhs, out, BYTE_WIDTH, BYTE_WIDTH, AH_GP,
+                               tempAllocator),
+                    UBYTE(0)));
       lvalueStore(lhs, out,
                   translateRvalue(exp->data.landAssignExp.rhs, out, fragments,
                                   frame, labelGenerator, tempAllocator),
-                  tempAllocator);
+                  BYTE_WIDTH, tempAllocator);
       IR(out, LABEL(end));
 
-      lvalueDtor(lhs);
+      lvalueDestroy(lhs);
       break;
     }
     case NT_LORASSIGNEXP: {
@@ -1334,14 +1494,16 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
                                     frame, labelGenerator, tempAllocator);
       char *end = NEW_LABEL(labelGenerator);
       IR(out, CJUMP(BYTE_WIDTH, IO_JNE, strdup(end),
-                    lvalueLoad(lhs, out, tempAllocator), UBYTE(0)));
+                    lvalueLoad(lhs, out, BYTE_WIDTH, BYTE_WIDTH, AH_GP,
+                               tempAllocator),
+                    UBYTE(0)));
       lvalueStore(lhs, out,
                   translateRvalue(exp->data.landAssignExp.rhs, out, fragments,
                                   frame, labelGenerator, tempAllocator),
-                  tempAllocator);
+                  BYTE_WIDTH, tempAllocator);
       IR(out, LABEL(end));
 
-      lvalueDtor(lhs);
+      lvalueDestroy(lhs);
       break;
     }
     case NT_TERNARYEXP: {
@@ -1500,7 +1662,139 @@ static Lvalue *translateLvalue(Node *exp, IREntryVector *out,
     case NT_BINOPEXP: {
       switch (exp->data.binOpExp.op) {
         case BO_ARRAYACCESS: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          // if array is memLvalue, produce memLvalue + offset
+          // if array is accessLvalue, produce accessOffsetLvalue
+          // if array is accessOffsetLvalue, produce accessOffsetLvalue + offset
+          Type const *lhsType = expressionTypeof(exp->data.binOpExp.lhs);
+          Type const *rhsType = expressionTypeof(exp->data.binOpExp.rhs);
+          Type const *elementType = exp->data.binOpExp.resultType;
+          size_t offsetTemp = NEW(tempAllocator);
+          size_t elementSize = typeSizeof(elementType);
+          Type *ulong = keywordTypeCreate(K_ULONG);
+          Type *slong = keywordTypeCreate(K_LONG);
+          Type const *offsetType;
+
+          if (typeIsValuePointer(lhsType)) {
+            size_t pointerTemp = NEW(tempAllocator);
+            size_t temp = NEW(tempAllocator);
+
+            IR(out,
+               MOVE(POINTER_WIDTH,
+                    TEMP(pointerTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                    translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                    frame, labelGenerator, tempAllocator)));
+            if (typeIsUnsignedIntegral(rhsType)) {
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, ulong, out, tempAllocator),
+                       ULONG((uint64_t)elementSize)));
+              offsetType = ulong;
+            } else {
+              // rhs is signed
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_SMUL,
+                       TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, slong, out, tempAllocator),
+                       LONG((int64_t)elementSize)));
+              offsetType = slong;
+            }
+
+            IR(out,
+               BINOP(POINTER_WIDTH, IO_ADD,
+                     TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                     TEMP(pointerTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                     translateCast(
+                         TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                         offsetType, lhsType, out, tempAllocator)));
+
+            typeDestroy(ulong);
+            typeDestroy(slong);
+            return memLvalueCreate(
+                TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP));
+          } else {
+            // is array
+            Lvalue *lhsValue =
+                translateLvalue(exp->data.binOpExp.lhs, out, fragments, frame,
+                                labelGenerator, tempAllocator);
+            if (typeIsUnsignedIntegral(rhsType)) {
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_UMUL,
+                       TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, ulong, out, tempAllocator),
+                       ULONG((uint64_t)elementSize)));
+              offsetType = ulong;
+            } else {
+              // rhs is signed
+              IR(out,
+                 BINOP(LONG_WIDTH, IO_SMUL,
+                       TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                       translateCast(translateRvalue(
+                                         exp->data.binOpExp.rhs, out, fragments,
+                                         frame, labelGenerator, tempAllocator),
+                                     rhsType, slong, out, tempAllocator),
+                       LONG((int64_t)elementSize)));
+              offsetType = slong;
+            }
+
+            Type *pointerType =
+                modifierTypeCreate(K_PTR, keywordTypeCreate(K_VOID));
+            switch (lhsValue->kind) {
+              case LK_ACCESS: {
+                Access const *access = lhsValue->data.access.access;
+                IROperand *offset = translateCast(
+                    TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP), offsetType,
+                    pointerType, out, tempAllocator);
+                lvalueDestroy(lhsValue);
+                typeDestroy(ulong);
+                typeDestroy(slong);
+                typeDestroy(pointerType);
+                return accessOffsetLvalueCreate(access, offset);
+              }
+              case LK_MEM: {
+                size_t temp = NEW(tempAllocator);
+                IR(out,
+                   BINOP(POINTER_WIDTH, IO_ADD,
+                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                         lhsValue->data.mem.address,
+                         translateCast(
+                             TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                             offsetType, pointerType, out, tempAllocator)));
+                lhsValue->data.mem.address =
+                    TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+                typeDestroy(ulong);
+                typeDestroy(slong);
+                typeDestroy(pointerType);
+                return lhsValue;
+              }
+              case LK_ACCESS_OFFSET: {
+                size_t temp = NEW(tempAllocator);
+                IR(out,
+                   BINOP(POINTER_WIDTH, IO_ADD,
+                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                         lhsValue->data.accessOffset.offset,
+                         translateCast(
+                             TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
+                             offsetType, pointerType, out, tempAllocator)));
+                lhsValue->data.accessOffset.offset =
+                    TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+                typeDestroy(ulong);
+                typeDestroy(slong);
+                typeDestroy(pointerType);
+                return lhsValue;
+              }
+              default: { error(__FILE__, __LINE__, "invalid LvalueKind enum"); }
+            }
+          }
         }
         default: { error(__FILE__, __LINE__, "invalid BinOpType enum"); }
       }
@@ -1509,19 +1803,85 @@ static Lvalue *translateLvalue(Node *exp, IREntryVector *out,
     case NT_UNOPEXP: {
       switch (exp->data.unOpExp.op) {
         case UO_DEREF: {
-          error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+          // produce memLvalue
+          size_t temp = NEW(tempAllocator);
+          IR(out, MOVE(POINTER_WIDTH,
+                       TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                       translateRvalue(exp->data.unOpExp.target, out, fragments,
+                                       frame, labelGenerator, tempAllocator)));
+          return memLvalueCreate(
+              TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP));
         }
         default: { error(__FILE__, __LINE__, "invalid UnOpType enum"); }
       }
     }
     case NT_STRUCTACCESSEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      // if struct is memLvalue, produce memLvalue + offset
+      // if struct is accessLvalue, produce accessOffsetLvalue
+      // if struct is accessOffsetLvalue, produce accessOffsetLvalue + offset
+      Type const *baseType = expressionTypeof(exp->data.structAccessExp.base);
+      Lvalue *lhsValue =
+          translateLvalue(exp->data.structAccessExp.base, out, fragments, frame,
+                          labelGenerator, tempAllocator);
+      IROperand *offset = ULONG((uint64_t)typeOffset(
+          baseType, exp->data.structAccessExp.element->data.id.id));
+      if (baseType->kind == K_STRUCT) {
+        switch (lhsValue->kind) {
+          case LK_ACCESS: {
+            Access const *access = lhsValue->data.access.access;
+            lvalueDestroy(lhsValue);
+            return accessOffsetLvalueCreate(access, offset);
+          }
+          case LK_MEM: {
+            size_t temp = NEW(tempAllocator);
+            IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          lhsValue->data.mem.address, offset));
+            lhsValue->data.mem.address =
+                TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+            return lhsValue;
+          }
+          case LK_ACCESS_OFFSET: {
+            size_t temp = NEW(tempAllocator);
+            IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                          TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                          lhsValue->data.accessOffset.offset, offset));
+            lhsValue->data.accessOffset.offset =
+                TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+            return lhsValue;
+          }
+          default: { error(__FILE__, __LINE__, "invalid LvalueKind enum"); }
+        }
+      } else {  // is union
+        return lhsValue;
+      }
     }
     case NT_STRUCTPTRACCESSEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      // produce memLvalue + offset
+      Type *baseType = typeGetDereferenced(
+          expressionTypeof(exp->data.structPtrAccessExp.base));
+      size_t temp = NEW(tempAllocator);
+      if (baseType->kind == K_STRUCT) {
+        IR(out, BINOP(POINTER_WIDTH, IO_ADD,
+                      TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                      translateRvalue(exp->data.structPtrAccessExp.base, out,
+                                      fragments, frame, labelGenerator,
+                                      tempAllocator),
+                      ULONG((uint64_t)typeOffset(
+                          baseType,
+                          exp->data.structPtrAccessExp.element->data.id.id))));
+        typeDestroy(baseType);
+        return memLvalueCreate(TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP));
+      } else {  // is union
+        typeDestroy(baseType);
+        return memLvalueCreate(
+            translateRvalue(exp->data.structPtrAccessExp.base, out, fragments,
+                            frame, labelGenerator, tempAllocator));
+      }
     }
     case NT_ID: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      // produce accessLvalue
+      return accessLvalueCreate(exp->data.id.symbol->data.var.access);
     }
     default: {
       error(__FILE__, __LINE__,
@@ -1557,10 +1917,10 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                                          frame, labelGenerator, tempAllocator),
                                      expressionTypeof(exp->data.binOpExp.rhs),
                                      resultType, out, tempAllocator)));
-          lvalueStore(lhs, out, TEMP(temp, size, alignment, kind),
+          lvalueStore(lhs, out, TEMP(temp, size, alignment, kind), size,
                       tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           return TEMP(temp, size, alignment, kind);
         }
         case BO_MULASSIGN: {
@@ -1582,8 +1942,10 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
           }
           IR(out,
              BINOP(size, op, TEMP(temp, size, size, kind),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -1593,9 +1955,9 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, kind),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(lhsType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           return TEMP(temp, size, size, kind);
         }
         case BO_DIVASSIGN: {
@@ -1617,8 +1979,10 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
           }
           IR(out,
              BINOP(size, op, TEMP(temp, size, size, kind),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -1628,9 +1992,9 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, kind),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(lhsType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           return TEMP(temp, size, size, kind);
         }
         case BO_MODASSIGN: {
@@ -1650,8 +2014,10 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
           }
           IR(out,
              BINOP(size, op, TEMP(temp, size, size, AH_GP),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -1661,9 +2027,9 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(lhsType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           return TEMP(temp, size, size, AH_GP);
         }
         case BO_ADDASSIGN: {
@@ -1689,15 +2055,16 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                      ULONG((uint64_t)typeSizeof(dereferenced))));
             IR(out, BINOP(POINTER_WIDTH, IO_ADD,
                           TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                          lvalueLoad(lhs, out, tempAllocator),
+                          lvalueLoad(lhs, out, POINTER_WIDTH, POINTER_WIDTH,
+                                     AH_GP, tempAllocator),
                           TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
             lvalueStore(lhs, out,
                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                        tempAllocator);
+                        POINTER_WIDTH, tempAllocator);
 
             typeDestroy(dereferenced);
 
-            lvalueDtor(lhs);
+            lvalueDestroy(lhs);
             return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
           } else {
             Type const *resultType = exp->data.binOpExp.resultType;
@@ -1712,21 +2079,24 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
               op = IO_ADD;
             }
             IR(out,
-               BINOP(size, op, TEMP(temp, size, size, kind),
-                     translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                   resultType, out, tempAllocator),
-                     translateCast(
-                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
-                                         frame, labelGenerator, tempAllocator),
-                         expressionTypeof(exp->data.binOpExp.rhs), resultType,
-                         out, tempAllocator)));
+               BINOP(
+                   size, op, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
             lvalueStore(lhs, out,
                         translateCast(TEMP(temp, size, size, kind),
                                       exp->data.binOpExp.resultType, lhsType,
                                       out, tempAllocator),
-                        tempAllocator);
+                        typeSizeof(lhsType), tempAllocator);
 
-            lvalueDtor(lhs);
+            lvalueDestroy(lhs);
             return TEMP(temp, size, size, kind);
           }
         }
@@ -1753,15 +2123,16 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                      ULONG((uint64_t)typeSizeof(dereferenced))));
             IR(out, BINOP(POINTER_WIDTH, IO_SUB,
                           TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                          lvalueLoad(lhs, out, tempAllocator),
+                          lvalueLoad(lhs, out, POINTER_WIDTH, POINTER_WIDTH,
+                                     AH_GP, tempAllocator),
                           TEMP(rhsValue, POINTER_WIDTH, POINTER_WIDTH, AH_GP)));
             lvalueStore(lhs, out,
                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                        tempAllocator);
+                        POINTER_WIDTH, tempAllocator);
 
             typeDestroy(dereferenced);
 
-            lvalueDtor(lhs);
+            lvalueDestroy(lhs);
             return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
           } else {
             Type const *resultType = exp->data.binOpExp.resultType;
@@ -1776,21 +2147,24 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
               op = IO_SUB;
             }
             IR(out,
-               BINOP(size, op, TEMP(temp, size, size, kind),
-                     translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                   resultType, out, tempAllocator),
-                     translateCast(
-                         translateRvalue(exp->data.binOpExp.rhs, out, fragments,
-                                         frame, labelGenerator, tempAllocator),
-                         expressionTypeof(exp->data.binOpExp.rhs), resultType,
-                         out, tempAllocator)));
+               BINOP(
+                   size, op, TEMP(temp, size, size, kind),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
+                   translateCast(
+                       translateRvalue(exp->data.binOpExp.rhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator),
+                       expressionTypeof(exp->data.binOpExp.rhs), resultType,
+                       out, tempAllocator)));
             lvalueStore(lhs, out,
                         translateCast(TEMP(temp, size, size, kind),
                                       exp->data.binOpExp.resultType, lhsType,
                                       out, tempAllocator),
-                        tempAllocator);
+                        typeSizeof(lhsType), tempAllocator);
 
-            lvalueDtor(lhs);
+            lvalueDestroy(lhs);
             return TEMP(temp, size, size, kind);
           }
         }
@@ -1803,16 +2177,17 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_SLL, TEMP(temp, size, size, AH_GP),
-                   lvalueLoad(lhs, out, tempAllocator),
+                   lvalueLoad(lhs, out, size, size, AH_GP, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
                        expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
                        tempAllocator)));
-          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), size,
+                      tempAllocator);
 
           typeDestroy(byteType);
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           return TEMP(temp, size, size, AH_GP);
         }
         case BO_LRSHIFTASSIGN: {
@@ -1824,16 +2199,17 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_SLR, TEMP(temp, size, size, AH_GP),
-                   lvalueLoad(lhs, out, tempAllocator),
+                   lvalueLoad(lhs, out, size, size, AH_GP, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
                        expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
                        tempAllocator)));
-          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), size,
+                      tempAllocator);
 
           typeDestroy(byteType);
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           return TEMP(temp, size, size, AH_GP);
         }
         case BO_ARSHIFTASSIGN: {
@@ -1845,16 +2221,17 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_SAR, TEMP(temp, size, size, AH_GP),
-                   lvalueLoad(lhs, out, tempAllocator),
+                   lvalueLoad(lhs, out, size, size, AH_GP, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
                        expressionTypeof(exp->data.binOpExp.rhs), byteType, out,
                        tempAllocator)));
-          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), tempAllocator);
+          lvalueStore(lhs, out, TEMP(temp, size, size, AH_GP), size,
+                      tempAllocator);
 
           typeDestroy(byteType);
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           return TEMP(temp, size, size, AH_GP);
         }
         case BO_BITANDASSIGN: {
@@ -1867,8 +2244,10 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_AND, TEMP(temp, size, size, AH_GP),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -1878,9 +2257,9 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(lhsType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           return TEMP(temp, size, size, AH_GP);
         }
         case BO_BITXORASSIGN: {
@@ -1893,8 +2272,10 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_XOR, TEMP(temp, size, size, AH_GP),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -1904,9 +2285,9 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(lhsType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           return TEMP(temp, size, size, AH_GP);
         }
         case BO_BITORASSIGN: {
@@ -1919,8 +2300,10 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
 
           IR(out,
              BINOP(size, IO_OR, TEMP(temp, size, size, AH_GP),
-                   translateCast(lvalueLoad(lhs, out, tempAllocator), lhsType,
-                                 resultType, out, tempAllocator),
+                   translateCast(lvalueLoad(lhs, out, typeSizeof(lhsType),
+                                            typeAlignof(lhsType),
+                                            typeKindof(lhsType), tempAllocator),
+                                 lhsType, resultType, out, tempAllocator),
                    translateCast(
                        translateRvalue(exp->data.binOpExp.rhs, out, fragments,
                                        frame, labelGenerator, tempAllocator),
@@ -1930,9 +2313,9 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                       translateCast(TEMP(temp, size, size, AH_GP),
                                     exp->data.binOpExp.resultType, lhsType, out,
                                     tempAllocator),
-                      tempAllocator);
+                      typeSizeof(lhsType), tempAllocator);
 
-          lvalueDtor(lhs);
+          lvalueDestroy(lhs);
           return TEMP(temp, size, size, AH_GP);
         }
         case BO_BITAND: {
@@ -2429,6 +2812,16 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
           Type *ulong = keywordTypeCreate(K_ULONG);
           Type const *offsetType;
 
+          size_t lhsTemp = NEW(tempAllocator);
+          size_t lhsSize = typeSizeof(lhsType);
+          size_t lhsAlignment = typeAlignof(lhsType);
+          AllocHint lhsKind = typeKindof(lhsType);
+
+          // translate and save lhs
+          IR(out, MOVE(lhsSize, TEMP(lhsTemp, lhsSize, lhsAlignment, lhsKind),
+                       translateRvalue(exp->data.binOpExp.lhs, out, fragments,
+                                       frame, labelGenerator, tempAllocator)));
+
           // only valid if on <= 64 bit platform. static assert checks for this
           if (typeIsUnsignedIntegral(rhsType)) {
             IR(out,
@@ -2455,12 +2848,10 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
 
           if (typeIsValuePointer(lhsType)) {
             size_t pointerTemp = NEW(tempAllocator);
-
             IR(out,
                BINOP(POINTER_WIDTH, IO_ADD,
                      TEMP(pointerTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                     translateRvalue(exp->data.binOpExp.lhs, out, fragments,
-                                     frame, labelGenerator, tempAllocator),
+                     TEMP(lhsTemp, lhsSize, lhsAlignment, lhsKind),
                      translateCast(
                          TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP),
                          offsetType, lhsType, out, tempAllocator)));
@@ -2469,11 +2860,10 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                                   AH_GP)));
           } else {
             // lhs is array
-            IR(out, OFFSET_LOAD(
-                        size, TEMP(temp, size, alignment, kind),
-                        translateRvalue(exp->data.binOpExp.lhs, out, fragments,
-                                        frame, labelGenerator, tempAllocator),
-                        TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP)));
+            IR(out,
+               OFFSET_LOAD(size, TEMP(temp, size, alignment, kind),
+                           TEMP(lhsTemp, lhsSize, lhsAlignment, lhsKind),
+                           TEMP(offsetTemp, LONG_WIDTH, LONG_WIDTH, AH_GP)));
           }
 
           typeDestroy(slong);
@@ -2503,7 +2893,7 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
               translateLvalue(exp->data.unOpExp.target, out, fragments, frame,
                               labelGenerator, tempAllocator);
           IROperand *retVal = lvalueAddrof(value, out, tempAllocator);
-          lvalueDtor(value);
+          lvalueDestroy(value);
           return retVal;
         }
         case UO_PREINC: {
@@ -2519,13 +2909,14 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             // platforms - static assert catches that
             IR(out, BINOP(POINTER_WIDTH, IO_ADD,
                           TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                          lvalueLoad(value, out, tempAllocator),
+                          lvalueLoad(value, out, POINTER_WIDTH, POINTER_WIDTH,
+                                     AH_GP, tempAllocator),
                           ULONG((size_t)typeSizeof(dereferenced))));
             lvalueStore(value, out,
                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                        tempAllocator);
+                        POINTER_WIDTH, tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
           } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
             // is integral
@@ -2535,12 +2926,14 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             one->kind = OK_CONSTANT;
             one->data.constant.bits =
                 0x1;  // constant one, unsized, sign-agnostic
-            IR(out, BINOP(size, IO_ADD, TEMP(temp, size, size, AH_GP),
-                          lvalueLoad(value, out, tempAllocator), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+            IR(out,
+               BINOP(size, IO_ADD, TEMP(temp, size, size, AH_GP),
+                     lvalueLoad(value, out, size, size, AH_GP, tempAllocator),
+                     one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP), size,
                         tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(temp, size, size, AH_GP);
           } else {
             // is float/double
@@ -2548,12 +2941,14 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             size_t size = typeSizeof(exp->data.unOpExp.resultType);
             IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
                                                  : ULONG(DOUBLE_BITS_ONE);
-            IR(out, BINOP(size, IO_FP_ADD, TEMP(temp, size, size, AH_SSE),
-                          lvalueLoad(value, out, tempAllocator), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+            IR(out,
+               BINOP(size, IO_FP_ADD, TEMP(temp, size, size, AH_SSE),
+                     lvalueLoad(value, out, size, size, AH_SSE, tempAllocator),
+                     one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE), size,
                         tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(temp, size, size, AH_SSE);
           }
         }
@@ -2570,13 +2965,14 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             // platforms - static assert catches that
             IR(out, BINOP(POINTER_WIDTH, IO_SUB,
                           TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                          lvalueLoad(value, out, tempAllocator),
+                          lvalueLoad(value, out, POINTER_WIDTH, POINTER_WIDTH,
+                                     AH_GP, tempAllocator),
                           ULONG((size_t)typeSizeof(dereferenced))));
             lvalueStore(value, out,
                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                        tempAllocator);
+                        POINTER_WIDTH, tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
           } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
             // is integral
@@ -2586,12 +2982,14 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             one->kind = OK_CONSTANT;
             one->data.constant.bits =
                 0x1;  // constant one, unsized, sign-agnostic
-            IR(out, BINOP(size, IO_SUB, TEMP(temp, size, size, AH_GP),
-                          lvalueLoad(value, out, tempAllocator), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+            IR(out,
+               BINOP(size, IO_SUB, TEMP(temp, size, size, AH_GP),
+                     lvalueLoad(value, out, size, size, AH_GP, tempAllocator),
+                     one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP), size,
                         tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(temp, size, size, AH_GP);
           } else {
             // is float/double
@@ -2599,12 +2997,14 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             size_t size = typeSizeof(exp->data.unOpExp.resultType);
             IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
                                                  : ULONG(DOUBLE_BITS_ONE);
-            IR(out, BINOP(size, IO_FP_SUB, TEMP(temp, size, size, AH_SSE),
-                          lvalueLoad(value, out, tempAllocator), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+            IR(out,
+               BINOP(size, IO_FP_SUB, TEMP(temp, size, size, AH_SSE),
+                     lvalueLoad(value, out, size, size, AH_SSE, tempAllocator),
+                     one));
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE), size,
                         tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(temp, size, size, AH_SSE);
           }
         }
@@ -2658,16 +3058,17 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             // platforms - static assert catches that
             IR(out, MOVE(POINTER_WIDTH,
                          TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                         lvalueLoad(value, out, tempAllocator)));
+                         lvalueLoad(value, out, POINTER_WIDTH, POINTER_WIDTH,
+                                    AH_GP, tempAllocator)));
             IR(out, BINOP(POINTER_WIDTH, IO_ADD,
                           TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
                           TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
                           ULONG((size_t)typeSizeof(dereferenced))));
             lvalueStore(value, out,
                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                        tempAllocator);
+                        POINTER_WIDTH, tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
           } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
             // is integral
@@ -2678,14 +3079,15 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             one->kind = OK_CONSTANT;
             one->data.constant.bits =
                 0x1;  // constant one, unsized, sign-agnostic
-            IR(out, MOVE(size, TEMP(outTemp, size, size, AH_GP),
-                         lvalueLoad(value, out, tempAllocator)));
+            IR(out,
+               MOVE(size, TEMP(outTemp, size, size, AH_GP),
+                    lvalueLoad(value, out, size, size, AH_GP, tempAllocator)));
             IR(out, BINOP(size, IO_ADD, TEMP(temp, size, size, AH_GP),
                           TEMP(outTemp, size, size, AH_GP), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP), size,
                         tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(outTemp, size, size, AH_GP);
           } else {
             // is float/double
@@ -2694,14 +3096,15 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             size_t size = typeSizeof(exp->data.unOpExp.resultType);
             IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
                                                  : ULONG(DOUBLE_BITS_ONE);
-            IR(out, MOVE(size, TEMP(outTemp, size, size, AH_SSE),
-                         lvalueLoad(value, out, tempAllocator)));
+            IR(out,
+               MOVE(size, TEMP(outTemp, size, size, AH_SSE),
+                    lvalueLoad(value, out, size, size, AH_SSE, tempAllocator)));
             IR(out, BINOP(size, IO_FP_ADD, TEMP(temp, size, size, AH_SSE),
                           TEMP(outTemp, size, size, AH_SSE), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE), size,
                         tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(outTemp, size, size, AH_SSE);
           }
         }
@@ -2719,16 +3122,17 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             // platforms - static assert catches that
             IR(out, MOVE(POINTER_WIDTH,
                          TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                         lvalueLoad(value, out, tempAllocator)));
+                         lvalueLoad(value, out, POINTER_WIDTH, POINTER_WIDTH,
+                                    AH_GP, tempAllocator)));
             IR(out, BINOP(POINTER_WIDTH, IO_SUB,
                           TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
                           TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
                           ULONG((size_t)typeSizeof(dereferenced))));
             lvalueStore(value, out,
                         TEMP(temp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-                        tempAllocator);
+                        POINTER_WIDTH, tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
           } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
             // is integral
@@ -2739,14 +3143,15 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             one->kind = OK_CONSTANT;
             one->data.constant.bits =
                 0x1;  // constant one, unsized, sign-agnostic
-            IR(out, MOVE(size, TEMP(outTemp, size, size, AH_GP),
-                         lvalueLoad(value, out, tempAllocator)));
+            IR(out,
+               MOVE(size, TEMP(outTemp, size, size, AH_GP),
+                    lvalueLoad(value, out, size, size, AH_GP, tempAllocator)));
             IR(out, BINOP(size, IO_SUB, TEMP(temp, size, size, AH_GP),
                           TEMP(outTemp, size, size, AH_GP), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_GP),
+            lvalueStore(value, out, TEMP(temp, size, size, AH_GP), size,
                         tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(outTemp, size, size, AH_GP);
           } else {
             // is float/double
@@ -2755,14 +3160,15 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
             size_t size = typeSizeof(exp->data.unOpExp.resultType);
             IROperand *one = size == FLOAT_WIDTH ? UINT(FLOAT_BITS_ONE)
                                                  : ULONG(DOUBLE_BITS_ONE);
-            IR(out, MOVE(size, TEMP(outTemp, size, size, AH_SSE),
-                         lvalueLoad(value, out, tempAllocator)));
+            IR(out,
+               MOVE(size, TEMP(outTemp, size, size, AH_SSE),
+                    lvalueLoad(value, out, size, size, AH_SSE, tempAllocator)));
             IR(out, BINOP(size, IO_FP_SUB, TEMP(temp, size, size, AH_SSE),
                           TEMP(outTemp, size, size, AH_SSE), one));
-            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE),
+            lvalueStore(value, out, TEMP(temp, size, size, AH_SSE), size,
                         tempAllocator);
 
-            lvalueDtor(value);
+            lvalueDestroy(value);
             return TEMP(outTemp, size, size, AH_SSE);
           }
         }
@@ -2921,19 +3327,21 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
       char *elseCase = NEW_LABEL(labelGenerator);
       size_t temp = NEW(tempAllocator);
       IR(out, CJUMP(BYTE_WIDTH, IO_JE, strdup(elseCase),
-                    lvalueLoad(lhs, out, tempAllocator), UBYTE(0)));
+                    lvalueLoad(lhs, out, BYTE_WIDTH, BYTE_WIDTH, AH_GP,
+                               tempAllocator),
+                    UBYTE(0)));
       IR(out, MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
                    translateRvalue(exp->data.landAssignExp.rhs, out, fragments,
                                    frame, labelGenerator, tempAllocator)));
       lvalueStore(lhs, out, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                  tempAllocator);
+                  BYTE_WIDTH, tempAllocator);
       IR(out, JUMP(strdup(end)));
       IR(out, LABEL(elseCase));
       IR(out,
          MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP), UBYTE(0)));
       IR(out, LABEL(end));
 
-      lvalueDtor(lhs);
+      lvalueDestroy(lhs);
       return TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_LORASSIGNEXP: {
@@ -2953,19 +3361,21 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
       char *elseCase = NEW_LABEL(labelGenerator);
       size_t temp = NEW(tempAllocator);
       IR(out, CJUMP(BYTE_WIDTH, IO_JNE, strdup(elseCase),
-                    lvalueLoad(lhs, out, tempAllocator), UBYTE(0)));
+                    lvalueLoad(lhs, out, BYTE_WIDTH, BYTE_WIDTH, AH_GP,
+                               tempAllocator),
+                    UBYTE(0)));
       IR(out, MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
                    translateRvalue(exp->data.landAssignExp.rhs, out, fragments,
                                    frame, labelGenerator, tempAllocator)));
       lvalueStore(lhs, out, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP),
-                  tempAllocator);
+                  BYTE_WIDTH, tempAllocator);
       IR(out, JUMP(strdup(end)));
       IR(out, LABEL(elseCase));
       IR(out,
          MOVE(BYTE_WIDTH, TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP), UBYTE(1)));
       IR(out, LABEL(end));
 
-      lvalueDtor(lhs);
+      lvalueDestroy(lhs);
       return TEMP(temp, BYTE_WIDTH, BYTE_WIDTH, AH_GP);
     }
     case NT_TERNARYEXP: {
@@ -3093,7 +3503,7 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                       translateRvalue(exp->data.structPtrAccessExp.base, out,
                                       fragments, frame, labelGenerator,
                                       tempAllocator),
-                      ULONG(typeOffset(
+                      ULONG((uint64_t)typeOffset(
                           baseType,
                           exp->data.structPtrAccessExp.element->data.id.id))));
         IR(out, MEM_LOAD(size, TEMP(temp, size, alignment, kind),
@@ -3235,7 +3645,9 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
       }
     }
     case NT_AGGREGATEINITEXP: {
-      error(__FILE__, __LINE__, "Not yet implemented");  // TODO: write this
+      error(__FILE__, __LINE__,
+            "Not yet implemented");  // TODO: write this - lay it out like a
+                                     // struct
     }
     case NT_CASTEXP: {
       return translateCast(
