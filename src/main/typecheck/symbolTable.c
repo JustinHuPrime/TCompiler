@@ -1186,7 +1186,10 @@ bool typeCastable(Type const *to, Type const *from) {
     case K_INT:
     case K_WCHAR:
     case K_ULONG:
-    case K_LONG: {
+    case K_LONG:
+    case K_FLOAT:
+    case K_DOUBLE:
+    case K_BOOL: {
       switch (to->kind) {
         case K_UBYTE:
         case K_BYTE:
@@ -1202,77 +1205,6 @@ bool typeCastable(Type const *to, Type const *from) {
         case K_DOUBLE:
         case K_BOOL:
         case K_ENUM: {
-          return true;
-        }
-        case K_UNION: {
-          TypeVector *possibleTypes =
-              &to->data.reference.referenced->data.type.data.unionType.fields;
-          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
-            if (typeCastable(possibleTypes->elements[idx], from)) {
-              return true;
-            }
-          }
-          return false;
-        }
-        case K_TYPEDEF: {
-          return typeCastable(
-              to->data.reference.referenced->data.type.data.typedefType.type,
-              from);
-        }
-        case K_CONST: {
-          return typeCastable(to->data.modifier.type, from);
-        }
-        default: { return false; }
-      }
-    }
-    case K_FLOAT:
-    case K_DOUBLE: {
-      switch (to->kind) {
-        case K_UBYTE:
-        case K_BYTE:
-        case K_USHORT:
-        case K_SHORT:
-        case K_UINT:
-        case K_INT:
-        case K_ULONG:
-        case K_LONG:
-        case K_FLOAT:
-        case K_DOUBLE:
-        case K_BOOL: {
-          return true;
-        }
-        case K_UNION: {
-          TypeVector *possibleTypes =
-              &to->data.reference.referenced->data.type.data.unionType.fields;
-          for (size_t idx = 0; idx < possibleTypes->size; idx++) {
-            if (typeCastable(possibleTypes->elements[idx], from)) {
-              return true;
-            }
-          }
-          return false;
-        }
-        case K_TYPEDEF: {
-          return typeCastable(
-              to->data.reference.referenced->data.type.data.typedefType.type,
-              from);
-        }
-        case K_CONST: {
-          return typeCastable(to->data.modifier.type, from);
-        }
-        default: { return false; }
-      }
-    }
-    case K_BOOL: {
-      switch (to->kind) {
-        case K_UBYTE:
-        case K_BYTE:
-        case K_USHORT:
-        case K_SHORT:
-        case K_UINT:
-        case K_INT:
-        case K_ULONG:
-        case K_LONG:
-        case K_BOOL: {
           return true;
         }
         case K_UNION: {
