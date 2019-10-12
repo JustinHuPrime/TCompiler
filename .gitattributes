@@ -3,5 +3,4 @@ docs/** linguist-documentation
 notes/** linguist-documentation
 
 src/main/util/container/vector.h linguist-language=C
-src/main/util/ternary.h linguist-language=C
 src/main/lexer/lexer.h linguist-language=C
