@@ -823,10 +823,100 @@ static void lvalueDestroy(Lvalue *value) {
   }
   free(value);
 }
-
+static IROperand *translateUnsignedToIntegralCast(
+    IROperand *from, size_t fromSize, size_t toSize, IREntryVector *out,
+    TempAllocator *tempAllocator) {
+  if (fromSize == toSize) {
+    return from;
+  }
+  size_t outTemp = NEW(tempAllocator);
+  if (fromSize < toSize) {
+    IROperator op;
+    if (toSize == SHORT_WIDTH) {
+      op = IO_ZX_SHORT;
+    } else if (toSize == INT_WIDTH) {
+      op = IO_ZX_INT;
+    } else {
+      // toSize == LONG_WIDTH
+      op = IO_ZX_LONG;
+    }
+    IR(out, UNOP(fromSize, op, TEMP(outTemp, toSize, toSize, AH_GP), from));
+    return TEMP(outTemp, toSize, toSize, AH_GP);
+  } else {
+    // fromSize > toSize
+    IROperator op;
+    if (toSize == BYTE_WIDTH) {
+      op = IO_TRUNC_BYTE;
+    } else if (toSize == SHORT_WIDTH) {
+      op = IO_TRUNC_SHORT;
+    } else {
+      // toSize == INT_WIDTH
+      op = IO_TRUNC_INT;
+    }
+    IR(out, UNOP(fromSize, op, TEMP(outTemp, toSize, toSize, AH_GP), from));
+    return TEMP(outTemp, toSize, toSize, AH_GP);
+  }
+}
+static IROperand *translateSignedToIntegralCast(IROperand *from,
+                                                size_t fromSize, size_t toSize,
+                                                IREntryVector *out,
+                                                TempAllocator *tempAllocator) {
+  if (fromSize == toSize) {
+    return from;
+  }
+  size_t outTemp = NEW(tempAllocator);
+  if (fromSize < toSize) {
+    IROperator op;
+    if (toSize == SHORT_WIDTH) {
+      op = IO_SX_SHORT;
+    } else if (toSize == INT_WIDTH) {
+      op = IO_SX_INT;
+    } else {
+      // toSize == LONG_WIDTH
+      op = IO_SX_LONG;
+    }
+    IR(out, UNOP(fromSize, op, TEMP(outTemp, toSize, toSize, AH_GP), from));
+    return TEMP(outTemp, toSize, toSize, AH_GP);
+  } else {
+    // fromSize > toSize
+    IROperator op;
+    if (toSize == BYTE_WIDTH) {
+      op = IO_TRUNC_BYTE;
+    } else if (toSize == SHORT_WIDTH) {
+      op = IO_TRUNC_SHORT;
+    } else {
+      // toSize == INT_WIDTH
+      op = IO_TRUNC_INT;
+    }
+    IR(out, UNOP(fromSize, op, TEMP(outTemp, toSize, toSize, AH_GP), from));
+    return TEMP(outTemp, toSize, toSize, AH_GP);
+  }
+}
+static IROperand *translateFloatToIntegralCast(IROperand *from, size_t fromSize,
+                                               size_t toSize,
+                                               IREntryVector *out,
+                                               TempAllocator *tempAllocator) {
+  size_t outTemp = NEW(tempAllocator);
+  IROperator op;
+  if (toSize == BYTE_WIDTH) {
+    op = IO_F_TO_BYTE;
+  } else if (toSize == SHORT_WIDTH) {
+    op = IO_F_TO_SHORT;
+  } else if (toSize == INT_WIDTH) {
+    op = IO_F_TO_INT;
+  } else {
+    // toSize == LONG_WIDTH
+    op = IO_F_TO_LONG;
+  }
+  IR(out, UNOP(fromSize, op, TEMP(outTemp, toSize, toSize, AH_GP), from));
+  return TEMP(outTemp, toSize, toSize, AH_GP);
+}
 static IROperand *translateCast(IROperand *from, Type const *fromType,
                                 Type const *toType, IREntryVector *out,
                                 TempAllocator *tempAllocator) {
+  if (typeEqual(fromType, toType)) {
+    return from;
+  }
   if (fromType->kind == K_TYPEDEF) {
     return translateCast(
         from,
@@ -846,7 +936,145 @@ static IROperand *translateCast(IROperand *from, Type const *fromType,
                          tempAllocator);
   }
 
-  error(__FILE__, __LINE__, "not yet implemented");
+  switch (fromType->kind) {
+    case K_UBYTE:
+    case K_CHAR:
+    case K_USHORT:
+    case K_UINT:
+    case K_WCHAR:
+    case K_ULONG:
+    case K_ENUM:
+    case K_PTR:
+    case K_FUNCTION_PTR: {
+      switch (toType->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_CHAR:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_WCHAR:
+        case K_ULONG:
+        case K_LONG:
+        case K_ENUM: {
+          return translateUnsignedToIntegralCast(from, typeSizeof(fromType),
+                                                 typeSizeof(toType), out,
+                                                 tempAllocator);
+        }
+        case K_FLOAT: {
+          size_t temp = NEW(tempAllocator);
+          IR(out, UNOP(typeSizeof(fromType), IO_U_TO_FLOAT,
+                       TEMP(temp, FLOAT_WIDTH, FLOAT_WIDTH, AH_SSE), from));
+          return TEMP(temp, FLOAT_WIDTH, FLOAT_WIDTH, AH_SSE);
+        }
+        case K_DOUBLE: {
+          size_t temp = NEW(tempAllocator);
+          IR(out, UNOP(typeSizeof(fromType), IO_U_TO_DOUBLE,
+                       TEMP(temp, DOUBLE_WIDTH, DOUBLE_WIDTH, AH_SSE), from));
+          return TEMP(temp, DOUBLE_WIDTH, DOUBLE_WIDTH, AH_SSE);
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "encountered an invalid TypeKind enum constant");
+        }
+      }
+    }
+    case K_BYTE:
+    case K_SHORT:
+    case K_INT:
+    case K_LONG: {
+      switch (toType->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_CHAR:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_WCHAR:
+        case K_ULONG:
+        case K_LONG:
+        case K_ENUM: {
+          return translateSignedToIntegralCast(from, typeSizeof(fromType),
+                                               typeSizeof(toType), out,
+                                               tempAllocator);
+        }
+        case K_FLOAT: {
+          size_t temp = NEW(tempAllocator);
+          IR(out, UNOP(typeSizeof(fromType), IO_S_TO_FLOAT,
+                       TEMP(temp, FLOAT_WIDTH, FLOAT_WIDTH, AH_SSE), from));
+          return TEMP(temp, FLOAT_WIDTH, FLOAT_WIDTH, AH_SSE);
+        }
+        case K_DOUBLE: {
+          size_t temp = NEW(tempAllocator);
+          IR(out, UNOP(typeSizeof(fromType), IO_S_TO_DOUBLE,
+                       TEMP(temp, DOUBLE_WIDTH, DOUBLE_WIDTH, AH_SSE), from));
+          return TEMP(temp, DOUBLE_WIDTH, DOUBLE_WIDTH, AH_SSE);
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "encountered an invalid TypeKind enum constant");
+        }
+      }
+    }
+    case K_FLOAT:
+    case K_DOUBLE: {
+      switch (toType->kind) {
+        case K_UBYTE:
+        case K_BYTE:
+        case K_CHAR:
+        case K_USHORT:
+        case K_SHORT:
+        case K_UINT:
+        case K_INT:
+        case K_WCHAR:
+        case K_ULONG:
+        case K_LONG:
+        case K_ENUM: {
+          return translateFloatToIntegralCast(from, typeSizeof(fromType),
+                                              typeSizeof(toType), out,
+                                              tempAllocator);
+        }
+        case K_FLOAT:
+        case K_DOUBLE: {
+          if (fromType->kind == toType->kind) {
+            return from;
+          } else if (toType->kind == K_FLOAT) {
+            size_t temp = NEW(tempAllocator);
+            IR(out, UNOP(typeSizeof(fromType), IO_F_TO_FLOAT,
+                         TEMP(temp, FLOAT_WIDTH, FLOAT_WIDTH, AH_SSE), from));
+            return TEMP(temp, FLOAT_WIDTH, FLOAT_WIDTH, AH_SSE);
+          } else {
+            // toType->kind == K_DOUBLE
+            size_t temp = NEW(tempAllocator);
+            IR(out, UNOP(typeSizeof(fromType), IO_F_TO_DOUBLE,
+                         TEMP(temp, DOUBLE_WIDTH, DOUBLE_WIDTH, AH_SSE), from));
+            return TEMP(temp, DOUBLE_WIDTH, DOUBLE_WIDTH, AH_SSE);
+          }
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "encountered an invalid TypeKind enum constant");
+        }
+      }
+    }
+    case K_AGGREGATE_INIT: {
+      switch (toType->kind) {
+        case K_STRUCT: {
+          error(__FILE__, __LINE__, "not yet implemented!");
+        }
+        case K_ARRAY: {
+          error(__FILE__, __LINE__, "not yet implemented!");
+        }
+        default: { return false; }
+      }
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered an invalid TypeKind enum constant");
+    }
+  }
 }
 static Lvalue *translateLvalue(Node *, IREntryVector *, FragmentVector *,
                                Frame *, LabelGenerator *, TempAllocator *);
