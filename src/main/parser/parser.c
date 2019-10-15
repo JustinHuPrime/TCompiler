@@ -1320,17 +1320,13 @@ static Node *parsePrefixExpression(Report *report, Options const *options,
   lex(info, report, &peek);
 
   switch (peek.type) {
-    case TT_ASSIGN:
-    case TT_MULASSIGN:
-    case TT_DIVASSIGN:
-    case TT_MODASSIGN:
-    case TT_ADDASSIGN:
-    case TT_SUBASSIGN:
-    case TT_LSHIFTASSIGN:
-    case TT_ARSHIFTASSIGN:
-    case TT_LRSHIFTASSIGN:
-    case TT_BITANDASSIGN:
-    case TT_BITORASSIGN: {
+    case TT_STAR:
+    case TT_AMPERSAND:
+    case TT_PLUSPLUS:
+    case TT_MINUSMINUS:
+    case TT_MINUS:
+    case TT_BANG:
+    case TT_TILDE: {
       Node *target = parsePrefixExpression(report, options, env, info);
       if (target == NULL) {
         return NULL;
