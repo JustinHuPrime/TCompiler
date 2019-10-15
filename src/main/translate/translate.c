@@ -128,49 +128,6 @@ void fileIRFileMapUninit(FileIRFileMap *map) {
   hashMapUninit(map, (void (*)(void *))irFileDestroy);
 }
 
-// typeKindof
-static AllocHint typeKindof(Type const *type) {
-  switch (type->kind) {
-    case K_UBYTE:
-    case K_BYTE:
-    case K_BOOL:
-    case K_CHAR:
-    case K_USHORT:
-    case K_SHORT:
-    case K_UINT:
-    case K_INT:
-    case K_WCHAR:
-    case K_ULONG:
-    case K_LONG:
-    case K_PTR:
-    case K_FUNCTION_PTR:
-    case K_ENUM: {
-      return AH_GP;
-    }
-    case K_FLOAT:
-    case K_DOUBLE: {
-      return AH_SSE;
-    }
-    case K_STRUCT:
-    case K_UNION:
-    case K_ARRAY:
-    case K_AGGREGATE_INIT: {
-      return AH_MEM;
-    }
-    case K_CONST: {
-      return typeKindof(type->data.modifier.type);
-    }
-    case K_TYPEDEF: {
-      return typeKindof(
-          type->data.reference.referenced->data.type.data.typedefType.type);
-    }
-    default: {
-      error(__FILE__, __LINE__,
-            "encountered an invalid TypeKind enum constant");
-    }
-  }
-}
-
 // name stuff
 static char *codeFilenameToAssembyFilename(char const *codeFilename) {
   size_t len = strlen(codeFilename);

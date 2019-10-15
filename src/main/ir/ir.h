@@ -23,6 +23,8 @@
 
 #include <stdint.h>
 
+struct Type;
+
 typedef enum {
   AH_GP,
   AH_MEM,
@@ -278,5 +280,7 @@ TempAllocator *tempAllocatorCreate(void);
 size_t tempAllocatorAllocate(TempAllocator *);
 // in-place dtor
 void tempAllocatorDestroy(TempAllocator *);
+
+AllocHint typeKindof(struct Type const *type);
 
 #endif  // TLC_IR_IR_H_
