@@ -849,7 +849,7 @@ static void irEntryVectorPrint(IREntryVector const *ir) {
       }
       case IO_CALL: {
         printf("CALL(");
-        irOperandPrint(entry->dest);
+        irOperandPrint(entry->arg1);
         printf(")\n");
         break;
       }
