@@ -1154,7 +1154,7 @@ static Type *typecheckExpression(Node *expression, Report *report,
       }
 
       return expression->data.fnCallExp.resultType =
-                 typeCopy(fnType->data.functionPtr.returnType);
+                 typeCopy(typeGetNonConst(fnType)->data.functionPtr.returnType);
     }
     case NT_CONSTEXP: {
       switch (expression->data.constExp.type) {

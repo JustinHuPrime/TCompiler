@@ -154,6 +154,7 @@ bool typeIsArray(Type const *);
 // merge types from conditional, arithmetic, or comparison branches
 Type *typeExpMerge(Type const *, Type const *);
 // strip constness off of start of type, non-destructively
+// returns a pointer to an internal structure member
 Type *typeGetNonConst(Type *);
 // strip pointerness and constness off of start of type, produces new type
 Type *typeGetDereferenced(Type const *);
