@@ -3931,13 +3931,331 @@ static void translateJumpIfNot(Node *condition, IREntryVector *out,
                                LabelGenerator *labelGenerator,
                                TempAllocator *tempAllocator,
                                char const *target) {
-  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+  switch (condition->type) {
+    case NT_SEQEXP:
+    case NT_BINOPEXP:
+    case NT_UNOPEXP:
+    case NT_LANDASSIGNEXP:
+    case NT_LORASSIGNEXP:
+    case NT_TERNARYEXP:
+    case NT_LANDEXP:
+    case NT_LOREXP:
+    case NT_STRUCTACCESSEXP:
+    case NT_STRUCTPTRACCESSEXP:
+    case NT_FNCALLEXP:
+    case NT_CASTEXP:
+    case NT_ID: {
+      IR(out, CJUMP(BYTE_WIDTH, IO_JE, strdup(target),
+                    translateRvalue(condition, out, fragments, frame,
+                                    labelGenerator, tempAllocator),
+                    UBYTE(0)));
+      break;
+    }
+    case NT_COMPOPEXP: {
+      Type *mutualType =
+          typeExpMerge(expressionTypeof(condition->data.compOpExp.lhs),
+                       expressionTypeof(condition->data.compOpExp.rhs));
+      size_t lhsTemp = NEW(tempAllocator);
+      size_t rhsTemp = NEW(tempAllocator);
+      size_t inputSize = typeSizeof(mutualType);
+      size_t inputAlignment = typeAlignof(mutualType);
+      size_t inputKind = typeKindof(mutualType);
+
+      IR(out,
+         MOVE(inputSize, TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+              translateCast(
+                  translateRvalue(condition->data.compOpExp.lhs, out, fragments,
+                                  frame, labelGenerator, tempAllocator),
+                  expressionTypeof(condition->data.compOpExp.lhs), mutualType,
+                  out, tempAllocator)));
+      IR(out,
+         MOVE(inputSize, TEMP(rhsTemp, inputSize, inputAlignment, inputKind),
+              translateCast(
+                  translateRvalue(condition->data.compOpExp.rhs, out, fragments,
+                                  frame, labelGenerator, tempAllocator),
+                  expressionTypeof(condition->data.compOpExp.rhs), mutualType,
+                  out, tempAllocator)));
+
+      switch (condition->data.compOpExp.op) {
+        case CO_EQ: {
+          if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JNE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {
+            IR(out, CJUMP(inputSize, IO_JNE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_NEQ: {
+          if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {
+            IR(out, CJUMP(inputSize, IO_JE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_LT: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_JGE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JGE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, CJUMP(inputSize, IO_JAE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_GT: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_JLE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JLE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, CJUMP(inputSize, IO_JBE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_LTEQ: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_JG, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JG, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, CJUMP(inputSize, IO_JA, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_GTEQ: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_JL, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JL, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, CJUMP(inputSize, IO_JB, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+      }
+
+      break;
+    }
+    case NT_CONSTEXP:
+    case NT_AGGREGATEINITEXP: {
+      if (constantIsZero(condition)) {
+        IR(out, JUMP(strdup(target)));
+      }
+      break;
+    }
+    case NT_SIZEOFTYPEEXP: {
+      // sizeof(type) is never 0
+      break;
+    }
+    case NT_SIZEOFEXPEXP: {
+      translateVoidedValue(condition->data.sizeofExpExp.target, out, fragments,
+                           frame, labelGenerator, tempAllocator);
+      // sizeof(type) is never 0
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered a non-expression in an expression position");
+    }
+  }
 }
 static void translateJumpIf(Node *condition, IREntryVector *out,
                             FragmentVector *fragments, Frame *frame,
                             LabelGenerator *labelGenerator,
                             TempAllocator *tempAllocator, char const *target) {
-  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+  switch (condition->type) {
+    case NT_SEQEXP:
+    case NT_BINOPEXP:
+    case NT_UNOPEXP:
+    case NT_LANDASSIGNEXP:
+    case NT_LORASSIGNEXP:
+    case NT_TERNARYEXP:
+    case NT_LANDEXP:
+    case NT_LOREXP:
+    case NT_STRUCTACCESSEXP:
+    case NT_STRUCTPTRACCESSEXP:
+    case NT_FNCALLEXP:
+    case NT_CASTEXP:
+    case NT_ID: {
+      IR(out, CJUMP(BYTE_WIDTH, IO_JNE, strdup(target),
+                    translateRvalue(condition, out, fragments, frame,
+                                    labelGenerator, tempAllocator),
+                    UBYTE(0)));
+      break;
+    }
+    case NT_COMPOPEXP: {
+      Type *mutualType =
+          typeExpMerge(expressionTypeof(condition->data.compOpExp.lhs),
+                       expressionTypeof(condition->data.compOpExp.rhs));
+      size_t lhsTemp = NEW(tempAllocator);
+      size_t rhsTemp = NEW(tempAllocator);
+      size_t inputSize = typeSizeof(mutualType);
+      size_t inputAlignment = typeAlignof(mutualType);
+      size_t inputKind = typeKindof(mutualType);
+
+      IR(out,
+         MOVE(inputSize, TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+              translateCast(
+                  translateRvalue(condition->data.compOpExp.lhs, out, fragments,
+                                  frame, labelGenerator, tempAllocator),
+                  expressionTypeof(condition->data.compOpExp.lhs), mutualType,
+                  out, tempAllocator)));
+      IR(out,
+         MOVE(inputSize, TEMP(rhsTemp, inputSize, inputAlignment, inputKind),
+              translateCast(
+                  translateRvalue(condition->data.compOpExp.rhs, out, fragments,
+                                  frame, labelGenerator, tempAllocator),
+                  expressionTypeof(condition->data.compOpExp.rhs), mutualType,
+                  out, tempAllocator)));
+
+      switch (condition->data.compOpExp.op) {
+        case CO_EQ: {
+          if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {
+            IR(out, CJUMP(inputSize, IO_JE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_NEQ: {
+          if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JNE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {
+            IR(out, CJUMP(inputSize, IO_JNE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_LT: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_JL, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JL, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, CJUMP(inputSize, IO_JB, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_GT: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_JG, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JG, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, CJUMP(inputSize, IO_JA, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_LTEQ: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_JLE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JLE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, CJUMP(inputSize, IO_JBE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+        case CO_GTEQ: {
+          if (typeIsSignedIntegral(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_JGE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else if (typeIsFloat(mutualType)) {
+            IR(out, CJUMP(inputSize, IO_FP_JGE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          } else {  // unsigned integrral
+            IR(out, CJUMP(inputSize, IO_JAE, strdup(target),
+                          TEMP(lhsTemp, inputSize, inputAlignment, inputKind),
+                          TEMP(rhsTemp, inputSize, inputAlignment, inputKind)));
+          }
+          break;
+        }
+      }
+
+      break;
+    }
+    case NT_CONSTEXP:
+    case NT_AGGREGATEINITEXP: {
+      if (!constantIsZero(condition)) {
+        IR(out, JUMP(strdup(target)));
+      }
+      break;
+    }
+    case NT_SIZEOFTYPEEXP: {
+      IR(out, JUMP(strdup(target)));  // sizeof(type) is never 0
+      break;
+    }
+    case NT_SIZEOFEXPEXP: {
+      translateVoidedValue(condition->data.sizeofExpExp.target, out, fragments,
+                           frame, labelGenerator, tempAllocator);
+      IR(out, JUMP(strdup(target)));  // sizeof(type) is never 0
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "encountered a non-expression in an expression position");
+    }
+  }
 }
 
 // translation - statements

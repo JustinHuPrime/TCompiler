@@ -1,12 +1,18 @@
 module helloWorld;
 
+ulong strlen(char const *str) {
+  ulong count = 0;
+  while (*str++ != '\0') count++;
+  return count;
+}
+
 void write(int fd, char const *str, ulong n) {
-    asm "\tmov $1, %rax\n";
-    asm "\tsyscall\n";
+  asm "\tmov $1, %rax\n";
+  asm "\tsyscall\n";
 }
 
 int main(int argc, char **argv) {
-    char const *message = "Hello, world!\n";
-    write(1, message, 15);
-    return 0;
+  char const *message = "Hello, world!\n";
+  write(1, message, strlen(message));
+  return 0;
 }
