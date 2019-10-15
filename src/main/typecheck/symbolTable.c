@@ -1232,6 +1232,7 @@ bool typeCastable(Type const *to, Type const *from) {
         case K_CONST: {
           return typeCastable(to->data.modifier.type, from);
         }
+        default: { return false; }
       }
     }
     case K_STRUCT: {
@@ -2282,6 +2283,7 @@ SymbolInfo *symbolInfoCopy(SymbolInfo const *from) {
   SymbolInfo *to = malloc(sizeof(SymbolInfo));
 
   to->kind = from->kind;
+  to->module = from->module;
   switch (to->kind) {
     case SK_VAR: {
       to->data.var.type = typeCopy(from->data.var.type);
