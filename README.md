@@ -16,9 +16,9 @@ Note that if a later option conflicts with an earlier option, the later option w
 
 #### Informational Options
 
-* `--version`: overrides all other options, displays version and copyright information, and causes the compiler to immediately exit normally.
-
 * `--help`, `-h`, `-?`: overrides all other options, displays usage information, and causes the compiler to immediately exit normally.
+
+* `--version`: overrides all other options, except for `--help` and its abbreviations, displays version and copyright information, and causes the compiler to immediately exit normally.
 
 #### Architecture
 
