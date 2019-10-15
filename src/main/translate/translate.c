@@ -662,7 +662,7 @@ static IROperand *defaultArgToOperand(Node *initializer, Type const *argType,
       }
     }
     case NT_AGGREGATEINITEXP: {
-      return NULL;
+      return NULL;  // TODO: write this
     }
     default: {
       error(__FILE__, __LINE__, "expected a constant, found something else");
