@@ -180,7 +180,7 @@ static char *codeFilenameToAssembyFilename(char const *codeFilename) {
   return assemblyFilename;
 }
 static char *mangleModuleName(char const *moduleName) {
-  char *buffer = strdup("__Z");
+  char *buffer = strdup("__T");
   StringVector *exploded = explodeName(moduleName);
   for (size_t idx = 0; idx < exploded->size; idx++) {
     char *newBuffer = format("%s%zu%s", buffer, strlen(exploded->elements[idx]),
@@ -1844,7 +1844,7 @@ static void translateVoidedValue(Node *exp, IREntryVector *out,
             frameDirectCall(frame,
                             mangleFunctionName(info->module, who->data.id.id,
                                                &elm->argumentTypes),
-                            args, elm, out, tempAllocator);
+                            actualArgs, elm, out, tempAllocator);
       } else {
         // indirect call - is call *<temp>, with no default args
         Type const *functionType = expressionTypeof(who);
@@ -3797,11 +3797,11 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
               actualArgs,
               irOperandCopy(elm->defaultArgs.elements[idx - numRequired]));
         }
-        result = frame->vtable->directCall(
-            frame,
-            mangleFunctionName(info->module, who->data.id.id,
-                               &elm->argumentTypes),
-            args, elm, out, tempAllocator);
+        result =
+            frameDirectCall(frame,
+                            mangleFunctionName(info->module, who->data.id.id,
+                                               &elm->argumentTypes),
+                            actualArgs, elm, out, tempAllocator);
       } else {
         // indirect call - is call *<temp>, with no default args
         Type const *functionType = expressionTypeof(who);
@@ -3820,8 +3820,8 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                   functionType->data.functionPtr.argumentTypes->elements[idx],
                   out, tempAllocator));
         }
-        result = frame->vtable->indirectCall(frame, function, actualArgs,
-                                             functionType, out, tempAllocator);
+        result = frameIndirectCall(frame, function, actualArgs, functionType,
+                                   out, tempAllocator);
       }
 
       return result;
