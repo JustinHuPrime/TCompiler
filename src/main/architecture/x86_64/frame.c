@@ -506,40 +506,24 @@ static Access *x86_64AllocArg(Frame *baseFrame, Type const *type, bool escapes,
   switch (type->kind) {
     case K_UBYTE:
     case K_BYTE:
-    case K_BOOL: {
-      // INTEGER
-      return x86_64PassGP(frame, BYTE_WIDTH, escapes, tempAllocator);
-    }
-    case K_CHAR: {
-      // INTEGER
-      return x86_64PassGP(frame, CHAR_WIDTH, escapes, tempAllocator);
-    }
+    case K_BOOL:
+    case K_CHAR:
     case K_USHORT:
-    case K_SHORT: {
-      // INTEGER
-      return x86_64PassGP(frame, SHORT_WIDTH, escapes, tempAllocator);
-    }
+    case K_SHORT:
     case K_UINT:
-    case K_INT: {
-      // INTEGER
-      return x86_64PassGP(frame, INT_WIDTH, escapes, tempAllocator);
-    }
-    case K_WCHAR: {
-      // INTEGER
-      return x86_64PassGP(frame, WCHAR_WIDTH, escapes, tempAllocator);
-    }
+    case K_INT:
+    case K_WCHAR:
     case K_ULONG:
-    case K_LONG: {
-      // INTEGER
-      return x86_64PassGP(frame, LONG_WIDTH, escapes, tempAllocator);
+    case K_LONG:
+    case K_PTR:
+    case K_FUNCTION_PTR: {
+      // GP
+      return x86_64PassGP(frame, typeSizeof(type), escapes, tempAllocator);
     }
-    case K_FLOAT: {
-      // SSE
-      return x86_64PassSSE(frame, FLOAT_WIDTH, escapes, tempAllocator);
-    }
+    case K_FLOAT:
     case K_DOUBLE: {
       // SSE
-      return x86_64PassSSE(frame, DOUBLE_WIDTH, escapes, tempAllocator);
+      return x86_64PassSSE(frame, typeSizeof(type), escapes, tempAllocator);
     }
     case K_STRUCT: {
       // Composite
@@ -568,11 +552,6 @@ static Access *x86_64AllocArg(Frame *baseFrame, Type const *type, bool escapes,
       // Composite
       error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
     }
-    case K_PTR:
-    case K_FUNCTION_PTR: {
-      // POINTER
-      return x86_64PassGP(frame, POINTER_WIDTH, escapes, tempAllocator);
-    }
     default: { error(__FILE__, __LINE__, "invalid type given to allocArg"); }
   }
 }
@@ -595,79 +574,36 @@ static Access *x86_64AllocLocal(Frame *baseFrame, Type const *type,
   switch (type->kind) {
     case K_UBYTE:
     case K_BYTE:
-    case K_BOOL: {
-      // INTEGER
-      if (escapes) {
-        return x86_64AllocLocalMem(frame, BYTE_WIDTH, BYTE_WIDTH, AH_GP,
-                                   tempAllocator);
-      } else {
-        return x86_64AllocLocalTemp(frame, BYTE_WIDTH, AH_GP, tempAllocator);
-      }
-    }
-    case K_CHAR: {
-      // INTEGER
-      if (escapes) {
-        return x86_64AllocLocalMem(frame, CHAR_WIDTH, CHAR_WIDTH, AH_GP,
-                                   tempAllocator);
-      } else {
-        return x86_64AllocLocalTemp(frame, CHAR_WIDTH, AH_GP, tempAllocator);
-      }
-    }
+    case K_BOOL:
+    case K_CHAR:
     case K_USHORT:
-    case K_SHORT: {
-      // INTEGER
-      if (escapes) {
-        return x86_64AllocLocalMem(frame, SHORT_WIDTH, SHORT_WIDTH, AH_GP,
-                                   tempAllocator);
-      } else {
-        return x86_64AllocLocalTemp(frame, SHORT_WIDTH, AH_GP, tempAllocator);
-      }
-    }
+    case K_SHORT:
     case K_UINT:
-    case K_INT: {
-      // INTEGER
-      if (escapes) {
-        return x86_64AllocLocalMem(frame, INT_WIDTH, INT_WIDTH, AH_GP,
-                                   tempAllocator);
-      } else {
-        return x86_64AllocLocalTemp(frame, INT_WIDTH, AH_GP, tempAllocator);
-      }
-    }
-    case K_WCHAR: {
-      // INTEGER
-      if (escapes) {
-        return x86_64AllocLocalMem(frame, INT_WIDTH, INT_WIDTH, AH_GP,
-                                   tempAllocator);
-      } else {
-        return x86_64AllocLocalTemp(frame, INT_WIDTH, AH_GP, tempAllocator);
-      }
-    }
+    case K_INT:
+    case K_WCHAR:
     case K_ULONG:
-    case K_LONG: {
-      // INTEGER
+    case K_LONG:
+    case K_ENUM:
+    case K_PTR:
+    case K_FUNCTION_PTR: {
+      // GP
       if (escapes) {
-        return x86_64AllocLocalMem(frame, LONG_WIDTH, LONG_WIDTH, AH_GP,
-                                   tempAllocator);
+        return x86_64AllocLocalMem(frame, typeSizeof(type), typeAlignof(type),
+                                   AH_GP, tempAllocator);
       } else {
-        return x86_64AllocLocalTemp(frame, LONG_WIDTH, AH_GP, tempAllocator);
+        return x86_64AllocLocalTemp(frame, typeSizeof(type), AH_GP,
+                                    tempAllocator);
       }
     }
-    case K_FLOAT: {
-      // SSE
-      if (escapes) {
-        return x86_64AllocLocalMem(frame, FLOAT_WIDTH, FLOAT_WIDTH, AH_SSE,
-                                   tempAllocator);
-      } else {
-        return x86_64AllocLocalTemp(frame, FLOAT_WIDTH, AH_SSE, tempAllocator);
-      }
-    }
+    case K_FLOAT:
     case K_DOUBLE: {
       // SSE
       if (escapes) {
-        return x86_64AllocLocalMem(frame, DOUBLE_WIDTH, DOUBLE_WIDTH, AH_SSE,
-                                   tempAllocator);
+        return x86_64AllocLocalMem(frame, typeSizeof(type), typeAlignof(type),
+                                   AH_SSE, tempAllocator);
       } else {
-        return x86_64AllocLocalTemp(frame, DOUBLE_WIDTH, AH_SSE, tempAllocator);
+        return x86_64AllocLocalTemp(frame, typeSizeof(type), AH_SSE,
+                                    tempAllocator);
       }
     }
     case K_STRUCT: {
@@ -677,15 +613,6 @@ static Access *x86_64AllocLocal(Frame *baseFrame, Type const *type,
     case K_UNION: {
       // Composite
       error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
-    }
-    case K_ENUM: {
-      // INTEGER
-      size_t size = typeSizeof(type);
-      if (escapes) {
-        return x86_64AllocLocalMem(frame, size, size, AH_GP, tempAllocator);
-      } else {
-        return x86_64AllocLocalTemp(frame, size, AH_GP, tempAllocator);
-      }
     }
     case K_TYPEDEF: {
       // Pass the actual type
@@ -702,16 +629,6 @@ static Access *x86_64AllocLocal(Frame *baseFrame, Type const *type,
     case K_ARRAY: {
       // Composite
       error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
-    }
-    case K_PTR:
-    case K_FUNCTION_PTR: {
-      // POINTER
-      if (escapes) {
-        return x86_64AllocLocalMem(frame, POINTER_WIDTH, POINTER_WIDTH, AH_GP,
-                                   tempAllocator);
-      } else {
-        return x86_64AllocLocalTemp(frame, POINTER_WIDTH, AH_GP, tempAllocator);
-      }
     }
     default: { error(__FILE__, __LINE__, "invalid type given to allocLocal"); }
   }
@@ -730,40 +647,25 @@ static Access *x86_64AllocRetVal(Frame *baseFrame, Type const *type,
   switch (type->kind) {
     case K_UBYTE:
     case K_BYTE:
-    case K_BOOL: {
-      // INTEGER
-      return x86_64ReturnGP(frame, BYTE_WIDTH);
-    }
-    case K_CHAR: {
-      // INTEGER
-      return x86_64ReturnGP(frame, BYTE_WIDTH);
-    }
+    case K_BOOL:
+    case K_CHAR:
     case K_USHORT:
-    case K_SHORT: {
-      // INTEGER
-      return x86_64ReturnGP(frame, SHORT_WIDTH);
-    }
+    case K_SHORT:
     case K_UINT:
-    case K_INT: {
-      // INTEGER
-      return x86_64ReturnGP(frame, INT_WIDTH);
-    }
-    case K_WCHAR: {
-      // INTEGER
-      return x86_64ReturnGP(frame, WCHAR_WIDTH);
-    }
+    case K_INT:
+    case K_WCHAR:
     case K_ULONG:
-    case K_LONG: {
-      // INTEGER
-      return x86_64ReturnGP(frame, LONG_WIDTH);
+    case K_LONG:
+    case K_PTR:
+    case K_FUNCTION_PTR:
+    case K_ENUM: {
+      // GP
+      return x86_64ReturnGP(frame, typeSizeof(type));
     }
-    case K_FLOAT: {
-      // SSE
-      return x86_64ReturnSSE(frame, FLOAT_WIDTH);
-    }
+    case K_FLOAT:
     case K_DOUBLE: {
       // SSE
-      return x86_64ReturnSSE(frame, DOUBLE_WIDTH);
+      return x86_64ReturnSSE(frame, typeSizeof(type));
     }
     case K_STRUCT: {
       // Composite
@@ -772,9 +674,6 @@ static Access *x86_64AllocRetVal(Frame *baseFrame, Type const *type,
     case K_UNION: {
       // Composite
       error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
-    }
-    case K_ENUM: {
-      return x86_64ReturnGP(frame, typeSizeof(type));
     }
     case K_TYPEDEF: {
       // Pass the actual type
@@ -792,11 +691,6 @@ static Access *x86_64AllocRetVal(Frame *baseFrame, Type const *type,
       // Composite
       error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
     }
-    case K_PTR:
-    case K_FUNCTION_PTR: {
-      // POINTER
-      return x86_64ReturnGP(frame, POINTER_WIDTH);
-    }
     default: { error(__FILE__, __LINE__, "invalid type given to allocRetVal"); }
   }
 }
@@ -811,19 +705,207 @@ static IREntryVector *x86_64ScopeEnd(Frame *baseFrame, IREntryVector *body,
 
   error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
 }
-static IROperand *x86_64IndirectCall(Frame *this, IROperand *who,
-                                     IROperandVector *actualArgs,
+static IROperand *x86_64GetReturnValue(X86_64Frame *frame,
+                                       Type const *returnType) {
+  switch (returnType->kind) {
+    case K_UBYTE:
+    case K_BYTE:
+    case K_BOOL:
+    case K_CHAR:
+    case K_USHORT:
+    case K_SHORT:
+    case K_UINT:
+    case K_INT:
+    case K_WCHAR:
+    case K_ULONG:
+    case K_LONG:
+    case K_ENUM:
+    case K_PTR:
+    case K_FUNCTION_PTR: {
+      // GP (INTEGER, POINTER)
+      return REG(X86_64_RAX);
+    }
+    case K_FLOAT:
+    case K_DOUBLE: {
+      // SSE
+      return REG(X86_64_XMM0);
+    }
+    case K_STRUCT: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_UNION: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_TYPEDEF: {
+      // Pass the actual type
+      return x86_64GetReturnValue(frame, returnType->data.reference.referenced
+                                             ->data.type.data.typedefType.type);
+    }
+    case K_CONST: {
+      // Pass the actual type
+      return x86_64GetReturnValue(frame, returnType->data.modifier.type);
+    }
+    case K_ARRAY: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_VOID: {
+      return NULL;
+    }
+    default: { error(__FILE__, __LINE__, "invalid return value type"); }
+  }
+}
+static void addCallArg(Type const *argType, IROperand *arg, size_t *nextGPArg,
+                       size_t *nextSSEArg, TypeVector *stackArgTypes,
+                       IROperandVector *stackArgs, IREntryVector *out,
+                       TempAllocator *tempAllocator) {
+  switch (argType->kind) {
+    case K_UBYTE:
+    case K_BYTE:
+    case K_BOOL:
+    case K_CHAR:
+    case K_USHORT:
+    case K_SHORT:
+    case K_UINT:
+    case K_INT:
+    case K_WCHAR:
+    case K_ULONG:
+    case K_LONG:
+    case K_ENUM:
+    case K_PTR:
+    case K_FUNCTION_PTR: {
+      if (*nextGPArg == MAX_GP_ARGS) {
+        // add to spill
+        typeVectorInsert(stackArgTypes, typeCopy(argType));
+        irOperandVectorInsert(stackArgs, arg);
+      } else {
+        IR(out, MOVE(typeSizeof(argType), REG(GP_ARG_REGISTERS[(*nextGPArg)++]),
+                     arg));
+      }
+      break;
+    }
+    case K_FLOAT:
+    case K_DOUBLE: {
+      if (*nextSSEArg == MAX_SSE_ARGS) {
+        // add to spill
+        typeVectorInsert(stackArgTypes, typeCopy(argType));
+        irOperandVectorInsert(stackArgs, arg);
+      } else {
+        IR(out, MOVE(typeSizeof(argType),
+                     REG(SSE_ARG_REGISTERS[(*nextSSEArg)++]), arg));
+      }
+      break;
+    }
+    case K_STRUCT: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_UNION: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    case K_TYPEDEF: {
+      // Pass the actual type
+      addCallArg(
+          argType->data.reference.referenced->data.type.data.typedefType.type,
+          arg, nextGPArg, nextSSEArg, stackArgTypes, stackArgs, out,
+          tempAllocator);
+      break;
+    }
+    case K_CONST: {
+      // Pass the actual type
+      addCallArg(argType->data.modifier.type, arg, nextGPArg, nextSSEArg,
+                 stackArgTypes, stackArgs, out, tempAllocator);
+      break;
+    }
+    case K_ARRAY: {
+      // Composite
+      error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+    }
+    default: { error(__FILE__, __LINE__, "invalid type given to addCallArg"); }
+  }
+}
+static IROperand *x86_64IndirectCall(Frame *baseFrame, IROperand *who,
+                                     IROperandVector *args,
                                      Type const *functionType,
                                      IREntryVector *out,
                                      TempAllocator *tempAllocator) {
-  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+  X86_64Frame *this = (X86_64Frame *)baseFrame;
+
+  // for each argument
+  // if it is an in-reg gp arg, pass it in the register
+  // if it is an in-reg sse arg, pass it in the register
+  // if it is spilled, record that it is, or if it is in mem, do nothing
+  size_t nextGPArg = 0;
+  size_t nextSSEArg = 0;
+  TypeVector const *argTypes = functionType->data.functionPtr.argumentTypes;
+
+  TypeVector stackArgTypes;
+  typeVectorInit(&stackArgTypes);
+  IROperandVector stackArgs;
+  irOperandVectorInit(&stackArgs);
+  for (size_t idx = 0; idx < argTypes->size; idx++) {
+    Type *argType = argTypes->elements[idx];
+    addCallArg(argTypes->elements[idx], args->elements[idx], &nextGPArg,
+               &nextSSEArg, &stackArgTypes, &stackArgs, out, tempAllocator);
+  }
+
+  for (size_t idx = 0; idx < stackArgTypes.size; idx++) {
+    // handle spilled args
+    error(__FILE__, __LINE__, "not yet implemented");  // TODO: write this
+  }
+
+  IR(out, CALL(who));
+
+  // special nondestructive cleanup of args
+  free(args->elements);
+  free(args);
+
+  typeVectorUninit(&stackArgTypes);
+  irOperandVectorUninit(&stackArgs);
+  return x86_64GetReturnValue(this, functionType->data.functionPtr.returnType);
 }
-static IROperand *x86_64DirectCall(Frame *this, char *who,
-                                   IROperandVector *actualArgs,
+static IROperand *x86_64DirectCall(Frame *baseFrame, char *who,
+                                   IROperandVector *args,
                                    OverloadSetElement const *function,
                                    IREntryVector *out,
                                    TempAllocator *tempAllocator) {
-  error(__FILE__, __LINE__, "not yet implemented!");  // TODO: write this
+  X86_64Frame *this = (X86_64Frame *)baseFrame;
+
+  // for each argument
+  // if it is an in-reg gp arg, pass it in the register
+  // if it is an in-reg sse arg, pass it in the register
+  // if it is spilled, record that it is, or if it is in mem, do nothing
+  size_t nextGPArg = 0;
+  size_t nextSSEArg = 0;
+  TypeVector const *argTypes = &function->argumentTypes;
+
+  TypeVector stackArgTypes;
+  typeVectorInit(&stackArgTypes);
+  IROperandVector stackArgs;
+  irOperandVectorInit(&stackArgs);
+  for (size_t idx = 0; idx < argTypes->size; idx++) {
+    Type *argType = argTypes->elements[idx];
+    addCallArg(argTypes->elements[idx], args->elements[idx], &nextGPArg,
+               &nextSSEArg, &stackArgTypes, &stackArgs, out, tempAllocator);
+  }
+
+  for (size_t idx = 0; idx < stackArgTypes.size; idx++) {
+    // handle spilled args
+    error(__FILE__, __LINE__, "not yet implemented");  // TODO: write this
+  }
+
+  IR(out, CALL(NAME(who)));
+
+  // special nondestructive cleanup of args
+  free(args->elements);
+  free(args);
+
+  typeVectorUninit(&stackArgTypes);
+  irOperandVectorUninit(&stackArgs);
+  return x86_64GetReturnValue(this, function->returnType);
 }
 static FrameVTable *getX86_64FrameVTable(void) {
   if (X86_64FrameVTable == NULL) {
