@@ -146,6 +146,8 @@ void parseOptions(Options *options, Report *report, size_t argc,
       optionsSet(options, optionDebugDump, O_DD_PARSE_PRETTY);
     } else if (strcmp(argv[idx], "--debug-dump=ir") == 0) {
       optionsSet(options, optionDebugDump, O_DD_IR);
+    } else if (strcmp(argv[idx], "--debug-dump=asm-1") == 0) {
+      optionsSet(options, optionDebugDump, O_DD_ASM_1);
     } else {
       reportError(report, "tlc: error: option '%s' not recognized", argv[idx]);
     }

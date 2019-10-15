@@ -235,13 +235,25 @@ int main(int argc, char *argv[]) {
   // post translate cleanup
   moduleAstMapPairUninit(&asts);  // no longer using asts
 
-  // optimize
+  // middle-end - everything operates on the IR
+
+  // machine independent optimizations
   // TODO: write optimizations
 
   // backend - everything is architecture specific
   switch (optionsGet(&options, optionArch)) {
     case O_AT_X86: {
       // instruction selection
+
+      if (optionsGet(&options, optionDebugDump) == O_DD_ASM_1) {
+        error(__FILE__, __LINE__, "not yet implemented");
+      }
+
+      // post instruction selection cleanup
+      fileIRFileMapUninit(&fileMap);
+
+      // machine dependent optimizations
+      // TODO: write optimizations
 
       // register alloc
 
@@ -257,7 +269,6 @@ int main(int argc, char *argv[]) {
   }
 
   // clean up
-  fileIRFileMapUninit(&fileMap);
   optionsUninit(&options);
 
   return SUCCESS;
