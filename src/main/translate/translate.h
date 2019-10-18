@@ -47,10 +47,12 @@ typedef struct Fragment {
     } bss;
     struct {
       IREntryVector *ir;
+      size_t size;
       size_t alignment;
     } rodata;
     struct {
       IREntryVector *ir;
+      size_t size;
       size_t alignment;
     } data;
     struct {
@@ -62,8 +64,8 @@ typedef struct Fragment {
 } Fragment;
 // ctors
 Fragment *bssFragmentCreate(char *label, size_t size, size_t alignment);
-Fragment *rodataFragmentCreate(char *label, size_t alignment);
-Fragment *dataFragmentCreate(char *label, size_t alignment);
+Fragment *rodataFragmentCreate(char *label, size_t size, size_t alignment);
+Fragment *dataFragmentCreate(char *label, size_t size, size_t alignment);
 Fragment *textFragmentCreate(char *label, struct Frame *frame,
                              TempAllocator *tempAllocator);
 // dtor
@@ -86,10 +88,12 @@ void fragmentVectorDestroy(FragmentVector *);
 typedef struct {
   FragmentVector fragments;
   char *filename;
+  char *sourceFilename;
   struct LabelGenerator *labelGenerator;
 } IRFile;
 // ctor
-IRFile *irFileCreate(char *filename, struct LabelGenerator *labelGenerator);
+IRFile *irFileCreate(char *sourceFilename, char *filename,
+                     struct LabelGenerator *labelGenerator);
 void irFileDestroy(IRFile *);
 
 // associates the fragments in a file with the file

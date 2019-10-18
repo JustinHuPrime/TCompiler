@@ -46,15 +46,17 @@ Fragment *bssFragmentCreate(char *label, size_t size, size_t alignment) {
   f->data.bss.alignment = alignment;
   return f;
 }
-Fragment *rodataFragmentCreate(char *label, size_t alignment) {
+Fragment *rodataFragmentCreate(char *label, size_t size, size_t alignment) {
   Fragment *f = fragmentCreate(FK_RODATA, label);
   f->data.rodata.ir = irEntryVectorCreate();
+  f->data.rodata.size = size;
   f->data.rodata.alignment = alignment;
   return f;
 }
-Fragment *dataFragmentCreate(char *label, size_t alignment) {
+Fragment *dataFragmentCreate(char *label, size_t size, size_t alignment) {
   Fragment *f = fragmentCreate(FK_DATA, label);
   f->data.data.ir = irEntryVectorCreate();
+  f->data.data.size = size;
   f->data.data.alignment = alignment;
   return f;
 }
@@ -103,10 +105,12 @@ void fragmentVectorDestroy(FragmentVector *v) {
   vectorDestroy(v, (void (*)(void *))fragmentDestroy);
 }
 
-IRFile *irFileCreate(char *filename, LabelGenerator *labelGenerator) {
+IRFile *irFileCreate(char *sourceFilename, char *filename,
+                     LabelGenerator *labelGenerator) {
   IRFile *file = malloc(sizeof(IRFile));
   fragmentVectorInit(&file->fragments);
   file->filename = filename;
+  file->sourceFilename = sourceFilename;
   file->labelGenerator = labelGenerator;
   return file;
 }
@@ -520,8 +524,10 @@ static void constantToData(Node *initializer, IREntryVector *out,
           return;
         }
         case CT_STRING: {
-          Fragment *f =
-              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
+          Fragment *f = rodataFragmentCreate(
+              NEW_DATA_LABEL(labelGenerator),
+              tstrlen(initializer->data.constExp.value.stringVal) + 1,
+              CHAR_WIDTH);
           IR(f->data.rodata.ir,
              CONST(0, STRING(tstrdup(
                           initializer->data.constExp.value.stringVal))));
@@ -530,8 +536,11 @@ static void constantToData(Node *initializer, IREntryVector *out,
           return;
         }
         case CT_WSTRING: {
-          Fragment *f =
-              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
+          Fragment *f = rodataFragmentCreate(
+              NEW_DATA_LABEL(labelGenerator),
+              (twstrlen(initializer->data.constExp.value.wstringVal) + 1) *
+                  WCHAR_WIDTH,
+              WCHAR_WIDTH);
           IR(f->data.rodata.ir,
              CONST(0, WSTRING(twstrdup(
                           initializer->data.constExp.value.wstringVal))));
@@ -635,8 +644,10 @@ static IROperand *defaultArgToOperand(Node *initializer, Type const *argType,
           return UBYTE(initializer->data.constExp.value.boolVal ? 1 : 0);
         }
         case CT_STRING: {
-          Fragment *f =
-              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
+          Fragment *f = rodataFragmentCreate(
+              NEW_DATA_LABEL(labelGenerator),
+              tstrlen(initializer->data.constExp.value.stringVal) + 1,
+              CHAR_WIDTH);
           IR(f->data.rodata.ir,
              CONST(0, STRING(tstrdup(
                           initializer->data.constExp.value.stringVal))));
@@ -644,8 +655,11 @@ static IROperand *defaultArgToOperand(Node *initializer, Type const *argType,
           return NAME(strdup(f->label));
         }
         case CT_WSTRING: {
-          Fragment *f =
-              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
+          Fragment *f = rodataFragmentCreate(
+              NEW_DATA_LABEL(labelGenerator),
+              (twstrlen(initializer->data.constExp.value.wstringVal) + 1) *
+                  WCHAR_WIDTH,
+              WCHAR_WIDTH);
           IR(f->data.rodata.ir,
              CONST(0, WSTRING(twstrdup(
                           initializer->data.constExp.value.wstringVal))));
@@ -3868,16 +3882,19 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
           return UBYTE(exp->data.constExp.value.boolVal ? 1 : 0);
         }
         case CT_STRING: {
-          Fragment *f =
-              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
+          Fragment *f = rodataFragmentCreate(
+              NEW_DATA_LABEL(labelGenerator),
+              tstrlen(exp->data.constExp.value.stringVal) + 1, CHAR_WIDTH);
           IR(f->data.rodata.ir,
              CONST(0, STRING(tstrdup(exp->data.constExp.value.stringVal))));
           fragmentVectorInsert(fragments, f);
           return NAME(strdup(f->label));
         }
         case CT_WSTRING: {
-          Fragment *f =
-              rodataFragmentCreate(NEW_DATA_LABEL(labelGenerator), CHAR_WIDTH);
+          Fragment *f = rodataFragmentCreate(
+              NEW_DATA_LABEL(labelGenerator),
+              (twstrlen(exp->data.constExp.value.wstringVal) + 1) * WCHAR_WIDTH,
+              WCHAR_WIDTH);
           IR(f->data.rodata.ir,
              CONST(0, WSTRING(twstrdup(exp->data.constExp.value.wstringVal))));
           fragmentVectorInsert(fragments, f);
@@ -4490,10 +4507,12 @@ static void translateGlobalVar(Node *varDecl, FragmentVector *fragments,
       f = bssFragmentCreate(mangledName, typeSizeof(type), typeAlignof(type));
     } else if (id->data.id.symbol->data.var.type->kind == K_CONST) {
       f = rodataFragmentCreate(mangledName,
+                               typeSizeof(id->data.id.symbol->data.var.type),
                                typeAlignof(id->data.id.symbol->data.var.type));
       constantToData(initializer, f->data.rodata.ir, fragments, labelGenerator);
     } else {
       f = dataFragmentCreate(mangledName,
+                             typeSizeof(id->data.id.symbol->data.var.type),
                              typeAlignof(id->data.id.symbol->data.var.type));
       constantToData(initializer, f->data.data.ir, fragments, labelGenerator);
     }
@@ -4587,7 +4606,8 @@ void translate(FileIRFileMap *fileMap, ModuleAstMapPair *asts,
                         file->data.file.module->data.module.id->data.id.id,
                         globalAccessCtor, functionAccessCtor);
       char *filename = codeFilenameToAssembyFilename(file->data.file.filename);
-      IRFile *irFile = irFileCreate(filename, labelGeneratorCtor());
+      IRFile *irFile = irFileCreate(strdup(file->data.file.filename), filename,
+                                    labelGeneratorCtor());
       addDefaultArgs(file, &irFile->fragments, irFile->labelGenerator);
       fileIRFileMapPut(fileMap, filename, irFile);
     }
