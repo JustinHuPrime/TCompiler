@@ -48,4 +48,7 @@ extern uint64_t const ULONG_MAX;
 extern uint64_t const LONG_MAX;
 extern uint64_t const LONG_MIN;
 
+// compiler version
+extern char const *VERSION_STRING;
+
 #endif  // TLC_CONSTANTS_H_

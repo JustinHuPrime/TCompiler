@@ -16,8 +16,10 @@
 
 // Compiles code modules into assembly files, guided by decl modules
 
+#include "architecture/x86_64/assembly.h"
 #include "architecture/x86_64/frame.h"
 #include "ast/printer.h"
+#include "constants.h"
 #include "ir/frame.h"
 #include "ir/ir.h"
 #include "ir/printer.h"
@@ -87,13 +89,14 @@ int main(int argc, char *argv[]) {
     return SUCCESS;
   } else if (versionRequested((size_t)argc, argv)) {
     printf(
-        "T Language Compiler (tlc) version 0.1.0\n"
+        "%s\n"
         "Copyright 2019 Justin Hu and Bronwyn Damm\n"
         "This software is licensed under the Apache License, Version 2.0.\n"
         "See the \"LICENSE\" file for copying conditions.\n"
         "This software is distributed on an \"AS IS\" BASIS, WITHOUT "
         "WARRANTIES OR\n"
-        "CONDITIONS OF ANY KIND\n");
+        "CONDITIONS OF ANY KIND\n",
+        VERSION_STRING);
     return SUCCESS;
   }
 
@@ -195,7 +198,7 @@ int main(int argc, char *argv[]) {
   reportUninit(&report);
 
   // translation into IR
-  FileIRFileMap fileMap;
+  FileIRFileMap irFileMap;
 
   // architecture specific data
   LabelGeneratorCtor labelGeneratorCtor;
@@ -214,14 +217,14 @@ int main(int argc, char *argv[]) {
     default: { error(__FILE__, __LINE__, "invalid architecture specified"); }
   }
 
-  translate(&fileMap, &asts, labelGeneratorCtor, frameCtor, globalAccessCtor,
+  translate(&irFileMap, &asts, labelGeneratorCtor, frameCtor, globalAccessCtor,
             functionAccessCtor);
 
   // debug stop for translate - displays the IR fragments for each file
   if (optionsGet(&options, optionDebugDump) == O_DD_IR) {
-    for (size_t idx = 0; idx < fileMap.capacity; idx++) {
-      if (fileMap.keys[idx] != NULL) {
-        IRFile *file = fileMap.values[idx];
+    for (size_t idx = 0; idx < irFileMap.capacity; idx++) {
+      if (irFileMap.keys[idx] != NULL) {
+        IRFile *file = irFileMap.values[idx];
         printf("%s:\n", file->filename);
         FragmentVector *fragments = &file->fragments;
         for (size_t fragmentIdx = 0; fragmentIdx < fragments->size;
@@ -245,12 +248,16 @@ int main(int argc, char *argv[]) {
     case O_AT_X86: {
       // instruction selection
 
+      FileX86_64FileMap asmFileMap;
+
+      x86_64InstructionSelect(&asmFileMap, &irFileMap);
+
       if (optionsGet(&options, optionDebugDump) == O_DD_ASM_1) {
         error(__FILE__, __LINE__, "not yet implemented");
       }
 
       // post instruction selection cleanup
-      fileIRFileMapUninit(&fileMap);
+      fileIRFileMapUninit(&irFileMap);
 
       // machine dependent optimizations
       // TODO: write optimizations
