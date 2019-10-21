@@ -19,15 +19,11 @@
 #ifndef TLC_IR_IR_H_
 #define TLC_IR_IR_H_
 
+#include "ir/allocHint.h"
 #include "util/container/vector.h"
 
 #include <stdint.h>
 
-typedef enum {
-  AH_GP,
-  AH_MEM,
-  AH_SSE,
-} AllocHint;
 typedef enum {
   OK_TEMP,
   OK_REG,
