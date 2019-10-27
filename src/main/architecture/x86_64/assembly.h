@@ -20,10 +20,73 @@
 #define TLC_ARCHITECTURE_X86_64_ASSEMBLY_H_
 
 #include "architecture/x86_64/common.h"
+#include "ir/allocHint.h"
 #include "util/container/hashMap.h"
 #include "util/container/vector.h"
 
 typedef HashMap FileIRFileMap;
+struct IROperand;
+
+typedef enum {
+  X86_64_OK_REGDEF,
+  X86_64_OK_REGUSE,
+  X86_64_OK_TEMPDEF,
+  X86_64_OK_TEMPUSE,
+  X86_64_OK_STACKOFFSET,
+} X86_64OperandKind;
+typedef struct {
+  X86_64OperandKind kind;
+  union {
+    struct {
+      X86_64Register reg;
+    } regDef;
+    struct {
+      X86_64Register reg;
+    } regUse;
+    struct {
+      size_t n;
+      size_t size;
+      size_t alignment;
+      AllocHint kind;
+    } tempDef;
+    struct {
+      size_t n;
+      size_t size;
+      size_t alignment;
+      AllocHint kind;
+    } tempUse;
+    struct {
+      int64_t offset;
+    } stackOffset;
+  } data;
+} X86_64Operand;
+X86_64Operand *x86_64RegUseCreate(X86_64Register);
+X86_64Operand *x86_64RegDefCreate(X86_64Register);
+X86_64Operand *x86_64TempUseCreate(struct IROperand const *);
+X86_64Operand *x86_64TempDefCreate(struct IROperand const *);
+X86_64Operand *x86_64StackOffsetCreate(int64_t);
+void x86_64OperandDestroy(X86_64Operand *);
+
+typedef Vector X86_64OperandVector;
+void x86_64OperandVectorInit(X86_64OperandVector *);
+void x86_64OperandVectorInsert(X86_64OperandVector *, X86_64Operand *);
+void x86_64OperandVectorUninit(X86_64OperandVector *);
+
+typedef struct {
+  char *skeleton;  // format string. `d is a defined, `u is a use, `o is an
+                   // other, `` is a literal backtick.
+  X86_64OperandVector defines;
+  X86_64OperandVector uses;
+  X86_64OperandVector other;
+} X86_64Instruction;
+X86_64Instruction *x86_64InstructionCreate(char *skeleton);
+void x86_64InstructionDestroy(X86_64Instruction *);
+
+typedef Vector X86_64InstructionVector;
+void x86_64InstructionVectorInit(X86_64InstructionVector *);
+void x86_64InstructionVectorInsert(X86_64InstructionVector *,
+                                   X86_64Instruction *);
+void x86_64InstructionVectorUninit(X86_64InstructionVector *);
 
 typedef enum {
   X86_64_FK_DATA,
@@ -36,12 +99,15 @@ typedef struct {
       char *data;
     } data;
     struct {
-      void *filler;  // TODO: write this
+      char *header;
+      char *footer;
+      X86_64InstructionVector body;  // does not include stack exit or enter -
+                                     // added at reg alloc time
     } text;
   } data;
 } X86_64Fragment;
 X86_64Fragment *x86_64DataFragmentCreate(char *data);
-X86_64Fragment *x86_64TextFragmentCreate(void);
+X86_64Fragment *x86_64TextFragmentCreate(char *header, char *footer);
 void x86_64FragmentDestroy(X86_64Fragment *);
 
 typedef Vector X86_64FragmentVector;

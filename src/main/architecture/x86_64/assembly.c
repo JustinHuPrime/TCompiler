@@ -18,15 +18,88 @@
 
 #include "architecture/x86_64/assembly.h"
 
+#include "architecture/x86_64/frame.h"
 #include "constants.h"
+#include "ir/allocHint.h"
 #include "ir/ir.h"
 #include "translate/translate.h"
 #include "util/format.h"
 #include "util/internalError.h"
 
-#include <stdio.h>  // TODO: DEBUG ONLY
 #include <stdlib.h>
 #include <string.h>
+
+static X86_64Operand *x86_64OperandCreate(X86_64OperandKind kind) {
+  X86_64Operand *op = malloc(sizeof(X86_64Operand));
+  op->kind = kind;
+  return op;
+}
+X86_64Operand *x86_64RegUseCreate(X86_64Register reg) {
+  X86_64Operand *op = x86_64OperandCreate(X86_64_OK_REGUSE);
+  op->data.regUse.reg = reg;
+  return op;
+}
+X86_64Operand *x86_64RegDefCreate(X86_64Register reg) {
+  X86_64Operand *op = x86_64OperandCreate(X86_64_OK_REGDEF);
+  op->data.regDef.reg = reg;
+  return op;
+}
+X86_64Operand *x86_64TempUseCreate(struct IROperand const *temp) {
+  X86_64Operand *op = x86_64OperandCreate(X86_64_OK_TEMPUSE);
+  op->data.tempUse.n = temp->data.temp.n;
+  op->data.tempUse.size = temp->data.temp.size;
+  op->data.tempUse.alignment = temp->data.temp.alignment;
+  op->data.tempUse.kind = temp->data.temp.kind;
+  return op;
+}
+X86_64Operand *x86_64TempDefCreate(struct IROperand const *temp) {
+  X86_64Operand *op = x86_64OperandCreate(X86_64_OK_TEMPDEF);
+  op->data.tempDef.n = temp->data.temp.n;
+  op->data.tempDef.size = temp->data.temp.size;
+  op->data.tempDef.alignment = temp->data.temp.alignment;
+  op->data.tempDef.kind = temp->data.temp.kind;
+  return op;
+}
+X86_64Operand *x86_64StackOffsetCreate(int64_t offset) {
+  X86_64Operand *op = x86_64OperandCreate(X86_64_OK_STACKOFFSET);
+  op->data.stackOffset.offset = offset;
+  return op;
+}
+void x86_64OperandDestroy(X86_64Operand *op) { free(op); }
+
+void x86_64OperandVectorInit(X86_64OperandVector *v) { vectorInit(v); }
+void x86_64OperandVectorInsert(X86_64OperandVector *v, X86_64Operand *op) {
+  vectorInsert(v, op);
+}
+void x86_64OperandVectorUninit(X86_64OperandVector *v) {
+  vectorUninit(v, (void (*)(void *))x86_64OperandDestroy);
+}
+
+X86_64Instruction *x86_64InstructionCreate(char *skeleton) {
+  X86_64Instruction *i = malloc(sizeof(X86_64Instruction));
+  i->skeleton = skeleton;
+  x86_64OperandVectorInit(&i->defines);
+  x86_64OperandVectorInit(&i->uses);
+  x86_64OperandVectorInit(&i->other);
+  return i;
+}
+void x86_64InstructionDestroy(X86_64Instruction *i) {
+  free(i->skeleton);
+  x86_64OperandVectorUninit(&i->defines);
+  x86_64OperandVectorUninit(&i->uses);
+  x86_64OperandVectorUninit(&i->other);
+  free(i);
+}
+
+typedef Vector X86_64InstructionVector;
+void x86_64InstructionVectorInit(X86_64InstructionVector *v) { vectorInit(v); }
+void x86_64InstructionVectorInsert(X86_64InstructionVector *v,
+                                   X86_64Instruction *i) {
+  vectorInsert(v, i);
+}
+void x86_64InstructionVectorUninit(X86_64InstructionVector *v) {
+  vectorUninit(v, (void (*)(void *))x86_64InstructionDestroy);
+}
 
 static X86_64Fragment *x86_64FragmentCreate(X86_64FragmentKind kind) {
   X86_64Fragment *f = malloc(sizeof(X86_64Fragment));
@@ -38,8 +111,11 @@ X86_64Fragment *x86_64DataFragmentCreate(char *data) {
   f->data.data.data = data;
   return f;
 }
-X86_64Fragment *x86_64TextFragmentCreate(void) {
+X86_64Fragment *x86_64TextFragmentCreate(char *header, char *footer) {
   X86_64Fragment *f = x86_64FragmentCreate(X86_64_FK_TEXT);
+  f->data.text.header = header;
+  f->data.text.footer = footer;
+  x86_64InstructionVectorInit(&f->data.text.body);
   return f;
 }
 void x86_64FragmentDestroy(X86_64Fragment *f) {
@@ -49,6 +125,9 @@ void x86_64FragmentDestroy(X86_64Fragment *f) {
       break;
     }
     case X86_64_FK_TEXT: {
+      free(f->data.text.header);
+      free(f->data.text.footer);
+      x86_64InstructionVectorUninit(&f->data.text.body);
       break;
     }
   }
@@ -90,6 +169,302 @@ void fileX86_64FileMapUninit(FileX86_64FileMap *m) {
   hashMapUninit(m, (void (*)(void *))x86_64FileDestroy);
 }
 
+static bool sizeIsAtomic(size_t size) {
+  return size == BYTE_WIDTH || size == SHORT_WIDTH || size == INT_WIDTH ||
+         size == LONG_WIDTH;
+}
+static X86_64Instruction *moveInstructionCreate(
+    char sizePostfix, char const *fromFormat, char const *toFormat,
+    X86_64Operand *fromOperand, X86_64Operand *toOperand, bool isOffset) {
+  X86_64Instruction *i = x86_64InstructionCreate(
+      format("mov%c\t%s, %s", sizePostfix, fromFormat, toFormat));
+  if (fromOperand != NULL) {
+    x86_64OperandVectorInsert(isOffset ? &i->other : &i->uses, fromOperand);
+  }
+  if (toOperand != NULL) {
+    x86_64OperandVectorInsert(&i->defines, toOperand);
+  }
+  return i;
+}
+static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag) {
+  X86_64Frame *frame = (X86_64Frame *)irFrag->data.text.frame;
+  TempAllocator *tempAllocator = irFrag->data.text.tempAllocator;
+  IREntryVector *ir = irFrag->data.text.ir;
+  X86_64InstructionVector *assembly = &frag->data.text.body;
+
+  for (size_t idx = 0; idx < ir->size; idx++) {
+    IREntry *entry = ir->elements[idx];
+    switch (entry->op) {
+      case IO_ASM: {
+        x86_64InstructionVectorInsert(
+            assembly, x86_64InstructionCreate(
+                          strdup(entry->arg1->data.assembly.assembly)));
+        break;
+      }
+      case IO_LABEL: {
+        x86_64InstructionVectorInsert(
+            assembly, x86_64InstructionCreate(
+                          format("%s:\n", entry->arg1->data.name.name)));
+        break;
+      }
+      case IO_MOVE: {
+        break;
+      }
+      case IO_MEM_STORE: {
+        break;
+      }
+      case IO_MEM_LOAD: {
+        break;
+      }
+      case IO_STK_STORE: {
+        break;
+      }
+      case IO_STK_LOAD: {
+        break;
+      }
+      case IO_OFFSET_STORE: {
+        break;
+      }
+      case IO_OFFSET_LOAD: {
+        break;
+      }
+      case IO_ADD: {
+        break;
+      }
+      case IO_FP_ADD: {
+        break;
+      }
+      case IO_SUB: {
+        break;
+      }
+      case IO_FP_SUB: {
+        break;
+      }
+      case IO_SMUL: {
+        break;
+      }
+      case IO_UMUL: {
+        break;
+      }
+      case IO_FP_MUL: {
+        break;
+      }
+      case IO_SDIV: {
+        break;
+      }
+      case IO_UDIV: {
+        break;
+      }
+      case IO_FP_DIV: {
+        break;
+      }
+      case IO_SMOD: {
+        break;
+      }
+      case IO_UMOD: {
+        break;
+      }
+      case IO_SLL: {
+        break;
+      }
+      case IO_SLR: {
+        break;
+      }
+      case IO_SAR: {
+        break;
+      }
+      case IO_AND: {
+        break;
+      }
+      case IO_XOR: {
+        break;
+      }
+      case IO_OR: {
+        break;
+      }
+      case IO_L: {
+        break;
+      }
+      case IO_LE: {
+        break;
+      }
+      case IO_E: {
+        break;
+      }
+      case IO_NE: {
+        break;
+      }
+      case IO_GE: {
+        break;
+      }
+      case IO_G: {
+        break;
+      }
+      case IO_A: {
+        break;
+      }
+      case IO_AE: {
+        break;
+      }
+      case IO_B: {
+        break;
+      }
+      case IO_BE: {
+        break;
+      }
+      case IO_FP_L: {
+        break;
+      }
+      case IO_FP_LE: {
+        break;
+      }
+      case IO_FP_E: {
+        break;
+      }
+      case IO_FP_NE: {
+        break;
+      }
+      case IO_FP_GE: {
+        break;
+      }
+      case IO_FP_G: {
+        break;
+      }
+      case IO_NEG: {
+        break;
+      }
+      case IO_FP_NEG: {
+        break;
+      }
+      case IO_LNOT: {
+        break;
+      }
+      case IO_NOT: {
+        break;
+      }
+      case IO_SX_SHORT: {
+        break;
+      }
+      case IO_SX_INT: {
+        break;
+      }
+      case IO_SX_LONG: {
+        break;
+      }
+      case IO_ZX_SHORT: {
+        break;
+      }
+      case IO_ZX_INT: {
+        break;
+      }
+      case IO_ZX_LONG: {
+        break;
+      }
+      case IO_U_TO_FLOAT: {
+        break;
+      }
+      case IO_U_TO_DOUBLE: {
+        break;
+      }
+      case IO_S_TO_FLOAT: {
+        break;
+      }
+      case IO_S_TO_DOUBLE: {
+        break;
+      }
+      case IO_F_TO_FLOAT: {
+        break;
+      }
+      case IO_F_TO_DOUBLE: {
+        break;
+      }
+      case IO_TRUNC_BYTE: {
+        break;
+      }
+      case IO_TRUNC_SHORT: {
+        break;
+      }
+      case IO_TRUNC_INT: {
+        break;
+      }
+      case IO_F_TO_BYTE: {
+        break;
+      }
+      case IO_F_TO_SHORT: {
+        break;
+      }
+      case IO_F_TO_INT: {
+        break;
+      }
+      case IO_F_TO_LONG: {
+        break;
+      }
+      case IO_JUMP: {
+        break;
+      }
+      case IO_JL: {
+        break;
+      }
+      case IO_JLE: {
+        break;
+      }
+      case IO_JE: {
+        break;
+      }
+      case IO_JNE: {
+        break;
+      }
+      case IO_JGE: {
+        break;
+      }
+      case IO_JG: {
+        break;
+      }
+      case IO_JA: {
+        break;
+      }
+      case IO_JAE: {
+        break;
+      }
+      case IO_JB: {
+        break;
+      }
+      case IO_JBE: {
+        break;
+      }
+      case IO_FP_JL: {
+        break;
+      }
+      case IO_FP_JLE: {
+        break;
+      }
+      case IO_FP_JE: {
+        break;
+      }
+      case IO_FP_JNE: {
+        break;
+      }
+      case IO_FP_JGE: {
+        break;
+      }
+      case IO_FP_JG: {
+        break;
+      }
+      case IO_CALL: {
+        break;
+      }
+      case IO_RETURN: {
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__,
+              "invalid or unexpected ir operator encountered");
+      }
+    }
+  }
+}
+
+// data fragment stuff
 static bool isLocalLabel(char const *str) { return strncmp(str, ".L", 2) == 0; }
 static char *tstrToX86_64Str(uint8_t *str) {
   char *buffer = strdup("");
@@ -191,6 +566,7 @@ static char *dataToString(IREntryVector *data) {
   }
   return acc;
 }
+
 static X86_64File *fileInstructionSelect(IRFile *ir) {
   X86_64File *file =
       x86_64FileCreate(format("\t.file\t\"%s\"\n", ir->sourceFilename),
@@ -279,6 +655,14 @@ static X86_64File *fileInstructionSelect(IRFile *ir) {
         break;
       }
       case FK_TEXT: {
+        X86_64Fragment *frag = x86_64TextFragmentCreate(
+            format("\t.text\n"
+                   "\t.globl\t%s\n"
+                   "\t.type \t%s, @function\n",
+                   irFrag->label, irFrag->label),
+            format("\t.size\t%s, .-%s\n", irFrag->label, irFrag->label));
+        textInstructionSelect(frag, irFrag);
+        x86_64FragmentVectorInsert(&file->fragments, frag);
         break;
       }
     }
