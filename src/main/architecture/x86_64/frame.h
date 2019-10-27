@@ -19,7 +19,9 @@
 #ifndef TLC_ARCHITECTURE_X86_64_FRAME_H_
 #define TLC_ARCHITECTURE_X86_64_FRAME_H_
 
-#include "ir/ir.h"
+#include "ir/frame.h"
+#include "util/container/stack.h"
+#include "util/container/vector.h"
 
 // Frame layout (using the System V ABI):
 // Note that everything below 8(%rbp) is allocated and deallocated by the caller
@@ -37,11 +39,23 @@
 //                  -8p(%rbp) | in-memory actual argument eightbyte q
 // o(%rsp) OR -8(p + q)(%rbp) | in-memory actual argument eightbyte 0
 
-struct Frame;
-struct Access;
-struct LabelGenerator;
-typedef Vector TypeVector;
-struct Type;
+typedef Stack X86_64FrameScopeStack;
+
+typedef struct X86_64Frame {
+  struct Frame base;
+
+  size_t nextGPArg;
+  size_t nextSSEArg;
+  int64_t nextMemArg;
+
+  int64_t bpOffset;
+  size_t frameSize;
+
+  IREntryVector *functionPrologue;
+  IREntryVector *functionEpilogue;
+
+  X86_64FrameScopeStack scopes;
+} X86_64Frame;
 
 // constructors for x86_64
 struct Frame *x86_64FrameCtor(char *name);

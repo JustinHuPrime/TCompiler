@@ -363,21 +363,6 @@ X86_64Register const SSE_ARG_REGISTERS[] = {
     X86_64_XMM4, X86_64_XMM5, X86_64_XMM6, X86_64_XMM7,
 };
 
-typedef struct X86_64Frame {
-  Frame base;
-
-  size_t nextGPArg;
-  size_t nextSSEArg;
-  int64_t nextMemArg;
-
-  int64_t bpOffset;
-  size_t frameSize;
-
-  IREntryVector *functionPrologue;
-  IREntryVector *functionEpilogue;
-
-  X86_64FrameScopeStack scopes;
-} X86_64Frame;
 FrameVTable *X86_64FrameVTable = NULL;
 // assumes that the frame is an x86_64 frame
 static void x86_64FrameDtor(Frame *baseFrame) {
