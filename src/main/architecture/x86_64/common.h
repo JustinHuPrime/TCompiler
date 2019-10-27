@@ -19,6 +19,8 @@
 #ifndef TLC_ARCHITECTURE_X86_64_COMMON_H_
 #define TLC_ARCHITECTURE_X86_64_COMMON_H_
 
+#include <stddef.h>
+
 // symbolic constants for x86_64 register numbers
 typedef enum {
   // GP registers
@@ -63,5 +65,7 @@ typedef enum {
   X86_64_XMM14,
   X86_64_XMM15,
 } X86_64Register;
+
+X86_64Register x86_64RegNumToRegister(size_t reg);
 
 #endif  // TLC_ARCHITECTURE_X86_64_COMMON_H_

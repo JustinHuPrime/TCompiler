@@ -17,3 +17,5 @@
 // implementation of common x86_64 functions
 
 #include "architecture/x86_64/common.h"
+
+X86_64Register x86_64RegNumToRegister(size_t reg) { return reg; }
