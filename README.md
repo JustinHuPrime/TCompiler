@@ -32,6 +32,14 @@ Note that if a later option conflicts with an earlier option, the later option w
 * `--arch=sep`: sets the architecture to target to sep.
 -->
 
+#### Code Generation
+
+* `-fPDC`: generate fixed-position code. Default.
+
+* `-fPIE`: generate position independent code suitable for relocatable executable use.
+
+* `-fPIC`: generate position independent code suitable for shared library or relocatable executable use.
+
 #### Warnings
 
 All warning options have three forms, a `-W...=error` form, a `-W...=warn` form, and a `-W...=ignore` form. These forms instruct the compiler to either produce an error if this particular event is encountered (stopping compilation), produce a warning, or ignore the issue. So, for example, `-Wfoo=error` makes `foo` into an error, `-Wfoo=warn` makes `foo` into a warning, and `-Wfoo=ignore` ignores `foo`.

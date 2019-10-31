@@ -52,6 +52,13 @@ typedef enum {
 extern char const *optionArch;
 
 typedef enum {
+  O_PI_NONE = 1,
+  O_PI_PIE,
+  O_PI_PIC,
+} PositionIndependenceType;
+extern char const *optionPositionIndependence;
+
+typedef enum {
   O_WT_ERROR = 1,
   O_WT_WARN,
   O_WT_IGNORE,
