@@ -26,9 +26,9 @@ void X86_64INSERT(X86_64InstructionVector *, X86_64Instruction *);
 X86_64Instruction *X86_64INSTR(char *);
 // x86_64MoveInstructionCreate
 X86_64Instruction *X86_64MOVE(char *);
-// x86_64OperandVectorInsert(&i->uses, x86_64OperandCreate(use))
-void X86_64USE(X86_64Instruction *, struct IROperand const *);
-// x86_64OperandVectorInsert(&i->defines, x86_64OperandCreate(def))
-void X86_64DEF(X86_64Instruction *, struct IROperand const *);
-// x86_64OperandVectorInsert(&i->other, x86_64OperandCreate(other))
-void X86_64OTHER(X86_64Instruction *, struct IROperand const *);
+// x86_64OperandVectorInsert(&i->uses, x86_64OperandCreate(use, size))
+void X86_64USE(X86_64Instruction *, struct IROperand const *, size_t);
+// x86_64OperandVectorInsert(&i->defines, x86_64OperandCreate(def, size))
+void X86_64DEF(X86_64Instruction *, struct IROperand const *, size_t);
+// x86_64OperandVectorInsert(&i->other, x86_64OperandCreate(other, size))
+void X86_64OTHER(X86_64Instruction *, struct IROperand const *, size_t);

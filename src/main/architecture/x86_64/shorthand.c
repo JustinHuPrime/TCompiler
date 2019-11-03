@@ -29,12 +29,12 @@ X86_64Instruction *X86_64INSTR(char *skeleton) {
 X86_64Instruction *X86_64MOVE(char *skeleton) {
   return x86_64MoveInstructionCreate(skeleton);
 }
-void X86_64USE(X86_64Instruction *i, IROperand const *u) {
-  x86_64OperandVectorInsert(&i->uses, x86_64OperandCreate(u));
+void X86_64USE(X86_64Instruction *i, IROperand const *u, size_t size) {
+  x86_64OperandVectorInsert(&i->uses, x86_64OperandCreate(u, size));
 }
-void X86_64DEF(X86_64Instruction *i, IROperand const *d) {
-  x86_64OperandVectorInsert(&i->defines, x86_64OperandCreate(d));
+void X86_64DEF(X86_64Instruction *i, IROperand const *d, size_t size) {
+  x86_64OperandVectorInsert(&i->defines, x86_64OperandCreate(d, size));
 }
-void X86_64OTHER(X86_64Instruction *i, IROperand const *o) {
-  x86_64OperandVectorInsert(&i->other, x86_64OperandCreate(o));
+void X86_64OTHER(X86_64Instruction *i, IROperand const *o, size_t size) {
+  x86_64OperandVectorInsert(&i->other, x86_64OperandCreate(o, size));
 }

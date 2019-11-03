@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
 
       FileX86_64FileMap asmFileMap;
 
-      x86_64InstructionSelect(&asmFileMap, &irFileMap);
+      x86_64InstructionSelect(&asmFileMap, &irFileMap, &options);
 
       if (optionsGet(&options, optionDebugDump) == O_DD_ASM_1) {
         error(__FILE__, __LINE__, "not yet implemented");
