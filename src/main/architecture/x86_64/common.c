@@ -19,3 +19,6 @@
 #include "architecture/x86_64/common.h"
 
 X86_64Register x86_64RegNumToRegister(size_t reg) { return reg; }
+bool x86_64RegIsSSE(X86_64Register reg) {
+  return X86_64_XMM0 <= reg && reg <= X86_64_XMM15;
+}

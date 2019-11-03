@@ -23,15 +23,14 @@
 #include "ir/allocHint.h"
 #include "util/container/hashMap.h"
 #include "util/container/vector.h"
+#include "util/options.h"
 
 typedef HashMap FileIRFileMap;
 struct IROperand;
 
 typedef enum {
-  X86_64_OK_REGDEF,
-  X86_64_OK_REGUSE,
-  X86_64_OK_TEMPDEF,
-  X86_64_OK_TEMPUSE,
+  X86_64_OK_REG,
+  X86_64_OK_TEMP,
   X86_64_OK_STACKOFFSET,
 } X86_64OperandKind;
 typedef struct {
@@ -39,32 +38,21 @@ typedef struct {
   union {
     struct {
       X86_64Register reg;
-    } regDef;
-    struct {
-      X86_64Register reg;
-    } regUse;
+    } reg;
     struct {
       size_t n;
       size_t size;
       size_t alignment;
       AllocHint kind;
-    } tempDef;
-    struct {
-      size_t n;
-      size_t size;
-      size_t alignment;
-      AllocHint kind;
-    } tempUse;
+    } temp;
     struct {
       int64_t offset;
     } stackOffset;
   } data;
 } X86_64Operand;
-X86_64Operand *x86_64RegUseCreate(X86_64Register);
-X86_64Operand *x86_64RegDefCreate(X86_64Register);
-X86_64Operand *x86_64TempUseCreate(struct IROperand const *);
-X86_64Operand *x86_64TempDefCreate(struct IROperand const *);
-X86_64Operand *x86_64StackOffsetCreate(int64_t);
+X86_64Operand *x86_64RegCreate(struct IROperand const *);
+X86_64Operand *x86_64TempCreate(struct IROperand const *);
+X86_64Operand *x86_64StackOffsetCreate(struct IROperand const *);
 void x86_64OperandDestroy(X86_64Operand *);
 
 typedef Vector X86_64OperandVector;
@@ -78,8 +66,10 @@ typedef struct {
   X86_64OperandVector defines;
   X86_64OperandVector uses;
   X86_64OperandVector other;
+  bool isMove;
 } X86_64Instruction;
 X86_64Instruction *x86_64InstructionCreate(char *skeleton);
+X86_64Instruction *x86_64MoveInstructionCreate(char *skeleton);
 void x86_64InstructionDestroy(X86_64Instruction *);
 
 typedef Vector X86_64InstructionVector;
@@ -136,6 +126,6 @@ int fileX86_64FileMapPut(FileX86_64FileMap *, char const *key,
 void fileX86_64FileMapUninit(FileX86_64FileMap *);
 
 void x86_64InstructionSelect(FileX86_64FileMap *asmFileMap,
-                             FileIRFileMap *irFileMap);
+                             FileIRFileMap *irFileMap, Options *options);
 
 #endif  // TLC_ARCHITECTURE_X86_64_ASSEMBLY_H_
