@@ -378,11 +378,13 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
     IREntry *entry = ir->elements[idx];
     switch (entry->op) {
       case IO_ASM: {
+        // special case - inline asm
         X86_64INSERT(assembly,
                      X86_64INSTR(strdup(entry->arg1->data.assembly.assembly)));
         break;
       }
       case IO_LABEL: {
+        // special case - basically inline asm
         X86_64INSERT(assembly,
                      X86_64INSTR(format("%s:\n", entry->arg1->data.name.name)));
         break;
@@ -396,24 +398,20 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
           IROperand *from = loadOperand(entry->arg1, isSSE, entry->opSize,
                                         typeSuffix, assembly, frags,
                                         labelGenerator, tempAllocator, options);
-          IROperand *to = loadOperand(entry->dest, isSSE, entry->opSize,
-                                      typeSuffix, assembly, frags,
-                                      labelGenerator, tempAllocator, options);
+          // entry->dest is always a temp or reg
 
           // execution
           X86_64Instruction *move =
               X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
           X86_64USE(move, from);
-          X86_64DEF(move, to);
+          X86_64DEF(move, entry->dest);
           X86_64INSERT(assembly, move);
 
           // cleanup
           if (from != entry->arg1) {
             irOperandDestroy(from);
           }
-          if (to != entry->dest) {
-            irOperandDestroy(to);
-          }
+          // to is always a temp or reg
         } else {
           error(__FILE__, __LINE__, "not yet implemented");
         }
@@ -434,7 +432,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
           // execution
           X86_64Instruction *move =
-              X86_64MOVE(format("\tmov%s\t`u, (`u)\n", typeSuffix));
+              X86_64INSTR(format("\tmov%s\t`u, (`u)\n", typeSuffix));
           X86_64USE(move, from);
           X86_64USE(move, to);
           X86_64INSERT(assembly, move);
@@ -466,7 +464,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
           // execution
           X86_64Instruction *move =
-              X86_64MOVE(format("\tmov%s\t(`u), `u\n", typeSuffix));
+              X86_64INSTR(format("\tmov%s\t(`u), `u\n", typeSuffix));
           X86_64USE(move, from);
           X86_64USE(move, to);
           X86_64INSERT(assembly, move);
@@ -498,7 +496,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
           // execution
           X86_64Instruction *move =
-              X86_64MOVE(format("\tmov%s\t`u, (%%rbp, `u)\n", typeSuffix));
+              X86_64INSTR(format("\tmov%s\t`u, (%%rbp, `u)\n", typeSuffix));
           X86_64USE(move, from);
           X86_64USE(move, to);
           X86_64INSERT(assembly, move);
@@ -530,7 +528,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
           // execution
           X86_64Instruction *move =
-              X86_64MOVE(format("\tmov%s\t(%%rbp, `u), `u\n", typeSuffix));
+              X86_64INSTR(format("\tmov%s\t(%%rbp, `u), `u\n", typeSuffix));
           X86_64USE(move, from);
           X86_64USE(move, to);
           X86_64INSERT(assembly, move);
@@ -556,6 +554,37 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         break;
       }
       case IO_ADD: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *move =
+            X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
+        X86_64USE(move, arg1);
+        X86_64DEF(move, to);
+        X86_64INSERT(assembly, move);
+
+        X86_64Instruction *add =
+            X86_64INSTR(format("\tadd%s\t`u, `d\n", typeSuffix));
+        X86_64USE(add, arg2);
+        X86_64DEF(add, to);
+        X86_64INSERT(assembly, move);
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_FP_ADD: {
