@@ -146,54 +146,6 @@ static Access *x86_64TempAccessCtor(size_t size, size_t alignment,
   return (Access *)access;
 }
 
-typedef struct X86_64RegAccess {
-  Access base;
-  size_t regNum;
-} X86_64RegAccess;
-static void x86_64RegAccessDtor(Access *baseAccess) {
-  X86_64RegAccess *access = (X86_64RegAccess *)baseAccess;
-  free(access);
-}
-static IROperand *x86_64RegAccessLoad(Access const *baseAccess,
-                                      IREntryVector *code,
-                                      TempAllocator *tempAllocator) {
-  X86_64RegAccess const *access = (X86_64RegAccess const *)baseAccess;
-
-  return REG(access->regNum);
-}
-static void x86_64RegAccessStore(Access const *baseAccess, IREntryVector *code,
-                                 IROperand *input,
-                                 TempAllocator *tempAllocator) {
-  X86_64RegAccess const *access = (X86_64RegAccess const *)baseAccess;
-
-  IR(code, MOVE(access->base.size, REG(access->regNum), input));
-}
-AccessVTable *X86_64RegAccessVTable = NULL;
-static AccessVTable *getX86_64RegAccessVTable(void) {
-  if (X86_64RegAccessVTable == NULL) {
-    X86_64RegAccessVTable = malloc(sizeof(AccessVTable));
-    X86_64RegAccessVTable->dtor = x86_64RegAccessDtor;
-    X86_64RegAccessVTable->load = x86_64RegAccessLoad;
-    X86_64RegAccessVTable->store = x86_64RegAccessStore;
-    X86_64RegAccessVTable->addrof =
-        (IROperand * (*)(Access const *, IREntryVector *, TempAllocator *))
-            invalidFunction;
-    X86_64RegAccessVTable->getLabel =
-        (char *(*)(Access const *))invalidFunction;
-  }
-  return X86_64RegAccessVTable;
-}
-static Access *x86_64RegAccessCtor(size_t size, size_t alignment,
-                                   AllocHint kind, size_t regNum) {
-  X86_64RegAccess *access = malloc(sizeof(X86_64RegAccess));
-  access->base.vtable = getX86_64RegAccessVTable();
-  access->base.size = size;
-  access->base.alignment = alignment;
-  access->base.kind = kind;
-  access->regNum = regNum;
-  return (Access *)access;
-}
-
 typedef struct X86_64StackAccess {
   Access base;
   int64_t bpOffset;
@@ -619,14 +571,6 @@ static Access *x86_64AllocLocal(Frame *baseFrame, Type const *type,
     default: { error(__FILE__, __LINE__, "invalid type given to allocLocal"); }
   }
 }
-static Access *x86_64ReturnGP(X86_64Frame *frame, size_t size) {
-  // alignof == sizeof for all T GP types
-  return x86_64RegAccessCtor(size, size, AH_GP, X86_64_RAX);
-}
-static Access *x86_64ReturnSSE(X86_64Frame *frame, size_t size) {
-  // alignof == sizeof for all T SSE types
-  return x86_64RegAccessCtor(size, size, AH_SSE, X86_64_XMM0);
-}
 static Access *x86_64AllocRetVal(Frame *baseFrame, Type const *type,
                                  TempAllocator *tempAllocator) {
   X86_64Frame *frame = (X86_64Frame *)baseFrame;
@@ -646,12 +590,24 @@ static Access *x86_64AllocRetVal(Frame *baseFrame, Type const *type,
     case K_FUNCTION_PTR:
     case K_ENUM: {
       // GP
-      return x86_64ReturnGP(frame, typeSizeof(type));
+      size_t temp = NEW(tempAllocator);
+      size_t size = typeSizeof(type);
+
+      IR(frame->functionEpilogue,
+         MOVE(size, REG(X86_64_RAX), TEMP(temp, size, size, AH_GP)));
+
+      return x86_64TempAccessCtor(size, size, AH_GP, temp);
     }
     case K_FLOAT:
     case K_DOUBLE: {
       // SSE
-      return x86_64ReturnSSE(frame, typeSizeof(type));
+      size_t temp = NEW(tempAllocator);
+      size_t size = typeSizeof(type);
+
+      IR(frame->functionEpilogue,
+         MOVE(size, REG(X86_64_XMM0), TEMP(temp, size, size, AH_SSE)));
+
+      return x86_64TempAccessCtor(size, size, AH_SSE, temp);
     }
     case K_STRUCT: {
       // Composite
@@ -851,7 +807,15 @@ static IROperand *x86_64IndirectCall(Frame *baseFrame, IROperand *who,
 
   typeVectorUninit(&stackArgTypes);
   irOperandVectorUninit(&stackArgs);
-  return x86_64GetReturnValue(this, functionType->data.functionPtr.returnType);
+
+  size_t retSize = typeSizeof(functionType->data.functionPtr.returnType);
+  size_t retAlign = typeAlignof(functionType->data.functionPtr.returnType);
+  AllocHint retKind = typeKindof(functionType->data.functionPtr.returnType);
+  size_t temp = NEW(tempAllocator);
+  IR(out, MOVE(retSize, TEMP(temp, retSize, retAlign, retKind),
+               x86_64GetReturnValue(
+                   this, functionType->data.functionPtr.returnType)));
+  return TEMP(temp, retSize, retAlign, retKind);
 }
 static IROperand *x86_64DirectCall(Frame *baseFrame, char *who,
                                    IROperandVector *args,
@@ -891,7 +855,14 @@ static IROperand *x86_64DirectCall(Frame *baseFrame, char *who,
 
   typeVectorUninit(&stackArgTypes);
   irOperandVectorUninit(&stackArgs);
-  return x86_64GetReturnValue(this, function->returnType);
+
+  size_t retSize = typeSizeof(function->returnType);
+  size_t retAlign = typeAlignof(function->returnType);
+  AllocHint retKind = typeKindof(function->returnType);
+  size_t temp = NEW(tempAllocator);
+  IR(out, MOVE(retSize, TEMP(temp, retSize, retAlign, retKind),
+               x86_64GetReturnValue(this, function->returnType)));
+  return TEMP(temp, retSize, retAlign, retKind);
 }
 static FrameVTable *getX86_64FrameVTable(void) {
   if (X86_64FrameVTable == NULL) {
