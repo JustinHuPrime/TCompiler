@@ -263,6 +263,108 @@ static void addFPConstant(X86_64FragmentVector *frags, size_t size,
                         "\t%s\t%lu\n",
                         size, label, size == 4 ? ".long" : ".quad", bits)));
 }
+static IROperand *loadOperand(IROperand *op, bool isSSE, size_t size,
+                              char const *typeSuffix,
+                              X86_64InstructionVector *assembly,
+                              X86_64FragmentVector *frags,
+                              LabelGenerator *labelGenerator,
+                              TempAllocator *tempAllocator, Options *options) {
+  switch (op->kind) {
+    case OK_CONSTANT: {
+      if (isSSE) {
+        // add rodata fragment
+        char *label = labelGeneratorGenerateDataLabel(labelGenerator);
+        addFPConstant(frags, size, label, op->data.constant.bits);
+        IROperand *temp = tempIROperandCreate(
+            tempAllocatorAllocate(tempAllocator), size, size, AH_SSE);
+
+        X86_64Instruction *load =
+            X86_64INSTR(format("\tmov%s\t%s(%%rip), `d\n", typeSuffix, label));
+        X86_64DEF(load, temp);
+        X86_64INSERT(assembly, load);
+
+        free(label);
+        return temp;
+      } else {
+        if (size == 8) {
+          typeSuffix = "absq";  // special case for constant loads
+        }
+        IROperand *temp = tempIROperandCreate(
+            tempAllocatorAllocate(tempAllocator), size, size, AH_GP);
+
+        X86_64Instruction *load = X86_64INSTR(
+            format("\tmov%s\t$%lu, `d\n", typeSuffix, op->data.constant.bits));
+        X86_64DEF(load, temp);
+        X86_64INSERT(assembly, load);
+
+        return temp;
+      }
+    }
+    case OK_NAME: {
+      switch (optionsGet(options, optionPositionIndependence)) {
+        case O_PI_NONE: {
+          IROperand *temp = tempIROperandCreate(
+              tempAllocatorAllocate(tempAllocator), size, size, AH_GP);
+
+          X86_64Instruction *load =
+              X86_64INSTR(format("\tmovq\t$%s, `d\n", op->data.name.name));
+          X86_64DEF(load, temp);
+          X86_64INSERT(assembly, load);
+
+          return temp;
+        }
+        case O_PI_PIE: {
+          IROperand *temp = tempIROperandCreate(
+              tempAllocatorAllocate(tempAllocator), size, size, AH_GP);
+
+          X86_64Instruction *load = X86_64INSTR(
+              format("\tleaq\t%s(%%rip), `d\n", op->data.name.name));
+          X86_64DEF(load, temp);
+          X86_64INSERT(assembly, load);
+
+          return temp;
+        }
+        case O_PI_PIC: {
+          IROperand *temp = tempIROperandCreate(
+              tempAllocatorAllocate(tempAllocator), size, size, AH_GP);
+
+          X86_64Instruction *load = X86_64INSTR(
+              format("\tmovq\t%s@GOTPCREL(%%rip), `d\n", op->data.name.name));
+          X86_64DEF(load, temp);
+          X86_64INSERT(assembly, load);
+
+          return temp;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid PositionIndependenceType enum");
+        }
+      }
+      break;
+    }
+    case OK_STACKOFFSET: {
+      IROperand *temp = tempIROperandCreate(
+          tempAllocatorAllocate(tempAllocator), size, size, AH_GP);
+
+      X86_64Instruction *load = X86_64INSTR(
+          format("\tmovabsq\t$`o, `d\n"));  // note - should be optimized
+                                            // after register allocation
+      X86_64OTHER(load, op);
+      X86_64USE(load, temp);
+      X86_64INSERT(assembly, load);
+
+      return temp;
+    }
+    case OK_REG:
+    case OK_TEMP: {
+      return op;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "invalid or unexpected IROperandKind enum - should not be string, "
+            "wstring, or asm");
+    }
+  }
+}
 static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
                                   X86_64FragmentVector *frags,
                                   LabelGenerator *labelGenerator,
@@ -290,112 +392,13 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
           bool isSSE = operandIsSSE(entry->arg1);
           char const *typeSuffix = generateTypeSuffix(entry->opSize, isSSE);
 
-          // setup - gets CONST, NAME, STACKOFFSET into right places
-          IROperand *from = entry->arg1;
-          IROperand *to = entry->dest;
-
-          switch (from->kind) {
-            case OK_CONSTANT: {
-              if (isSSE) {
-                // add rodata fragment
-                char *label = labelGeneratorGenerateDataLabel(labelGenerator);
-                addFPConstant(frags, entry->opSize, label,
-                              from->data.constant.bits);
-                IROperand *temp =
-                    tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
-                                        entry->opSize, entry->opSize, AH_SSE);
-
-                X86_64Instruction *load = X86_64INSTR(
-                    format("\tmov%s\t%s(%%rip), `d\n", typeSuffix, label));
-                X86_64DEF(load, temp);
-                X86_64INSERT(assembly, load);
-
-                from = temp;
-                free(label);
-              } else {
-                if (entry->opSize == 8) {
-                  typeSuffix = "absq";  // special case for constant loads
-                }
-                IROperand *temp =
-                    tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
-                                        entry->opSize, entry->opSize, AH_GP);
-
-                X86_64Instruction *load =
-                    X86_64INSTR(format("\tmov%s\t$%lu, `d\n", typeSuffix,
-                                       from->data.constant.bits));
-                X86_64DEF(load, temp);
-                X86_64INSERT(assembly, load);
-
-                from = temp;
-              }
-              break;
-            }
-            case OK_NAME: {
-              switch (optionsGet(options, optionPositionIndependence)) {
-                case O_PI_NONE: {
-                  IROperand *temp =
-                      tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
-                                          entry->opSize, entry->opSize, AH_GP);
-
-                  X86_64Instruction *load = X86_64INSTR(
-                      format("\tmovq\t$%s, `d\n", from->data.name.name));
-                  X86_64DEF(load, temp);
-                  X86_64INSERT(assembly, load);
-
-                  from = temp;
-                  break;
-                }
-                case O_PI_PIE: {
-                  IROperand *temp =
-                      tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
-                                          entry->opSize, entry->opSize, AH_GP);
-
-                  X86_64Instruction *load = X86_64INSTR(
-                      format("\tleaq\t%s(%%rip), `d\n", from->data.name.name));
-                  X86_64DEF(load, temp);
-                  X86_64INSERT(assembly, load);
-
-                  from = temp;
-                  break;
-                }
-                case O_PI_PIC: {
-                  IROperand *temp =
-                      tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
-                                          entry->opSize, entry->opSize, AH_GP);
-
-                  X86_64Instruction *load =
-                      X86_64INSTR(format("\tmovq\t%s@GOTPCREL(%%rip), `d\n",
-                                         from->data.name.name));
-                  X86_64DEF(load, temp);
-                  X86_64INSERT(assembly, load);
-
-                  from = temp;
-                  break;
-                }
-                default: {
-                  error(__FILE__, __LINE__,
-                        "invalid PositionIndependenceType enum");
-                }
-              }
-              break;
-            }
-            case OK_STACKOFFSET: {
-              IROperand *temp =
-                  tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
-                                      entry->opSize, entry->opSize, AH_GP);
-
-              X86_64Instruction *load = X86_64INSTR(format(
-                  "\tmovabsq\t$`o, `d\n"));  // note - should be optimized
-                                             // after register allocation
-              X86_64OTHER(load, from);
-              X86_64USE(load, temp);
-              X86_64INSERT(assembly, load);
-
-              from = temp;
-              break;
-            }
-            default: { break; }
-          }
+          // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+          IROperand *from = loadOperand(entry->arg1, isSSE, entry->opSize,
+                                        typeSuffix, assembly, frags,
+                                        labelGenerator, tempAllocator, options);
+          IROperand *to = loadOperand(entry->dest, isSSE, entry->opSize,
+                                      typeSuffix, assembly, frags,
+                                      labelGenerator, tempAllocator, options);
 
           // execution
           X86_64Instruction *move =
