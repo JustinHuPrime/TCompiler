@@ -420,21 +420,139 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         break;
       }
       case IO_MEM_STORE: {
+        if (operandIsAtomic(entry->arg1)) {
+          bool isSSE = operandIsSSE(entry->arg1);
+          char const *typeSuffix = generateTypeSuffix(entry->opSize, isSSE);
+
+          // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+          IROperand *from = loadOperand(entry->arg1, isSSE, entry->opSize,
+                                        typeSuffix, assembly, frags,
+                                        labelGenerator, tempAllocator, options);
+          IROperand *to = loadOperand(entry->dest, isSSE, entry->opSize,
+                                      typeSuffix, assembly, frags,
+                                      labelGenerator, tempAllocator, options);
+
+          // execution
+          X86_64Instruction *move =
+              X86_64MOVE(format("\tmov%s\t`u, (`u)\n", typeSuffix));
+          X86_64USE(move, from);
+          X86_64USE(move, to);
+          X86_64INSERT(assembly, move);
+
+          // cleanup
+          if (from != entry->arg1) {
+            irOperandDestroy(from);
+          }
+          if (to != entry->dest) {
+            irOperandDestroy(to);
+          }
+        } else {
+          error(__FILE__, __LINE__, "not yet implemented");
+        }
         break;
       }
       case IO_MEM_LOAD: {
+        if (operandIsAtomic(entry->arg1)) {
+          bool isSSE = operandIsSSE(entry->arg1);
+          char const *typeSuffix = generateTypeSuffix(entry->opSize, isSSE);
+
+          // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+          IROperand *from = loadOperand(entry->arg1, isSSE, entry->opSize,
+                                        typeSuffix, assembly, frags,
+                                        labelGenerator, tempAllocator, options);
+          IROperand *to = loadOperand(entry->dest, isSSE, entry->opSize,
+                                      typeSuffix, assembly, frags,
+                                      labelGenerator, tempAllocator, options);
+
+          // execution
+          X86_64Instruction *move =
+              X86_64MOVE(format("\tmov%s\t(`u), `u\n", typeSuffix));
+          X86_64USE(move, from);
+          X86_64USE(move, to);
+          X86_64INSERT(assembly, move);
+
+          // cleanup
+          if (from != entry->arg1) {
+            irOperandDestroy(from);
+          }
+          if (to != entry->dest) {
+            irOperandDestroy(to);
+          }
+        } else {
+          error(__FILE__, __LINE__, "not yet implemented");
+        }
         break;
       }
       case IO_STK_STORE: {
+        if (operandIsAtomic(entry->arg1)) {
+          bool isSSE = operandIsSSE(entry->arg1);
+          char const *typeSuffix = generateTypeSuffix(entry->opSize, isSSE);
+
+          // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+          IROperand *from = loadOperand(entry->arg1, isSSE, entry->opSize,
+                                        typeSuffix, assembly, frags,
+                                        labelGenerator, tempAllocator, options);
+          IROperand *to = loadOperand(entry->dest, isSSE, entry->opSize,
+                                      typeSuffix, assembly, frags,
+                                      labelGenerator, tempAllocator, options);
+
+          // execution
+          X86_64Instruction *move =
+              X86_64MOVE(format("\tmov%s\t`u, (%%rbp, `u)\n", typeSuffix));
+          X86_64USE(move, from);
+          X86_64USE(move, to);
+          X86_64INSERT(assembly, move);
+
+          // cleanup
+          if (from != entry->arg1) {
+            irOperandDestroy(from);
+          }
+          if (to != entry->dest) {
+            irOperandDestroy(to);
+          }
+        } else {
+          error(__FILE__, __LINE__, "not yet implemented");
+        }
         break;
       }
       case IO_STK_LOAD: {
+        if (operandIsAtomic(entry->arg1)) {
+          bool isSSE = operandIsSSE(entry->arg1);
+          char const *typeSuffix = generateTypeSuffix(entry->opSize, isSSE);
+
+          // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+          IROperand *from = loadOperand(entry->arg1, isSSE, entry->opSize,
+                                        typeSuffix, assembly, frags,
+                                        labelGenerator, tempAllocator, options);
+          IROperand *to = loadOperand(entry->dest, isSSE, entry->opSize,
+                                      typeSuffix, assembly, frags,
+                                      labelGenerator, tempAllocator, options);
+
+          // execution
+          X86_64Instruction *move =
+              X86_64MOVE(format("\tmov%s\t(%%rbp, `u), `u\n", typeSuffix));
+          X86_64USE(move, from);
+          X86_64USE(move, to);
+          X86_64INSERT(assembly, move);
+
+          // cleanup
+          if (from != entry->arg1) {
+            irOperandDestroy(from);
+          }
+          if (to != entry->dest) {
+            irOperandDestroy(to);
+          }
+        } else {
+          error(__FILE__, __LINE__, "not yet implemented");
+        }
         break;
       }
       case IO_OFFSET_STORE: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_OFFSET_LOAD: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_ADD: {
