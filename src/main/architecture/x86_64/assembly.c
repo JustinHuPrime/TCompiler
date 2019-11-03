@@ -287,12 +287,10 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
       }
       case IO_MOVE: {
         if (operandIsAtomic(entry->arg1)) {
-          // preliminary: gets instruction size suffix:
           bool isSSE = operandIsSSE(entry->arg1);
           char const *typeSuffix = generateTypeSuffix(entry->opSize, isSSE);
 
           // setup - gets CONST, NAME, STACKOFFSET into right places
-          bool needExecution = true;
           IROperand *from = entry->arg1;
           IROperand *to = entry->dest;
 
@@ -303,57 +301,75 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
                 char *label = labelGeneratorGenerateDataLabel(labelGenerator);
                 addFPConstant(frags, entry->opSize, label,
                               from->data.constant.bits);
+                IROperand *temp =
+                    tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
+                                        entry->opSize, entry->opSize, AH_SSE);
 
-                X86_64Instruction *move = X86_64INSTR(
+                X86_64Instruction *load = X86_64INSTR(
                     format("\tmov%s\t%s(%%rip), `d\n", typeSuffix, label));
-                X86_64DEF(move, to);
-                X86_64INSERT(assembly, move);
+                X86_64DEF(load, temp);
+                X86_64INSERT(assembly, load);
 
-                needExecution = false;
+                from = temp;
                 free(label);
               } else {
                 if (entry->opSize == 8) {
                   typeSuffix = "absq";  // special case for constant loads
                 }
+                IROperand *temp =
+                    tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
+                                        entry->opSize, entry->opSize, AH_GP);
 
-                X86_64Instruction *move =
+                X86_64Instruction *load =
                     X86_64INSTR(format("\tmov%s\t$%lu, `d\n", typeSuffix,
                                        from->data.constant.bits));
-                X86_64DEF(move, to);
-                X86_64INSERT(assembly, move);
+                X86_64DEF(load, temp);
+                X86_64INSERT(assembly, load);
 
-                needExecution = false;
+                from = temp;
               }
               break;
             }
             case OK_NAME: {
               switch (optionsGet(options, optionPositionIndependence)) {
                 case O_PI_NONE: {
-                  X86_64Instruction *move = X86_64INSTR(
-                      format("\tmovq\t$%s, `d\n", from->data.name.name));
-                  X86_64DEF(move, to);
-                  X86_64INSERT(assembly, move);
+                  IROperand *temp =
+                      tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
+                                          entry->opSize, entry->opSize, AH_GP);
 
-                  needExecution = false;
+                  X86_64Instruction *load = X86_64INSTR(
+                      format("\tmovq\t$%s, `d\n", from->data.name.name));
+                  X86_64DEF(load, temp);
+                  X86_64INSERT(assembly, load);
+
+                  from = temp;
                   break;
                 }
                 case O_PI_PIE: {
-                  X86_64Instruction *move = X86_64INSTR(
-                      format("\tleaq\t%s(%%rip), `d\n", from->data.name.name));
-                  X86_64DEF(move, to);
-                  X86_64INSERT(assembly, move);
+                  IROperand *temp =
+                      tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
+                                          entry->opSize, entry->opSize, AH_GP);
 
-                  needExecution = false;
+                  X86_64Instruction *load = X86_64INSTR(
+                      format("\tleaq\t%s(%%rip), `d\n", from->data.name.name));
+                  X86_64DEF(load, temp);
+                  X86_64INSERT(assembly, load);
+
+                  from = temp;
                   break;
                 }
                 case O_PI_PIC: {
-                  X86_64Instruction *move =
+                  IROperand *temp =
+                      tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
+                                          entry->opSize, entry->opSize, AH_GP);
+
+                  X86_64Instruction *load =
                       X86_64INSTR(format("\tmovq\t%s@GOTPCREL(%%rip), `d\n",
                                          from->data.name.name));
-                  X86_64DEF(move, to);
-                  X86_64INSERT(assembly, move);
+                  X86_64DEF(load, temp);
+                  X86_64INSERT(assembly, load);
 
-                  needExecution = false;
+                  from = temp;
                   break;
                 }
                 default: {
@@ -364,27 +380,29 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
               break;
             }
             case OK_STACKOFFSET: {
-              X86_64Instruction *move = X86_64INSTR(format(
+              IROperand *temp =
+                  tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
+                                      entry->opSize, entry->opSize, AH_GP);
+
+              X86_64Instruction *load = X86_64INSTR(format(
                   "\tmovabsq\t$`o, `d\n"));  // note - should be optimized
                                              // after register allocation
-              X86_64OTHER(move, from);
-              X86_64USE(move, to);
-              X86_64INSERT(assembly, move);
+              X86_64OTHER(load, from);
+              X86_64USE(load, temp);
+              X86_64INSERT(assembly, load);
 
-              needExecution = false;
+              from = temp;
               break;
             }
             default: { break; }
           }
 
           // execution
-          if (needExecution) {
-            X86_64Instruction *move =
-                X86_64INSTR(format("\tmov%s\t`u, `d\n", typeSuffix));
-            X86_64USE(move, from);
-            X86_64DEF(move, to);
-            X86_64INSERT(assembly, move);
-          }
+          X86_64Instruction *move =
+              X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
+          X86_64USE(move, from);
+          X86_64DEF(move, to);
+          X86_64INSERT(assembly, move);
 
           // cleanup
           if (from != entry->arg1) {
