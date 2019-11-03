@@ -588,12 +588,105 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         break;
       }
       case IO_FP_ADD: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, true);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg1, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *move =
+            X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
+        X86_64USE(move, arg1);
+        X86_64DEF(move, to);
+        X86_64INSERT(assembly, move);
+
+        X86_64Instruction *add =
+            X86_64INSTR(format("\tadd%s\t`u, `d\n", typeSuffix));
+        X86_64USE(add, arg2);
+        X86_64DEF(add, to);
+        X86_64INSERT(assembly, move);
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_SUB: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *move =
+            X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
+        X86_64USE(move, arg1);
+        X86_64DEF(move, to);
+        X86_64INSERT(assembly, move);
+
+        X86_64Instruction *add =
+            X86_64INSTR(format("\tsub%s\t`u, `d\n", typeSuffix));
+        X86_64USE(add, arg2);
+        X86_64DEF(add, to);
+        X86_64INSERT(assembly, move);
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_FP_SUB: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, true);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg1, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *move =
+            X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
+        X86_64USE(move, arg1);
+        X86_64DEF(move, to);
+        X86_64INSERT(assembly, move);
+
+        X86_64Instruction *add =
+            X86_64INSTR(format("\tsub%s\t`u, `d\n", typeSuffix));
+        X86_64USE(add, arg2);
+        X86_64DEF(add, to);
+        X86_64INSERT(assembly, move);
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_SMUL: {
