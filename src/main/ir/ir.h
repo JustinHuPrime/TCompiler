@@ -24,6 +24,9 @@
 
 #include <stdint.h>
 
+// only OK_TEMP and OK_REG can be moved to,
+// only OK_TEMP, OK_REG, OK_CONSTANT, OK_NAME, and OK_STACKOFFSET can be used
+// OK_STRING, OK_ASM, and OK_WSTRING are special.
 typedef enum {
   OK_TEMP,
   OK_REG,
