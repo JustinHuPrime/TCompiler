@@ -23,7 +23,9 @@ struct IROperand;
 // x86_64InstructionVectorInsert
 void X86_64INSERT(X86_64InstructionVector *, X86_64Instruction *);
 // x86_64InstructionCreate
-X86_64Instruction *X86_64INSTR(char *skeleton);
+X86_64Instruction *X86_64INSTR(char *);
+// x86_64MoveInstructionCreate
+X86_64Instruction *X86_64MOVE(char *);
 // x86_64OperandVectorInsert(&i->uses, x86_64OperandCreate(use))
 void X86_64USE(X86_64Instruction *, struct IROperand const *);
 // x86_64OperandVectorInsert(&i->defines, x86_64OperandCreate(def))

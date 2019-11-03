@@ -26,6 +26,9 @@ void X86_64INSERT(X86_64InstructionVector *v, X86_64Instruction *i) {
 X86_64Instruction *X86_64INSTR(char *skeleton) {
   return x86_64InstructionCreate(skeleton);
 }
+X86_64Instruction *X86_64MOVE(char *skeleton) {
+  return x86_64MoveInstructionCreate(skeleton);
+}
 void X86_64USE(X86_64Instruction *i, IROperand const *u) {
   x86_64OperandVectorInsert(&i->uses, x86_64OperandCreate(u));
 }
