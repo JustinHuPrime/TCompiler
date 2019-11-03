@@ -50,9 +50,7 @@ typedef struct {
     } stackOffset;
   } data;
 } X86_64Operand;
-X86_64Operand *x86_64RegCreate(struct IROperand const *);
-X86_64Operand *x86_64TempCreate(struct IROperand const *);
-X86_64Operand *x86_64StackOffsetCreate(struct IROperand const *);
+X86_64Operand *x86_64OperandCreate(struct IROperand const *);
 void x86_64OperandDestroy(X86_64Operand *);
 
 typedef Vector X86_64OperandVector;

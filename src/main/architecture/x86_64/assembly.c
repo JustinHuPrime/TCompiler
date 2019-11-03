@@ -19,6 +19,7 @@
 #include "architecture/x86_64/assembly.h"
 
 #include "architecture/x86_64/frame.h"
+#include "architecture/x86_64/shorthand.h"
 #include "constants.h"
 #include "ir/allocHint.h"
 #include "ir/ir.h"
@@ -29,27 +30,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-static X86_64Operand *x86_64OperandCreate(X86_64OperandKind kind) {
+X86_64Operand *x86_64OperandCreate(IROperand const *irOperand) {
   X86_64Operand *op = malloc(sizeof(X86_64Operand));
-  op->kind = kind;
-  return op;
-}
-X86_64Operand *x86_64RegCreate(IROperand const *reg) {
-  X86_64Operand *op = x86_64OperandCreate(X86_64_OK_REG);
-  op->data.reg.reg = x86_64RegNumToRegister(reg->data.reg.n);
-  return op;
-}
-X86_64Operand *x86_64TempCreate(IROperand const *temp) {
-  X86_64Operand *op = x86_64OperandCreate(X86_64_OK_TEMP);
-  op->data.temp.n = temp->data.temp.n;
-  op->data.temp.size = temp->data.temp.size;
-  op->data.temp.alignment = temp->data.temp.alignment;
-  op->data.temp.kind = temp->data.temp.kind;
-  return op;
-}
-X86_64Operand *x86_64StackOffsetCreate(IROperand const *offset) {
-  X86_64Operand *op = x86_64OperandCreate(X86_64_OK_STACKOFFSET);
-  op->data.stackOffset.offset = offset->data.stackOffset.stackOffset;
+  switch (irOperand->kind) {
+    case OK_REG: {
+      op->kind = X86_64_OK_REG;
+      op->data.reg.reg = x86_64RegNumToRegister(irOperand->data.reg.n);
+      break;
+    }
+    case OK_TEMP: {
+      op->kind = X86_64_OK_TEMP;
+      op->data.temp.n = irOperand->data.temp.n;
+      op->data.temp.size = irOperand->data.temp.size;
+      op->data.temp.alignment = irOperand->data.temp.alignment;
+      op->data.temp.kind = irOperand->data.temp.kind;
+      break;
+    }
+    case OK_STACKOFFSET: {
+      op->kind = X86_64_OK_STACKOFFSET;
+      op->data.stackOffset.offset = irOperand->data.stackOffset.stackOffset;
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "invalid operand type - constants should not be handled here");
+    }
+  }
   return op;
 }
 void x86_64OperandDestroy(X86_64Operand *op) { free(op); }
@@ -166,518 +172,96 @@ void fileX86_64FileMapUninit(FileX86_64FileMap *m) {
   hashMapUninit(m, (void (*)(void *))x86_64FileDestroy);
 }
 
-static bool sizeIsAtomic(size_t size) {
-  return size == BYTE_WIDTH || size == SHORT_WIDTH || size == INT_WIDTH ||
-         size == LONG_WIDTH;
+// static bool sizeIsAtomic(size_t size) {
+//   return size == BYTE_WIDTH || size == SHORT_WIDTH || size == INT_WIDTH ||
+//          size == LONG_WIDTH;
+// }
+// static char atomicSizeToGPSizePostfix(size_t size) {
+//   switch (size) {
+//     case 1: {
+//       return 'b';
+//     }
+//     case 2: {
+//       return 'w';
+//     }
+//     case 4: {
+//       return 'l';
+//     }
+//     case 8: {
+//       return 'q';
+//     }
+//     default: { error(__FILE__, __LINE__, "not an atomic gp size"); }
+//   }
+// }
+// static char atomicSizeToFPSizePostfix(size_t size) {
+//   switch (size) {
+//     case 4: {
+//       return 's';
+//     }
+//     case 8: {
+//       return 'd';
+//     }
+//     default: { error(__FILE__, __LINE__, "not a atomic fp size"); }
+//   }
+// }
+static bool operandIsAtomic(IROperand const *op) {
+  return op->kind != OK_TEMP || op->data.temp.kind != AH_MEM;
 }
-static char atomicSizeToGPSizePostfix(size_t size) {
-  switch (size) {
-    case 1: {
-      return 'b';
+static bool operandIsSSE(IROperand const *op) {
+  switch (op->kind) {
+    case OK_CONSTANT:
+    case OK_NAME:
+    case OK_STACKOFFSET: {
+      return false;
     }
-    case 2: {
-      return 'w';
+    case OK_REG: {
+      return x86_64RegIsSSE(x86_64RegNumToRegister(op->data.reg.n));
     }
-    case 4: {
-      return 'l';
+    case OK_TEMP: {
+      return op->data.temp.kind == AH_SSE;
     }
-    case 8: {
-      return 'q';
-    }
-    default: { error(__FILE__, __LINE__, "not an atomic gp size"); }
+    default: { error(__FILE__, __LINE__, "invalid OperandKind enum"); }
   }
 }
-static char atomicSizeToFPSizePostfix(size_t size) {
-  switch (size) {
-    case 4: {
-      return 's';
+static char const *generateTypeSuffix(size_t opSize, bool isSSE) {
+  if (isSSE) {
+    switch (opSize) {
+      case 4: {
+        return "ss";
+      }
+      case 8: {
+        return "sd";
+      }
+      default: { error(__FILE__, __LINE__, "invalid operand size"); }
     }
-    case 8: {
-      return 'd';
-    }
-    default: { error(__FILE__, __LINE__, "not a atomic fp size"); }
-  }
-}
-// moves
-static void regRegMoveInstructionSelect(IREntry *entry,
-                                        X86_64InstructionVector *assembly) {
-  // note - move size must be atomic here
-  // two cases - sse/sse, gp/gp
-  X86_64Instruction *i;
-  if (x86_64RegIsSSE(x86_64RegNumToRegister(entry->dest->data.reg.n))) {
-    i = x86_64MoveInstructionCreate(format(
-        "\tmovs%c\t`u, `d\n", atomicSizeToSSESizePostfix(entry->opSize)));
   } else {
-    // reg is gp
-    i = x86_64MoveInstructionCreate(
-        format("\tmov%c\t`u, `d\n", atomicSizeToGPSizePostfix(entry->opSize)));
-  }
-  x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-  x86_64OperandVectorInsert(&i->defines, x86_64RegCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void tempRegMoveInstructionSelect(IREntry *entry,
-                                         X86_64InstructionVector *assembly) {
-  // note - move size must be atomic here
-  X86_64Instruction *i;
-  if (x86_64RegIsSSE(x86_64RegNumToRegister(entry->dest->data.reg.n))) {
-    i = x86_64MoveInstructionCreate(format(
-        "\tmovs%c\t`u, `d\n", atomicSizeToSSESizePostfix(entry->opSize)));
-  } else {
-    // reg is gp
-    i = x86_64MoveInstructionCreate(
-        format("\tmov%c\t`u, `d\n", atomicSizeToSSESizePostfix(entry->opSize)));
-  }
-  x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-  x86_64OperandVectorInsert(&i->defines, x86_64TempCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void stackOffsetRegMoveInstructionSelect(
-    IREntry *entry, X86_64InstructionVector *assembly) {
-  // note - move size must be 8 here
-  X86_64Instruction *i = x86_64InstructionCreate(strdup("\tmovq\t$`o, `d\n"));
-  x86_64OperandVectorInsert(&i->other, x86_64StackOffsetCreate(entry->arg1));
-  x86_64OperandVectorInsert(&i->defines, x86_64RegCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void nameRegMoveInstructionSelect(IREntry *entry,
-                                         X86_64InstructionVector *assembly,
-                                         Options *options) {
-  // note - move size must be 8 here
-  X86_64Instruction *i;
-  switch (optionsGet(options, optionPositionIndependence)) {
-    case O_PI_NONE: {
-      i = x86_64InstructionCreate(
-          format("\tmovq\t$%s, `d\n", entry->arg1->data.name.name));
-      break;
-    }
-    case O_PI_PIE: {
-      i = x86_64InstructionCreate(
-          format("\tleaq\t%s(%%rip), `d\n", entry->arg1->data.name.name));
-      break;
-    }
-    case O_PI_PIC: {
-      i = x86_64InstructionCreate(format("\tmovq\t%s@GOTPCREL(%%rip), `d\n",
-                                         entry->arg1->data.name.name));
-      break;
-    }
-    default: {
-      error(__FILE__, __LINE__, "invalid PositionIndependenceType enum");
-    }
-  }
-  x86_64OperandVectorInsert(&i->defines, x86_64RegCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void constantRegMoveInstructionSelect(IREntry *entry,
-                                             X86_64InstructionVector *assembly,
-                                             X86_64FragmentVector *frags,
-                                             LabelGenerator *labelGenerator) {
-  // note - move size must be atomic here
-  X86_64Instruction *i;
-  if (regIsSSE(x86_64RegNumToRegister(entry->dest->data.reg.n))) {
-    char *constant = labelGeneratorGenerateDataLabel(labelGenerator);
-    if (entry->opSize == 4) {
-      x86_64FragmentVectorInsert(
-          frags, x86_64DataFragmentCreate(
-                     format("\t.section\t.rodata\n"
-                            "\t.align\t4\n"
-                            "%s:\n"
-                            "\t.long\t%zu",
-                            constant, entry->arg1->data.constant.bits)));
-    } else {
-      // entry->opSize == 8
-      x86_64FragmentVectorInsert(
-          frags, x86_64DataFragmentCreate(
-                     format("\t.section\t.rodata\n"
-                            "\t.align\t8\n"
-                            "%s:\n"
-                            "\t.quad\t%lu",
-                            constant, entry->arg1->data.constant.bits)));
-    }
-    i = x86_64InstructionCreate(format("\tmovs%c\t%s(%%rip), `d\n",
-                                       atomicSizeToFPSizePostfix(entry->opSize),
-                                       constant));
-    free(constant);
-  } else {
-    // scalar load
-    i = x86_64InstructionCreate(format("\tmov%c\t$%lu, `d\n",
-                                       atomicSizeToGPSizePostfix(entry->opSize),
-                                       entry->arg1->data.constant.bits));
-  }
-  x86_64OperandVectorInsert(&i->defines, x86_64RegCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void regTempMoveInstructionSelect(IREntry *entry,
-                                         X86_64InstructionVector *assembly) {
-  // note - move size must be atomic here
-  X86_64Instruction *i;
-  if (entry->dest->data.temp.kind == AH_SSE) {
-    i = x86_64MoveInstructionCreate(format(
-        "\tmovs%c\t`u, `d\n", atomicSizeToSSESizePostfix(entry->opSize)));
-  } else {
-    // temp is gp
-    i = x86_64MoveInstructionCreate(
-        format("\tmov%c\t`u, `d\n", atomicSizeToSSESizePostfix(entry->opSize)));
-  }
-  x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-  x86_64OperandVectorInsert(&i->defines, x86_64TempCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void tempTempMoveInstructionSelect(IREntry *entry,
-                                          X86_64InstructionVector *assembly) {
-  X86_64Instruction *i;
-  switch (entry->dest->data.temp.kind) {
-    case AH_GP: {
-      X86_64Instruction *i = x86_64MoveInstructionCreate(format(
-          "\tmov%c\t`u, `d\n", atomicSizeToGPSizePostfix(entry->opSize)));
-      x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-      x86_64OperandVectorInsert(&i->defines, x86_64TempCreate(entry->dest));
-      break;
-    }
-    case AH_MEM: {
-      error(__FILE__, __LINE__, "not yet implemented");
-      break;
-    }
-    case AH_SSE: {
-      X86_64Instruction *i = x86_64MoveInstructionCreate(format(
-          "\tmovs%c\t`u, `d\n", atomicSizeToSSESizePostfix(entry->opSize)));
-      x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-      x86_64OperandVectorInsert(&i->defines, x86_64TempCreate(entry->dest));
-      break;
-    }
-    default: { error(__FILE__, __LINE__, "invalid AllocHint enum"); }
-  }
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void stackOffsetTempMoveInstructionSelect(
-    IREntry *entry, X86_64InstructionVector *assembly) {
-  // note - move size must be 8 here
-  X86_64Instruction *i = x86_64InstructionCreate(strdup("\tmovq\t$`o, `d\n"));
-  x86_64OperandVectorInsert(&i->other, x86_64StackOffsetCreate(entry->arg1));
-  x86_64OperandVectorInsert(&i->defines, x86_64RegCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void nameTempMoveInstructionSelect(IREntry *entry,
-                                          X86_64InstructionVector *assembly,
-                                          Options *options) {
-  // note - move size must be 8 here
-  // note - move size must be 8 here
-  X86_64Instruction *i;
-  switch (optionsGet(options, optionPositionIndependence)) {
-    case O_PI_NONE: {
-      i = x86_64InstructionCreate(
-          format("\tmovq\t$%s, `d\n", entry->arg1->data.name.name));
-      break;
-    }
-    case O_PI_PIE: {
-      i = x86_64InstructionCreate(
-          format("\tleaq\t%s(%%rip), `d\n", entry->arg1->data.name.name));
-      break;
-    }
-    case O_PI_PIC: {
-      i = x86_64InstructionCreate(format("\tmovq\t%s@GOTPCREL(%%rip), `d\n",
-                                         entry->arg1->data.name.name));
-      break;
-    }
-  }
-  x86_64OperandVectorInsert(&i->defines, x86_64TempCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void constantTempMoveInstructionSelect(IREntry *entry,
-                                              X86_64InstructionVector *assembly,
-                                              X86_64FragmentVector *frags,
-                                              LabelGenerator *labelGenerator,
-                                              Options *options) {
-  // note - move size must be atomic here
-  X86_64Instruction *i;
-  if (regIsSSE(x86_64RegNumToRegister(entry->dest->data.reg.n))) {
-    char *constant = labelGeneratorGenerateDataLabel(labelGenerator);
-    if (entry->opSize == 4) {
-      x86_64FragmentVectorInsert(
-          frags, x86_64DataFragmentCreate(
-                     format("\t.section\t.rodata\n"
-                            "\t.align\t4\n"
-                            "%s:\n"
-                            "\t.long\t%zu",
-                            constant, entry->arg1->data.constant.bits)));
-    } else {
-      // entry->opSize == 8
-      x86_64FragmentVectorInsert(
-          frags, x86_64DataFragmentCreate(
-                     format("\t.section\t.rodata\n"
-                            "\t.align\t8\n"
-                            "%s:\n"
-                            "\t.quad\t%lu",
-                            constant, entry->arg1->data.constant.bits)));
-    }
-    i = x86_64InstructionCreate(format("\tmovs%c\t%s(%%rip), `d\n",
-                                       atomicSizeToFPSizePostfix(entry->opSize),
-                                       constant));
-    free(constant);
-  } else {
-    // scalar load
-    i = x86_64InstructionCreate(format("\tmov%c\t$%lu, `d\n",
-                                       atomicSizeToGPSizePostfix(entry->opSize),
-                                       entry->arg1->data.constant.bits));
-  }
-  x86_64OperandVectorInsert(&i->defines, x86_64TempCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-// mem store
-static void regTempMemStoreInstructionSelect(
-    IREntry *entry, X86_64InstructionVector *assembly) {
-  // is atomic sized, addr in temp
-  X86_64Instruction *i;
-  if (x86_64RegIsSSE(x86_64RegNumToRegister(entry->arg1->data.reg.n))) {
-    i = x86_64InstructionCreate(format(
-        "\tmovs%c\t`u, (`u)\n", atomicSizeToSSESizePostfix(entry->opSize)));
-  } else {
-    // is GP reg
-    i = x86_64InstructionCreate(format(
-        "\tmov%c\t`u, (`u)\n", atomicSizeToGPSizePostfix(entry->opSize)));
-  }
-  x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-  x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void tempTempMemStoreInstructionSelect(
-    IREntry *entry, X86_64InstructionVector *assembly) {
-  X86_64Instruction *i;
-  switch (entry->dest->data.temp.kind) {
-    case AH_GP: {
-      X86_64Instruction *i = x86_64InstructionCreate(format(
-          "\tmov%c\t`u, (`u)\n", atomicSizeToGPSizePostfix(entry->opSize)));
-      x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-      x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-      break;
-    }
-    case AH_MEM: {
-      error(__FILE__, __LINE__, "not yet implemented");
-      break;
-    }
-    case AH_SSE: {
-      X86_64Instruction *i = x86_64InstructionCreate(format(
-          "\tmovs%c\t`u, (`u)\n", atomicSizeToSSESizePostfix(entry->opSize)));
-      x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-      x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-      break;
-    }
-    default: { error(__FILE__, __LINE__, "invalid AllocHint enum"); }
-  }
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void stackOffsetTempMemStoreInstructionSelect(
-    IREntry *entry, X86_64InstructionVector *assembly) {
-  // size must be 8
-  X86_64Instruction *i = x86_64InstructionCreate(strdup("\tmovq\t$`o, (`u)"));
-  x86_64OperandVectorInsert(&i->other, x86_64StackOffsetCreate(entry->arg1));
-  x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void nameTempMemStoreInstructionSelect(IREntry *entry,
-                                              X86_64InstructionVector *assembly,
-                                              TempAllocator *tempAllocator,
-                                              Options *options) {
-  // size must be 8, align is 8, kind is always AH_GP
-  // note - in rip relative modes, must move to temp first - move allows only
-  // one mem access
-  switch (optionsGet(options, optionPositionIndependence)) {
-    case O_PI_NONE: {
-      X86_64Instruction *i = x86_64InstructionCreate(
-          format("\tmovq\t$%s, (`u)\n", entry->arg1->data.name.name));
-      x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-      x86_64InstructionVectorInsert(assembly, i);
-      break;
-    }
-    case O_PI_PIE: {
-      IROperand *temp = tempIROperandCreate(
-          tempAllocatorAllocate(tempAllocator), 8, 8, AH_GP);
-      X86_64Instruction *load = x86_64InstructionCreate(
-          format("\tleaq\t%s(%%rip), `d\n", entry->arg1->data.name.name));
-      x86_64OperandVectorInsert(&load->defines, temp);
-      x86_64InstructionVectorInsert(assembly, load);
-      X86_64Instruction *store =
-          x86_64InstructionCreate(strdup("\tmovq\t`u, (`u)\n"));
-      x86_64OperandVectorInsert(&store->uses, x86_64TempCreate(temp));
-      x86_64OperandVectorInsert(&store->uses, entry->dest);
-      x86_64InstructionVectorInsert(assembly, store);
-      irOperandDestroy(temp);
-      break;
-    }
-    case O_PI_PIC: {
-      IROperand *temp = tempIROperandCreate(
-          tempAllocatorAllocate(tempAllocator), 8, 8, AH_GP);
-      X86_64Instruction *load = x86_64InstructionCreate(format(
-          "\tmovq\t%s@GOTPCREL(%%rip), `d\n", entry->arg1->data.name.name));
-      x86_64OperandVectorInsert(&load->defines, temp);
-      x86_64InstructionVectorInsert(assembly, load);
-      X86_64Instruction *store =
-          x86_64InstructionCreate(strdup("\tmovq\t`u, (`u)\n"));
-      x86_64OperandVectorInsert(&store->uses, x86_64TempCreate(temp));
-      x86_64OperandVectorInsert(&store->uses, entry->dest);
-      x86_64InstructionVectorInsert(assembly, store);
-      irOperandDestroy(temp);
-      break;
+    // gp
+    switch (opSize) {
+      case 1: {
+        return "b";
+      }
+      case 2: {
+        return "w";
+      }
+      case 4: {
+        return "l";
+      }
+      case 8: {
+        return "q";
+      }
+      default: { error(__FILE__, __LINE__, "invalid operand size"); }
     }
   }
 }
-static void constRegMemStoreInstructionSelect(IREntry *entry,
-                                              X86_64InstructionVector *assembly,
-                                              X86_64FragmentVector *frags,
-                                              LabelGenerator *labelGenerator,
-                                              TempAllocator *tempAllocator) {
-  // note - move size must be atomic here
-  if (regIsSSE(x86_64RegNumToRegister(entry->dest->data.reg.n))) {
-    char *constant = labelGeneratorGenerateDataLabel(labelGenerator);
-    if (entry->opSize == 4) {
-      x86_64FragmentVectorInsert(
-          frags, x86_64DataFragmentCreate(
-                     format("\t.section\t.rodata\n"
-                            "\t.align\t4\n"
-                            "%s:\n"
-                            "\t.long\t%zu",
-                            constant, entry->arg1->data.constant.bits)));
-    } else {
-      // entry->opSize == 8
-      x86_64FragmentVectorInsert(
-          frags, x86_64DataFragmentCreate(
-                     format("\t.section\t.rodata\n"
-                            "\t.align\t8\n"
-                            "%s:\n"
-                            "\t.quad\t%lu",
-                            constant, entry->arg1->data.constant.bits)));
-    }
-    IROperand *temp = tempIROperandCreate(tempAllocatorAllocate(tempAllocator),
-                                          entry->opSize, entry->opSize, AH_GP);
-    X86_64Instruction *load = x86_64InstructionCreate(
-        format("\tmovs%c\t%s(%%rip), `d\n",
-               atomicSizeToFPSizePostfix(entry->opSize), constant));
-    x86_64OperandVectorInsert(&load->defines, temp);
-    x86_64InstructionVectorInsert(assembly, load);
-    X86_64Instruction *store = x86_64InstructionCreate(format(
-        "\tmovs%c\t`u, (`u)\n", atomicSizeToFPSizePostfix(entry->opSize)));
-    x86_64OperandVectorInsert(&store->uses, x86_64TempCreate(temp));
-    x86_64OperandVectorInsert(&store->uses, entry->dest);
-    x86_64InstructionVectorInsert(assembly, store);
-    irOperandDestroy(temp);
-    free(constant);
-  } else {
-    // scalar load
-
-    X86_64Instruction *i = x86_64InstructionCreate(format(
-        "\tmov%c\t$%lu, (`u)\n", atomicSizeToGPSizePostfix(entry->opSize),
-        entry->arg1->data.constant.bits));
-    x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-    x86_64InstructionVectorInsert(assembly, i);
-  }
-}
-static void regTempMemStoreInstructionSelect(
-    IREntry *entry, X86_64InstructionVector *assembly) {
-  // is atomic sized, addr in temp
-  X86_64Instruction *i;
-  if (x86_64RegIsSSE(x86_64RegNumToRegister(entry->arg1->data.reg.n))) {
-    i = x86_64InstructionCreate(format(
-        "\tmovs%c\t`u, (`u)\n", atomicSizeToSSESizePostfix(entry->opSize)));
-  } else {
-    // is GP reg
-    i = x86_64InstructionCreate(format(
-        "\tmov%c\t`u, (`u)\n", atomicSizeToGPSizePostfix(entry->opSize)));
-  }
-  x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-  x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void tempTempMemStoreInstructionSelect(
-    IREntry *entry, X86_64InstructionVector *assembly) {
-  X86_64Instruction *i;
-  switch (entry->dest->data.temp.kind) {
-    case AH_GP: {
-      X86_64Instruction *i = x86_64InstructionCreate(format(
-          "\tmov%c\t`u, (`u)\n", atomicSizeToGPSizePostfix(entry->opSize)));
-      x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-      x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-      break;
-    }
-    case AH_MEM: {
-      error(__FILE__, __LINE__, "not yet implemented");
-      break;
-    }
-    case AH_SSE: {
-      X86_64Instruction *i = x86_64InstructionCreate(format(
-          "\tmovs%c\t`u, (`u)\n", atomicSizeToSSESizePostfix(entry->opSize)));
-      x86_64OperandVectorInsert(&i->uses, x86_64RegCreate(entry->arg1));
-      x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-      break;
-    }
-    default: { error(__FILE__, __LINE__, "invalid AllocHint enum"); }
-  }
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void stackOffsetTempMemStoreInstructionSelect(
-    IREntry *entry, X86_64InstructionVector *assembly) {
-  // size must be 8
-  X86_64Instruction *i = x86_64InstructionCreate(strdup("\tmovq\t$`o, (`u)"));
-  x86_64OperandVectorInsert(&i->other, x86_64StackOffsetCreate(entry->arg1));
-  x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
-}
-static void nameTempMemStoreInstructionSelect(IREntry *entry,
-                                              X86_64InstructionVector *assembly,
-                                              TempAllocator *tempAllocator,
-                                              Options *options) {
-  // size must be 8, align is 8, kind is always AH_GP
-  // note - in rip relative modes, must move to temp first - move allows only
-  // one mem access
-  switch (optionsGet(options, optionPositionIndependence)) {
-    case O_PI_NONE: {
-      X86_64Instruction *i = x86_64InstructionCreate(
-          format("\tmovq\t$%s, (`u)\n", entry->arg1->data.name.name));
-      x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-      x86_64InstructionVectorInsert(assembly, i);
-      break;
-    }
-    case O_PI_PIE: {
-      IROperand *temp = tempIROperandCreate(
-          tempAllocatorAllocate(tempAllocator), 8, 8, AH_GP);
-      X86_64Instruction *load = x86_64InstructionCreate(
-          format("\tleaq\t%s(%%rip), `d\n", entry->arg1->data.name.name));
-      x86_64OperandVectorInsert(&load->defines, temp);
-      x86_64InstructionVectorInsert(assembly, load);
-      X86_64Instruction *store =
-          x86_64InstructionCreate(strdup("\tmovq\t`u, (`u)\n"));
-      x86_64OperandVectorInsert(&store->uses, x86_64TempCreate(temp));
-      x86_64OperandVectorInsert(&store->uses, entry->dest);
-      x86_64InstructionVectorInsert(assembly, store);
-      irOperandDestroy(temp);
-      break;
-    }
-    case O_PI_PIC: {
-      IROperand *temp = tempIROperandCreate(
-          tempAllocatorAllocate(tempAllocator), 8, 8, AH_GP);
-      X86_64Instruction *load = x86_64InstructionCreate(format(
-          "\tmovq\t%s@GOTPCREL(%%rip), `d\n", entry->arg1->data.name.name));
-      x86_64OperandVectorInsert(&load->defines, temp);
-      x86_64InstructionVectorInsert(assembly, load);
-      X86_64Instruction *store =
-          x86_64InstructionCreate(strdup("\tmovq\t`u, (`u)\n"));
-      x86_64OperandVectorInsert(&store->uses, x86_64TempCreate(temp));
-      x86_64OperandVectorInsert(&store->uses, entry->dest);
-      x86_64InstructionVectorInsert(assembly, store);
-      irOperandDestroy(temp);
-      break;
-    }
-  }
-}
-static void constTempMemStoreInstructionSelect(
-    IREntry *entry, X86_64InstructionVector *assembly,
-    X86_64FragmentVector *frags, LabelGenerator *labelGenerator,
-    TempAllocator *tempAllocator) {
-  // note - move size must be atomic here
-  X86_64Instruction *i = x86_64InstructionCreate(
-      format("\tmov%c\t$%lu, (`u)\n", atomicSizeToGPSizePostfix(entry->opSize),
-             entry->arg1->data.constant.bits));
-  x86_64OperandVectorInsert(&i->uses, x86_64TempCreate(entry->dest));
-  x86_64InstructionVectorInsert(assembly, i);
+static void addFPConstant(X86_64FragmentVector *frags, size_t size,
+                          char const *label, uint64_t bits) {
+  x86_64FragmentVectorInsert(
+      frags, x86_64DataFragmentCreate(
+                 format("\t.section\t.rodata\n"
+                        "\t.align\t%zu\n"
+                        "%s:\n"
+                        "\t%s\t%lu\n",
+                        size, label, size == 4 ? ".long" : ".quad", bits)));
 }
 static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
                                   X86_64FragmentVector *frags,
@@ -692,140 +276,129 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
     IREntry *entry = ir->elements[idx];
     switch (entry->op) {
       case IO_ASM: {
-        x86_64InstructionVectorInsert(
-            assembly, x86_64InstructionCreate(
-                          strdup(entry->arg1->data.assembly.assembly)));
+        X86_64INSERT(assembly,
+                     X86_64INSTR(strdup(entry->arg1->data.assembly.assembly)));
         break;
       }
       case IO_LABEL: {
-        x86_64InstructionVectorInsert(
-            assembly, x86_64InstructionCreate(
-                          format("%s:\n", entry->arg1->data.name.name)));
+        X86_64INSERT(assembly,
+                     X86_64INSTR(format("%s:\n", entry->arg1->data.name.name)));
         break;
       }
       case IO_MOVE: {
-        switch (entry->dest->kind) {
-          case OK_REG: {
-            switch (entry->arg1->kind) {
-              case OK_REG: {
-                regRegMoveInstructionSelect(entry, assembly);
-                break;
+        if (operandIsAtomic(entry->arg1)) {
+          // preliminary: gets instruction size suffix:
+          bool isSSE = operandIsSSE(entry->arg1);
+          char const *typeSuffix = generateTypeSuffix(entry->opSize, isSSE);
+
+          // setup - gets CONST, NAME, STACKOFFSET into right places
+          bool needExecution = true;
+          IROperand *from = entry->arg1;
+          IROperand *to = entry->dest;
+
+          switch (from->kind) {
+            case OK_CONSTANT: {
+              if (isSSE) {
+                // add rodata fragment
+                char *label = labelGeneratorGenerateDataLabel(labelGenerator);
+                addFPConstant(frags, entry->opSize, label,
+                              from->data.constant.bits);
+
+                X86_64Instruction *move = X86_64INSTR(
+                    format("\tmov%s\t%s(%%rip), `d\n", typeSuffix, label));
+                X86_64DEF(move, to);
+                X86_64INSERT(assembly, move);
+
+                needExecution = false;
+                free(label);
+              } else {
+                if (entry->opSize == 8) {
+                  typeSuffix = "absq";  // special case for constant loads
+                }
+
+                X86_64Instruction *move =
+                    X86_64INSTR(format("\tmov%s\t$%lu, `d\n", typeSuffix,
+                                       from->data.constant.bits));
+                X86_64DEF(move, to);
+                X86_64INSERT(assembly, move);
+
+                needExecution = false;
               }
-              case OK_TEMP: {
-                tempRegMoveInstructionSelect(entry, assembly);
-                break;
-              }
-              case OK_STACKOFFSET: {
-                stackOffsetRegMoveInstructionSelect(entry, assembly);
-                break;
-              }
-              case OK_NAME: {
-                nameRegMoveInstructionSelect(entry, assembly, options);
-                break;
-              }
-              case OK_CONSTANT: {
-                constantRegMoveInstructionSelect(entry, assembly, frags,
-                                                 labelGenerator);
-                break;
-              }
-              default: {
-                error(__FILE__, __LINE__, "unexpected argument kind");
-              }
+              break;
             }
-            break;
-          }
-          case OK_TEMP: {
-            switch (entry->arg1->kind) {
-              case OK_REG: {
-                regTempMoveInstructionSelect(entry, assembly);
+            case OK_NAME: {
+              switch (optionsGet(options, optionPositionIndependence)) {
+                case O_PI_NONE: {
+                  X86_64Instruction *move = X86_64INSTR(
+                      format("\tmovq\t$%s, `d\n", from->data.name.name));
+                  X86_64DEF(move, to);
+                  X86_64INSERT(assembly, move);
+
+                  needExecution = false;
+                  break;
+                }
+                case O_PI_PIE: {
+                  X86_64Instruction *move = X86_64INSTR(
+                      format("\tleaq\t%s(%%rip), `d\n", from->data.name.name));
+                  X86_64DEF(move, to);
+                  X86_64INSERT(assembly, move);
+
+                  needExecution = false;
+                  break;
+                }
+                case O_PI_PIC: {
+                  X86_64Instruction *move =
+                      X86_64INSTR(format("\tmovq\t%s@GOTPCREL(%%rip), `d\n",
+                                         from->data.name.name));
+                  X86_64DEF(move, to);
+                  X86_64INSERT(assembly, move);
+
+                  needExecution = false;
+                  break;
+                }
+                default: {
+                  error(__FILE__, __LINE__,
+                        "invalid PositionIndependenceType enum");
+                }
               }
-              case OK_TEMP: {
-                tempTempMoveInstructionSelect(entry, assembly);
-              }
-              case OK_STACKOFFSET: {
-                stackOffsetTempMoveInstructionSelect(entry, assembly);
-                break;
-              }
-              case OK_NAME: {
-                nameTempMoveInstructionSelect(entry, assembly, options);
-                break;
-              }
-              case OK_CONSTANT: {
-                constantTempMoveInstructionSelect(entry, assembly, frags,
-                                                  labelGenerator);
-                break;
-              }
-              default: {
-                error(__FILE__, __LINE__, "unexpected argument kind");
-              }
+              break;
             }
-            break;
+            case OK_STACKOFFSET: {
+              X86_64Instruction *move = X86_64INSTR(format(
+                  "\tmovabsq\t$`o, `d\n"));  // note - should be optimized
+                                             // after register allocation
+              X86_64OTHER(move, from);
+              X86_64USE(move, to);
+              X86_64INSERT(assembly, move);
+
+              needExecution = false;
+              break;
+            }
+            default: { break; }
           }
-          default: { error(__FILE__, __LINE__, "unexpected argument kind"); }
+
+          // execution
+          if (needExecution) {
+            X86_64Instruction *move =
+                X86_64INSTR(format("\tmov%s\t`u, `d\n", typeSuffix));
+            X86_64USE(move, from);
+            X86_64DEF(move, to);
+            X86_64INSERT(assembly, move);
+          }
+
+          // cleanup
+          if (from != entry->arg1) {
+            irOperandDestroy(from);
+          }
+          if (to != entry->dest) {
+            irOperandDestroy(to);
+          }
+        } else {
+          error(__FILE__, __LINE__, "not yet implemented");
         }
         break;
       }
       case IO_MEM_STORE: {
-        switch (entry->dest->kind) {
-          case OK_REG: {
-            switch (entry->arg1->kind) {
-              case OK_REG: {
-                regRegMemStoreInstructionSelect(entry, assembly);
-                break;
-              }
-              case OK_TEMP: {
-                tempRegMemStoreInstructionSelect(entry, assembly);
-                break;
-              }
-              case OK_STACKOFFSET: {
-                stackOffsetRegMemStoreInstructionSelect(entry, assembly);
-                break;
-              }
-              case OK_NAME: {
-                nameRegMemStoreInstructionSelect(entry, assembly);
-                break;
-              }
-              case OK_CONSTANT: {
-                constantRegMemStoreInstructionSelect(entry, assembly, frags,
-                                                     labelGenerator);
-                break;
-              }
-              default: {
-                error(__FILE__, __LINE__, "unexpected argument kind");
-              }
-            }
-            break;
-          }
-          case OK_TEMP: {
-            switch (entry->arg1->kind) {
-              case OK_REG: {
-                regTempMemStoreInstructionSelect(entry, assembly);
-              }
-              case OK_TEMP: {
-                tempTempMemStoreInstructionSelect(entry, assembly);
-              }
-              case OK_STACKOFFSET: {
-                stackOffsetTempMemStoreInstructionSelect(entry, assembly);
-                break;
-              }
-              case OK_NAME: {
-                nameTempMemStoreInstructionSelect(entry, assembly,
-                                                  tempAllocator, options);
-                break;
-              }
-              case OK_CONSTANT: {
-                constantTempMemStoreInstructionSelect(entry, assembly, frags,
-                                                      labelGenerator);
-                break;
-              }
-              default: {
-                error(__FILE__, __LINE__, "unexpected argument kind");
-              }
-            }
-            break;
-          }
-          default: { error(__FILE__, __LINE__, "unexpected argument kind"); }
-        }
         break;
       }
       case IO_MEM_LOAD: {
