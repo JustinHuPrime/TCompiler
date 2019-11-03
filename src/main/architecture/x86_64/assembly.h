@@ -35,6 +35,7 @@ typedef enum {
 } X86_64OperandKind;
 typedef struct {
   X86_64OperandKind kind;
+  size_t operandSize;
   union {
     struct {
       X86_64Register reg;
@@ -50,7 +51,7 @@ typedef struct {
     } stackOffset;
   } data;
 } X86_64Operand;
-X86_64Operand *x86_64OperandCreate(struct IROperand const *);
+X86_64Operand *x86_64OperandCreate(struct IROperand const *, size_t);
 void x86_64OperandDestroy(X86_64Operand *);
 
 typedef Vector X86_64OperandVector;
