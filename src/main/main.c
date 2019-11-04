@@ -18,6 +18,7 @@
 
 #include "architecture/x86_64/assembly.h"
 #include "architecture/x86_64/frame.h"
+#include "architecture/x86_64/instructionSelection.h"
 #include "ast/printer.h"
 #include "constants.h"
 #include "ir/frame.h"

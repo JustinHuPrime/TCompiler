@@ -124,7 +124,4 @@ int fileX86_64FileMapPut(FileX86_64FileMap *, char const *key,
 // in-place dtor
 void fileX86_64FileMapUninit(FileX86_64FileMap *);
 
-void x86_64InstructionSelect(FileX86_64FileMap *asmFileMap,
-                             FileIRFileMap *irFileMap, Options *options);
-
 #endif  // TLC_ARCHITECTURE_X86_64_ASSEMBLY_H_
