@@ -22,7 +22,7 @@ Note that if a later option conflicts with an earlier option, the later option w
 
 #### Architecture
 
-* `--arch=x86`: sets the target architecture to x86_64. Default.
+* `--arch=x86_64`: sets the target architecture to x86_64. Default.
 
 <!--
 * `--arch=y86`: sets the target architecture to y86 assembly (used in UBC's CPSC 313).
@@ -79,6 +79,12 @@ The option `--debug-dump` can be set to 3 values:
 * `--debug-dump=ir`: dumps the results of the translate to IR phase
 
 * `--debug-dump=asm-1`: dumps the results of phase one assembly translation (note that phases are architecture specific)
+
+  * In `x86_64`, phase one is initial instruction selection.
+
+* `--debug-dump=asm-2`: dumps the results of phase two assembly translation (note that phases are architecture specific)
+
+  * In `x86_64`, phase two is register allocation.
 
 ## Limits
 
