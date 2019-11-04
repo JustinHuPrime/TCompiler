@@ -173,38 +173,6 @@ void fileX86_64FileMapUninit(FileX86_64FileMap *m) {
   hashMapUninit(m, (void (*)(void *))x86_64FileDestroy);
 }
 
-// static bool sizeIsAtomic(size_t size) {
-//   return size == BYTE_WIDTH || size == SHORT_WIDTH || size == INT_WIDTH ||
-//          size == LONG_WIDTH;
-// }
-// static char atomicSizeToGPSizePostfix(size_t size) {
-//   switch (size) {
-//     case 1: {
-//       return 'b';
-//     }
-//     case 2: {
-//       return 'w';
-//     }
-//     case 4: {
-//       return 'l';
-//     }
-//     case 8: {
-//       return 'q';
-//     }
-//     default: { error(__FILE__, __LINE__, "not an atomic gp size"); }
-//   }
-// }
-// static char atomicSizeToFPSizePostfix(size_t size) {
-//   switch (size) {
-//     case 4: {
-//       return 's';
-//     }
-//     case 8: {
-//       return 'd';
-//     }
-//     default: { error(__FILE__, __LINE__, "not a atomic fp size"); }
-//   }
-// }
 static bool operandIsAtomic(IROperand const *op) {
   return op->kind != OK_TEMP || op->data.temp.kind != AH_MEM;
 }
@@ -581,13 +549,13 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         X86_64USE(op, arg1, entry->opSize);
         X86_64DEF(op, to, entry->opSize);
         X86_64USE(op, to, entry->opSize);  // also used
-        X86_64INSERT(assembly, move);
+        X86_64INSERT(assembly, op);
 
         // cleanup
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -616,13 +584,13 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         X86_64USE(op, arg1, entry->opSize);
         X86_64DEF(op, to, entry->opSize);
         X86_64USE(op, to, entry->opSize);  // also used
-        X86_64INSERT(assembly, move);
+        X86_64INSERT(assembly, op);
 
         // cleanup
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -651,13 +619,13 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         X86_64USE(op, arg1, entry->opSize);
         X86_64DEF(op, to, entry->opSize);
         X86_64USE(op, to, entry->opSize);  // also used
-        X86_64INSERT(assembly, move);
+        X86_64INSERT(assembly, op);
 
         // cleanup
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -686,13 +654,13 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         X86_64USE(op, arg1, entry->opSize);
         X86_64DEF(op, to, entry->opSize);
         X86_64USE(op, to, entry->opSize);  // also used
-        X86_64INSERT(assembly, move);
+        X86_64INSERT(assembly, op);
 
         // cleanup
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -721,13 +689,13 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         X86_64USE(op, arg1, entry->opSize);
         X86_64DEF(op, to, entry->opSize);
         X86_64USE(op, to, entry->opSize);  // also used
-        X86_64INSERT(assembly, move);
+        X86_64INSERT(assembly, op);
 
         // cleanup
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -756,13 +724,13 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         X86_64USE(op, arg1, entry->opSize);
         X86_64DEF(op, to, entry->opSize);
         X86_64USE(op, to, entry->opSize);  // also used
-        X86_64INSERT(assembly, move);
+        X86_64INSERT(assembly, op);
 
         // cleanup
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -791,13 +759,13 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         X86_64USE(op, arg1, entry->opSize);
         X86_64DEF(op, to, entry->opSize);
         X86_64USE(op, to, entry->opSize);  // also used
-        X86_64INSERT(assembly, move);
+        X86_64INSERT(assembly, op);
 
         // cleanup
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -836,7 +804,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
               X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
           X86_64USE(retrieve, rax, entry->opSize);
           X86_64DEF(retrieve, to, entry->opSize);
-          X86_64INSERT(assembly, op);
+          X86_64INSERT(assembly, retrieve);
 
           irOperandDestroy(rax);
         } else {
@@ -878,7 +846,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -917,7 +885,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
               X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
           X86_64USE(retrieve, rax, entry->opSize);
           X86_64DEF(retrieve, to, entry->opSize);
-          X86_64INSERT(assembly, op);
+          X86_64INSERT(assembly, retrieve);
 
           irOperandDestroy(rax);
         } else {
@@ -956,7 +924,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -980,18 +948,18 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         X86_64DEF(move, to, entry->opSize);
         X86_64INSERT(assembly, move);
 
-        X86_64Instruction *add =
+        X86_64Instruction *op =
             X86_64INSTR(format("\tdiv%s\t`u, `d\n", typeSuffix));
-        X86_64USE(add, arg2, entry->opSize);
-        X86_64DEF(add, to, entry->opSize);
-        X86_64USE(add, to, entry->opSize);  // also used
-        X86_64INSERT(assembly, move);
+        X86_64USE(op, arg2, entry->opSize);
+        X86_64DEF(op, to, entry->opSize);
+        X86_64USE(op, to, entry->opSize);  // also used
+        X86_64INSERT(assembly, op);
 
         // cleanup
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1030,7 +998,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
               X86_64MOVE(format("\tmov%s\t%%ah, `d\n", typeSuffix));
           X86_64USE(retrieve, rax, entry->opSize);
           X86_64DEF(retrieve, to, entry->opSize);
-          X86_64INSERT(assembly, op);
+          X86_64INSERT(assembly, retrieve);
 
           irOperandDestroy(rax);
         } else {
@@ -1072,7 +1040,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1111,7 +1079,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
               X86_64MOVE(format("\tmov%s\t%%ah, `d\n", typeSuffix));
           X86_64USE(retrieve, rax, entry->opSize);
           X86_64DEF(retrieve, to, entry->opSize);
-          X86_64INSERT(assembly, op);
+          X86_64INSERT(assembly, retrieve);
 
           irOperandDestroy(rax);
         } else {
@@ -1150,7 +1118,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1197,7 +1165,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1232,7 +1200,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1267,7 +1235,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1299,7 +1267,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1331,7 +1299,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1363,7 +1331,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1395,7 +1363,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1427,7 +1395,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1459,7 +1427,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1491,7 +1459,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1523,7 +1491,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1555,7 +1523,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1587,7 +1555,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1619,7 +1587,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1651,7 +1619,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1683,7 +1651,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1715,7 +1683,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1747,7 +1715,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -1779,7 +1747,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2210,7 +2178,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2240,7 +2208,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2270,7 +2238,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2300,7 +2268,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2330,7 +2298,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2360,7 +2328,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2390,7 +2358,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2420,7 +2388,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2450,7 +2418,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2480,7 +2448,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2510,7 +2478,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2540,7 +2508,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2570,7 +2538,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2600,7 +2568,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2630,7 +2598,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2660,7 +2628,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         if (arg1 != entry->arg1) {
           irOperandDestroy(arg1);
         }
-        if (arg2 != entry->dest) {
+        if (arg2 != entry->arg2) {
           irOperandDestroy(arg2);
         }
         break;
@@ -2710,29 +2678,37 @@ static bool isLocalLabel(char const *str) { return strncmp(str, ".L", 2) == 0; }
 static char *tstrToX86_64Str(uint8_t *str) {
   char *buffer = strdup("");
   for (; *str != 0; str++) {
-    buffer = format(
+    char *newBuffer = format(
         "%s"
         "\t.byte\t%hhu",
         buffer, *str);
+    free(buffer);
+    buffer = newBuffer;
   }
-  buffer = format(
+  char *newBuffer = format(
       "%s"
       "\t.byte\t0\n",
       buffer);
+  free(buffer);
+  buffer = newBuffer;
   return buffer;
 }
 static char *twstrToX86_64WStr(uint32_t *wstr) {
   char *buffer = strdup("");
   for (; *wstr != 0; wstr++) {
-    buffer = format(
+    char *newBuffer = format(
         "%s"
         "\t.long\t%u",
         buffer, *wstr);
+    free(buffer);
+    buffer = newBuffer;
   }
-  buffer = format(
+  char *newBuffer = format(
       "%s"
       "\t.long\t0\n",
       buffer);
+  free(buffer);
+  buffer = newBuffer;
   return buffer;
 }
 static char *dataToString(IREntryVector *data) {
@@ -2745,58 +2721,72 @@ static char *dataToString(IREntryVector *data) {
       case OK_CONSTANT: {
         switch (datum->opSize) {
           case 1: {  // BYTE_WIDTH, CHAR_WIDTH
-            acc = format(
+            char *newAcc = format(
                 "%s"
                 "\t.byte\t%lu\n",
                 acc, value->data.constant.bits);
+            free(acc);
+            acc = newAcc;
             break;
           }
           case 2: {  // SHORT_WIDTH
-            acc = format(
+            char *newAcc = format(
                 "%s"
                 "\t.int\t%lu\n",
                 acc, value->data.constant.bits);
+            free(acc);
+            acc = newAcc;
             break;
           }
           case 4: {  // INT_WIDTH, WCHAR_WIDTH
-            acc = format(
+            char *newAcc = format(
                 "%s"
                 "\t.long\t%lu\n",
                 acc, value->data.constant.bits);
+            free(acc);
+            acc = newAcc;
             break;
           }
           case 8: {  // LONG_WIDTH, POINTER_WIDTH
-            acc = format(
+            char *newAcc = format(
                 "%s"
                 "\t.quad\t%lu\n",
                 acc, value->data.constant.bits);
+            free(acc);
+            acc = newAcc;
             break;
           }
         }
         break;
       }
       case OK_NAME: {
-        acc = format(
+        char *newAcc = format(
             "%s"
             "\t.quad\t%s\n",
             acc, value->data.name.name);
+        free(acc);
+        acc = newAcc;
         break;
       }
       case OK_STRING: {
         char *str = tstrToX86_64Str(value->data.string.data);
-        acc = format(
+        char *newAcc = format(
             "%s"
             "%s",
             acc, str);
+        free(acc);
+        acc = newAcc;
         free(str);
         break;
       }
       case OK_WSTRING: {
         char *str = twstrToX86_64WStr(value->data.wstring.data);
-        acc = format(
+        char *newAcc = format(
             "%s"
             "%s",
             acc, str);
+        free(acc);
+        acc = newAcc;
         free(str);
         break;
       }
@@ -2867,6 +2857,7 @@ static X86_64File *fileInstructionSelect(IRFile *ir, Options *options) {
                 "%s",
                 prefix, irFrag->data.rodata.alignment, irFrag->label, data)));
         free(prefix);
+        free(data);
         break;
       }
       case FK_DATA: {

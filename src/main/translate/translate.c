@@ -117,6 +117,7 @@ IRFile *irFileCreate(char *sourceFilename, char *filename,
 void irFileDestroy(IRFile *file) {
   fragmentVectorUninit(&file->fragments);
   free(file->filename);
+  free(file->sourceFilename);
   labelGeneratorDtor(file->labelGenerator);
   free(file);
 }
@@ -3287,6 +3288,7 @@ static IROperand *translateRvalue(Node *exp, IREntryVector *out,
                         POINTER_WIDTH, tempAllocator);
 
             lvalueDestroy(value);
+            typeDestroy(dereferenced);
             return TEMP(outTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
           } else if (typeIsIntegral(exp->data.unOpExp.resultType)) {
             // is integral
@@ -4041,6 +4043,7 @@ static void translateJumpIfNot(Node *condition, IREntryVector *out,
         }
       }
 
+      typeDestroy(mutualType);
       break;
     }
     case NT_CONSTEXP:

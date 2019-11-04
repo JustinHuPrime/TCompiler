@@ -266,6 +266,8 @@ int main(int argc, char *argv[]) {
 
       // write-out
 
+      // clean up
+      fileX86_64FileMapUninit(&asmFileMap);
       break;
     }
     default: {
