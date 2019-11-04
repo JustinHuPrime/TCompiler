@@ -2745,7 +2745,8 @@ static X86_64File *fileInstructionSelect(IRFile *ir, Options *options) {
                    "\t.globl\t%s\n"
                    "\t.type \t%s, @function\n",
                    irFrag->label, irFrag->label),
-            format("\t.size\t%s, .-%s\n", irFrag->label, irFrag->label));
+            format("\t.size\t%s, .-%s\n", irFrag->label, irFrag->label),
+            (X86_64Frame *)irFrag->data.text.frame);
         textInstructionSelect(frag, irFrag, &file->fragments,
                               ir->labelGenerator, options);
         x86_64FragmentVectorInsert(&file->fragments, frag);

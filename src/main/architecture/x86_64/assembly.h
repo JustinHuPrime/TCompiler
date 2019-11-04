@@ -27,6 +27,7 @@
 
 typedef HashMap FileIRFileMap;
 struct IROperand;
+struct X86_64Frame;
 
 typedef enum {
   X86_64_OK_REG,
@@ -91,12 +92,14 @@ typedef struct {
       char *header;
       char *footer;
       X86_64InstructionVector body;  // does not include stack exit or enter -
-                                     // added at reg alloc time
+      // added at reg alloc time
+      struct X86_64Frame *frame;
     } text;
   } data;
 } X86_64Fragment;
 X86_64Fragment *x86_64DataFragmentCreate(char *data);
-X86_64Fragment *x86_64TextFragmentCreate(char *header, char *footer);
+X86_64Fragment *x86_64TextFragmentCreate(char *header, char *footer,
+                                         struct X86_64Frame *frame);
 void x86_64FragmentDestroy(X86_64Fragment *);
 
 typedef Vector X86_64FragmentVector;

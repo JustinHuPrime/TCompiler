@@ -18,6 +18,7 @@
 
 #include "architecture/x86_64/assembly.h"
 
+#include "architecture/x86_64/frame.h"
 #include "ir/ir.h"
 #include "util/internalError.h"
 
@@ -108,11 +109,13 @@ X86_64Fragment *x86_64DataFragmentCreate(char *data) {
   f->data.data.data = data;
   return f;
 }
-X86_64Fragment *x86_64TextFragmentCreate(char *header, char *footer) {
+X86_64Fragment *x86_64TextFragmentCreate(char *header, char *footer,
+                                         X86_64Frame *frame) {
   X86_64Fragment *f = x86_64FragmentCreate(X86_64_FK_TEXT);
   f->data.text.header = header;
   f->data.text.footer = footer;
   x86_64InstructionVectorInit(&f->data.text.body);
+  f->data.text.frame = frame;
   return f;
 }
 void x86_64FragmentDestroy(X86_64Fragment *f) {
