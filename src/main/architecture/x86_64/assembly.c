@@ -1606,7 +1606,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcomisd%s\t`u, `u\n", typeSuffix));
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
@@ -1638,7 +1638,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcomisd%s\t`u, `u\n", typeSuffix));
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
@@ -1670,7 +1670,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcomisd%s\t`u, `u\n", typeSuffix));
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
@@ -1702,7 +1702,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcomisd%s\t`u, `u\n", typeSuffix));
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
@@ -1734,7 +1734,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcomisd%s\t`u, `u\n", typeSuffix));
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
@@ -1766,7 +1766,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcomisd%s\t`u, `u\n", typeSuffix));
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
@@ -1830,6 +1830,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
 
         // TODO: do an xorpd with loaded "negation" constant - might want to
         // collapse multiple negation constants into one.
+        error(__FILE__, __LINE__, "not yet implemented");
 
         X86_64Instruction *op =
             X86_64INSTR(format("\tneg%s\t`d\n", typeSuffix));
@@ -1900,119 +1901,800 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         break;
       }
       case IO_SX_SHORT: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *from =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *op =
+            X86_64INSTR(format("\tmovs%sw\t`u, `d\n", typeSuffix));
+        X86_64USE(op, from, entry->opSize);
+        X86_64DEF(op, to, 2);
+        X86_64INSERT(assembly, op);
+
+        // cleanup
+        if (from != entry->arg1) {
+          irOperandDestroy(from);
+        }
         break;
       }
       case IO_SX_INT: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *from =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *op =
+            X86_64INSTR(format("\tmovs%sl\t`u, `d\n", typeSuffix));
+        X86_64USE(op, from, entry->opSize);
+        X86_64DEF(op, to, 4);
+        X86_64INSERT(assembly, op);
+
+        // cleanup
+        if (from != entry->arg1) {
+          irOperandDestroy(from);
+        }
         break;
       }
       case IO_SX_LONG: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *from =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *op =
+            X86_64INSTR(format("\tmovs%sq\t`u, `d\n", typeSuffix));
+        X86_64USE(op, from, entry->opSize);
+        X86_64DEF(op, to, 8);
+        X86_64INSERT(assembly, op);
+
+        // cleanup
+        if (from != entry->arg1) {
+          irOperandDestroy(from);
+        }
         break;
       }
       case IO_ZX_SHORT: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *from =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *op =
+            X86_64INSTR(format("\tmovz%sw\t`u, `d\n", typeSuffix));
+        X86_64USE(op, from, entry->opSize);
+        X86_64DEF(op, to, 2);
+        X86_64INSERT(assembly, op);
+
+        // cleanup
+        if (from != entry->arg1) {
+          irOperandDestroy(from);
+        }
         break;
       }
       case IO_ZX_INT: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *from =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *op =
+            X86_64INSTR(format("\tmovz%sl\t`u, `d\n", typeSuffix));
+        X86_64USE(op, from, entry->opSize);
+        X86_64DEF(op, to, 4);
+        X86_64INSERT(assembly, op);
+
+        // cleanup
+        if (from != entry->arg1) {
+          irOperandDestroy(from);
+        }
         break;
       }
       case IO_ZX_LONG: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *from =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *op =
+            X86_64INSTR(format("\tmovz%sq\t`u, `d\n", typeSuffix));
+        X86_64USE(op, from, entry->opSize);
+        X86_64DEF(op, to, 8);
+        X86_64INSERT(assembly, op);
+
+        // cleanup
+        if (from != entry->arg1) {
+          irOperandDestroy(from);
+        }
         break;
       }
       case IO_U_TO_FLOAT: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *from =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        // TODO: coerce into signed form
+        error(__FILE__, __LINE__, "not yet implemented");
+        X86_64Instruction *op =
+            X86_64INSTR(format("\tcvtsi2ss%s\t`u, `d\n", typeSuffix));
+        X86_64USE(op, from, entry->opSize);
+        X86_64DEF(op, to, 8);
+        X86_64INSERT(assembly, op);
+
+        // cleanup
+        if (from != entry->arg1) {
+          irOperandDestroy(from);
+        }
         break;
       }
       case IO_U_TO_DOUBLE: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_S_TO_FLOAT: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_S_TO_DOUBLE: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_F_TO_FLOAT: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_F_TO_DOUBLE: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_TRUNC_BYTE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *from =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *op =
+            X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
+        X86_64USE(op, from, entry->opSize);
+        X86_64DEF(op, to, entry->opSize);
+        X86_64INSERT(assembly, op);
+
+        // cleanup
+        if (from != entry->arg1) {
+          irOperandDestroy(from);
+        }
         break;
       }
       case IO_TRUNC_SHORT: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *from =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *op =
+            X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
+        X86_64USE(op, from, entry->opSize);
+        X86_64DEF(op, to, entry->opSize);
+        X86_64INSERT(assembly, op);
+
+        // cleanup
+        if (from != entry->arg1) {
+          irOperandDestroy(from);
+        }
         break;
       }
       case IO_TRUNC_INT: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *from =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *to = entry->dest;  // to is always a temp or reg
+
+        // execution
+        X86_64Instruction *op =
+            X86_64MOVE(format("\tmov%s\t`u, `d\n", typeSuffix));
+        X86_64USE(op, from, entry->opSize);
+        X86_64DEF(op, to, entry->opSize);
+        X86_64INSERT(assembly, op);
+
+        // cleanup
+        if (from != entry->arg1) {
+          irOperandDestroy(from);
+        }
         break;
       }
       case IO_F_TO_BYTE: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_F_TO_SHORT: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_F_TO_INT: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_F_TO_LONG: {
+        error(__FILE__, __LINE__, "not yet implemented");
         break;
       }
       case IO_JUMP: {
+        if (entry->dest->kind == OK_NAME) {
+          // special case for OK_NAME
+          X86_64INSERT(
+              assembly,
+              X86_64INSTR(format("\tjmp\t%s\n", entry->dest->data.name.name)));
+        } else {
+          char const *typeSuffix = generateTypeSuffix(8, false);
+
+          // setup - gets OK_CONST, OK_STACKOFFSET into right places
+          IROperand *to =
+              loadOperand(entry->dest, false, 8, typeSuffix, assembly, frags,
+                          labelGenerator, tempAllocator, options);
+
+          // execution
+          X86_64Instruction *jump =
+              X86_64INSTR(format("\tjmp%s\t*`u\n", typeSuffix));
+          X86_64USE(jump, to, 8);
+          X86_64INSERT(assembly, jump);
+
+          // cleanup
+          if (to != entry->dest) {
+            irOperandDestroy(to);
+          }
+        }
         break;
       }
       case IO_JL: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjl\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_JLE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjle\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_JE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tje\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_JNE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjne\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_JGE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjge\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_JG: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjg\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_JA: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tja\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_JAE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjae\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_JB: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjb\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_JBE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, false);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, false, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjbe\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_FP_JL: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, true);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjl\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_FP_JLE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, true);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjle\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_FP_JE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, true);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tje\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_FP_JNE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, true);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjne\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_FP_JGE: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, true);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjge\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_FP_JG: {
+        char const *typeSuffix = generateTypeSuffix(entry->opSize, true);
+
+        // setup - gets OK_CONST, OK_NAME, OK_STACKOFFSET into right places
+        IROperand *arg1 =
+            loadOperand(entry->arg1, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+        IROperand *arg2 =
+            loadOperand(entry->arg2, true, entry->opSize, typeSuffix, assembly,
+                        frags, labelGenerator, tempAllocator, options);
+
+        // execution
+        X86_64Instruction *cmp =
+            X86_64MOVE(format("\tcomi%s\t`u, `u\n", typeSuffix));
+        X86_64USE(cmp, arg2, entry->opSize);
+        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64INSERT(assembly, cmp);
+
+        X86_64INSERT(assembly, X86_64INSTR(format(
+                                   "\tjg\t%s", entry->dest->data.name.name)));
+
+        // cleanup
+        if (arg1 != entry->arg1) {
+          irOperandDestroy(arg1);
+        }
+        if (arg2 != entry->dest) {
+          irOperandDestroy(arg2);
+        }
         break;
       }
       case IO_CALL: {
+        if (entry->dest->kind == OK_NAME) {
+          // special case for OK_NAME
+          X86_64INSERT(
+              assembly,
+              X86_64INSTR(format("\tcall\t%s\n", entry->dest->data.name.name)));
+        } else {
+          char const *typeSuffix = generateTypeSuffix(8, false);
+
+          // setup - gets OK_CONST, OK_STACKOFFSET into right places
+          IROperand *to =
+              loadOperand(entry->dest, false, 8, typeSuffix, assembly, frags,
+                          labelGenerator, tempAllocator, options);
+
+          // execution
+          X86_64Instruction *call =
+              X86_64INSTR(format("\tcall%s\t*`u\n", typeSuffix));
+          X86_64USE(call, to, 8);
+          X86_64INSERT(assembly, call);
+
+          // cleanup
+          if (to != entry->dest) {
+            irOperandDestroy(to);
+          }
+        }
         break;
       }
       case IO_RETURN: {
-        x86_64InstructionVectorInsert(
-            assembly, x86_64InstructionCreate(strdup("\tret\n")));
+        // special case - no arguments
+        X86_64INSERT(assembly, X86_64INSTR(format("\tret\n")));
         break;
       }
       default: {
