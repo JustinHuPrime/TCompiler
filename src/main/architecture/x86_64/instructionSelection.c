@@ -2533,7 +2533,7 @@ static char *tstrToX86_64Str(uint8_t *str) {
   for (; *str != 0; str++) {
     char *newBuffer = format(
         "%s"
-        "\t.byte\t%hhu",
+        "\t.byte\t%hhu\n",
         buffer, *str);
     free(buffer);
     buffer = newBuffer;
@@ -2551,7 +2551,7 @@ static char *twstrToX86_64WStr(uint32_t *wstr) {
   for (; *wstr != 0; wstr++) {
     char *newBuffer = format(
         "%s"
-        "\t.long\t%u",
+        "\t.long\t%u\n",
         buffer, *wstr);
     free(buffer);
     buffer = newBuffer;
