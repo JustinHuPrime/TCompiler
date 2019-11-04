@@ -104,7 +104,7 @@ void x86_64FragmentVectorInit(X86_64FragmentVector *);
 void x86_64FragmentVectorInsert(X86_64FragmentVector *, X86_64Fragment *);
 void x86_64FragmentVectorUninit(X86_64FragmentVector *);
 
-typedef struct {
+typedef struct X86_64File {
   char *header;
   char *footer;
   X86_64FragmentVector fragments;

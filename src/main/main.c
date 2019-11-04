@@ -19,6 +19,7 @@
 #include "architecture/x86_64/assembly.h"
 #include "architecture/x86_64/frame.h"
 #include "architecture/x86_64/instructionSelection.h"
+#include "architecture/x86_64/printer.h"
 #include "ast/printer.h"
 #include "constants.h"
 #include "ir/frame.h"
@@ -254,7 +255,12 @@ int main(int argc, char *argv[]) {
       x86_64InstructionSelect(&asmFileMap, &irFileMap, &options);
 
       if (optionsGet(&options, optionDebugDump) == O_DD_ASM_1) {
-        error(__FILE__, __LINE__, "not yet implemented");
+        for (size_t idx = 0; idx < asmFileMap.capacity; idx++) {
+          if (asmFileMap.keys[idx] != NULL) {
+            printf("%s:\n", asmFileMap.keys[idx]);
+            dumpX86_64File(asmFileMap.values[idx]);
+          }
+        }
       }
 
       // post instruction selection cleanup
