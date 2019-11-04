@@ -191,14 +191,12 @@ static IROperand *loadOperand(IROperand *op, bool isSSE, size_t size,
     }
   }
 }
-static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
-                                  X86_64FragmentVector *frags,
-                                  LabelGenerator *labelGenerator,
-                                  Options *options) {
-  TempAllocator *tempAllocator = irFrag->data.text.tempAllocator;
-  IREntryVector *ir = irFrag->data.text.ir;
-  X86_64InstructionVector *assembly = &frag->data.text.body;
-
+static void vectorInstructionSelect(IREntryVector *ir,
+                                    X86_64InstructionVector *assembly,
+                                    X86_64FragmentVector *frags,
+                                    LabelGenerator *labelGenerator,
+                                    TempAllocator *tempAllocator,
+                                    Options *options) {
   for (size_t idx = 0; idx < ir->size; idx++) {
     IREntry *entry = ir->elements[idx];
     switch (entry->op) {
@@ -2525,6 +2523,21 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
     }
   }
 }
+static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
+                                  X86_64FragmentVector *frags,
+                                  LabelGenerator *labelGenerator,
+                                  Options *options) {
+  TempAllocator *tempAllocator = irFrag->data.text.tempAllocator;
+  X86_64Frame *frame = (X86_64Frame *)irFrag->data.text.frame;
+  X86_64InstructionVector *assembly = &frag->data.text.body;
+
+  vectorInstructionSelect(frame->functionPrologue, assembly, frags,
+                          labelGenerator, tempAllocator, options);
+  vectorInstructionSelect(irFrag->data.text.ir, assembly, frags, labelGenerator,
+                          tempAllocator, options);
+  vectorInstructionSelect(frame->functionEpilogue, assembly, frags,
+                          labelGenerator, tempAllocator, options);
+}
 
 // data fragment stuff
 static bool isLocalLabel(char const *str) { return strncmp(str, ".L", 2) == 0; }
@@ -2749,6 +2762,7 @@ static X86_64File *fileInstructionSelect(IRFile *ir, Options *options) {
             (X86_64Frame *)irFrag->data.text.frame);
         textInstructionSelect(frag, irFrag, &file->fragments,
                               ir->labelGenerator, options);
+        irFrag->data.text.frame = NULL;
         x86_64FragmentVectorInsert(&file->fragments, frag);
         break;
       }
