@@ -30,7 +30,7 @@ void x86_64RegisterAllocate(FileX86_64FileMap *asmFileMap) {
       for (size_t fragmentIdx = 0; fragmentIdx < file->fragments.size;
            fragmentIdx++) {
         X86_64Fragment *frag = file->fragments.elements[fragmentIdx];
-        if (frag->kind = X86_64_FK_TEXT) {
+        if (frag->kind == X86_64_FK_TEXT) {
           registerAllocateFragment(frag);
         }
       }
