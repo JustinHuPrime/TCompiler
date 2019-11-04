@@ -808,14 +808,18 @@ static IROperand *x86_64IndirectCall(Frame *baseFrame, IROperand *who,
   typeVectorUninit(&stackArgTypes);
   irOperandVectorUninit(&stackArgs);
 
-  size_t retSize = typeSizeof(functionType->data.functionPtr.returnType);
-  size_t retAlign = typeAlignof(functionType->data.functionPtr.returnType);
-  AllocHint retKind = typeKindof(functionType->data.functionPtr.returnType);
-  size_t temp = NEW(tempAllocator);
-  IR(out, MOVE(retSize, TEMP(temp, retSize, retAlign, retKind),
-               x86_64GetReturnValue(
-                   this, functionType->data.functionPtr.returnType)));
-  return TEMP(temp, retSize, retAlign, retKind);
+  if (functionType->kind == K_VOID) {
+    return NULL;
+  } else {
+    size_t retSize = typeSizeof(functionType->data.functionPtr.returnType);
+    size_t retAlign = typeAlignof(functionType->data.functionPtr.returnType);
+    AllocHint retKind = typeKindof(functionType->data.functionPtr.returnType);
+    size_t temp = NEW(tempAllocator);
+    IR(out, MOVE(retSize, TEMP(temp, retSize, retAlign, retKind),
+                 x86_64GetReturnValue(
+                     this, functionType->data.functionPtr.returnType)));
+    return TEMP(temp, retSize, retAlign, retKind);
+  }
 }
 static IROperand *x86_64DirectCall(Frame *baseFrame, char *who,
                                    IROperandVector *args,
@@ -855,14 +859,17 @@ static IROperand *x86_64DirectCall(Frame *baseFrame, char *who,
 
   typeVectorUninit(&stackArgTypes);
   irOperandVectorUninit(&stackArgs);
-
-  size_t retSize = typeSizeof(function->returnType);
-  size_t retAlign = typeAlignof(function->returnType);
-  AllocHint retKind = typeKindof(function->returnType);
-  size_t temp = NEW(tempAllocator);
-  IR(out, MOVE(retSize, TEMP(temp, retSize, retAlign, retKind),
-               x86_64GetReturnValue(this, function->returnType)));
-  return TEMP(temp, retSize, retAlign, retKind);
+  if (function->returnType->kind == K_VOID) {
+    return NULL;
+  } else {
+    size_t retSize = typeSizeof(function->returnType);
+    size_t retAlign = typeAlignof(function->returnType);
+    AllocHint retKind = typeKindof(function->returnType);
+    size_t temp = NEW(tempAllocator);
+    IR(out, MOVE(retSize, TEMP(temp, retSize, retAlign, retKind),
+                 x86_64GetReturnValue(this, function->returnType)));
+    return TEMP(temp, retSize, retAlign, retKind);
+  }
 }
 static FrameVTable *getX86_64FrameVTable(void) {
   if (X86_64FrameVTable == NULL) {
