@@ -186,10 +186,10 @@ typedef enum IROperator {
   IO_F_TO_LONG,
 
   IO_JUMP,  // unconditional jump: opSize = 0, dest = jump target
-            // address, arg1 = NULL, arg2 = NULL
+            // address, arg1 = NULL, arg2 = NULL.
 
   IO_JL,  // conditional jumps: opSize = sizeof(compared values), dest = jump
-          // target address, arg1 = lhs, arg2 = rhs
+          // target address, arg1 = lhs, arg2 = rhs. dest must be a name
   IO_JLE,
   IO_JE,
   IO_JNE,
