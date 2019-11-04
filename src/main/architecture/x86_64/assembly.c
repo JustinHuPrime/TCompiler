@@ -2666,17 +2666,17 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
         break;
       }
       case IO_CALL: {
-        if (entry->dest->kind == OK_NAME) {
+        if (entry->arg1->kind == OK_NAME) {
           // special case for OK_NAME
           X86_64INSERT(
               assembly,
-              X86_64INSTR(format("\tcall\t%s\n", entry->dest->data.name.name)));
+              X86_64INSTR(format("\tcall\t%s\n", entry->arg1->data.name.name)));
         } else {
           char const *typeSuffix = generateTypeSuffix(8, false);
 
           // setup - gets OK_CONST, OK_STACKOFFSET into right places
           IROperand *to =
-              loadOperand(entry->dest, false, 8, typeSuffix, assembly, frags,
+              loadOperand(entry->arg1, false, 8, typeSuffix, assembly, frags,
                           labelGenerator, tempAllocator, options);
 
           // execution
@@ -2686,7 +2686,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
           X86_64INSERT(assembly, call);
 
           // cleanup
-          if (to != entry->dest) {
+          if (to != entry->arg1) {
             irOperandDestroy(to);
           }
         }
