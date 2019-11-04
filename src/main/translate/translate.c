@@ -83,7 +83,9 @@ void fragmentDestroy(Fragment *f) {
     }
     case FK_TEXT: {
       irEntryVectorDestroy(f->data.text.ir);
-      frameDtor(f->data.text.frame);
+      if (f->data.text.frame != NULL) {
+        frameDtor(f->data.text.frame);
+      }
       tempAllocatorDestroy(f->data.text.tempAllocator);
       break;
     }

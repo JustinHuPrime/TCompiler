@@ -128,6 +128,7 @@ void x86_64FragmentDestroy(X86_64Fragment *f) {
       free(f->data.text.header);
       free(f->data.text.footer);
       x86_64InstructionVectorUninit(&f->data.text.body);
+      f->data.text.frame->base.vtable->dtor((Frame *)f->data.text.frame);
       break;
     }
   }
