@@ -20,6 +20,7 @@
 #include "architecture/x86_64/frame.h"
 #include "architecture/x86_64/instructionSelection.h"
 #include "architecture/x86_64/printer.h"
+#include "architecture/x86_64/registerAllocate.h"
 #include "ast/printer.h"
 #include "constants.h"
 #include "ir/frame.h"
@@ -254,6 +255,8 @@ int main(int argc, char *argv[]) {
 
       x86_64InstructionSelect(&asmFileMap, &irFileMap, &options);
 
+      // debug dump stop for instruction selection - displays the template
+      // assembly file
       if (optionsGet(&options, optionDebugDump) == O_DD_ASM_1) {
         for (size_t idx = 0; idx < asmFileMap.capacity; idx++) {
           if (asmFileMap.keys[idx] != NULL) {
@@ -266,10 +269,25 @@ int main(int argc, char *argv[]) {
       // post instruction selection cleanup
       fileIRFileMapUninit(&irFileMap);
 
-      // machine dependent optimizations
+      // machine dependent optimizations 1
       // TODO: write optimizations
 
       // register alloc
+      x86_64RegisterAllocate(&asmFileMap);
+
+      // debug dump stop for register allocation - displays the template
+      // assembly file
+      if (optionsGet(&options, optionDebugDump) == O_DD_ASM_2) {
+        for (size_t idx = 0; idx < asmFileMap.capacity; idx++) {
+          if (asmFileMap.keys[idx] != NULL) {
+            printf("%s:\n", asmFileMap.keys[idx]);
+            dumpX86_64File(asmFileMap.values[idx]);
+          }
+        }
+      }
+
+      // machine dependent optimizations 2
+      // TODO: write optimizations
 
       // write-out
 
