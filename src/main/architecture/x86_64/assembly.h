@@ -60,16 +60,27 @@ void x86_64OperandVectorInit(X86_64OperandVector *);
 void x86_64OperandVectorInsert(X86_64OperandVector *, X86_64Operand *);
 void x86_64OperandVectorUninit(X86_64OperandVector *);
 
+typedef enum {
+  X86_64_IK_REGULAR,
+  X86_64_IK_MOVE,
+  X86_64_IK_JUMP,
+  X86_64_IK_CJUMP,
+} X86_64InstructionKind;
 typedef struct {
+  X86_64InstructionKind kind;
   char *skeleton;  // format string. `d is a defined, `u is a use, `o is an
                    // other, `` is a literal backtick.
   X86_64OperandVector defines;
   X86_64OperandVector uses;
   X86_64OperandVector other;
-  bool isMove;
+  char *jumpTarget;
 } X86_64Instruction;
-X86_64Instruction *x86_64InstructionCreate(char *skeleton);
+X86_64Instruction *x86_64RegularInstructionCreate(char *skeleton);
 X86_64Instruction *x86_64MoveInstructionCreate(char *skeleton);
+X86_64Instruction *x86_64JumpInstructionCreate(char *skeleton,
+                                               char *jumpTarget);
+X86_64Instruction *x86_64CJumpInstructionCreate(char *skeleton,
+                                                char *jumpTarget);
 void x86_64InstructionDestroy(X86_64Instruction *);
 
 typedef Vector X86_64InstructionVector;

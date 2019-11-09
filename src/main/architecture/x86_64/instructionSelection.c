@@ -1982,7 +1982,8 @@ static void vectorInstructionSelect(IREntryVector *ir,
           // special case for OK_NAME
           X86_64INSERT(
               assembly,
-              X86_64INSTR(format("\tjmp\t%s\n", entry->dest->data.name.name)));
+              X86_64JUMP(format("\tjmp\t%s\n", entry->dest->data.name.name),
+                         strdup(entry->dest->data.name.name)));
         } else {
           char const *typeSuffix = generateTypeSuffix(8, false);
 
@@ -2022,8 +2023,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjl\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjl\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2052,8 +2055,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjle\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjle\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2082,8 +2087,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tje\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tje\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2112,8 +2119,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjne\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjne\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2142,8 +2151,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjge\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjge\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2172,8 +2183,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjg\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjg\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2202,8 +2215,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tja\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tja\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2232,8 +2247,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjae\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjae\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2262,8 +2279,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjb\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjb\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2292,8 +2311,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjbe\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjbe\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2322,8 +2343,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjl\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjl\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2352,8 +2375,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjle\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjle\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2382,8 +2407,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tje\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tje\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2412,8 +2439,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjne\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjne\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2442,8 +2471,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjge\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjge\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {
@@ -2472,8 +2503,10 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64DEF(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
-        X86_64INSERT(assembly, X86_64INSTR(format(
-                                   "\tjg\t%s", entry->dest->data.name.name)));
+        X86_64INSERT(
+            assembly,
+            X86_64CJUMP(format("\tjg\t%s", entry->dest->data.name.name),
+                        strdup(entry->dest->data.name.name)));
 
         // cleanup
         if (arg1 != entry->arg1) {

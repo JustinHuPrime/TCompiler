@@ -63,22 +63,33 @@ void x86_64OperandVectorUninit(X86_64OperandVector *v) {
   vectorUninit(v, (void (*)(void *))x86_64OperandDestroy);
 }
 
-X86_64Instruction *x86_64InstructionCreate(char *skeleton) {
+static X86_64Instruction *x86_64InstructionCreate(char *skeleton,
+                                                  X86_64InstructionKind kind) {
   X86_64Instruction *i = malloc(sizeof(X86_64Instruction));
+  i->kind = kind;
   i->skeleton = skeleton;
   x86_64OperandVectorInit(&i->defines);
   x86_64OperandVectorInit(&i->uses);
   x86_64OperandVectorInit(&i->other);
-  i->isMove = false;
+  i->jumpTarget = NULL;
   return i;
 }
+X86_64Instruction *x86_64RegularInstructionCreate(char *skeleton) {
+  return x86_64InstructionCreate(skeleton, X86_64_IK_REGULAR);
+}
 X86_64Instruction *x86_64MoveInstructionCreate(char *skeleton) {
-  X86_64Instruction *i = malloc(sizeof(X86_64Instruction));
-  i->skeleton = skeleton;
-  x86_64OperandVectorInit(&i->defines);
-  x86_64OperandVectorInit(&i->uses);
-  x86_64OperandVectorInit(&i->other);
-  i->isMove = true;
+  return x86_64InstructionCreate(skeleton, X86_64_IK_MOVE);
+}
+X86_64Instruction *x86_64JumpInstructionCreate(char *skeleton,
+                                               char *jumpTarget) {
+  X86_64Instruction *i = x86_64InstructionCreate(skeleton, X86_64_IK_JUMP);
+  i->jumpTarget = jumpTarget;
+  return i;
+}
+X86_64Instruction *x86_64CJumpInstructionCreate(char *skeleton,
+                                                char *jumpTarget) {
+  X86_64Instruction *i = x86_64InstructionCreate(skeleton, X86_64_IK_CJUMP);
+  i->jumpTarget = jumpTarget;
   return i;
 }
 void x86_64InstructionDestroy(X86_64Instruction *i) {
@@ -86,6 +97,9 @@ void x86_64InstructionDestroy(X86_64Instruction *i) {
   x86_64OperandVectorUninit(&i->defines);
   x86_64OperandVectorUninit(&i->uses);
   x86_64OperandVectorUninit(&i->other);
+  if (i->jumpTarget != NULL) {
+    free(i->jumpTarget);
+  }
   free(i);
 }
 
