@@ -60,38 +60,21 @@ void stringVectorUninit(StringVector *, bool freeStrings);
 // dtor
 void stringVectorDestroy(StringVector *, bool freeStrings);
 
-// vector of bools
+// vector of size_t
 typedef struct {
   size_t size;
   size_t capacity;
-  bool *elements;
-} BoolVector;
+  size_t *elements;
+} SizeVector;
 // ctor
-BoolVector *boolVectorCreate(void);
+SizeVector *sizeVectorCreate(void);
 // in place ctor
-void boolVectorInit(BoolVector *);
+void sizeVectorInit(SizeVector *);
 // insert
-void boolVectorInsert(BoolVector *, bool);
+void sizeVectorInsert(SizeVector *, size_t);
 // in place dtor
-void boolVectorUninit(BoolVector *);
+void sizeVectorUninit(SizeVector *);
 // dtor
-void boolVectorDestroy(BoolVector *);
-
-// vector of bytes
-typedef struct {
-  size_t size;
-  size_t capacity;
-  uint8_t *elements;
-} ByteVector;
-// ctor
-ByteVector *byteVectorCreate(void);
-// in place ctor
-void byteVectorInit(ByteVector *);
-// insert
-void byteVectorInsert(ByteVector *, uint8_t);
-// in place dtor
-void byteVectorUninit(ByteVector *);
-// dtor
-void byteVectorDestroy(ByteVector *);
+void sizeVectorDestroy(SizeVector *);
 
 #endif  // TLC_UTIL_CONTAINER_VECTOR_H_

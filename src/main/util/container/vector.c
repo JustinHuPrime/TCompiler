@@ -93,50 +93,25 @@ void stringVectorDestroy(StringVector *v, bool freeStrings) {
   vectorDestroy(v, freeStrings ? free : nullDtor);
 }
 
-BoolVector *boolVectorCreate(void) {
-  BoolVector *vector = malloc(sizeof(BoolVector));
-  boolVectorInit(vector);
-  return vector;
+SizeVector *sizeVectorCreate(void) {
+  StringVector *v = malloc(sizeof(StringVector));
+  stringVectorInit(v);
+  return v;
 }
-void boolVectorInit(BoolVector *vector) {
-  vector->size = 0;
-  vector->capacity = BYTE_VECTOR_INIT_CAPACITY;
-  vector->elements = malloc(vector->capacity * sizeof(bool));
+void sizeVectorInit(SizeVector *v) {
+  v->size = 0;
+  v->capacity = PTR_VECTOR_INIT_CAPACITY;
+  v->elements = malloc(v->capacity * sizeof(size_t));
 }
-void boolVectorInsert(BoolVector *vector, bool b) {
-  if (vector->size == vector->capacity) {
-    vector->capacity *= 2;
-    vector->elements =
-        realloc(vector->elements, vector->capacity * sizeof(bool));
+void sizeVectorInsert(SizeVector *v, size_t d) {
+  if (v->size == v->capacity) {
+    v->capacity *= 2;
+    v->elements = realloc(v->elements, v->capacity * sizeof(size_t));
   }
-  vector->elements[vector->size++] = b;
+  v->elements[v->size++] = d;
 }
-void boolVectorUninit(BoolVector *vector) { free(vector->elements); }
-void boolVectorDestroy(BoolVector *vector) {
-  boolVectorUninit(vector);
-  free(vector);
-}
-
-ByteVector *byteVectorCreate(void) {
-  ByteVector *vector = malloc(sizeof(ByteVector));
-  byteVectorInit(vector);
-  return vector;
-}
-void byteVectorInit(ByteVector *vector) {
-  vector->size = 0;
-  vector->capacity = BYTE_VECTOR_INIT_CAPACITY;
-  vector->elements = malloc(vector->capacity * sizeof(uint8_t));
-}
-void byteVectorInsert(ByteVector *vector, uint8_t byte) {
-  if (vector->size == vector->capacity) {
-    vector->capacity *= 2;
-    vector->elements =
-        realloc(vector->elements, vector->capacity * sizeof(uint8_t));
-  }
-  vector->elements[vector->size++] = byte;
-}
-void byteVectorUninit(ByteVector *vector) { free(vector->elements); }
-void byteVectorDestroy(ByteVector *vector) {
-  byteVectorUninit(vector);
-  free(vector);
+void sizeVectorUninit(SizeVector *v) { free(v->elements); }
+void sizeVectorDestroy(SizeVector *v) {
+  sizeVectorUninit(v);
+  free(v);
 }
