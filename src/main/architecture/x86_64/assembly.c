@@ -82,20 +82,28 @@ X86_64Instruction *x86_64MoveInstructionCreate(char *skeleton) {
 X86_64Instruction *x86_64JumpInstructionCreate(char *skeleton,
                                                char *jumpTarget) {
   X86_64Instruction *i = x86_64InstructionCreate(skeleton, X86_64_IK_JUMP);
-  i->target.jumpTarget = jumpTarget;
+  i->data.jumpTarget = jumpTarget;
   return i;
 }
 X86_64Instruction *x86_64CJumpInstructionCreate(char *skeleton,
                                                 char *jumpTarget) {
   X86_64Instruction *i = x86_64InstructionCreate(skeleton, X86_64_IK_CJUMP);
-  i->target.jumpTarget = jumpTarget;
+  i->data.jumpTarget = jumpTarget;
   return i;
 }
 X86_64Instruction *x86_64LeaveInstructionCreate(char *skeleton) {
   return x86_64InstructionCreate(skeleton, X86_64_IK_LEAVE);
 }
 X86_64Instruction *x86_64SwitchInstuctionCreate(char *skeleton) {
-  return x86_64InstructionCreate(skeleton, X86_64_IK_SWITCH);
+  X86_64Instruction *i = x86_64InstructionCreate(skeleton, X86_64_IK_SWITCH);
+  stringVectorInit(&i->data.switchTargets);
+  return i;
+}
+X86_64Instruction *x86_64LabelInstructionCreate(char *skeleton,
+                                                char *labelName) {
+  X86_64Instruction *i = x86_64InstructionCreate(skeleton, X86_64_IK_LABEL);
+  i->data.labelName = labelName;
+  return i;
 }
 void x86_64InstructionDestroy(X86_64Instruction *i) {
   free(i->skeleton);
@@ -110,11 +118,15 @@ void x86_64InstructionDestroy(X86_64Instruction *i) {
     }
     case X86_64_IK_JUMP:
     case X86_64_IK_CJUMP: {
-      free(i->target.jumpTarget);
+      free(i->data.jumpTarget);
       break;
     }
     case X86_64_IK_SWITCH: {
-      stringVectorUninit(&i->target.switchTargets, true);
+      stringVectorUninit(&i->data.switchTargets, true);
+      break;
+    }
+    case X86_64_IK_LABEL: {
+      free(i->data.labelName);
       break;
     }
   }

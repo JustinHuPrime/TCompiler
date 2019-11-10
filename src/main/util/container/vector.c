@@ -94,8 +94,8 @@ void stringVectorDestroy(StringVector *v, bool freeStrings) {
 }
 
 SizeVector *sizeVectorCreate(void) {
-  StringVector *v = malloc(sizeof(StringVector));
-  stringVectorInit(v);
+  SizeVector *v = malloc(sizeof(SizeVector));
+  sizeVectorInit(v);
   return v;
 }
 void sizeVectorInit(SizeVector *v) {
