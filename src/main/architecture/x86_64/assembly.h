@@ -65,6 +65,11 @@ typedef enum {
   X86_64_IK_MOVE,
   X86_64_IK_JUMP,
   X86_64_IK_CJUMP,
+  X86_64_IK_LEAVE,   // ret, calculated jumps outside of function - control flow
+                     // leaves this function
+  X86_64_IK_SWITCH,  // calculated jumps within function - control flow could go
+                     // to multiple points
+  X86_64_IK_LABEL,
 } X86_64InstructionKind;
 typedef struct {
   X86_64InstructionKind kind;
@@ -73,7 +78,11 @@ typedef struct {
   X86_64OperandVector defines;
   X86_64OperandVector uses;
   X86_64OperandVector other;
-  char *jumpTarget;
+  union {
+    char *jumpTarget;
+    StringVector switchTargets;
+    char *labelName;
+  } data;
 } X86_64Instruction;
 X86_64Instruction *x86_64RegularInstructionCreate(char *skeleton);
 X86_64Instruction *x86_64MoveInstructionCreate(char *skeleton);
@@ -81,6 +90,10 @@ X86_64Instruction *x86_64JumpInstructionCreate(char *skeleton,
                                                char *jumpTarget);
 X86_64Instruction *x86_64CJumpInstructionCreate(char *skeleton,
                                                 char *jumpTarget);
+X86_64Instruction *x86_64LeaveInstructionCreate(char *skeleton);
+X86_64Instruction *x86_64SwitchInstuctionCreate(char *skeleton);
+X86_64Instruction *x86_64LabelInstructionCreate(char *skeleton,
+                                                char *labelName);
 void x86_64InstructionDestroy(X86_64Instruction *);
 
 typedef Vector X86_64InstructionVector;

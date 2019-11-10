@@ -24,7 +24,7 @@ void X86_64INSERT(X86_64InstructionVector *v, X86_64Instruction *i) {
   x86_64InstructionVectorInsert(v, i);
 }
 X86_64Instruction *X86_64INSTR(char *skeleton) {
-  return x86_64InstructionCreate(skeleton);
+  return x86_64RegularInstructionCreate(skeleton);
 }
 X86_64Instruction *X86_64MOVE(char *skeleton) {
   return x86_64MoveInstructionCreate(skeleton);
@@ -34,6 +34,15 @@ X86_64Instruction *X86_64JUMP(char *skeleton, char *target) {
 }
 X86_64Instruction *X86_64CJUMP(char *skeleton, char *target) {
   return x86_64CJumpInstructionCreate(skeleton, target);
+}
+X86_64Instruction *X86_64SWITCH(char *skeleton) {
+  return x86_64SwitchInstuctionCreate(skeleton);
+}
+X86_64Instruction *X86_64LEAVE(char *skeleton) {
+  return x86_64LeaveInstructionCreate(skeleton);
+}
+X86_64Instruction *X86_64LABEL(char *skeleton, char *labelName) {
+  return x86_64LabelInstructionCreate(skeleton, labelName);
 }
 void X86_64USE(X86_64Instruction *i, IROperand const *u, size_t size) {
   x86_64OperandVectorInsert(&i->uses, x86_64OperandCreate(u, size));

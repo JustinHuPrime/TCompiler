@@ -209,7 +209,8 @@ static void vectorInstructionSelect(IREntryVector *ir,
       case IO_LABEL: {
         // special case - basically inline asm
         X86_64INSERT(assembly,
-                     X86_64INSTR(format("%s:\n", entry->arg1->data.name.name)));
+                     X86_64LABEL(format("%s:\n", entry->arg1->data.name.name),
+                                 strdup(entry->arg1->data.name.name)));
         break;
       }
       case IO_MOVE: {
@@ -1994,7 +1995,8 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
           // execution
           X86_64Instruction *jump =
-              X86_64INSTR(format("\tjmp%s\t*`u\n", typeSuffix));
+              X86_64SWITCH(format("\tjmp%s\t*`u\n", typeSuffix));
+          // TODO: include possible next instructions
           X86_64USE(jump, to, 8);
           X86_64INSERT(assembly, jump);
 
@@ -2546,7 +2548,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
       }
       case IO_RETURN: {
         // special case - no arguments
-        X86_64INSERT(assembly, X86_64INSTR(format("\tret\n")));
+        X86_64INSERT(assembly, X86_64LEAVE(format("\tret\n")));
         break;
       }
       default: {

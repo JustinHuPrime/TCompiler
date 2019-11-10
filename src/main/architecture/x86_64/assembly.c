@@ -71,7 +71,6 @@ static X86_64Instruction *x86_64InstructionCreate(char *skeleton,
   x86_64OperandVectorInit(&i->defines);
   x86_64OperandVectorInit(&i->uses);
   x86_64OperandVectorInit(&i->other);
-  i->jumpTarget = NULL;
   return i;
 }
 X86_64Instruction *x86_64RegularInstructionCreate(char *skeleton) {
@@ -83,22 +82,41 @@ X86_64Instruction *x86_64MoveInstructionCreate(char *skeleton) {
 X86_64Instruction *x86_64JumpInstructionCreate(char *skeleton,
                                                char *jumpTarget) {
   X86_64Instruction *i = x86_64InstructionCreate(skeleton, X86_64_IK_JUMP);
-  i->jumpTarget = jumpTarget;
+  i->target.jumpTarget = jumpTarget;
   return i;
 }
 X86_64Instruction *x86_64CJumpInstructionCreate(char *skeleton,
                                                 char *jumpTarget) {
   X86_64Instruction *i = x86_64InstructionCreate(skeleton, X86_64_IK_CJUMP);
-  i->jumpTarget = jumpTarget;
+  i->target.jumpTarget = jumpTarget;
   return i;
+}
+X86_64Instruction *x86_64LeaveInstructionCreate(char *skeleton) {
+  return x86_64InstructionCreate(skeleton, X86_64_IK_LEAVE);
+}
+X86_64Instruction *x86_64SwitchInstuctionCreate(char *skeleton) {
+  return x86_64InstructionCreate(skeleton, X86_64_IK_SWITCH);
 }
 void x86_64InstructionDestroy(X86_64Instruction *i) {
   free(i->skeleton);
   x86_64OperandVectorUninit(&i->defines);
   x86_64OperandVectorUninit(&i->uses);
   x86_64OperandVectorUninit(&i->other);
-  if (i->jumpTarget != NULL) {
-    free(i->jumpTarget);
+  switch (i->kind) {
+    case X86_64_IK_REGULAR:
+    case X86_64_IK_MOVE:
+    case X86_64_IK_LEAVE: {
+      break;
+    }
+    case X86_64_IK_JUMP:
+    case X86_64_IK_CJUMP: {
+      free(i->target.jumpTarget);
+      break;
+    }
+    case X86_64_IK_SWITCH: {
+      stringVectorUninit(&i->target.switchTargets, true);
+      break;
+    }
   }
   free(i);
 }

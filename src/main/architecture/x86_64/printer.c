@@ -135,6 +135,7 @@ static char const *regNumToString(X86_64Register r) {
     case X86_64_XMM15: {
       return "%xmm15";
     }
+    default: { error(__FILE__, __LINE__, "invalid X86_64Register enum"); }
   }
 }
 static void dumpOperand(X86_64Operand *o) {
