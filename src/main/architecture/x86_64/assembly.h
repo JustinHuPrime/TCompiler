@@ -33,6 +33,7 @@ typedef enum {
   X86_64_OK_REG,
   X86_64_OK_TEMP,
   X86_64_OK_STACKOFFSET,
+  X86_64_OK_STACK,
 } X86_64OperandKind;
 typedef struct {
   X86_64OperandKind kind;
@@ -50,9 +51,14 @@ typedef struct {
     struct {
       int64_t offset;
     } stackOffset;
+    struct {
+      int64_t offset;
+    } stack;
   } data;
 } X86_64Operand;
 X86_64Operand *x86_64OperandCreate(struct IROperand const *, size_t);
+X86_64Operand *x86_64RegOperandCreate(X86_64Register, size_t);
+X86_64Operand *x86_64OperandCopy(X86_64Operand const *);
 void x86_64OperandDestroy(X86_64Operand *);
 
 typedef Vector X86_64OperandVector;

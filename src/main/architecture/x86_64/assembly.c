@@ -53,6 +53,18 @@ X86_64Operand *x86_64OperandCreate(IROperand const *irOperand, size_t size) {
   }
   return op;
 }
+X86_64Operand *x86_64RegOperandCreate(X86_64Register reg, size_t size) {
+  X86_64Operand *op = malloc(sizeof(X86_64Operand));
+  op->operandSize = size;
+  op->kind = X86_64_OK_REG;
+  op->data.reg.reg = reg;
+  return op;
+}
+X86_64Operand *x86_64OperandCopy(X86_64Operand const *old) {
+  X86_64Operand *new = malloc(sizeof(X86_64Operand));
+  *new = *old;
+  return new;
+}
 void x86_64OperandDestroy(X86_64Operand *op) { free(op); }
 
 void x86_64OperandVectorInit(X86_64OperandVector *v) { vectorInit(v); }

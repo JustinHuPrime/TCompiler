@@ -156,6 +156,10 @@ static void dumpOperand(X86_64Operand *o) {
              o->operandSize);
       break;
     }
+    case X86_64_OK_STACK: {
+      printf("STACK(%ld, %zu wide)", o->data.stack.offset, o->operandSize);
+      break;
+    }
     default: { error(__FILE__, __LINE__, "invalid X86_64OperandKind enum"); }
   }
 }
