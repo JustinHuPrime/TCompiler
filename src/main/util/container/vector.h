@@ -72,6 +72,8 @@ SizeVector *sizeVectorCreate(void);
 void sizeVectorInit(SizeVector *);
 // insert
 void sizeVectorInsert(SizeVector *, size_t);
+// contains
+bool sizeVectorContains(SizeVector *, size_t);
 // in place dtor
 void sizeVectorUninit(SizeVector *);
 // dtor

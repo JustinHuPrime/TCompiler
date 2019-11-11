@@ -110,6 +110,14 @@ void sizeVectorInsert(SizeVector *v, size_t d) {
   }
   v->elements[v->size++] = d;
 }
+bool sizeVectorContains(SizeVector *v, size_t d) {
+  for (size_t idx = 0; idx < v->size; idx++) {
+    if (v->elements[idx] == d) {
+      return true;
+    }
+  }
+  return false;
+}
 void sizeVectorUninit(SizeVector *v) { free(v->elements); }
 void sizeVectorDestroy(SizeVector *v) {
   sizeVectorUninit(v);
