@@ -145,7 +145,6 @@ void x86_64InstructionDestroy(X86_64Instruction *i) {
   free(i);
 }
 
-typedef Vector X86_64InstructionVector;
 X86_64InstructionVector *x86_64InstructionVectorCreate(void) {
   return vectorCreate();
 }

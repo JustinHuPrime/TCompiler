@@ -23,6 +23,7 @@
 
 typedef HashMap FileX86_64FileMap;
 
+// allocates registers, adds stack frame setup and tear-down
 void x86_64RegisterAllocate(FileX86_64FileMap *asmFileMap);
 
 #endif  // TLC_ARCHITECTURE_X86_64_REGISTERALLOCATE_H_
