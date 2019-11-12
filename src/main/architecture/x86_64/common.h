@@ -67,7 +67,13 @@ typedef enum {
   X86_64_XMM15,
 } X86_64Register;
 
+extern X86_64Register const X86_64_CALLEE_SAVE[];
+extern size_t const X86_64_NUM_CALLEE_SAVE;
+extern X86_64Register const X86_64_CALLER_SAVE[];
+extern size_t const X86_64_NUM_CALLER_SAVE;
+
 X86_64Register x86_64RegNumToRegister(size_t reg);
 bool x86_64RegIsSSE(X86_64Register);
+bool x86_64RegIsCalleeSave(X86_64Register);
 
 #endif  // TLC_ARCHITECTURE_X86_64_COMMON_H_
