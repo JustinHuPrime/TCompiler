@@ -288,7 +288,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
           // execution
           X86_64Instruction *move =
-              X86_64INSTR(format("\tmov%s\t(`u), `u\n", typeSuffix));
+              X86_64INSTR(format("\tmov%s\t(`u), `d\n", typeSuffix));
           X86_64USE(move, from, entry->opSize);
           X86_64DEF(move, to, entry->opSize);
           X86_64INSERT(assembly, move);
@@ -352,7 +352,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
           // execution
           X86_64Instruction *move =
-              X86_64INSTR(format("\tmov%s\t(%%rbp, `u), `u\n", typeSuffix));
+              X86_64INSTR(format("\tmov%s\t(%%rbp, `u), `d\n", typeSuffix));
           X86_64USE(move, from, entry->opSize);
           X86_64DEF(move, to, entry->opSize);
           X86_64INSERT(assembly, move);
@@ -2027,7 +2027,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjl\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjl\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2059,7 +2059,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjle\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjle\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2091,7 +2091,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tje\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tje\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2123,7 +2123,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjne\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjne\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2155,7 +2155,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjge\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjge\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2187,7 +2187,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjg\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjg\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2219,7 +2219,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tja\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tja\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2251,7 +2251,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjae\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjae\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2283,7 +2283,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjb\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjb\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2315,7 +2315,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjbe\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjbe\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2347,7 +2347,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjl\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjl\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2379,7 +2379,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjle\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjle\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2411,7 +2411,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tje\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tje\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2443,7 +2443,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjne\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjne\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2475,7 +2475,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjge\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjge\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
@@ -2507,7 +2507,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         X86_64INSERT(
             assembly,
-            X86_64CJUMP(format("\tjg\t%s", entry->dest->data.name.name),
+            X86_64CJUMP(format("\tjg\t%s\n", entry->dest->data.name.name),
                         strdup(entry->dest->data.name.name)));
 
         // cleanup
