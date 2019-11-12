@@ -290,7 +290,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
           X86_64Instruction *move =
               X86_64INSTR(format("\tmov%s\t(`u), `u\n", typeSuffix));
           X86_64USE(move, from, entry->opSize);
-          X86_64USE(move, to, entry->opSize);
+          X86_64DEF(move, to, entry->opSize);
           X86_64INSERT(assembly, move);
 
           // cleanup
@@ -354,7 +354,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
           X86_64Instruction *move =
               X86_64INSTR(format("\tmov%s\t(%%rbp, `u), `u\n", typeSuffix));
           X86_64USE(move, from, entry->opSize);
-          X86_64USE(move, to, entry->opSize);
+          X86_64DEF(move, to, entry->opSize);
           X86_64INSERT(assembly, move);
 
           // cleanup
@@ -1108,7 +1108,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64Instruction *cmp =
             X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64Instruction *set = X86_64INSTR(format("\tsetl\t`d\n"));
@@ -1140,7 +1140,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64Instruction *cmp =
             X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64Instruction *set = X86_64INSTR(format("\tsetle\t`d\n"));
@@ -1172,7 +1172,7 @@ static void vectorInstructionSelect(IREntryVector *ir,
         X86_64Instruction *cmp =
             X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64Instruction *set = X86_64INSTR(format("\tsete\t`d\n"));
@@ -1202,9 +1202,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64Instruction *set = X86_64INSTR(format("\tsetne\t`d\n"));
@@ -1234,9 +1234,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64Instruction *set = X86_64INSTR(format("\tsetge\t`d\n"));
@@ -1266,9 +1266,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64Instruction *set = X86_64INSTR(format("\tsetg\t`d\n"));
@@ -1298,9 +1298,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64Instruction *set = X86_64INSTR(format("\tseta\t`d\n"));
@@ -1330,9 +1330,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64Instruction *set = X86_64INSTR(format("\tsetae\t`d\n"));
@@ -1362,9 +1362,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64Instruction *set = X86_64INSTR(format("\tsetb\t`d\n"));
@@ -1394,9 +1394,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64Instruction *set = X86_64INSTR(format("\tsetbe\t`d\n"));
@@ -2020,9 +2020,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64INSERT(
@@ -2052,9 +2052,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64INSERT(
@@ -2084,9 +2084,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64INSERT(
@@ -2116,9 +2116,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64INSERT(
@@ -2148,9 +2148,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64INSERT(
@@ -2180,9 +2180,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64INSERT(
@@ -2212,9 +2212,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64INSERT(
@@ -2244,9 +2244,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64INSERT(
@@ -2276,9 +2276,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64INSERT(
@@ -2308,9 +2308,9 @@ static void vectorInstructionSelect(IREntryVector *ir,
 
         // execution
         X86_64Instruction *cmp =
-            X86_64MOVE(format("\tcmp%s\t`u, `u\n", typeSuffix));
+            X86_64INSTR(format("\tcmp%s\t`u, `u\n", typeSuffix));
         X86_64USE(cmp, arg2, entry->opSize);
-        X86_64DEF(cmp, arg1, entry->opSize);
+        X86_64USE(cmp, arg1, entry->opSize);
         X86_64INSERT(assembly, cmp);
 
         X86_64INSERT(
@@ -2522,9 +2522,15 @@ static void vectorInstructionSelect(IREntryVector *ir,
       case IO_CALL: {
         if (entry->arg1->kind == OK_NAME) {
           // special case for OK_NAME
-          X86_64INSERT(
-              assembly,
-              X86_64INSTR(format("\tcall\t%s\n", entry->arg1->data.name.name)));
+          X86_64Instruction *call =
+              X86_64INSTR(format("\tcall\t%s\n", entry->arg1->data.name.name));
+          for (size_t saveIdx = 0; saveIdx < X86_64_NUM_CALLER_SAVE;
+               saveIdx++) {
+            IROperand *reg = regIROperandCreate(X86_64_CALLER_SAVE[saveIdx]);
+            X86_64DEF(call, reg, 8);
+            irOperandDestroy(reg);
+          }
+          X86_64INSERT(assembly, call);
         } else {
           char const *typeSuffix = generateTypeSuffix(8, false);
 
@@ -2536,6 +2542,12 @@ static void vectorInstructionSelect(IREntryVector *ir,
           // execution
           X86_64Instruction *call =
               X86_64INSTR(format("\tcall%s\t*`u\n", typeSuffix));
+          for (size_t saveIdx = 0; saveIdx < X86_64_NUM_CALLER_SAVE;
+               saveIdx++) {
+            IROperand *reg = regIROperandCreate(X86_64_CALLER_SAVE[saveIdx]);
+            X86_64DEF(call, reg, 8);
+            irOperandDestroy(reg);
+          }
           X86_64USE(call, to, 8);
           X86_64INSERT(assembly, call);
 
@@ -2564,7 +2576,7 @@ static void textInstructionSelect(X86_64Fragment *frag, Fragment *irFrag,
                                   Options *options) {
   TempAllocator *tempAllocator = irFrag->data.text.tempAllocator;
   X86_64Frame *frame = (X86_64Frame *)irFrag->data.text.frame;
-  X86_64InstructionVector *assembly = &frag->data.text.body;
+  X86_64InstructionVector *assembly = frag->data.text.body;
 
   vectorInstructionSelect(frame->functionPrologue, assembly, frags,
                           labelGenerator, tempAllocator, options);
@@ -2700,11 +2712,11 @@ static char *dataToString(IREntryVector *data) {
 }
 
 static X86_64File *fileInstructionSelect(IRFile *ir, Options *options) {
-  X86_64File *file =
-      x86_64FileCreate(format("\t.file\t\"%s\"\n", ir->sourceFilename),
-                       format("\t.ident\t\"%s\"\n"
-                              "\t.section\t.note.GNU-stack,\"\",@progbits\n",
-                              VERSION_STRING));
+  X86_64File *file = x86_64FileCreate(
+      strdup(ir->filename), format("\t.file\t\"%s\"\n", ir->sourceFilename),
+      format("\t.ident\t\"%s\"\n"
+             "\t.section\t.note.GNU-stack,\"\",@progbits\n",
+             VERSION_STRING));
 
   for (size_t idx = 0; idx < ir->fragments.size; idx++) {
     Fragment *irFrag = ir->fragments.elements[idx];
@@ -2791,8 +2803,9 @@ static X86_64File *fileInstructionSelect(IRFile *ir, Options *options) {
         X86_64Fragment *frag = x86_64TextFragmentCreate(
             format("\t.text\n"
                    "\t.globl\t%s\n"
-                   "\t.type \t%s, @function\n",
-                   irFrag->label, irFrag->label),
+                   "\t.type \t%s, @function\n"
+                   "%s:\n",
+                   irFrag->label, irFrag->label, irFrag->label),
             format("\t.size\t%s, .-%s\n", irFrag->label, irFrag->label),
             (X86_64Frame *)irFrag->data.text.frame);
         textInstructionSelect(frag, irFrag, &file->fragments,
@@ -2815,8 +2828,8 @@ void x86_64InstructionSelect(FileX86_64FileMap *asmFileMap,
     char const *key = irFileMap->keys[idx];
     if (key != NULL) {
       IRFile *file = irFileMap->values[idx];
-      fileX86_64FileMapPut(asmFileMap, irFileMap->keys[idx],
-                           fileInstructionSelect(file, options));
+      X86_64File *asmFile = fileInstructionSelect(file, options);
+      fileX86_64FileMapPut(asmFileMap, asmFile->filename, asmFile);
     }
   }
 }
