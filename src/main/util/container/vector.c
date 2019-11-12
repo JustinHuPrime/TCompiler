@@ -63,39 +63,6 @@ Vector *vectorMerge(Vector *v1, Vector *v2) {
 
   return v1;
 }
-// Vector *vectorMerge(Vector *v1, Vector *v2) {
-//   printf("DEBUG: Starting a merge\n");
-//   Vector *out = malloc(sizeof(Vector));
-//   printf("v1->size == %zu, v2->size == %zu\n", v1->size, v2->size);
-//   out->size = v1->size + v2->size;
-//   printf("DEBUG: out->size == %zu\n", out->size);
-//   out->capacity = (v1->capacity > v2->capacity ? v1->capacity :
-//   v2->capacity); printf("v1->size == %zu, v2->size == %zu\n", v1->size,
-//   v2->size); while (out->capacity < out->size) {
-//     out->capacity *= 2;
-//   }
-//   printf("DEBUG: out->capacity == %zu\n", out->capacity);
-//   out->elements = malloc(out->capacity * sizeof(void *));
-
-//   // copy data
-//   printf("DEBUG: copying elements from v1, going to indexes 0 to %zu\n",
-//          v1->size - 1);
-//   printf("v1->size == %zu, v2->size == %zu\n", v1->size, v2->size);
-//   memcpy(out->elements, v1->elements, v1->size * sizeof(void *));
-//   printf("DEBUG: copying elements from v2, going to indexes %zu to %zu\n",
-//          v1->size, v1->size + v2->size - 1);
-//   printf("v1->size == %zu, v2->size == %zu\n", v1->size, v2->size);
-//   memcpy(out->elements + v1->size * sizeof(void *), v2->elements,
-//          v2->size * sizeof(void *));
-
-//   // clean up v1 and v2
-//   free(v1->elements);
-//   free(v1);
-//   free(v2->elements);
-//   free(v2);
-
-//   return out;
-// }
 void vectorUninit(Vector *vector, void (*dtor)(void *)) {
   for (size_t idx = 0; idx < vector->size; idx++) dtor(vector->elements[idx]);
   free(vector->elements);

@@ -571,7 +571,6 @@ static void writeInstruction(FILE *stream, X86_64Instruction *i) {
   size_t numDef = 0;
   size_t numUse = 0;
   size_t numOther = 0;
-  printf("DEBUG: skeleton is %s\n", i->skeleton);
   for (char *curr = i->skeleton; *curr != '\0'; curr++) {
     if (*curr != '`') {
       // skeleton stuff
