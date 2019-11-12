@@ -204,8 +204,8 @@ static void dumpFragment(X86_64Fragment *f) {
     }
     case X86_64_FK_TEXT: {
       printf("%s", f->data.text.header);
-      for (size_t idx = 0; idx < f->data.text.body.size; idx++) {
-        dumpInstruction(f->data.text.body.elements[idx]);
+      for (size_t idx = 0; idx < f->data.text.body->size; idx++) {
+        dumpInstruction(f->data.text.body->elements[idx]);
       }
       printf("%s", f->data.text.footer);
       break;

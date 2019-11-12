@@ -146,13 +146,30 @@ void x86_64InstructionDestroy(X86_64Instruction *i) {
 }
 
 typedef Vector X86_64InstructionVector;
+X86_64InstructionVector *x86_64InstructionVectorCreate(void) {
+  return vectorCreate();
+}
 void x86_64InstructionVectorInit(X86_64InstructionVector *v) { vectorInit(v); }
 void x86_64InstructionVectorInsert(X86_64InstructionVector *v,
                                    X86_64Instruction *i) {
   vectorInsert(v, i);
 }
+X86_64InstructionVector *x86_64InstructionVectorMerge(
+    X86_64InstructionVector *a, X86_64InstructionVector *b) {
+  return vectorMerge(a, b);
+}
+void x86_64InstructionVectorErase(X86_64InstructionVector *v, size_t eraseIdx) {
+  x86_64InstructionDestroy(v->elements[eraseIdx]);
+  v->size--;
+  for (size_t idx = eraseIdx; idx < v->size; idx++) {
+    v->elements[idx] = v->elements[idx + 1];
+  }
+}
 void x86_64InstructionVectorUninit(X86_64InstructionVector *v) {
   vectorUninit(v, (void (*)(void *))x86_64InstructionDestroy);
+}
+void x86_64InstructionVectorDestroy(X86_64InstructionVector *v) {
+  vectorDestroy(v, (void (*)(void *))x86_64InstructionDestroy);
 }
 
 static X86_64Fragment *x86_64FragmentCreate(X86_64FragmentKind kind) {
@@ -170,7 +187,7 @@ X86_64Fragment *x86_64TextFragmentCreate(char *header, char *footer,
   X86_64Fragment *f = x86_64FragmentCreate(X86_64_FK_TEXT);
   f->data.text.header = header;
   f->data.text.footer = footer;
-  x86_64InstructionVectorInit(&f->data.text.body);
+  f->data.text.body = x86_64InstructionVectorCreate();
   f->data.text.frame = frame;
   return f;
 }
@@ -183,7 +200,7 @@ void x86_64FragmentDestroy(X86_64Fragment *f) {
     case X86_64_FK_TEXT: {
       free(f->data.text.header);
       free(f->data.text.footer);
-      x86_64InstructionVectorUninit(&f->data.text.body);
+      x86_64InstructionVectorDestroy(f->data.text.body);
       f->data.text.frame->base.vtable->dtor((Frame *)f->data.text.frame);
       break;
     }
@@ -200,14 +217,16 @@ void x86_64FragmentVectorUninit(X86_64FragmentVector *v) {
   vectorUninit(v, (void (*)(void *))x86_64FragmentDestroy);
 }
 
-X86_64File *x86_64FileCreate(char *header, char *footer) {
+X86_64File *x86_64FileCreate(char *filename, char *header, char *footer) {
   X86_64File *f = malloc(sizeof(X86_64File));
+  f->filename = filename;
   f->header = header;
   f->footer = footer;
   x86_64FragmentVectorInit(&f->fragments);
   return f;
 }
 void x86_64FileDestroy(X86_64File *f) {
+  free(f->filename);
   free(f->header);
   free(f->footer);
   x86_64FragmentVectorUninit(&f->fragments);

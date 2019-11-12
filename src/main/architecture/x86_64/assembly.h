@@ -103,10 +103,16 @@ X86_64Instruction *x86_64LabelInstructionCreate(char *skeleton,
 void x86_64InstructionDestroy(X86_64Instruction *);
 
 typedef Vector X86_64InstructionVector;
+X86_64InstructionVector *x86_64InstructionVectorCreate(void);
 void x86_64InstructionVectorInit(X86_64InstructionVector *);
+X86_64InstructionVector *x86_64InstructionVectorMerge(
+    X86_64InstructionVector *, X86_64InstructionVector *);
 void x86_64InstructionVectorInsert(X86_64InstructionVector *,
                                    X86_64Instruction *);
+// deletes the given instruction, and frees it
+void x86_64InstructionVectorErase(X86_64InstructionVector *, size_t);
 void x86_64InstructionVectorUninit(X86_64InstructionVector *);
+void x86_64InstructionVectorDestroy(X86_64InstructionVector *);
 
 typedef enum {
   X86_64_FK_DATA,
@@ -121,8 +127,8 @@ typedef struct {
     struct {
       char *header;
       char *footer;
-      X86_64InstructionVector body;  // does not include stack exit or enter -
-      // added at reg alloc time
+      X86_64InstructionVector *body;  // does not include stack exit or enter -
+                                      // added at reg alloc time
       struct X86_64Frame *frame;
     } text;
   } data;
@@ -138,11 +144,12 @@ void x86_64FragmentVectorInsert(X86_64FragmentVector *, X86_64Fragment *);
 void x86_64FragmentVectorUninit(X86_64FragmentVector *);
 
 typedef struct X86_64File {
+  char *filename;
   char *header;
   char *footer;
   X86_64FragmentVector fragments;
 } X86_64File;
-X86_64File *x86_64FileCreate(char *header, char *footer);
+X86_64File *x86_64FileCreate(char *filename, char *header, char *footer);
 void x86_64FileDestroy(X86_64File *);
 
 // associates assembly fragments in a file with the file name
