@@ -290,6 +290,11 @@ int main(int argc, char *argv[]) {
       // TODO: write optimizations
 
       // write-out
+      for (size_t idx = 0; idx < asmFileMap.capacity; idx++) {
+        if (asmFileMap.keys[idx] != NULL) {
+          writeX86_64File(asmFileMap.values[idx]);
+        }
+      }
 
       // clean up
       fileX86_64FileMapUninit(&asmFileMap);

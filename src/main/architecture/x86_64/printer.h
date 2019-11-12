@@ -21,6 +21,9 @@
 
 struct X86_64File;
 
+// dumps file to stdout
 void dumpX86_64File(struct X86_64File *);
+// dumps file to actual assembly file
+void writeX86_64File(struct X86_64File *);
 
 #endif  // TLC_ARCHITECTURE_X86_64_PRINTER_H_
