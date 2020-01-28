@@ -1,4 +1,4 @@
-// Copyright 2019 Justin Hu
+// Copyright 2020 Justin Hu
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,11 +14,11 @@
 //
 // This file is part of the T Language Compiler.
 
-#include "staticChecks.h"
+// compile-time static checks - no code generated
 
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 
 static_assert(sizeof(size_t) <= sizeof(uint64_t),
-              "size_t is no larger than an unsigned 64 bit integer");
+              "size_t must be no larger than an unsigned 64 bit integer");

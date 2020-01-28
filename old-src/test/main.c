@@ -1,4 +1,4 @@
-// Copyright 2020 Justin Hu
+// Copyright 2019 Justin Hu
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,10 +17,27 @@
 // Calls all test modules and reports the stats
 
 #include "engine.h"
+#include "unitTests/tests.h"
 
 int main(void) {
   TestStatus status;
   testStatusInit(&status);
+
+  constExpParseIntTest(&status);
+  constExpParseFloatTest(&status);
+  constExpParseStringTest(&status);
+  constExpParseCharTest(&status);
+  constExpParseWStringTest(&status);
+  constExpParseWCharTest(&status);
+  keywordMapTest(&status);
+  lexerTest(&status);
+  errorReportTest(&status);
+  fileListTest(&status);
+  fileTest(&status);
+  hashTest(&status);
+  hashMapTest(&status);
+  stringBuilderTest(&status);
+  vectorTest(&status);
 
   testStatusDisplay(&status);
 

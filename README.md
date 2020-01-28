@@ -1,4 +1,4 @@
-# The T Programming Language version 0.1.0
+# The T Programming Language version 0.2.0
 
 ![GitHub](https://img.shields.io/github/license/JustinHuPrime/TCompiler.svg)
 
@@ -23,14 +23,6 @@ Note that if a later option conflicts with an earlier option, the later option w
 #### Architecture
 
 * `--arch=x86_64`: sets the target architecture to x86_64. Default.
-
-<!--
-* `--arch=y86`: sets the target architecture to y86 assembly (used in UBC's CPSC 313).
-
-* `--arch=sm213`: sets the target architecture to sm213 assembly (used in UBC's CPSC 213).
-
-* `--arch=sep`: sets the architecture to target to sep.
--->
 
 #### Code Generation
 
