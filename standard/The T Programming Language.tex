@@ -76,7 +76,7 @@ In addition to the general requirements above, the translation environment has a
 
 \chapter{Lexicon}
 
-A source file consists of a sequence of characters. The lexing phase splits these into tokens based on the lexical syntax. The lexical syntax is strict maximal munch. A source file is described by the EBNF below:
+A source file consists of a sequence of characters. The lexing phase splits these into tokens based on the lexical syntax. The lexical syntax is strict maximal munch. A source file is described by the EBNF below. The source file must conform to this syntax, or else a diagnostic message must be issued.
 
 \begin{lstlisting}[breaklines=true]
 file = { [ whitespace ], token }, [ whitespace ], eof ;
@@ -162,7 +162,7 @@ The reference compiler treats ASCII as its source character set. It defines newl
 
 \chapter{Syntax}
 
-A source file, once converted into a sequence of tokens, is then converted into a tree of tokens. The provided grammar is context sensitive, and requires at least two passes to parse, since there are disambiguations depending on information about the definition site of a token.
+A source file, once converted into a sequence of tokens, is then converted into a tree of tokens. The provided grammar is context sensitive, and requires at least two passes to parse, since there are disambiguation rules depending on information about the definition site of a token. However, other than the disambiguation rules, the grammar is capable of LL(1) parsing. As with the lexing phase, any deviations from the grammar must result in a diagnostic message being issued.
 
 The grammar for a file, without disambiguation rules, is given below. This grammar uses the definitions for given in the lexicon.
 
@@ -221,12 +221,12 @@ if_statement = "if", "(", expression, ")", statement, [ "else", statement ] ;
 while_statement = "while", "(", expression, ")", statement ;
 do_while_statement = "do", statement, "while", "(", expression, ")" ;
 for_statement = "for", "(", [ variable_declaration | expression ], ";", expression, ";", [ expression ], ")", statement ;
-switch_statement = "switch", "(", expression, ")", "{", { "case", ( int_constant | scoped_identifier ), ":", { "case", ( int_constant | scoped_identifier ), ":" }, statement | "default", ":", statement }, "}" ;
+switch_statement = "switch", "(", expression, ")", "{", { "case", ( int_literal | char_literal | wchar_literal | scoped_identifier ), ":", { "case", ( int_literal | scoped_identifier ), ":" }, statement | "default", ":", statement }, "}" ;
 break_statement = "break", ";" ;
 continue_statement = "continue", ";" ;
 return_statement = "return", [ expression ], ";" ;
 variable_declaration_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
-asm_statement = "asm", string_constant, ";" ;
+asm_statement = "asm", string_literal, ";" ;
 expression = assignment_expression
            | assignment_expression, ",", expression
            ;
@@ -276,12 +276,12 @@ primary_expression = scoped_identifier
                    ;
 argument_list = [ assignment_expression, { ",", assignment_expression } ] ;
 aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
-literal = int_constant
-        | float_constant
-        | string_constant
-        | character_constant
-        | wstring_constant
-        | wcharacter_constant
+literal = int_literal
+        | float_literal
+        | string_literal
+        | char_literal
+        | wstring_literal
+        | wchar_literal
         | "true"
         | "false"
         | "null"
@@ -306,14 +306,32 @@ type = "void"
      | identifier
      | scoped_identifier
      | type, "const"
-     | type, "[", int_constant, "]"
+     | type, "[", int_literal, "]"
      | type, "*"
      | type, "(", [ type, { ",", type } ], ")"
      ;
 
-scoped_identifier = identifier, "::", identifier
-                  | scoped_identifier, "::", identifier
-                  ;
+scoped_identifier = identifier, "::", identifier, { "::", identifier } ;
 \end{lstlisting}
+
+\section{Disambiguation}
+
+The above grammar is intended to contain one ambiguity - without context, it is not possible to determine if an encountered identifier or scoped identifier starts a variable declaration statement or if it starts an expression. As such, the parser must determine if the encountered identifier or scoped identifier is a type, and if it is a type, parse a variable declaration statement.
+
+\subsection{Reference Compiler Behaviour}
+
+Disambiguation is only required when a statement is parsed. In all other cases, there is no ambiguity.
+
+\section{Additional Context Requirements}
+
+In addition to the restrictions placed by the grammar above:
+\begin{itemize}
+	\item no function definitions may exist within a declaration file,
+	\item no function definition may have an optional argument (\texttt{"=", literal}) before a non-optional argument,
+	\item no break statement may exist unless in the body of a loop or switch,
+	\item no continue may exist unless in the body of a loop.
+\end{itemize}
+
+If a source file violates any of these requirements, a diagnostic message must be issued.
 
 \end{document}
