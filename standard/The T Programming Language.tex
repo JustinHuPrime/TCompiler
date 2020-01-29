@@ -6,9 +6,6 @@
 \usepackage{listings}
 \usepackage{verbatim}
 
-% Make chapters display as sections
-\renewcommand{\chaptername}{Section}
-
 % Don't put two spaces after a period
 \frenchspacing
 
@@ -20,88 +17,141 @@
 
 \part{Language}
 
-\setcounter{chapter}{-1} % intro is Sec. 0
 \chapter{Introduction}
 
-The T programming language is a C-like, module-based, systems-oriented, procedural language that modernizes several aspects of C. One of the major differences from C is the use of modules, known in other languages as packages. Modules are used in T to support separation of concerns, similar to how C or C++ header files can be used. Unlike the C preprocessor's \texttt{\#include} mechanism, however, the T programming language guarantees that each declaration or code file is only ever lexed and parsed once, leading to faster compilation. However, the T programming language does use the concept of declaration (header) and code (implementation) files to separate the interface of a module from its implementation details. In addition, several features from C++, like function overloading and untagged user-defined structure, union, and enumeration types have been included in the language.
+This document specifies the syntax and semantics of the T programming language, specifically with respect to the implementation of the reference compiler for the language. T is a systems oriented, module-based programming language. The language is statically-typed, with neither classes nor a garbage collector. Conceptually, a T program consists of a set of modules, each module exposing some public interface. An implementation of T takes in the declaration files of the used modules, and code files or linkable files, each of which implement the interface for the modules, and produces an executable. This executable may then be run, in some environment, to produce some sequence of effects.
 
-\chapter{Lexicon}
+\section{Compiler Structure}
 
-The T programming language uses the basic ASCII character set for both identifiers and operators, and does not support any other character sets. T is case sensitive, like C, but unlike C, T does not support the use of digraphs to represent ASCII characters which may not be supported in other character sets.
-
-There are five general categories of tokens in T, matched on a longest-match basis:
+A T program is translated into an executable in several phases. Since the T grammar is not context free, it is necessary to make multiple passes over the same file. These phases are considered distinct and necessary, and are expected to be present in all compiler implementations.
 
 \begin{enumerate}
-	\item \textbf{Keywords}: tokens like \texttt{if} and \texttt{struct}, which are used to introduce syntactic elements, or to represent basic language elements.
-	\item \textbf{Punctuation}: tokens like \texttt{.} and \texttt{->}, which are used as operators and as part of syntactic elements.
-	\item \textbf{Identifiers}: tokens that represent something user-defined.
-	\item \textbf{Literals}: tokens that represent a literal value.
-	\item \textbf{Whitespace}: tokens that are ignored, or used only as separators between tokens, including comments.
+	\item \textbf{Lexing}: each declaration and code file is split into a sequence of tokens.
+
+	\item \textbf{Parsing}: the sequence of tokens is parsed into an abstract syntax tree. The parse tree produced depends on the interface of the imported modules, as well as the name of declarations contained in the current module, including those declared after the current point in time in the global scope, this phase is split into two parts.
+	\begin{enumerate}
+		\item Every global or file scope declaration is inspected, and the declaration's name is recorded. The body of these declarations is left unparsed.
+		
+		\item Each unparsed body is then parsed using the information from the first pass.
+	\end{enumerate}
+
+	\item \textbf{Typechecking}: the program is checked for static type consistency and correctness. As with parsing, this phase is also split over multiple phases.
+	\begin{enumerate}
+		\item Each global or file scope declaration is inspected, and the details for the declaration are recorded.
+		
+		\item Traversing through the scopes, each declaration is inspected, and the details for it are recorded. Simultaneously, each identifier is inspected, and matched to an entry.
+		
+		\item Finally, each expression is checked for type consistency by looking at the sub-expressions that make it up, and by looking at the details recorded for each identifier encountered.
+	\end{enumerate}
+	
+	\item \textbf{Translation}: each code module is translated into a linkable form. This is usually an object code file. The reference compiler translates in several steps.
+	\begin{enumerate}
+		\item \textbf{Source Code Optimization}: optimizations are performed on the source code's abstract syntax tree. Currently, no optimizations at this level are performed.
+		
+		\item \textbf{Translation to IR}: each code module is translated into a three-address code form intermediate representation. This translation is independent of the target environment.
+		
+		\item \textbf{IR Optimization}: optimizations are performed on the intermediate representation. Currently, no optimizations at this level are performed.
+		
+		\item \textbf{Assembly Generation}: each code module (currently in an intermediate representation) is translated to architecture and environment-specific assembly code. This assembly code, however, does not yet have its stack frames laid out or its register usage resolved.
+		
+		\item \textbf{Assembly Optimization (part 1)}: optimizations are performed on the register-independent assembly. Currently, no optimizations at this level are performed.
+		
+		\item \textbf{Register Allocation}: the register usage for each function is resolved, and stack frames are laid out.
+		
+		\item \textbf{Assembly Optimization (part 2)}: optimizations are performed on the penultimate assembly code. Currently, no optimizations at this level are performed.
+		
+		\item \textbf{Assembling}: the generated assembly code is assembled into a linkable form. In the reference compiler, this is handled externally by the system assembler. (In Linux, this is the command \texttt{as}.)
+	\end{enumerate}
+	
+	\item \textbf{Linking (optional)}: the generated and supplied are linked into an executable program, or into a shared library. This step is optional if the user wants to produce several object files. In the reference compiler, this is handled externally by the system linker or object-file archiver. (In Linux, these are the commands \texttt{ld} or \texttt{ar}.)
 \end{enumerate}
 
-See the file \texttt{tokens.ebnf} for a formal EBNF definition of tokens.
+\section{Environment}
 
-\section{Keywords}
+A T program is compiled for one or more execution environments, in some translation environment. These environments do not have to be the same. The translation environment must be capable of providing files to the compiler, and must be capable of providing diagnostic messages to the user. The execution environment must be capable of starting execution by calling the main function, and providing the appropriate command line arguments. The environment will be affected by the program through side effects. These side effects must be visible according to the defined semantics. The execution environment must also be capable of handing the return value from the main function. Additionally, the environment must be capable of supporting the implementation and side effects of any standard library modules imported.
 
-The following words are considered keywords in T:\texttt{\\
-module import struct union enum typedef if else while do for switch case default break continue return asm cast sizeof true false void ubyte byte char ushort short uint int wchar ulong long float double bool const}
+\subsection{Character Sets}
 
-Keywords are reserved, and may not be used except as a keyword. Note that \texttt{true} and \texttt{false} are considered keywords, rather than literals. The distinction between these two categories in this case is entirely due to the way that these keywords are matched.
+In addition to the general requirements above, the translation environment has a character set. This character set contain at least the printable (alphanumeric, symbols) ASCII characters, the space, and the newline. Almost all operating systems provide this environment. The execution environment has its own, possibly distinct character set. There are no requirements on what this character set contains. For the most part, that character set is Unicode.
 
-\section{Punctuation}
+\chapter{Lexical Syntax}
 
-The following symbols are considered punctuation in T:\\
-\verb$; , ( ) [ ] { } . -> ++ -- * & + - ! ~ / % << >> >>> <=> < > <= >= == != | ^$\\\verb$&& || ? : = *= /= %= += -= <<= >>= >>>= &= ^= |= &&= ||=$
+A source file consists of a sequence of characters. The lexing phase splits these into tokens based on the lexical syntax. The lexical syntax is strict maximal munch. A source file is described by the EBNF below:
 
-Note that tokens in T are matched on a longest-match basis, so \verb|---| is considered a decrement (\verb|--|), followed by a minus (\verb|-|), which may or may not be syntactically permissible. There is no attempt to re-lex a failed match to try and find a valid match.
+\begin{lstlisting}[breaklines=true]
+file = { [ whitespace ], token }, [ whitespace ], eof ;
 
-\section{Identifiers}
+whitespace = " "
+           | ? newline ?
+           | ? any other implementation-defined whitespace ?
+           | "//", ? anything excluding newline ?, newline
+           | "/*", ? anything excluding "*/", "*/"
+           ;
 
-Identifiers in T are split into two sub-categories: scoped and unscoped identifiers. An unscoped identifier is any sequence of alphanumeric or underscore characters that starts with an alphabetic character or an underscore (similar to the rules for identifiers in C or C++). A scoped identifier consists of a sequence of unscoped identifiers, with two colons (\verb|::|) between them, with absolutely no whitespace allowed. Unlike in C++, the scoping is considered part of the identifier, and not an operator.
+token = keyword
+      | punctuation
+      | identifier
+      | literal
+      ;
 
-On a further note, any identifier beginning with two underscores is reserved, and if such an identifier is used or defined, undefined behaviour may result.
+keyword = "module" | "import" | "struct" | "union" | "enum"
+        | "typedef" | "if" | "else" | "while" | "do" | "for"
+        | "switch" | "case" | "default" | "break" | "continue"
+        | "return" | "asm" | "cast" | "sizeof" | "true" | "false"
+        | "null" | "void" | "ubyte" | "byte" | "char" | "ushort"
+        | "short" | "uint" | "int" | "wchar" | "ulong" | "long"
+        | "float" | "double" | "bool" | "const"
+        ;
 
-\section{Literals}
+punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "."
+            | "->" | "++" | "--" | "*" | "&" | "+" | "-" | "!"
+            | "~" | "/" | "%" | "<<" | ">>" | ">>>" | "<=>" | "<"
+            | ">" | "<=" | ">=" | "==" | "!=" | "|" | "^" | "&&"
+            | "||" | "?" | ":" | "=" | "*=" | "/=" | "%=" | "+="
+            | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|="
+            | "&&=" | "||=" | "::"
+            ;
 
-T supports integer literals in binary, octal, decimal, or hexadecimal, and supports an optional sign to be included with the literal. To write a binary literal, the prefix \texttt{0b} must be put after the sign, but before the actual number. Octal numbers use the prefix \texttt{0}, and hexadecimal numbers use the prefix \texttt{0x}. Note that the octal prefix of \texttt{0} is distinct from a the literal zero, so a zero written in octal would be written as \texttt{00}.
+identifier = ( alphabetic | "_" ), { alphabetic | digit | "_" } ;
 
-The floating point literals in T are decimal only, and must be written as a decimal number without the use of scientific notation. NaN and infinity do not have literals in the language. These literals are IEEE 754 binary64 or binary32 numbers.
+literal = string_literal
+        | char_literal
+        | int_literal
+        | float_literal
+        | wstring_literal
+        | wchar_literal
+        ;
+int_literal = [ "-" | "+" ], nonzero_digit, { digit }
+            | "0x", hex_digit, { hex_digit }
+            | "0b", binary_digit, { binary_digit }
+            | "0", octal_digit, { octal_digit }
+            ;
+float_literal = [ "-" | "+" ], digit, { digit }, ".", digit, { digit } ;
+string_literal = '"', { alphabetic | digit | symbol | escaped | escaped_double_quote | "'" }, '"' ;
+char_literal = "'", ( alphabetic | digit | symbol | escaped | escaped_quote | '"' ), "'" ;
+wstring_literal = '"', { alphabetic | digit | symbol | escaped | escaped_wchar | escaped_double_quote | "'" } '"w' ;
+wchar_literal = "'", ( alphabetic | digit | symbol | escaped | escaped_wchar | escaped_quote | '"' ), "'w" ;
 
-T also supports string literals, character literals, and the wide variants of both. These literals all support the following escape sequences:
-
-\begin{itemize}
-	\item \verb|\n|: produces ASCII character 10, a newline.
-	\item \verb|\r|: produces ASCII character 13, a carriage return.
-	\item \verb|\t|: produces a tab.
-	\item \verb|\0|: produces ASCII character 0, a null.
-	\item \verb|\\|: produces a backslash.
-	\item \verb|\x|{\textless}hexadecimal digit{\textgreater}{\textless}hexadecimal digit{\textgreater}: produces the ASCII character specified by the two hexadecimal digits, interpreted as an unsigned byte.
-\end{itemize}
-
-A character literal consists of a single character, except for a backslash or a single quote, between two single quotes, one of the above escape sequences between two single quotes, or the escape sequence \verb|\'| between two single quotes, which produces a single quote. Note that multi-character literals are forbidden at the lexical level. Also note that a double quote as a character is a literal double quote within single quotes.
-
-A string literal consists of a pair of double quotes, within which may be nothing, or any combination of any character except for double quotes or a backslash, the above escape sequences, or the escape sequence \verb|\"| (representing a literal double quote). Like character literals, a single quote in a string is written as a literal single quote.
-
-The wide variants of both string and character literals are similar to the narrow versions, except that the wide variant has a \texttt{w} at the end of the literal, outside of any quotes, and both wide string and wide character literals may use the escape sequence \verb|\u|{\textless}8 hexadecimal digits{\textgreater}, which produces the UTF-32 character specified by those hexadecimal digits, when interpreted as a big-endian 32 bit integer. Note that any within such a string are interpreted as UTF-32 characters, but since the UTF-32 encodings of any ASCII characters are simple those characters, but zero-extended to fit 32 bits, there are no modifications to the existing literal escape sequences to support wide strings.
-
-\section{Whitespace}
-
-Whitespace in T consists of either spaces, tabs, or newline characters (both linefeed, carriage return, and carriage return-linefeed), or comments. Comments in T are either line comments, which are formed by two slashes, and last until the end of the line or file, or block comments, which start with a slash followed by a star, and end with a star followed by a slash or the end of the file. Block comments do not nest. All whitespace is used solely to separate tokens, and is otherwise lexically meaningless, and thus, ignored.
-
-\chapter{Syntax}
-
-The T programming language was designed to be LL(1) parsable except for the ambiguity between types and expressions, which is resolved using a lookup in the current environment to determine whether something is or is not a type.
-
-See the file \texttt{grammar.ebnf} for an EBNF specification of the syntax.
-
-A T program consists of a number of files, each of which contains one module, either a code module or a declaration module. Declaration modules declare the interface for a module, while code modules are the implementation for that module. As such, there should be a declaration file for each code file. Declaration files must have the extension \texttt{.td}, and code files must have the extension \texttt{.tc}.
-
-\section{Declaration Files}
-
-A declaration file may only contain declarations, and furthermore, may not have any initialized variables. Declarations include:
-
-\subsection{Function Declarations}
-
-\section{Code Files}
+alphabetic = ? any ASCII alphabetic character ?
+           | ? any implementation-defined alphabetic characters ?
+           ;
+nonzero_digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+digit = "0"
+      | nonzero_digit
+      ;
+symbol = ? any ASCII symbol plus space ?
+       | ? any implementation-defined symbols or spaces ?
+       ;
+hex_digit = digit
+          | "a" | "b" | "c" | "d" | "e" | "f"
+          | "A" | "B" | "C" | "D" | "E" | "F"
+          ;
+binary_digit = "0" | "1" ;
+octal_digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
+escaped = "\n" | "\r" | "\t" | "\0" | "\\" | "\x", hex_digit, hex_digit ;
+escaped_wchar = "\u", hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit ;
+escaped_quote = "\'" ;
+escaped_double_quote = '\"' ;
+\end{lstlisting}
 
 \end{document}
