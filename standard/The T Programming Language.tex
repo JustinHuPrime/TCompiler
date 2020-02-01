@@ -19,25 +19,27 @@
 
 \chapter{Introduction}
 
-This document specifies the syntax and semantics of the T programming language, specifically with respect to the implementation of the reference compiler for the language. T is a systems oriented, module-based programming language. The language is statically-typed, with neither classes nor a garbage collector. Conceptually, a T program consists of a set of modules, each module exposing some public interface. An implementation of T takes in the declaration files of the used modules, and code files or linkable files, each of which implement the interface for the modules, and produces an executable. This executable may then be run, in some environment, to produce some sequence of effects.
+This document specifies the syntax and semantics of the T programming language, specifically with respect to the implementation of the reference compiler for the language. T is a systems oriented, module-based programming language. The language is statically-typed, with neither classes nor a garbage collector. Conceptually, a T program consists of a set of modules, each module exposing some public interface. An implementation of T takes in the declaration files of the used modules, and code files or linkable files (distinguished in some manner\footnote{\textbf{Reference compiler behaviour}: the reference compiler distinguishes between declaration and code files using filename extensions. Declaration files have a .td extension, while code files have a .tc extension.}), each of which implement the interface for some module, and produces an executable. This executable may then be run, in some environment, to produce some sequence of effects.
 
 \section{Compiler Structure}
 
-A T program is translated into an executable in several phases. Since the T grammar is not context free, it is necessary to make multiple passes over the same file. These phases are considered distinct and necessary, and are expected to be present in all compiler implementations.
+A T program is translated into an executable in several phases. Since the T grammar is not context free, it is necessary to make multiple passes over the same file. These phases are considered distinct and necessary, and are expected to be present in all compiler implementations. At any point during this process, if a requirement of the standard is violated, a diagnostic message is issued, and translation may halt.
 
 \begin{enumerate}
 	\item \textbf{Lexing}: each declaration and code file is split into a sequence of tokens.
 
-	\item \textbf{Parsing}: the sequence of tokens is parsed into an abstract syntax tree. The parse tree produced depends on the interface of the imported modules, as well as the name of declarations contained in the current module, including those declared after the current point in time in the global scope, this phase is split into two parts.
+	\item \textbf{Parsing}: the sequence of tokens is parsed into an abstract syntax tree. The parse tree produced depends on the interface of the imported modules, as well as the name of declarations contained in the current module, including those declared after the current point in time in the import or file scope, this phase is split into two parts.
 	\begin{enumerate}
-		\item Every global or file scope declaration is inspected, and the declaration's name is recorded. The body of these declarations is left unparsed.
+		\item Every import or file scope declaration is inspected, and the declaration's name is recorded. The body of these declarations is left unparsed.
 		
 		\item Each unparsed body is then parsed using the information from the first pass.
 	\end{enumerate}
 
 	\item \textbf{Typechecking}: the program is checked for static type consistency and correctness. As with parsing, this phase is also split over multiple phases.
 	\begin{enumerate}
-		\item Each global or file scope declaration is inspected, and the details for the declaration are recorded.
+		\item Each file scope declaration is inspected, and the details for the declaration are recorded.
+		
+		\item Each imported scope declaration is recorded in the current scope.
 		
 		\item Traversing through the scopes, each declaration is inspected, and the details for it are recorded. Simultaneously, each identifier is inspected, and matched to an entry.
 		
@@ -72,7 +74,7 @@ A T program is compiled for one or more execution environments, in some translat
 
 \subsection{Character Sets}
 
-In addition to the general requirements above, the translation environment has a character set. This character set contain at least the printable (alphanumeric, symbols) ASCII characters, the space, and the newline. Almost all operating systems provide this environment. The execution environment has its own, possibly distinct character set. There are no requirements on what this character set contains. For the most part, that character set is Unicode.
+In addition to the general requirements above, the translation environment has a character set. This character set must be able to represent at least the printable (alphanumeric, symbols) ASCII characters, the space, and the newline\footnote{\textbf{Reference compiler behaviour}: the reference compiler treats ASCII as its source character set. It defines newline as either the ASCII line feed, the ASCII carriage return, or the ASCII carriage return followed by the ASCII line feed.}. Almost all operating systems provide this environment. The execution environment has its own, possibly distinct character set. There are no requirements on what this character set contains. For the most part, that character set is Unicode.
 
 \chapter{Lexicon}
 
@@ -100,7 +102,7 @@ keyword = "module" | "import" | "struct" | "union" | "enum"
         | "return" | "asm" | "cast" | "sizeof" | "true" | "false"
         | "null" | "void" | "ubyte" | "byte" | "char" | "ushort"
         | "short" | "uint" | "int" | "wchar" | "ulong" | "long"
-        | "float" | "double" | "bool" | "const"
+        | "float" | "double" | "bool" | "const" | "volatile"
         ;
 
 punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "."
@@ -156,21 +158,17 @@ escaped_double_quote = '\"' ;
 eof = ? physical end of file ? ;
 \end{lstlisting}
 
-\section{Reference Compiler Behaviour}
-
-The reference compiler treats ASCII as its source character set. It defines newline as either the ASCII line feed, the ASCII carriage return, or the ASCII carriage return followed by the ASCII line feed.
-
 \chapter{Syntax}
 
-A source file, once converted into a sequence of tokens, is then converted into a tree of tokens. The provided grammar is context sensitive, and requires at least two passes to parse, since there are disambiguation rules depending on information about the definition site of a token. However, other than the disambiguation rules, the grammar is capable of LL(1) parsing. As with the lexing phase, any deviations from the grammar must result in a diagnostic message being issued.
+A source file, once converted into a sequence of tokens, is then converted into a tree of tokens. The provided grammar is context sensitive, and requires at least two passes to parse, since there are disambiguation rules depending on information about the declaration site of a token. However, other than the disambiguation rules, the grammar is capable of LL(1) parsing. As with the lexing phase, any deviations from the grammar must result in a diagnostic message being issued.
 
 The grammar for a file, without disambiguation rules, is given below. This grammar uses the definitions for given in the lexicon.
 
 \begin{lstlisting}[breaklines=true]
-file = module_name, { import }, { function | declaration } ;
+file = module_name, { import }, { function | variable_definition | declaration } ;
 
-module_name = "module", identifier, ";" ;
-import = "import", identifier, ";" ;
+module_name = "module", ( identifier | scoped_identifier ), ";" ;
+import = "import", ( identifier | scoped_identifier ), ";" ;
 
 declaration = function_declaration
             | variable_declaration
@@ -181,20 +179,24 @@ declaration = function_declaration
             | enum_declaration
             | enum_forward_declaration
             | typedef_declaration
+            | typedef_forward_declaration
             ;
 
 function_declaration = type, identifier, "(", [ type, [ identifier ], [ "=", literal ], { ",", type, [ identifier ], [ "=", literal ] } ], ")", ";" ;
-variable_declaration = type, identifier, [ "=", literal ], { ",", identifier, [ "=", literal ] }, ";" ;
+variable_declaration = type, identifier, { ",", identifier }, ";" ;
 struct_declaration = "struct", identifier, "{", field_declaration, { field_declaration }, "}", ";" ;
 struct_forward_declaration = "struct", identifier, ";" ;
 union_declaration = "union", identifier, "{", field_declaration, { field_declaration }, "}", ";" ;
 union_forward_declaration = "union", identifier, ";" ;
-enum_declaration = "enum", identifier, "{", identifier, { ",", identifier }, [ "," ], "}", ";", ;
+enum_declaration = "enum", identifier, "{", identifier, [ "=", extended_int_literal ], { ",", identifier }, [ "," ], "}", ";", ;
 enum_forward_declaration = "enum", identifier, ";" ;
 typedef_declaration = "typedef", type, identifier, ";" ;
+typedef_forward_declaration = "typedef", identifier, ";" ;
 field_declaration = type, identifier, { ",", identifier }, ";" ;
 
 function = type, identifier, "(", [ type, [ identifier, [ "=", literal ] ] ], { ",", type, [ identifier, [ "=", literal ] ] } ], ")", compound_statement ;
+variable_definition = type, identifier, [ "=", literal ], { ",", identifier, [ "=", literal ] }, ";" ;
+
 statement = compound_statement
           | if_statement
           | while_statement
@@ -220,8 +222,8 @@ compound_statement = "{", { statement }, "}" ;
 if_statement = "if", "(", expression, ")", statement, [ "else", statement ] ;
 while_statement = "while", "(", expression, ")", statement ;
 do_while_statement = "do", statement, "while", "(", expression, ")" ;
-for_statement = "for", "(", [ variable_declaration | expression ], ";", expression, ";", [ expression ], ")", statement ;
-switch_statement = "switch", "(", expression, ")", "{", { "case", ( int_literal | char_literal | wchar_literal | scoped_identifier ), ":", { "case", ( int_literal | scoped_identifier ), ":" }, statement | "default", ":", statement }, "}" ;
+for_statement = "for", "(", [ variable_declaration_statement | expression, ";" ], expression, ";", [ expression ], ")", statement ;
+switch_statement = "switch", "(", expression, ")", "{", { "case", extended_int_literal, ":", { "case", extended_int_literal, ":" }, statement | "default", ":", statement }, "}" ;
 break_statement = "break", ";" ;
 continue_statement = "continue", ";" ;
 return_statement = "return", [ expression ], ";" ;
@@ -276,6 +278,11 @@ primary_expression = scoped_identifier
                    ;
 argument_list = [ assignment_expression, { ",", assignment_expression } ] ;
 aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
+extended_int_literal = int_literal
+                     | char_literal
+                     | wchar_literal
+                     | scoped_identifier
+                     ;
 literal = int_literal
         | float_literal
         | string_literal
@@ -306,6 +313,7 @@ type = "void"
      | identifier
      | scoped_identifier
      | type, "const"
+     | type, "volatile"
      | type, "[", int_literal, "]"
      | type, "*"
      | type, "(", [ type, { ",", type } ], ")"
@@ -316,22 +324,110 @@ scoped_identifier = identifier, "::", identifier, { "::", identifier } ;
 
 \section{Disambiguation}
 
-The above grammar is intended to contain one ambiguity - without context, it is not possible to determine if an encountered identifier or scoped identifier starts a variable declaration statement or if it starts an expression. As such, the parser must determine if the encountered identifier or scoped identifier is a type, and if it is a type, parse a variable declaration statement.
-
-\subsection{Reference Compiler Behaviour}
-
-Disambiguation is only required when a statement is parsed. In all other cases, there is no ambiguity.
+The above grammar is intended to contain one ambiguity - without context, it is not possible to determine if an encountered identifier or scoped identifier starts a variable declaration statement or if it starts an expression (in some cases it is impossible to determine if an encountered statement is a variable declaration statement or an expression statement). As such, the parser must determine if the encountered identifier or scoped identifier is a type, and if it is a type, parse a variable declaration statement.
 
 \section{Additional Context Requirements}
 
 In addition to the restrictions placed by the grammar above:
 \begin{itemize}
 	\item no function definitions may exist within a declaration file,
-	\item no function definition may have an optional argument (\texttt{"=", literal}) before a non-optional argument,
+	\item no function definition or declaration may have an optional argument (\texttt{"=", literal}) before a non-optional argument,
 	\item no break statement may exist unless in the body of a loop or switch,
 	\item no continue may exist unless in the body of a loop.
 \end{itemize}
 
 If a source file violates any of these requirements, a diagnostic message must be issued.
+
+\chapter{Modules}
+
+In T, a program is comprised of a series of modules, linked together. A module is described by its declaration file and its implementation. This implementation may be a code file, or a linkable file that contains the translation of a code file. Modules have a one-to-one correspondence with declaration files, and a one-to-many correspondence with code files. A translation including a linkable file shall be equivalent to one involving the original code files if no diagnostic messages are issued for the original code files. A module contains a set of declarations and a set of function definitions.
+
+\section{Scopes}
+
+Scopes are a mechanism to control the visibility of identifiers. A scope is a container for declarations and their identifiers, and may nest. All identifier names within a scope must be unique, but identifier names from outer scopes are shadowed by identifier names in the current scope, and identifiers from inner scopes are not visible. A file defines two scopes: the import scope, and the file scope. The file scope resides within the import scope, and in code files, automatically contains the identifiers declared in its corresponding declaration file, both as a plain identifier and a scoped identifier. Other ways of starting a scope are discussed alongside the relevant syntactic constructs. Normally, identifiers in a scope are only visible after they are declared, but within a file scope, identifiers are visible throughout the whole scope.\footnote{The ordering is irrelevant for import scopes, since there is no possibility of using anything imported in the middle of the imports.}
+
+\subsection{Imports}
+
+Modules may import other modules. This means that the identifiers from the module are made visible in the importing module's import scope, both as a scoped identifier consisting of the imported module name followed by the imported identifier, and as the plain identifier. If two imported identifiers collide in the import scope as plain identifiers, neither is imported as a plain identifier. If there is still a collision between the scoped identifiers, then a diagnostic is to be issued\footnote{This is to make the imported identifiers always visible, but there still exists the possibility of a collision - if module \texttt{foo} has an enumeration called \texttt{bar} with an element \texttt{baz}, then the module \texttt{foo::bar} with an identifier \texttt{bar} would collide. Since the modules sharing a prefix are probably written as part of the same library, the potential for such a collision is considered as bad code style by the authors.}.
+
+\section{Module Header}
+
+Each module begins with a module line, that sets the name of the module. Module names are completely independent of file name. If a code file and a declaration file share this name, the code file is considered the implementation for the declaration file. After the module line, each file has a list of modules that it imports into its import scope.
+
+\section{Module Body}
+
+A module body consists of either a set of declarations (for declaration files), or a set of declarations and definitions (for code files). In either case, an empty set is permissible.
+
+\subsection{Declaration Files}
+
+In declaration files, the set of declarations is the public interface for the module. Any code file importing the declaration file will have these identifiers available in the import scope, and any code file will have these identifiers available in the file scope.
+
+\subsection{Code Files}
+
+In a code file, declarations are not visible outside of the file. However, definitions for the declarations in the module may be supplied. Definitions may only be supplied in a code file. A definition for an identifier must define that identifier.
+
+\chapter{Types}
+
+T is a statically typed language. This means that every variable has a type associated with it, and every function has a signature associated with it, and that these types and signatures are known and checked when a module is compiled. Types determine the semantics of operations on a value of that type.
+
+\section{Basic Data Types}
+
+T has several basic data types, listed below. These types are named in their corresponding keyword. The execution environment must be capable of supporting all data types listed below, or else the execution environment is considered non-standard. It is required for a compiler to issue a diagnostic message if compiling to a non-standard environment when encountering an unsupported type.
+
+\begin{itemize}
+	\item \texttt{void}: indicates a value of no type. This type is only used to construct other types, and is not valid on its own. This type has a size of one byte.
+	
+	\item \texttt{ubyte}: an unsigned integral value, one byte wide. It is assumed that bytes contain eight bits.
+	
+	\item \texttt{byte}: a 2's complement signed integral value, one byte wide.
+	
+	\item \texttt{char}: an unsigned integral value of sufficient width to contain one byte, and the narrowest character(s) within the execution environment's character set\footnote{Generally, this is one byte wide on Unicode systems.}.
+	
+	\item \texttt{ushort}: an unsigned integral value, two bytes wide.
+	
+	\item \texttt{short}: an 2's complement signed integral value, two bytes wide.
+	
+	\item \texttt{ushort}: an unsigned integral value, two bytes wide.
+	
+	\item \texttt{short}: an 2's complement signed integral value, two bytes wide.
+	
+	\item \texttt{uint}: an unsigned integral value, four bytes wide.
+	
+	\item \texttt{int}: an 2's complement signed integral value, four bytes wide.
+	
+	\item \texttt{wchar}: an unsigned integral value of sufficient width to contain the widest character(s) within the execution environment's character set\footnote{Generally, this is four bytes wide on Unicode systems.}.
+	
+	\item \texttt{ulong}: an unsigned integral value, eight bytes wide.
+	
+	\item \texttt{long}: an 2's complement signed integral value, eight bytes wide.
+	
+	\item \texttt{float}: an IEEE 754 binary32 floating point number.
+	
+	\item \texttt{double}: an IEEE 754 binary64 floating point number.
+	
+	\item \texttt{bool}: a boolean value. This type has a size of one byte, and stores either \texttt{true} or \texttt{false}. The representation of \texttt{true} shall be the integral value one, and the representation of \texttt{false} shall be the integral value zero.
+\end{itemize}
+
+\section{Used Defined Data Types}
+
+\section{Derived Data Types}
+
+Any data type may form the base of a derived data type.
+
+\begin{itemize}
+	\item \textbf{Constant}: by appending \texttt{const} to the type, a type may be turned into a constant type. A value of a constant type may not be written to directly. If a constant value is written to, a diagnostic message must be issued. If a constant value is written to indirectly (e.g. through a casted pointer), undefined behaviour results, and no diagnostic message is required. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant.
+	
+	\item \textbf{Volatile}: by appending \texttt{volatile} to the type, a type may be turned into a volatile type. Reads and writes from and to a value of volatile type are considered side effects, and must be sequenced. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant.
+	
+	\item \textbf{Array}: by appending an integral constant in square brackets
+\end{itemize}
+
+\chapter{Declarations}
+
+\chapter{Defintiions}
+
+\chapter{Statements}
+
+\chapter{Expressions}
 
 \end{document}
