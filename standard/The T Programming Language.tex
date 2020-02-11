@@ -822,7 +822,7 @@ ternary_expression = logical_expression
                    ;
 \end{lstlisting}
 
-The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated.
+The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated. The resulting value is converted to a type that can hold the type of either branch of the expression. See Appendix C - Ternary Expression Type Merging for a table detailing these rules.
 
 \subsection{Logical Operators}
 

@@ -1,4 +1,4 @@
-"Note: Conversion type is indicated in the cell. If the cell is blank, then no assignment may be performed. Invalid base types are omitted",,,,,,,,,,,,,,,,,,,,,,
+"Note: Conversion type is indicated in the cell. If the cell is blank, then no assignment may be performed. Invalid base types are omitted.",,,,,,,,,,,,,,,,,,,,,,
 To\From,void,ubyte,byte,char,ushort,short,uint,int,wchar,ulong,long,float,double,bool,Structure Types,Union Types,Enumeration Types,Type Aliases,Constant Types,Array Types,Pointer Types,Function Pointer Types
 void,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,no conversion,,no conversion,no conversion,no conversion
 ubyte,no conversion,no conversion,,,,,,,,,,,,,,,,,,,,
