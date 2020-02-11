@@ -5,6 +5,7 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{verbatim}
+\usepackage{longtable}
 
 % Don't put two spaces after a period
 \frenchspacing
@@ -96,13 +97,14 @@ token = keyword
       | literal
       ;
 
-keyword = "module" | "import" | "struct" | "union" | "enum"
-        | "typedef" | "if" | "else" | "while" | "do" | "for"
-        | "switch" | "case" | "default" | "break" | "continue"
-        | "return" | "asm" | "cast" | "sizeof" | "true" | "false"
-        | "null" | "void" | "ubyte" | "byte" | "char" | "ushort"
-        | "short" | "uint" | "int" | "wchar" | "ulong" | "long"
-        | "float" | "double" | "bool" | "const" | "volatile"
+keyword = "module" | "import" | "opaque" | "struct" | "union"
+        | "enum" | "typedef" | "if" | "else" | "while" | "do"
+        | "for" | "switch" | "case" | "default" | "break"
+        | "continue" | "return" | "asm" | "cast" | "sizeof"
+        | "true" | "false" | "null" | "void" | "ubyte" | "byte"
+        | "char" | "ushort" | "short" | "uint" | "int" | "wchar"
+        | "ulong" | "long" | "float" | "double" | "bool" | "const"
+        | "volatile"
         ;
 
 punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "."
@@ -165,36 +167,32 @@ A source file, once converted into a sequence of tokens, is then converted into 
 The grammar for a file, without disambiguation rules, is given below. This grammar uses the definitions for given in the lexicon.
 
 \begin{lstlisting}[breaklines=true]
-file = module_name, { import }, { function | variable_definition | declaration } ;
+file = module_name, { import }, { definition | declaration } ;
 
 module_name = "module", ( identifier | scoped_identifier ), ";" ;
 import = "import", ( identifier | scoped_identifier ), ";" ;
 
+definition = function_definition
+           | variable_definition
+           ;
 declaration = function_declaration
             | variable_declaration
+            | opaque_type_declaration
             | struct_declaration
-            | struct_forward_declaration
             | union_declaration
-            | union_forward_declaration
             | enum_declaration
-            | enum_forward_declaration
             | typedef_declaration
-            | typedef_forward_declaration
             ;
 
 function_declaration = type, identifier, "(", [ type, [ identifier ], [ "=", literal ], { ",", type, [ identifier ], [ "=", literal ] } ], ")", ";" ;
 variable_declaration = type, identifier, { ",", identifier }, ";" ;
-struct_declaration = "struct", identifier, "{", field_declaration, { field_declaration }, "}", ";" ;
-struct_forward_declaration = "struct", identifier, ";" ;
-union_declaration = "union", identifier, "{", field_declaration, { field_declaration }, "}", ";" ;
-union_forward_declaration = "union", identifier, ";" ;
-enum_declaration = "enum", identifier, "{", identifier, [ "=", extended_int_literal ], { ",", identifier }, [ "," ], "}", ";", ;
-enum_forward_declaration = "enum", identifier, ";" ;
+opaque_type_declaration = "opaque", identifier, { ",", identifier }, ";" ;
+struct_declaration = "struct", identifier, "{", variable_declaration, { variable_declaration }, "}", ";" ;
+union_declaration = "union", identifier, "{", variable_declaration, { variable_declaration }, "}", ";" ;
+enum_declaration = "enum", identifier, "{", identifier, [ "=", extended_int_literal ], { ",", identifier, [ "=", extended_int_literal ] }, [ "," ], "}", ";", ;
 typedef_declaration = "typedef", type, identifier, ";" ;
-typedef_forward_declaration = "typedef", identifier, ";" ;
-field_declaration = type, identifier, { ",", identifier }, ";" ;
 
-function = type, identifier, "(", [ type, [ identifier, [ "=", literal ] ] ], { ",", type, [ identifier, [ "=", literal ] ] } ], ")", compound_statement ;
+function_definition = type, identifier, "(", [ type, [ identifier, [ "=", literal ] ] ], { ",", type, [ identifier, [ "=", literal ] ] } ], ")", compound_statement ;
 variable_definition = type, identifier, [ "=", literal ], { ",", identifier, [ "=", literal ] }, ";" ;
 
 statement = compound_statement
@@ -208,27 +206,27 @@ statement = compound_statement
           | return_statement
           | asm_statement
           | variable_declaration_statement
+          | opaque_type_declaration
           | struct_declaration
-          | struct_forward_declaration
           | union_declaration
-          | union_forward_declaration
           | enum_declaration
-          | enum_forward_declaration
           | typedef_declaration
           | expression, ";"
           | ";"
           ;
+
 compound_statement = "{", { statement }, "}" ;
 if_statement = "if", "(", expression, ")", statement, [ "else", statement ] ;
 while_statement = "while", "(", expression, ")", statement ;
 do_while_statement = "do", statement, "while", "(", expression, ")" ;
-for_statement = "for", "(", [ variable_declaration_statement | expression, ";" ], expression, ";", [ expression ], ")", statement ;
+for_statement = "for", "(", ( variable_declaration_statement | expression, ";" | ";" ), expression, ";", [ expression ], ")", statement ;
 switch_statement = "switch", "(", expression, ")", "{", { "case", extended_int_literal, ":", { "case", extended_int_literal, ":" }, statement | "default", ":", statement }, "}" ;
 break_statement = "break", ";" ;
 continue_statement = "continue", ";" ;
 return_statement = "return", [ expression ], ";" ;
-variable_declaration_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
 asm_statement = "asm", string_literal, ";" ;
+variable_declaration_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
+
 expression = assignment_expression
            | assignment_expression, ",", expression
            ;
@@ -324,7 +322,14 @@ scoped_identifier = identifier, "::", identifier, { "::", identifier } ;
 
 \section{Disambiguation}
 
-The above grammar is intended to contain one ambiguity - without context, it is not possible to determine if an encountered identifier or scoped identifier starts a variable declaration statement or if it starts an expression (in some cases it is impossible to determine if an encountered statement is a variable declaration statement or an expression statement). As such, the parser must determine if the encountered identifier or scoped identifier is a type, and if it is a type, parse a variable declaration statement.
+The above grammar is intended to contain two ambiguities that prevent it from being an LL(1) context free grammar:
+
+\begin{enumerate}
+
+	\item It is not possible to determine if an encountered identifier or scoped identifier starts a variable declaration statement or if it starts an expression (in some cases it is impossible to determine if an encountered statement is a variable declaration statement or an expression statement). As such, the parser must determine if the encountered identifier or scoped identifier is a type, and if it is a type, parse a variable declaration statement.
+	
+	\item There is no difference between a variable declaration and a variable definition without initialization. Contextually, variable declarations may only exist in declaration files, and variable definitions may only exist in code files.
+\end{enumerate}
 
 \section{Additional Context Requirements}
 
@@ -408,26 +413,459 @@ T has several basic data types, listed below. These types are named in their cor
 	\item \texttt{bool}: a boolean value. This type has a size of one byte, and stores either \texttt{true} or \texttt{false}. The representation of \texttt{true} shall be the integral value one, and the representation of \texttt{false} shall be the integral value zero.
 \end{itemize}
 
-\section{Used Defined Data Types}
+\section{Defined Data Types}
+
+There are several defined data types. These need to be declared to exist, and are given a name.
+
+\begin{itemize}
+	\item \texttt{struct}: this keyword introduces a structure type. A structure type consists of a number of fields, each having its own type. A structure is a collection of values of the given type, in the given order, and treated as one unit. Structures are not necessarily sequential in memory, as there may be padding inserted between fields to align fields for the execution environment. The address of a structure type is the same as the address of the first element.
+	
+	\item \texttt{union}: this keyword introduces a union type. A union type represents a value of one of the union option types. Union types will reinterpret the given value if accessed through a non-active member. This reinterpretation is a direct reinterpretation of raw memory. A union type has the size of the largest element, and is padded to the largest padding required for the element. The address of the union type is the same as the address of the contained value.
+	
+	\item \texttt{enum}: this keyword introduces an enumeration. An enumeration is a set of signed integral constants. These integral constants may take any value, but are sequentially valued, starting from zero, unless overridden (\texttt{"=", extended\_int\_literal}). When overridden, subsequent entries continue the sequential numbering from the overridden entry. If the overriding of sequential numbering causes a collision between two identifiers, then a diagnostic message must be issued.
+\end{itemize}
 
 \section{Derived Data Types}
 
 Any data type may form the base of a derived data type.
 
 \begin{itemize}
-	\item \textbf{Constant}: by appending \texttt{const} to the type, a type may be turned into a constant type. A value of a constant type may not be written to directly. If a constant value is written to, a diagnostic message must be issued. If a constant value is written to indirectly (e.g. through a casted pointer), undefined behaviour results, and no diagnostic message is required. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant.
+	\item \textbf{Constants}: by appending \texttt{const} to a type, a type may be turned into a constant type. A value of a constant type may not be written to directly. If a constant value is written to, a diagnostic message must be issued. If a constant value is written to indirectly (e.g. through a casted pointer), undefined behaviour results, and no diagnostic message is required. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant. A void base type is not allowed.
 	
-	\item \textbf{Volatile}: by appending \texttt{volatile} to the type, a type may be turned into a volatile type. Reads and writes from and to a value of volatile type are considered side effects, and must be sequenced. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant.
+	\item \textbf{Volatiles}: by appending \texttt{volatile} to a type, a type may be turned into a volatile type. Reads and writes from and to a value of volatile type are considered side effects, and must be sequenced. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant. A void base type is not allowed.
 	
-	\item \textbf{Array}: by appending an integral constant in square brackets
+	\item \textbf{Arrays}: by appending an integral constant in square brackets, a type is turned into an array of that many items. An array is guaranteed to be contiguous in memory, such that by adding (without pointer arithmetic, i.e. on the raw integer address) the size of an element, to the address of an element, you get the address of the next element. Arrays of void are not allowed.
+	
+	\item \textbf{Pointers}: by appending \texttt{*} to a type, a type is turned into a pointer to that type. Pointers hold an unsigned integer (width determined by the execution environment) that represents the location in memory 
+	
+	\item \textbf{Function Pointers}: by appending a comma separated list of types enclosed in parentheses, a type is turned into a function pointer to a function returning that type (which may be void), and taking the list of types as arguments. Function pointers also hold an unsigned integer (width determined by the execution environment) that represents the location in memory.
 \end{itemize}
 
 \chapter{Declarations}
 
-\chapter{Defintiions}
+\begin{lstlisting}[breaklines=true]
+declaration = function_declaration
+            | variable_declaration
+            | opaque_type_declaration
+            | struct_declaration
+            | union_declaration
+            | enum_declaration
+            | typedef_declaration
+            ;
+\end{lstlisting}
+
+Declarations state the existence of a type, function, or variable in the current module. For type declarations, they may also serve as the definition of a type. Conceptually, a declaration is all that is required to use the declared entity, and the user need not be aware of the definition. However, for non-opaque types, it is necessary to know the definition of the type to use it completely - it is necessary to know the size of a type to declare it on the stack. For opaque types, it is not necessary to have that additional information, so both kinds of declarations - complete and forward - are considered declarations.
+
+\section{Function Declarations}
+
+\begin{lstlisting}[breaklines=true]
+function_declaration = type, identifier, "(", [ type, [ identifier ], [ "=", literal ], { ",", type, [ identifier ], [ "=", literal ] } ], ")", ";" ;
+\end{lstlisting}
+
+A function declaration declares the existence of the function, having the name in the first identifier, and provides the interface to call the function and get a return value. The return type and formal parameter types must be complete types. A return value of \texttt{void} indicates that the function does not return any value. If a formal parameter is followed by an equals sign and a literal value, then any callers of this function may omit the value in the function call expression, and the default value will be substituted in as the actual argument. However, function pointers are unable to use default parameters, so when converted to a function pointer, it will be as if no default parameters were specified. The corresponding function definition need not declare any default parameters, but if any default parameters are supplied in the definition, then they must match exactly the ones specified in the declaration.
+
+\section{Variable Declarations}
+
+\begin{lstlisting}[breaklines=true]
+variable_declaration = type, identifier, { ",", identifier }, ";" ;
+\end{lstlisting}
+
+A variable declaration declares the existence of a global variable. Variable declarations may use an incomplete type (the corresponding definition must not use an incomplete type). The comma separated list of identifiers lists out the names declared as a variable.
+
+\section{Opaque Type Declarations}
+
+\begin{lstlisting}[breaklines=true]
+opaque_type_declaration = "opaque", identifier, { ",", identifier }, ";" ;
+\end{lstlisting}
+
+An opaque type declaration declares the existence of a user-defined type (structure, union, enumeration, or alias). Other than the existence of that type as a user-defined type, and the name, nothing else is specified. The comma separated list of identifiers lists out the names declared as opaque types.
+
+\section{Struct Declarations}
+
+\begin{lstlisting}[breaklines=true]
+struct_declaration = "struct", identifier, "{", variable_declaration, { variable_declaration }, "}", ";" ;
+\end{lstlisting}
+
+A structure declaration defines a structure type. Each variable declaration has a set of identifiers that it declares, and each of those identifiers is a field, with the type corresponding to the type of the variable declaration.
+
+\section{Union Declarations}
+
+\begin{lstlisting}[breaklines=true]
+union_declaration = "union", identifier, "{", variable_declaration, { variable_declaration }, "}", ";" ;
+\end{lstlisting}
+
+A union declaration defines a union type. Each variable declaration has a set of identifiers that it declares, and each of those identifiers is an option for the union, with the type corresponding to the type of the variable declaration.
+
+\section{Enum Declaration}
+
+\begin{lstlisting}[breaklines=true]
+enum_declaration = "enum", identifier, "{", identifier, [ "=", extended_int_literal ], { ",", identifier, [ "=", extended_int_literal ] }, [ "," ], "}", ";", ;
+\end{lstlisting}
+
+An enumeration declaration defines an enumeration type. Each identifier is a separate enumeration constant, with either an automatically set or manually set value. Numbering of constants is sequential from the previous manually set value, or zero, if no manually set value has been encountered.
+
+\section{Typedef Declaration}
+
+\begin{lstlisting}[breaklines=true]
+typedef_declaration = "typedef", type, identifier, ";" ;
+\end{lstlisting}
+
+A typedef declaration introduces a type alias. This type alias is treated as if it were an atomic type, disallowing any decomposition. However, the a value of this type may be cast into the original type, allowing for decomposition after a cast.
+
+\chapter{Definitions}
+
+\begin{lstlisting}[breaklines=true]
+definition = function_definition
+           | variable_definition
+           ;
+\end{lstlisting}
+
+Definitions provide the value of a declared variable or function. Only code files may contain definitions, and in a code file, no variable declarations are allowed. Within a code file, it is permissible to have a definition without an attached declaration. If there is no corresponding declaration, or if the declaration is in the same code file, then the 
+
+\section{Function Definitions}
+
+\begin{lstlisting}[breaklines=true]
+function_definition = type, identifier, "(", [ type, [ identifier, [ "=", literal ] ] ], { ",", type, [ identifier, [ "=", literal ] ] } ], ")", compound_statement ;
+\end{lstlisting}
+
+A function definition specifies the code for a function, in the compound statement. Additionally, the definition introduces two scopes - one from the compound statement, the function body, and the second, a scope containing the formal parameters. The formal parameter scope contains the function body scope.
+
+\section{Variable Definitions}
+
+\begin{lstlisting}[breaklines=true]
+variable_definition = type, identifier, [ "=", literal ], { ",", identifier, [ "=", literal ] }, ";" ;
+\end{lstlisting}
+
+A variable definition creates a variable, and optionally initializes the variable. If the variable is not initialized, then its value is undefined. Access to uninitialized variables is considered undefined behaviour.
 
 \chapter{Statements}
 
+\begin{lstlisting}[breaklines=true]
+statement = compound_statement
+          | if_statement
+          | while_statement
+          | do_while_statement
+          | for_statement
+          | switch_statement
+          | break_statement
+          | continue_statement
+          | return_statement
+          | asm_statement
+          | variable_declaration_statement
+          | opaque_type_declaration
+          | struct_declaration
+          | union_declaration
+          | enum_declaration
+          | typedef_declaration
+          | expression, ";"
+          | ";"
+          ;
+\end{lstlisting}
+
+Statements are units of execution that generally involve either side effects or flow control. Additionally, a statement may be a type or variable definition. These types or variables exist only within the containing scope.
+
+\section{Compound Statements}
+
+\begin{lstlisting}[breaklines=true]
+compound_statement = "{", { statement }, "}" ;
+\end{lstlisting}
+
+The compound statement introduces a scope, and additionally bundles a set of statements into one statement.
+
+\section{If Statements}
+
+\begin{lstlisting}[breaklines=true]
+if_statement = "if", "(", expression, ")", statement, [ "else", statement ] ;
+\end{lstlisting}
+
+An if statement dynamically chooses between the execution of two statements, or between executing a statement or not executing a statement. There are two forms to the if statement: the first form where there is no else, and the statement executes the statement if and only if the condition expression is true. The second form is when there is an else. The if statement will execute the first statement if and only if the condition is true, and the second statement otherwise. The condition must result in a boolean value.
+
+The construct known as an else-if is a special case of the else statement: an else-if is just an if statement as the only statement in the else of the first if statement. There is no need for additional syntactic support for the else-if construct.
+
+\section{While Loop Statements}
+
+\begin{lstlisting}[breaklines=true]
+while_statement = "while", "(", expression, ")", statement ;
+\end{lstlisting}
+
+A while loop statement repeatedly executes the statement, checking the condition (must be a boolean expression) beforehand, and leaving the loop without executing the statement if and only if the expression is false.
+
+\section{Do-While Loop Statements}
+
+\begin{lstlisting}[breaklines=true]
+do_while_statement = "do", statement, "while", "(", expression, ")" ;
+\end{lstlisting}
+
+A do-while loop statement repeatedly executes the statement, checking the condition (must be a boolean expression) afterwards, and leaving the loop if and only if the expression is false
+\footnote{Unlike C, the do-while loop does not expect a semicolon after the while.}.
+
+\section{For Loop Statements}
+
+\begin{lstlisting}[breaklines=true]
+for_statement = "for", "(", ( variable_declaration_statement | expression, ";" | ";" ), expression, ";", [ expression ], ")", statement ;
+\end{lstlisting}
+
+The for loop statement introduces a scope, and within that scope, the variable declaration statement resides. If the initializer is an expression, then the expression is evaluated for side-effect. Next, before each iteration of the loop, the condition is checked, then the loop body runs, then the increment expression is evaluated for side effects. Execution returns to checking for the condition. If the condition is false, the loop ends, and the increment is not run. Additionally, a continue statement will only jump to the increment expression - i.e. the end of the loop body.
+
+\section{Switch Statements}
+
+\begin{lstlisting}[breaklines=true]
+switch_statement = "switch", "(", expression, ")", "{", { "case", extended_int_literal, ":", { "case", extended_int_literal, ":" }, statement | "default", ":", statement }, "}" ;
+\end{lstlisting}
+
+A switch statement selects between several possible cases. The expression is evaluated, and it must be an integral expression. Then, the matching case is selected, and the matching statement is executed. Then, unless execution hits a break, execution proceeds down the following cases. If no case is matched, then the default and its statement is executed, and execution of the switch continues down the remaining cases. It is an error to have multiple cases with the same value.
+
+\section{Break Statements}
+
+\begin{lstlisting}[breaklines=true]
+break_statement = "break", ";" ;
+\end{lstlisting}
+
+A break statement will leave a loop or a switch statement. The break statement jump to the first statement after the end of the loop.
+
+\section{Continue Statements}
+
+\begin{lstlisting}[breaklines=true]
+continue_statement = "continue", ";" ;
+\end{lstlisting}
+
+A continue statement will jump to the end of the body of a loop. Note that in a for loop, the continue statement will not skip over the increment, as that comes just after the body.
+
+\section{Return Statements}
+
+\begin{lstlisting}[breaklines=true]
+return_statement = "return", [ expression ], ";" ;
+\end{lstlisting}
+
+A return statement returns from the current function. If an expression is provided, it must match the return type of the function, and the value of the expression will be the returned value. If a value is not provided, then the function must be void, or the value must have been provided in some other way - almost certainly through inline assembly.
+
+\section{Assembly Statements}
+
+\begin{lstlisting}[breaklines=true]
+asm_statement = "asm", string_literal, ";" ;
+\end{lstlisting}
+
+An assembly statement inserts the assembly code into the generated assembly. The string literal respects escape codes, but is otherwise inserted verbatim. It is the responsibility of the user to write valid assembly code.
+
+\section{Variable Declaration Statements}
+
+\begin{lstlisting}[breaklines=true]
+variable_declaration_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
+\end{lstlisting}
+
+A variable declaration statement creates a variable, and optionally initializes the variable with an expression. If it is not initialized, then its value is undefined. The variable exists in the enclosing scope.
+
+\section{Expression Statement}
+
+The expression statement is an expression followed by a semicolon. The expression is evaluated for side-effects, and only side-effects.
+
+\section{Empty Statement}
+
+The empty statement is a single semicolon. It represents doing nothing, and is used only as a placeholder.
+
 \chapter{Expressions}
+
+Expressions perform computations and produce values. Generally, an expression involves an operator and one or more sub-expressions. Below is a summary of the operators, their associativities, and their precedences (lower precedence numbers bind less tightly). This table is derived from the grammar.
+
+\begin{longtable}{|c|c|c|c|}
+\hline
+\textbf{Operator} & \textbf{Description} & \textbf{Associativity} & \textbf{Precedence}\\
+\hline
+\texttt{,} & sequencing & left to right & 1\\
+\hline
+\texttt{=} & assignment & right to left & 2\\
+\hline
+\texttt{*=} & compound multiplication-assignment & right to left & 2\\
+\hline
+\texttt{/=} & compound division-assignment & right to left & 2\\
+\hline
+\texttt{\%=} & compound modulo-assignment & right to left & 2\\
+\hline
+\texttt{+=} & compound addition-assignment & right to left & 2\\
+\hline
+\texttt{-=} & compound subtraction-assignment & right to left & 2\\
+\hline
+\texttt{<<=} & compound left-shift-assignment & right to left & 2\\
+\hline
+\texttt{>>=} & compound arithmetic-right-shift-assignment & right to left & 2\\
+\hline
+\texttt{>>>=} & compound logical-right-shift-assignment & right to left & 2\\
+\hline
+\texttt{\&=} & compound bitwise-and-assignment & right to left & 2\\
+\hline
+\texttt{\^{}=} & compound bitwise-exclusive-or-assignment & right to left & 2\\
+\hline
+\texttt{|=} & compound bitwise-or-assignment & right to left & 2\\
+\hline
+\texttt{\&\&=} & compound logical-and-assignment & right to left & 2\\
+\hline
+\texttt{||=} & compound logical-or-assignment & right to left & 2\\
+\hline
+\texttt{?:} & ternary conditional & right to left & 3\\
+\hline
+\texttt{\&\&} & logical and & left to right & 4\\
+\hline
+\texttt{||} & logical or & left to right & 4\\
+\hline
+\texttt{\&} & bitwise and & left to right & 5\\
+\hline
+\texttt{|} & bitwise or & left to right & 5\\
+\hline
+\texttt{\^{}} & bitwise exclusive-or & left to right & 5\\
+\hline
+\texttt{==} & equality & left to right & 6\\
+\hline
+\texttt{!=} & inequality & left to right & 6\\
+\hline
+\texttt{<} & less than & left to right & 7\\
+\hline
+\texttt{>} & greater than & left to right & 7\\
+\hline
+\texttt{<=} & less than or equal to & left to right & 7\\
+\hline
+\texttt{>=} & greater than or equal to & left to right & 7\\
+\hline
+\texttt{<=>} & three-way comparison & left to right & 8\\
+\hline
+\texttt{<<} & left shift & left to right & 9\\
+\hline
+\texttt{>>} & arithmetic right shift & left to right & 9\\
+\hline
+\texttt{>>>} & logical right shift & left to right & 9\\
+\hline
+\texttt{+} & addition & left to right & 10\\
+\hline
+\texttt{-} & subtraction & left to right & 10\\
+\hline
+\texttt{*} & multiplication & left to right & 11\\
+\hline
+\texttt{/} & division & left to right & 11\\
+\hline
+\texttt{\%} & modulo & left to right & 11\\
+\hline
+\texttt{*} & dereference & right to left & 12\\
+\hline
+\texttt{\&} & address of & right to left & 12\\
+\hline
+\texttt{++} & pre-increment & right to left & 12\\
+\hline
+\texttt{--} & pre-decrement & right to left & 12\\
+\hline
+\texttt{-} & negation & right to left & 12\\
+\hline
+\texttt{!} & logical not & right to left & 12\\
+\hline
+\texttt{\~{}} & bitwise not & right to left & 12\\
+\hline
+\texttt{.} & member access & left to right & 13\\
+\hline
+\texttt{->} & pointer member access & left to right & 13\\
+\hline
+\texttt{()} & function call & left to right & 13\\
+\hline
+\texttt{[]} & array index & left to right & 13\\
+\hline
+\texttt{++} & post-increment & left to right & 13\\
+\hline
+\texttt{--} & post-decrement & left to right & 13\\
+\hline
+\end{longtable}
+
+\section{Operators}
+
+Operators combine one or more expressions, and produce a value. See the above for a list of all operators and their precedences and associativities. Below is a summary of the effects of the operators:
+
+\subsection{Sequencing Operator}
+
+The sequencing operator (\texttt{,}), evaluates the left hand side for side-effects, and evaluates the right hand side for a value, and produces that value.
+
+\subsection{}
+
+\section{Primary Expressions}
+
+\begin{lstlisting}[breaklines=true]
+primary_expression = scoped_identifier
+                   | identifier
+                   | literal
+                   | "cast", "[", type, "]", "(", expression, ")"
+                   | "sizeof", "(", ( expression | type ), ")"
+                   | "(", expression, ")"
+                   ;
+\end{lstlisting}
+
+A primary expression is a value or expression that is unambiguously bound.
+
+\iffalse
+
+\begin{lstlisting}[breaklines=true]
+expression = assignment_expression
+           | assignment_expression, ",", expression
+           ;
+assignment_expression = ternary_expression
+                      | ternary_expression, "=", assignment_expression
+                      | ternary_expression, "*=", assignment_expression
+                      | ternary_expression, "/=", assignment_expression
+                      | ternary_expression, "%=", assignment_expression
+                      | ternary_expression, "+=", assignment_expression
+                      | ternary_expression, "-=", assignment_expression
+                      | ternary_expression, "<<=", assignment_expression
+                      | ternary_expression, ">>=", assignment_expression
+                      | ternary_expression, ">>>=", assignment_expression
+                      | ternary_expression, "&=", assignment_expression
+                      | ternary_expression, "^=", assignment_expression
+                      | ternary_expression, "|=", assignment_expression
+                      | ternary_expression, "&&=", assignment_expression
+                      | ternary_expression, "||=", assignment_expression
+                      ;
+ternary_expression = logical_expression
+                   | logical_expression, "?", expression, ":", ternary_expression
+                   ;
+logical_expression = bitwise_expression, { ( "&&" | "||" ), bitwise_expression } ;
+bitwise_expression = equality_expression, { ( "&" | "|" | "^" ), equality_expression } ;
+equality_expression = comparison_expression, { ( "==" | "!=" ), comparison_expression } ;
+comparison_expression = spaceship_expression, { ( "<" | ">" | "<=" | ">=" ), spaceship_expression } ;
+spaceship_expression = shift_expression, { "<=>", shift_expression } ;
+shift_expression = addition_expression, { ( "<<" | ">>" | ">>>" ), addition_expression } ;
+addition_expression = multiplication_expression, { ( "+" | "-" ), multiplication_expression } ;
+multiplication_expression = prefix_expression, { ( "*" | "/" | "%" ), prefix_expression } ;
+prefix_expression = postfix_expression
+                  | "*", prefix_expression
+                  | "&", prefix_expression
+                  | "++", prefix_expression
+                  | "--", prefix_expression
+                  | "-", prefix_expression
+                  | "!", prefix_expression
+                  | "~", prefix_expression
+                  ;
+postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", argument_list, ")" | "[", expression, "]" | "++" | "--") } ;
+primary_expression = scoped_identifier
+                   | identifier
+                   | literal
+                   | "cast", "[", type, "]", "(", expression, ")"
+                   | "sizeof", "(", ( expression | type ), ")"
+                   | "(", expression, ")"
+                   ;
+argument_list = [ assignment_expression, { ",", assignment_expression } ] ;
+aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
+extended_int_literal = int_literal
+                     | char_literal
+                     | wchar_literal
+                     | scoped_identifier
+                     ;
+literal = int_literal
+        | float_literal
+        | string_literal
+        | char_literal
+        | wstring_literal
+        | wchar_literal
+        | "true"
+        | "false"
+        | "null"
+        | scoped_identifier
+        | aggregate_initializer
+        ;
+\end{lstlisting}
+
+\fi
 
 \end{document}
