@@ -822,7 +822,7 @@ ternary_expression = logical_expression
                    ;
 \end{lstlisting}
 
-The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated. The resulting value is converted to a type that can hold the type of either branch of the expression. See Appendix C - Ternary Expression Type Merging for a table detailing these rules.
+The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated. The resulting value is converted to a type that can hold the type of either branch of the expression. See Appendix C - Expression Type Merging for a table detailing these rules.
 
 \subsection{Logical Operators}
 
@@ -830,7 +830,22 @@ The ternary operator acts like an if statement for expressions. It evaluates the
 logical_expression = bitwise_expression, { ( "&&" | "||" ), bitwise_expression } ;
 \end{lstlisting}
 
-Logical operators operate on boolean values.
+Logical operators operate on boolean values. The logical and operator (\texttt{\&\&}) evaluates the left hand side. If the left hand value is false, it does not evaluate the right hand side, and produces false. If the left hand value is true, it produces the value of the right hand side. The logical or operator (\texttt{||}) evaluates the left hand side. If the left hand value is true, it does not evaluate the right hand side, and produces true. If the left hand value is false, it produces the value of the right hand side.
+
+\subsection{Bitwise Operators}
+
+\begin{lstlisting}[breaklines=true]
+bitwise_expression = equality_expression, { ( "&" | "|" | "^" ), equality_expression } ;
+\end{lstlisting}
+
+Bitwise operators operate on integer values (\texttt{ubyte}, \texttt{byte}, \texttt{ushort}, \texttt{short}, \texttt{uint}, \texttt{int}, \texttt{ulong}, and \texttt{long}). Additionally, before performing any bitwise operations, the values are converted according to Appendix C, and then the operation is performed.
+
+\subsection{Comparison Operators}
+
+\begin{lstlisting}[breaklines=true]
+equality_expression = comparison_expression, { ( "==" | "!=" ), comparison_expression } ;
+comparison_expression = spaceship_expression, { ( "<" | ">" | "<=" | ">=" ), spaceship_expression } ;
+\end{lstlisting}
 
 \section{Primary Expressions}
 
@@ -849,9 +864,6 @@ A primary expression is a value or expression that is unambiguously bound. These
 \iffalse
 
 \begin{lstlisting}[breaklines=true]
-bitwise_expression = equality_expression, { ( "&" | "|" | "^" ), equality_expression } ;
-equality_expression = comparison_expression, { ( "==" | "!=" ), comparison_expression } ;
-comparison_expression = spaceship_expression, { ( "<" | ">" | "<=" | ">=" ), spaceship_expression } ;
 spaceship_expression = shift_expression, { "<=>", shift_expression } ;
 shift_expression = addition_expression, { ( "<<" | ">>" | ">>>" ), addition_expression } ;
 addition_expression = multiplication_expression, { ( "+" | "-" ), multiplication_expression } ;
