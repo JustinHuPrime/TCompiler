@@ -838,7 +838,7 @@ Logical operators operate on boolean values. The logical and operator (\texttt{\
 bitwise_expression = equality_expression, { ( "&" | "|" | "^" ), equality_expression } ;
 \end{lstlisting}
 
-Bitwise operators operate on integer values (\texttt{ubyte}, \texttt{byte}, \texttt{ushort}, \texttt{short}, \texttt{uint}, \texttt{int}, \texttt{ulong}, and \texttt{long}). Additionally, before performing any bitwise operations, the values are converted according to Appendix C, and then the operation is performed.
+Bitwise operators operate on integer values (\texttt{ubyte}, \texttt{byte}, \texttt{ushort}, \texttt{short}, \texttt{uint}, \texttt{int}, \texttt{ulong}, \texttt{long}). Additionally, before performing any bitwise operations, the values are converted according to Appendix C, and then the operation is performed.
 
 \subsection{Comparison Operators}
 
@@ -846,6 +846,8 @@ Bitwise operators operate on integer values (\texttt{ubyte}, \texttt{byte}, \tex
 equality_expression = comparison_expression, { ( "==" | "!=" ), comparison_expression } ;
 comparison_expression = spaceship_expression, { ( "<" | ">" | "<=" | ">=" ), spaceship_expression } ;
 \end{lstlisting}
+
+There are two kinds of comparison operators - equality comparison operators (\texttt{==}, \texttt{!=}), and relational comparison operators (\texttt{<}, \texttt{>}, \texttt{<=}, \texttt{>=}). All comparison operators first convert the types into a common type (see Appendix D - Comparison Type Merging for details). These comparisons are only valid on base types that are numeric, characters, booleans, or pointers. The comparisons check for numeric equality, inequality, or numeric relations.
 
 \section{Primary Expressions}
 
