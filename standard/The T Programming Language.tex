@@ -418,11 +418,13 @@ T has several basic data types, listed below. These types are named in their cor
 There are several defined data types. These need to be declared to exist, and are given a name.
 
 \begin{itemize}
-	\item \texttt{struct}: this keyword introduces a structure type. A structure type consists of a number of fields, each having its own type. A structure is a collection of values of the given type, in the given order, and treated as one unit. Structures are not necessarily sequential in memory, as there may be padding inserted between fields to align fields for the execution environment. The address of a structure type is the same as the address of the first element.
+	\item \texttt{struct}: this keyword introduces a structure type. A structure type consists of a number of fields, each having its own type. A structure is a collection of values of the given type, in the given order, and treated as one unit. Structures are not necessarily sequential in memory, as there may be padding inserted between fields to align fields for the execution environment. The address of a structure type value is the same as the address of the first element.
 	
-	\item \texttt{union}: this keyword introduces a union type. A union type represents a value of one of the union option types. Union types will reinterpret the given value if accessed through a non-active member. This reinterpretation is a direct reinterpretation of raw memory. A union type has the size of the largest element, and is padded to the largest padding required for the element. The address of the union type is the same as the address of the contained value.
+	\item \texttt{union}: this keyword introduces a union type. A union type represents a value of one of the union option types. Union types will reinterpret the given value if accessed through a non-active member. This reinterpretation is a direct reinterpretation of raw memory. A union type has the size of the largest element, and is padded to the largest padding required for the element. The address of a union type value is the same as the address of the contained value.
 	
 	\item \texttt{enum}: this keyword introduces an enumeration. An enumeration is a set of signed integral constants. These integral constants may take any value, but are sequentially valued, starting from zero, unless overridden (\texttt{"=", extended\_int\_literal}). When overridden, subsequent entries continue the sequential numbering from the overridden entry. If the overriding of sequential numbering causes a collision between two identifiers, then a diagnostic message must be issued.
+	
+	\item \texttt{typedef}: this keyword introduces a type alias. A type alias is a name for a type, usually a derived type. A type alias is treated as a new, unique, fundamental data type, meaning that a type alias value may not be treated as if it were its unaliased type. However, a type alias value may be converted into the unaliased type with a cast expression.
 \end{itemize}
 
 \section{Derived Data Types}
@@ -777,30 +779,17 @@ Operators combine one or more expressions, and produce a value. See the above fo
 
 \subsection{Sequencing Operator}
 
-The sequencing operator (\texttt{,}), evaluates the left hand side for side-effects, and evaluates the right hand side for a value, and produces that value.
-
-\subsection{}
-
-\section{Primary Expressions}
-
-\begin{lstlisting}[breaklines=true]
-primary_expression = scoped_identifier
-                   | identifier
-                   | literal
-                   | "cast", "[", type, "]", "(", expression, ")"
-                   | "sizeof", "(", ( expression | type ), ")"
-                   | "(", expression, ")"
-                   ;
-\end{lstlisting}
-
-A primary expression is a value or expression that is unambiguously bound.
-
-\iffalse
-
 \begin{lstlisting}[breaklines=true]
 expression = assignment_expression
            | assignment_expression, ",", expression
            ;
+\end{lstlisting}
+
+The sequencing operator (\texttt{,}), evaluates the left hand side for side-effects, and evaluates the right hand side for a value, and produces that value.
+
+\subsection{Assignment Operators}
+
+\begin{lstlisting}[breaklines=true]
 assignment_expression = ternary_expression
                       | ternary_expression, "=", assignment_expression
                       | ternary_expression, "*=", assignment_expression
@@ -817,10 +806,49 @@ assignment_expression = ternary_expression
                       | ternary_expression, "&&=", assignment_expression
                       | ternary_expression, "||=", assignment_expression
                       ;
+\end{lstlisting}
+
+The plain assignment operator (\texttt{=}) evaluates the left hand side as a value to assign to, then evaluates the right hand side as a value, and assigns the result of the right hand side to the result of the left hand side.
+
+The other assignment operators are the compound assignment operators. These evaluate the left hand side as a value to be assigned to, retrieve its value, evaluate the right hand side, perform the operation on the two values, and assign the result to the left hand side. The left hand side will only be evaluated once.
+
+Assignment does not require the types to match, but restrictions are applied on the types of values that may be assigned to one another. When assigning two types that do not exactly match, an implicit cast is performed. Additionally, an aggregate initializer, which has no type, may be used in an assignment as well. See Appendix A - Assignability for a table detailing these rules.
+
+\subsection{Ternary Conditional Operators}
+
+\begin{lstlisting}[breaklines=true]
 ternary_expression = logical_expression
                    | logical_expression, "?", expression, ":", ternary_expression
                    ;
+\end{lstlisting}
+
+The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated.
+
+\subsection{Logical Operators}
+
+\begin{lstlisting}[breaklines=true]
 logical_expression = bitwise_expression, { ( "&&" | "||" ), bitwise_expression } ;
+\end{lstlisting}
+
+Logical operators operate on boolean values.
+
+\section{Primary Expressions}
+
+\begin{lstlisting}[breaklines=true]
+primary_expression = scoped_identifier
+                   | identifier
+                   | literal
+                   | "cast", "[", type, "]", "(", expression, ")"
+                   | "sizeof", "(", ( expression | type ), ")"
+                   | "(", expression, ")"
+                   ;
+\end{lstlisting}
+
+A primary expression is a value or expression that is unambiguously bound. These expressions have no precedence, and in the case of identifiers and literals, form the leaf nodes of expressions.
+
+\iffalse
+
+\begin{lstlisting}[breaklines=true]
 bitwise_expression = equality_expression, { ( "&" | "|" | "^" ), equality_expression } ;
 equality_expression = comparison_expression, { ( "==" | "!=" ), comparison_expression } ;
 comparison_expression = spaceship_expression, { ( "<" | ">" | "<=" | ">=" ), spaceship_expression } ;
