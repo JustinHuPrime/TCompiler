@@ -830,7 +830,7 @@ The ternary operator acts like an if statement for expressions. It evaluates the
 logical_expression = bitwise_expression, { ( "&&" | "||" ), bitwise_expression } ;
 \end{lstlisting}
 
-Logical operators operate on boolean values. The logical and operator (\texttt{\&\&}) evaluates the left hand side. If the left hand value is false, it does not evaluate the right hand side, and produces false. If the left hand value is true, it produces the value of the right hand side. The logical or operator (\texttt{||}) evaluates the left hand side. If the left hand value is true, it does not evaluate the right hand side, and produces true. If the left hand value is false, it produces the value of the right hand side.
+Logical operators operate on boolean values. The logical-and operator (\texttt{\&\&}) evaluates the left hand side. If the left hand value is false, it does not evaluate the right hand side, and produces false. If the left hand value is true, it produces the value of the right hand side. The logical-or operator (\texttt{||}) evaluates the left hand side. If the left hand value is true, it does not evaluate the right hand side, and produces true. If the left hand value is false, it produces the value of the right hand side.
 
 \subsection{Bitwise Operators}
 
@@ -847,7 +847,79 @@ equality_expression = comparison_expression, { ( "==" | "!=" ), comparison_expre
 comparison_expression = spaceship_expression, { ( "<" | ">" | "<=" | ">=" ), spaceship_expression } ;
 \end{lstlisting}
 
-There are two kinds of comparison operators - equality comparison operators (\texttt{==}, \texttt{!=}), and relational comparison operators (\texttt{<}, \texttt{>}, \texttt{<=}, \texttt{>=}). All comparison operators first convert the types into a common type (see Appendix D - Comparison Type Merging for details). These comparisons are only valid on base types that are numeric, characters, booleans, or pointers. The comparisons check for numeric equality, inequality, or numeric relations.
+There are two kinds of comparison operators - equality comparison operators (\texttt{==}, \texttt{!=}), and relational comparison operators (\texttt{<}, \texttt{>}, \texttt{<=}, \texttt{>=}). All comparison operators first convert the types into a common type (see Appendix D - Comparison Type Merging for details). These comparisons are only valid on base types that are numeric, characters, booleans, or pointers. The comparisons check for numeric equality, inequality, or numeric relations. The result is a boolean value.
+
+\subsection{Three-Way Comparison Operators}
+
+\begin{lstlisting}[breaklines=true]
+spaceship_expression = shift_expression, { "<=>", shift_expression } ;
+\end{lstlisting}
+
+The three-way comparison operator expects its inputs to be numeric, characters, booleans, or pointers. It evaluates both inputs, and converts them to a common type (see Appendix D). Then, it compares these inputs. If the left hand side is less than the right hand side, it produces -1, if they are equal, 0, and if the left hand side is greater than the right hand side, it produces 1. The inputs are only evaluated once, and the output is a \texttt{byte}.
+
+\subsection{Shift Operators}
+
+\begin{lstlisting}[breaklines=true]
+shift_expression = addition_expression, { ( "<<" | ">>" | ">>>" ), addition_expression } ;
+\end{lstlisting}
+
+The shift operators expect an integral value for their left hand side, and an unsigned integral value for their right hand side. Performing no conversion, the value is bit-shifted by the number of bits given in the right hand side value. This value must be less than the number of bits in the left hand side value. In case of a left-shift operator (\texttt{<<}) or a logical-right-shift operator (\texttt{>>>}), the value is zero-filled. In case of an arithmetic-right-shift operator (\texttt{>>}), the value is sign-filled.
+
+\subsection{Addition Operators}
+
+\begin{lstlisting}[breaklines=true]
+addition_expression = multiplication_expression, { ( "+" | "-" ), multiplication_expression } ;
+\end{lstlisting}
+
+Addition and subtraction expressions both support two numeric operands, in which case they will evaluate the left hand side, then the right hand side, convert to a common type (see Appendix C), and the result is produced after applying the relevant operator. However, when adding a data pointer and an integer (order irrelevant), both are evaluated, and then the integer is multiplied by the size of the type the pointer points to before being added to the pointer. It is also acceptable to subtract an integer from a data pointer (but not the other way around), and the subtracted value is also first multiplied by the size of what the pointer points to before being subtracted from the pointer.
+
+\subsection{Multiplication Operators}
+
+\begin{lstlisting}[breaklines=true]
+multiplication_expression = prefix_expression, { ( "*" | "/" | "%" ), prefix_expression } ;
+\end{lstlisting}
+
+Multiplication expressions operate on numeric values. The left hand side, then the right hand side are evaluated, these values are converted to a common type (see Appendix C), and the result is produced after applying the relevant operator.
+
+\subsection{Prefix Operators}
+
+\begin{lstlisting}[breaklines=true]
+prefix_expression = postfix_expression
+                  | "*", prefix_expression
+                  | "&", prefix_expression
+                  | "++", prefix_expression
+                  | "--", prefix_expression
+                  | "-", prefix_expression
+                  | "!", prefix_expression
+                  | "~", prefix_expression
+                  ;
+\end{lstlisting}
+
+The dereference operator (\texttt{*}) takes the expression (must be a data pointer), and produces an assignable value from that expression. The result is of the base type of the pointer.
+
+The address-of operator (\texttt{\&}) takes the expression (must be an assignable value), and produces an address from that expression. The resulting type is a pointer whose base type is the type of the assignable value.
+
+The pre-increment and pre-decrement operators (\texttt{++}, \texttt{--}) take the expression (must be an assignable value, and either numeric or a pointer), and if it is numeric, increments or decrements it by one, if it is a data pointer, adds or subtracts the size of the type the pointer points to. The value produces is that after the increment.
+
+The negation operator takes the expression (must be a numeric value and not an unsigned long), and negates it. If a signed integral or floating point value is negated, the resulting type remains the same. If an unsigned integral value is negated, the resulting type is the smallest signed type that can hold the entire range when negated, i.e. the next largest signed type (e.g. a negated \texttt{ubyte} produces a \texttt{short}).
+
+The logical-not operator takes the expression (must be a boolean value), and negates it. Its type is unchanged.
+
+The bitwise-not operator takes the expression (must be an integral value), and flips each bit in the expression. Its type is unchanged.
+
+\subsection{Postfix Operators}
+
+\begin{lstlisting}[breaklines=true]
+postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", argument_list, ")" | "[", expression, "]" | "++" | "--") } ;
+\end{lstlisting}
+
+The member-access operator (\texttt{.}) takes a value of a type with members (structures or unions), and produces the named member. This value is assignable if the original value is assignable. The pointer member-access operator (\texttt{->}) takes a value of a pointer to a type with members, and produces the named member after dereferencing the pointer. Only the accessed member is accessed via the pointer. The produced value is always assignable. The type of this expression is the type of the member.
+
+The function-call operator (\texttt{()}) takes a value that is either a function pointer or a function name, evaluates it, a comma separated list of assignment expressions (sequencing operators, if used, must be surrounded by parentheses), evaluated in an unspecified order, and calls the function or function pointer with the argument list. The produced type is that of the return value of the function. If the function returns void, then this must have been evaluated for side-effect only.
+
+The array-index operator (\texttt{[]}) takes a value that is either a pointer or an array, evaluates that, and an integral index, evaluates that, and produces either that element in the array, if the value is an array, or the dereference of the sum (with pointer arithmetic as for the addition operator) of the pointer and the index.
+
+The post-increment and post-decrement operators (\texttt{++}, \texttt{--}) produce the value, then increment it or decrement it exactly like a pre-increment or pre-decrement operator. The value is only evaluated once.
 
 \section{Primary Expressions}
 
@@ -866,20 +938,6 @@ A primary expression is a value or expression that is unambiguously bound. These
 \iffalse
 
 \begin{lstlisting}[breaklines=true]
-spaceship_expression = shift_expression, { "<=>", shift_expression } ;
-shift_expression = addition_expression, { ( "<<" | ">>" | ">>>" ), addition_expression } ;
-addition_expression = multiplication_expression, { ( "+" | "-" ), multiplication_expression } ;
-multiplication_expression = prefix_expression, { ( "*" | "/" | "%" ), prefix_expression } ;
-prefix_expression = postfix_expression
-                  | "*", prefix_expression
-                  | "&", prefix_expression
-                  | "++", prefix_expression
-                  | "--", prefix_expression
-                  | "-", prefix_expression
-                  | "!", prefix_expression
-                  | "~", prefix_expression
-                  ;
-postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", argument_list, ")" | "[", expression, "]" | "++" | "--") } ;
 primary_expression = scoped_identifier
                    | identifier
                    | literal
