@@ -458,13 +458,15 @@ declaration = function_declaration
 
 Declarations state the existence of a type, function, or variable in the current module. For type declarations, they may also serve as the definition of a type. Conceptually, a declaration is all that is required to use the declared entity, and the user need not be aware of the definition. However, for non-opaque types, it is necessary to know the definition of the type to use it completely - it is necessary to know the size of a type to declare it on the stack. For opaque types, it is not necessary to have that additional information, so both kinds of declarations - complete and forward - are considered declarations.
 
-\section{Function Declarations}
+\section{Function Declarations}\label{section:Function Declarations}
 
 \begin{lstlisting}[breaklines=true]
 function_declaration = type, identifier, "(", [ type, [ identifier ], [ "=", literal ], { ",", type, [ identifier ], [ "=", literal ] } ], ")", ";" ;
 \end{lstlisting}
 
 A function declaration declares the existence of the function, having the name in the first identifier, and provides the interface to call the function and get a return value. The return type and formal parameter types must be complete types. A return value of \texttt{void} indicates that the function does not return any value. If a formal parameter is followed by an equals sign and a literal value, then any callers of this function may omit the value in the function call expression, and the default value will be substituted in as the actual argument. However, function pointers are unable to use default parameters, so when converted to a function pointer, it will be as if no default parameters were specified. The corresponding function definition need not declare any default parameters, but if any default parameters are supplied in the definition, then they must match exactly the ones specified in the declaration.
+
+Any function named 'main' is considered a main function. The main function does not need to be declared. Only one main function may be declared or defined per executable, but it is irrelevant in which function the main function is declared or defined.
 
 \section{Variable Declarations}
 
@@ -530,7 +532,7 @@ Definitions provide the value of a declared variable or function. Only code file
 function_definition = type, identifier, "(", [ type, [ identifier, [ "=", literal ] ] ], { ",", type, [ identifier, [ "=", literal ] ] } ], ")", compound_statement ;
 \end{lstlisting}
 
-A function definition specifies the code for a function, in the compound statement. Additionally, the definition introduces two scopes - one from the compound statement, the function body, and the second, a scope containing the formal parameters. The formal parameter scope contains the function body scope.
+A function definition specifies the code for a function, in the compound statement. Additionally, the definition introduces two scopes - one from the compound statement, the function body, and the second, a scope containing the formal parameters. The formal parameter scope contains the function body scope. Any function named 'main' is considered a main function, and is subject to the limits described in \ref{section:Function Declarations}
 
 \section{Variable Definitions}
 
