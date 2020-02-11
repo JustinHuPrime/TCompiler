@@ -19,7 +19,6 @@ CC := gcc
 RM := rm -rf
 MV := mv
 MKDIR := mkdir -p
-FORMATTER := clang-format -i
 
 
 # File options
@@ -69,7 +68,7 @@ WARNINGS := -pedantic -pedantic-errors -Wall -Wextra -Wdouble-promotion\
 -Wunsuffixed-float-constants
 
 # compiler options
-OPTIONS := -std=c18 -m64 -D_POSIX_C_SOURCE=201904L -I$(SRCDIR) $(WARNINGS)
+OPTIONS := -std=c18 -m64 -D_POSIX_C_SOURCE=202002L -I$(SRCDIR) $(WARNINGS)
 DEBUGOPTIONS := -Og -ggdb -Wno-unused-parameter
 RELEASEOPTIONS := -O3 -D NDEBUG
 TOPTIONS := -I$(TSRCDIR)
@@ -104,7 +103,6 @@ $(EXENAME): $(OBJS)
 
 $(OBJS): $$(patsubst $(OBJDIR)/%.o,$(SRCDIR)/%.c,$$@) $$(patsubst $(OBJDIR)/%.o,$(DEPDIR)/%.dep,$$@) | $$(dir $$@)
 	@echo "Compiling $@"
-	@$(FORMATTER) $(filter-out %.dep,$^)
 	@$(CC) $(OPTIONS) -c $< -o $@
 
 $(DEPS): $$(patsubst $(DEPDIR)/%.dep,$(SRCDIR)/%.c,$$@) | $$(dir $$@)
@@ -120,7 +118,6 @@ $(TEXENAME): $(TOBJS) $(OBJS)
 
 $(TOBJS): $$(patsubst $(TOBJDIR)/%.o,$(TSRCDIR)/%.c,$$@) $$(patsubst $(TOBJDIR)/%.o,$(TDEPDIR)/%.dep,$$@) | $$(dir $$@)
 	@echo "Compiling $@"
-	@$(FORMATTER) $(filter-out %.dep,$^)
 	@$(CC) $(OPTIONS) $(TOPTIONS) -c $< -o $@
 
 $(TDEPS): $$(patsubst $(TDEPDIR)/%.dep,$(TSRCDIR)/%.c,$$@) | $$(dir $$@)
