@@ -44,14 +44,14 @@ static bool helpRequested(size_t argc, char *argv[]) {
 }
 
 // possible return values for main
-typedef enum {
+enum {
   SUCCESS = EXIT_SUCCESS,
   OPTION_ERROR,
   FILE_ERROR,
   PARSE_ERROR,
   BUILD_STAB_ERROR,
   TYPECHECK_ERROR,
-} ReturnValue;
+};
 
 // compile the given declaration and code files into one assembly file per code
 // file, given the flags
