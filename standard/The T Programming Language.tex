@@ -436,7 +436,7 @@ Any data type may form the base of a derived data type.
 	
 	\item \textbf{Volatiles}: by appending \texttt{volatile} to a type, a type may be turned into a volatile type. Reads and writes from and to a value of volatile type are considered side effects, and must be sequenced. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant. A void base type is not allowed.
 	
-	\item \textbf{Arrays}: by appending an integral constant in square brackets, a type is turned into an array of that many items. An array is guaranteed to be contiguous in memory, such that by adding (without pointer arithmetic, i.e. on the raw integer address) the size of an element, to the address of an element, you get the address of the next element. Arrays of void are not allowed.
+	\item \textbf{Arrays}: by appending a positive or unsigned integral constant in square brackets, a type is turned into an array of that many items. An array is guaranteed to be contiguous in memory, such that by adding (without pointer arithmetic, i.e. on the raw integer address) the size of an element, to the address of an element, you get the address of the next element. Arrays of void are not allowed.
 	
 	\item \textbf{Pointers}: by appending \texttt{*} to a type, a type is turned into a pointer to that type. Pointers hold an unsigned integer (width determined by the execution environment) that represents the location in memory 
 	
@@ -935,23 +935,13 @@ primary_expression = scoped_identifier
 
 A primary expression is a value or expression that is unambiguously bound. These expressions have no precedence, and in the case of identifiers and literals, form the leaf nodes of expressions.
 
-\iffalse
+\subsection{Identifiers}
+
+Scoped identifiers and identifiers name a value, and produce that value as an assignable value.
+
+\subsection{Literals}
 
 \begin{lstlisting}[breaklines=true]
-primary_expression = scoped_identifier
-                   | identifier
-                   | literal
-                   | "cast", "[", type, "]", "(", expression, ")"
-                   | "sizeof", "(", ( expression | type ), ")"
-                   | "(", expression, ")"
-                   ;
-argument_list = [ assignment_expression, { ",", assignment_expression } ] ;
-aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
-extended_int_literal = int_literal
-                     | char_literal
-                     | wchar_literal
-                     | scoped_identifier
-                     ;
 literal = int_literal
         | float_literal
         | string_literal
@@ -964,8 +954,17 @@ literal = int_literal
         | scoped_identifier
         | aggregate_initializer
         ;
+aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
 \end{lstlisting}
 
-\fi
+Literals represent a constant value, either of some type, or of an aggregate initializer. Integer literals may be signed or unsigned. Integer literals are of the smallest type capable of containing their value, preferring unsigned types over signed types. A positive integer literal may be forced into being of a signed type by prefixing it with \texttt{+}.
+
+\subsection{Cast Expressions}
+
+A cast converts the expression to the listed type. See Appendix E - Castability for the rules and actions taken.
+
+\subsection{Sizeof Expressions}
+
+A size-of expression calculates the size of a type, or the size of an expression, both producing an unsigned long value. Additionally, if an expression is involved in the query, it will not be evaluated.
 
 \end{document}
