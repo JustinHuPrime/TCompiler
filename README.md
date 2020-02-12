@@ -12,7 +12,7 @@ This repo is the source code for the T Language Compiler, `tlc`.
 
 ### Options
 
-Note that if a later option conflicts with an earlier option, the later option will apply to all files, even those before the eariler option.
+Note that if a later option conflicts with an earlier option, the later option will apply to all files, even those before the eariler option. Additionally, all arguments after `--` are treated as files.
 
 #### Informational Options
 
@@ -36,23 +36,23 @@ Note that if a later option conflicts with an earlier option, the later option w
 
 All warning options have three forms, a `-W...=error` form, a `-W...=warn` form, and a `-W...=ignore` form. These forms instruct the compiler to either produce an error if this particular event is encountered (stopping compilation), produce a warning, or ignore the issue. So, for example, `-Wfoo=error` makes `foo` into an error, `-Wfoo=warn` makes `foo` into a warning, and `-Wfoo=ignore` ignores `foo`.
 
-* `const-return`: a function's declared return type is explicitly declared as constant. Defaults to warn.
+<!-- * `const-return`: a function's declared return type is explicitly declared as constant. Defaults to warn. -->
 
-* `duplicate-decl-specifier`: a data type has const applied to the same thing more than once. Defaults to warn.
+<!-- * `duplicate-decl-specifier`: a data type has const applied to the same thing more than once. Defaults to warn. -->
 
-* `duplicate-declaration`: a data type or function is declared more than once, even if multiple declarations have no effects. Multiple declarations of variables is always an error. This does not warn about multiple declarations involving the same function name that create an overload set. Defaults to ignore.
+<!-- * `duplicate-declaration`: a data type or function is declared more than once, even if multiple declarations have no effects. Multiple declarations of variables is always an error. This does not warn about multiple declarations involving the same function name that create an overload set. Defaults to ignore. -->
 
 * `duplciate-file`: duplciated files given. Defaults to error. If not an error, later files have no effect.
 
-* `duplicate-import`: duplicated imports in a module. Defaults to ignore. If not an error, later imports have no effect.
+<!-- * `duplicate-import`: duplicated imports in a module. Defaults to ignore. If not an error, later imports have no effect. -->
 
-* `overload-ambiguity`: an overload set whose members may be ambiguous when called using default arguments. Defaults to error. Functions whose arguments are always ambiguous (i.e. takes the same arguments when including defaulted arguments) always results in an error.
+<!-- * `overload-ambiguity`: an overload set whose members may be ambiguous when called using default arguments. Defaults to error. Functions whose arguments are always ambiguous (i.e. takes the same arguments when including defaulted arguments) always results in an error. -->
 
-* `reseved-id`: something is defined using an id starting with two underscores (a reserved id). Defaults to error.
+<!-- * `reseved-id`: something is defined using an id starting with two underscores (a reserved id). Defaults to error. -->
 
-* `void-return`: returning void in a non-void function. Defaults to error. May not be an error if inline assembly is used to setup the return value.
+<!-- * `void-return`: returning void in a non-void function. Defaults to error. May not be an error if inline assembly is used to setup the return value. -->
 
-* `unreachable`: unreachable statements detected. Defaults to warn.
+<!-- * `unreachable`: unreachable statements detected. Defaults to warn. -->
 
 * `unrecognized-file`: unrecognized file extensions. Defaults to error. If not an error, unrecognized files are skipped.
 
@@ -64,19 +64,19 @@ The option `--debug-dump` can be set to 3 values:
 
 * `--debug-dump=lex`: dumps the results of the 'lex' phase
 
-* `--debug-dump=parse-structure`: dumps the results of the parse phase, as a constructor-style tree
+<!-- * `--debug-dump=parse-structure`: dumps the results of the parse phase, as a constructor-style tree -->
 
-* `--debug-dump=parse-pretty`: dumps the results of the parse phase, as a pretty-printed T program
+<!-- * `--debug-dump=parse-pretty`: dumps the results of the parse phase, as a pretty-printed T program -->
 
-* `--debug-dump=ir`: dumps the results of the translate to IR phase
+<!-- * `--debug-dump=ir`: dumps the results of the translate to IR phase -->
 
-* `--debug-dump=asm-1`: dumps the results of phase one assembly translation (note that phases are architecture specific)
+<!-- * `--debug-dump=asm-1`: dumps the results of phase one assembly translation (note that phases are architecture specific)
 
-  * In `x86_64`, phase one is initial instruction selection.
+  * In `x86_64`, phase one is initial instruction selection. -->
 
-* `--debug-dump=asm-2`: dumps the results of phase two assembly translation (note that phases are architecture specific)
+<!-- * `--debug-dump=asm-2`: dumps the results of phase two assembly translation (note that phases are architecture specific)
 
-  * In `x86_64`, phase two is register allocation.
+  * In `x86_64`, phase two is register allocation. -->
 
 ### Limits
 

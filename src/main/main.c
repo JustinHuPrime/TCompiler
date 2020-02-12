@@ -17,6 +17,7 @@
 // Compiles code modules into assembly files, guided by decl modules
 
 #include "constants.h"
+#include "util/options.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -84,6 +85,11 @@ int main(int argc, char *argv[]) {
         VERSION_STRING);
     return SUCCESS;
   }
+
+  // parse options, get number of files
+  size_t numFiles;
+  if (parseArgs((size_t)argc, (char const *const *)argv, &numFiles) != 0)
+    return OPTION_ERROR;
 
   return SUCCESS;
 }
