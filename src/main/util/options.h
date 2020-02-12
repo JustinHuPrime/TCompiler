@@ -16,7 +16,7 @@
 
 /**
  * @file
- * @brief options object and command line argument parser
+ * options object and command line argument parser
  */
 
 #ifndef TLC_OPTIONS_H_

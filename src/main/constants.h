@@ -16,7 +16,7 @@
 
 /**
  * @file
- * @brief global constants
+ * global constants
  */
 
 #ifndef TLC_CONSTANTS_H_
