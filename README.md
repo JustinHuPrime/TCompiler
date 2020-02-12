@@ -78,6 +78,10 @@ The option `--debug-dump` can be set to 3 values:
 
   * In `x86_64`, phase two is register allocation.
 
-## Limits
+### Limits
 
-Since the T compiler must read the 'module' line from every file, it keeps all specified declaration files open. Currently, this means that the compiler is limited by the number of open files permitted by your operating system.
+The T compiler will memory map all referenced files. As such, the system must have enough address space to handle the memory mappings.
+
+## Contributing
+
+The T Langauge Compiler uses clang-format as the code style enforcer. Your code style must match exactly with what clang-format generates. As per Google code style, indentation is in spaces, and one level of indent is two spaces. Doxygen is used to generate documentation. All header file declarations should have Doxygen documentation. Implementation file only declarations (static functions, etc.) may omit Doxygen documentation, but this is discouraged except in cases of truly trivial functions.
