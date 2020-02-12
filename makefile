@@ -19,6 +19,7 @@ CC := gcc
 RM := rm -rf
 MV := mv
 MKDIR := mkdir -p
+DOXYGEN := doxygen
 
 
 # File options
@@ -81,12 +82,16 @@ LIBS :=
 
 debug: OPTIONS := $(OPTIONS) $(DEBUGOPTIONS)
 debug: $(EXENAME) $(TEXENAME)
+	@echo "Generating documentation"
+	@$(DOXYGEN)
 	@echo "Running tests"
 	@./$(TEXENAME)
 	@echo "Done building debug!"
 
 release: OPTIONS := $(OPTIONS) $(RELEASEOPTIONS)
 release: $(EXENAME) $(TEXENAME)
+	@echo "Generating documentation"
+	@$(DOXYGEN)
 	@echo "Running tests"
 	@./$(TEXENAME)
 	@echo "Done building release!"
