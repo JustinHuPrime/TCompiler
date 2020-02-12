@@ -20,60 +20,61 @@
 
 #include <stdlib.h>
 
-void testStatusInit(TestStatus *status) {
-  status->numTests = 0;
-  status->numPassed = 0;
-  status->numMessages = 0;
-  status->messagesCapacity = 1;
-  status->messages = malloc(sizeof(char const *));
+TestStatus status;
+
+void testStatusInit(void) {
+  status.numTests = 0;
+  status.numPassed = 0;
+  status.numMessages = 0;
+  status.messagesCapacity = 8;
+  status.messages = malloc(sizeof(char const *));
 }
-void testStatusPass(TestStatus *status) {
-  status->numTests++;
-  status->numPassed++;
+void testStatusPass(void) {
+  status.numTests++;
+  status.numPassed++;
 }
-void testStatusFail(TestStatus *status, char const *msg) {
-  status->numTests++;
-  if (status->messagesCapacity == status->numMessages) {
-    status->messages = realloc(
-        status->messages, status->messagesCapacity * 2 * sizeof(char const *));
-    status->messagesCapacity *= 2;
+void testStatusFail(char const *msg) {
+  status.numTests++;
+  if (status.messagesCapacity == status.numMessages) {
+    status.messages = realloc(
+        status.messages, status.messagesCapacity * 2 * sizeof(char const *));
+    status.messagesCapacity *= 2;
   }
-  status->messages[status->numMessages++] = msg;
+  status.messages[status.numMessages++] = msg;
 }
-void testStatusDisplay(TestStatus *status) {
-  if (status->numPassed == status->numTests) {
+void testStatusDisplay(void) {
+  if (status.numPassed == status.numTests) {
     printf(
         "\x1B[1;32m============================================================"
         "====================\n\nAll %zu tests "
         "passed!\n\n==========================================================="
         "=====================\n\x1B[m",
-        status->numTests);
+        status.numTests);
   } else {
     printf(
         "\x1B[1;91m============================================================"
         "====================\n\n%zu out of %zu tests passed.\n%zu tests "
         "failed.\n\n",
-        status->numPassed, status->numTests,
-        status->numTests - status->numPassed);
-    if (status->numMessages != 0) {
+        status.numPassed, status.numTests, status.numTests - status.numPassed);
+    if (status.numMessages != 0) {
       printf("\x1B[4mFailed Tests:\n\x1B[m");
-      for (size_t idx = 0; idx < status->numMessages; idx++)
-        printf("%s\n", status->messages[idx]);
+      for (size_t idx = 0; idx < status.numMessages; idx++)
+        printf("%s\n", status.messages[idx]);
     }
     printf(
         "\x1B[1;91m\n=========================================================="
         "======================\n\x1B[m");
   }
 }
-int testStatusStatus(TestStatus *status) {
-  return status->numTests != status->numPassed;
+int testStatusStatus(void) {
+  return status.numTests == status.numPassed ? 0 : 1;
 }
-void testStatusUninit(TestStatus *status) { free(status->messages); }
-void test(TestStatus *status, char const *name, bool condition) {
+void testStatusUninit(void) { free(status.messages); }
+void test(char const *name, bool condition) {
   if (condition) {
-    testStatusPass(status);
+    testStatusPass();
   } else {
-    testStatusFail(status, name);
+    testStatusFail(name);
   }
 }
 void dropLine(void) { fprintf(stderr, "\x1B[1A\x1B[2K"); }

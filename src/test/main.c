@@ -19,12 +19,11 @@
 #include "engine.h"
 
 int main(void) {
-  TestStatus status;
-  testStatusInit(&status);
+  testStatusInit();
 
-  testStatusDisplay(&status);
+  testStatusDisplay();
 
-  int retVal = testStatusStatus(&status);
-  testStatusUninit(&status);
+  int retVal = testStatusStatus();
+  testStatusUninit();
   return retVal;
 }
