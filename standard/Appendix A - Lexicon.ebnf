@@ -1,0 +1,77 @@
+file = { [ whitespace ], token }, [ whitespace ], eof ;
+
+whitespace = " "
+           | ? newline ?
+           | ? any other implementation-defined whitespace ?
+           | "//", ? anything excluding newline ?, newline
+           | "/*", ? anything excluding "*/", "*/"
+           ;
+
+token = keyword
+      | punctuation
+      | identifier
+      | literal
+      ;
+
+keyword = "module" | "import" | "opaque" | "struct" | "union"
+        | "enum" | "typedef" | "if" | "else" | "while" | "do"
+        | "for" | "switch" | "case" | "default" | "break"
+        | "continue" | "return" | "asm" | "cast" | "sizeof"
+        | "true" | "false" | "null" | "void" | "ubyte" | "byte"
+        | "char" | "ushort" | "short" | "uint" | "int" | "wchar"
+        | "ulong" | "long" | "float" | "double" | "bool" | "const"
+        | "volatile"
+        ;
+
+punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "."
+            | "->" | "++" | "--" | "*" | "&" | "+" | "-" | "!"
+            | "~" | "/" | "%" | "<<" | ">>" | ">>>" | "<=>" | "<"
+            | ">" | "<=" | ">=" | "==" | "!=" | "|" | "^" | "&&"
+            | "||" | "?" | ":" | "=" | "*=" | "/=" | "%=" | "+="
+            | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|="
+            | "&&=" | "||=" | "::"
+            ;
+
+identifier = ( alphabetic | "_" ), { alphabetic | digit | "_" } ;
+
+literal = string_literal
+        | char_literal
+        | int_literal
+        | float_literal
+        | wstring_literal
+        | wchar_literal
+        ;
+int_literal = [ "-" | "+" ], ( nonzero_digit, { digit }
+                             | "0x", hex_digit, { hex_digit }
+                             | "0b", binary_digit, { binary_digit }
+                             | "0", octal_digit, { octal_digit }
+                             )
+                             ;
+float_literal = [ "-" | "+" ], digit, { digit }, ".", digit, { digit } ;
+string_literal = '"', { alphabetic | digit | symbol | escaped | escaped_double_quote | "'" }, '"' ;
+char_literal = "'", ( alphabetic | digit | symbol | escaped | escaped_quote | '"' ), "'" ;
+wstring_literal = '"', { alphabetic | digit | symbol | escaped | escaped_wchar | escaped_double_quote | "'" } '"w' ;
+wchar_literal = "'", ( alphabetic | digit | symbol | escaped | escaped_wchar | escaped_quote | '"' ), "'w" ;
+
+alphabetic = ? any ASCII alphabetic character ?
+           | ? any implementation-defined alphabetic characters ?
+           ;
+nonzero_digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+digit = "0"
+      | nonzero_digit
+      ;
+symbol = ? any ASCII symbol plus space ?
+       | ? any implementation-defined symbols or spaces ?
+       ;
+hex_digit = digit
+          | "a" | "b" | "c" | "d" | "e" | "f"
+          | "A" | "B" | "C" | "D" | "E" | "F"
+          ;
+binary_digit = "0" | "1" ;
+octal_digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
+escaped = "\n" | "\r" | "\t" | "\0" | "\\" | "\x", hex_digit, hex_digit ;
+escaped_wchar = "\u", hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit ;
+escaped_quote = "\'" ;
+escaped_double_quote = '\"' ;
+
+eof = ? physical end of file ? ;
