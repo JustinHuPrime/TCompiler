@@ -125,11 +125,12 @@ literal = string_literal
         | wstring_literal
         | wchar_literal
         ;
-int_literal = [ "-" | "+" ], nonzero_digit, { digit }
-            | "0x", hex_digit, { hex_digit }
-            | "0b", binary_digit, { binary_digit }
-            | "0", octal_digit, { octal_digit }
-            ;
+int_literal = [ "-" | "+" ], ( nonzero_digit, { digit }
+                             | "0x", hex_digit, { hex_digit }
+                             | "0b", binary_digit, { binary_digit }
+                             | "0", octal_digit, { octal_digit }
+                             )
+                             ;
 float_literal = [ "-" | "+" ], digit, { digit }, ".", digit, { digit } ;
 string_literal = '"', { alphabetic | digit | symbol | escaped | escaped_double_quote | "'" }, '"' ;
 char_literal = "'", ( alphabetic | digit | symbol | escaped | escaped_quote | '"' ), "'" ;
@@ -357,7 +358,7 @@ Modules may import other modules. This means that the identifiers from the modul
 
 \section{Module Header}
 
-Each module begins with a module line, that sets the name of the module. Module names are completely independent of file name. If a code file and a declaration file share this name, the code file is considered the implementation for the declaration file. After the module line, each file has a list of modules that it imports into its import scope.
+Each module begins with a module line, that sets the name of the module. Module names are completely independent of file name. If a code file and a declaration file share this name, the code file is considered the implementation for the declaration file. After the module line, each file has a list of modules that it imports into its import scope. This module line may not be a reserved identifier. Reserved identifiers may be used by the language implementation. A reserved identifier is any identifier that starts with two underscores. This includes cases where the reserved identifier is part of a larger scoped identifier that does not start with two underscores.
 
 \section{Module Body}
 
@@ -457,6 +458,8 @@ declaration = function_declaration
 \end{lstlisting}
 
 Declarations state the existence of a type, function, or variable in the current module. For type declarations, they may also serve as the definition of a type. Conceptually, a declaration is all that is required to use the declared entity, and the user need not be aware of the definition. However, for non-opaque types, it is necessary to know the definition of the type to use it completely - it is necessary to know the size of a type to declare it on the stack. For opaque types, it is not necessary to have that additional information, so both kinds of declarations - complete and forward - are considered declarations.
+
+The identifier in a declaration may not be a reserved identifier. Reserved identifiers may be used by the language implementation. Any identifier that starts with two underscores is considered reserved.
 
 \section{Function Declarations}\label{section:Function Declarations}
 
