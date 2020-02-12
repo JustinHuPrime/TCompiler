@@ -14,12 +14,15 @@
 //
 // This file is part of the T Language Compiler.
 
-// declaration of numerical an other constants
+/**
+ * @file
+ * @brief global constants
+ */
 
 #ifndef TLC_CONSTANTS_H_
 #define TLC_CONSTANTS_H_
 
-// compiler version
+/** Compiler version string, human readable */
 extern char const *VERSION_STRING;
 
 #endif  // TLC_CONSTANTS_H_

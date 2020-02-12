@@ -14,7 +14,7 @@
 //
 // This file is part of the T Language Compiler.
 
-// values of numerical constants used
+// global constants
 
 #include "constants.h"
 
