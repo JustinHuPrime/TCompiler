@@ -99,7 +99,7 @@ release: $(EXENAME) $(TEXENAME)
 
 clean:
 	@echo "Removing all generated files and folders."
-	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) $(EXENAME) $(TEXENAME)
+	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) docs $(EXENAME) $(TEXENAME)
 
 
 $(EXENAME): $(OBJS)
