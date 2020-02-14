@@ -20,8 +20,8 @@
 #include <string.h>
 
 Options options = {
-    OPTION_A_X86_OPTION_PD_PDCON_PDC, WARNING_OPTOPTION_W_ERROR
-    OPTION_W_ERROR, DEBUG_OPTION_DD_NONE
+    OPTION_A_X86_64, OPTION_PD_PDC,  OPTION_W_ERROR,
+    OPTION_W_ERROR,  OPTION_DD_NONE,
 };
 
 int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
