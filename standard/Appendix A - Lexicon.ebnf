@@ -45,6 +45,7 @@ literal = string_literal
 
 magic_token = "__FILE__"
             | "__LINE__"
+            | "__VERSION__"
 ;
 
 int_literal = [ "-" | "+" ], ( nonzero_digit, { digit }

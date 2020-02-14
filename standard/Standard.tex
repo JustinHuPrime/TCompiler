@@ -79,7 +79,19 @@ In addition to the general requirements above, the translation environment has a
 
 \chapter{Lexicon}
 
-A source file consists of a sequence of characters. The lexing phase splits these into tokens based on the lexical syntax. The lexical syntax is strict maximal munch. A source file is described by the EBNF given in Appendix A - Lexicon. The source file must conform to this syntax, or else a diagnostic message must be issued.
+A source file consists of a sequence of characters. The lexing phase splits these into tokens based on the lexical syntax, and translates magic tokens into literal values. The lexical syntax is strict maximal munch. A source file is described by the EBNF given in Appendix A - Lexicon. The source file must conform to this syntax, or else a diagnostic message must be issued.
+
+\section{Magic Tokens}
+
+As noted in Appendix A, there are three magic tokens. Magic tokens are literal values computed during lexing. The values of these magic tokens are specified below.
+
+\begin{itemize}
+	\item \texttt{\_\_FILE\_\_}: this token is replaced with a string literal containing the name of the file being processed.
+	
+	\item \texttt{\_\_LINE\_\_}: this token is replaced with an unsigned integer literal containing the current line in the file being processed.
+	
+	\item \texttt{\_\_VERSION\_\_}: this token is replaced with a string literal containing the compiler version string. This string does not have any particular format, but is human-readable.
+\end{itemize}
 
 \chapter{Syntax}
 
