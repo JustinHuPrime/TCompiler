@@ -1,4 +1,4 @@
-# Copyright 2019 Justin Hu
+# Copyright 2020 Justin Hu
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ TESTSUFFIX := test
 
 # Main file options
 SRCDIR := $(SRCDIRPREFIX)/$(MAINSUFFIX)
-SRCS := $(shell find -O3 $(SRCDIR)/ -type f -name '*.c')
+SRCS := $(shell find -O3 $(SRCDIR) -type f -name '*.c')
 
 OBJDIR := $(OBJDIRPREFIX)/$(MAINSUFFIX)
 OBJS := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
@@ -41,7 +41,7 @@ DEPS := $(patsubst $(SRCDIR)/%.c,$(DEPDIR)/%.dep,$(SRCS))
 
 # Test file options
 TSRCDIR := $(SRCDIRPREFIX)/$(TESTSUFFIX)
-TSRCS := $(shell find -O3 $(TSRCDIR)/ -type f -name '*.c')
+TSRCS := $(shell find -O3 $(TSRCDIR) -type f -name '*.c')
 
 TOBJDIR := $(OBJDIRPREFIX)/$(TESTSUFFIX)
 TOBJS := $(patsubst $(TSRCDIR)/%.c,$(TOBJDIR)/%.o,$(TSRCS))
@@ -76,32 +76,41 @@ TOPTIONS := -I$(TSRCDIR)
 LIBS :=
 
 
-.PHONY: debug release clean diagnose
+.PHONY: debug release clean diagnose documentation documentation-doxygen
 .SECONDEXPANSION:
 .SUFFIXES:
 
+# entry points
 debug: OPTIONS := $(OPTIONS) $(DEBUGOPTIONS)
-debug: $(EXENAME) $(TEXENAME)
-	@echo "Generating documentation"
-	@$(DOXYGEN)
+debug: $(EXENAME) $(TEXENAME) documentation
 	@echo "Running tests"
 	@./$(TEXENAME)
 	@echo "Done building debug!"
 
 release: OPTIONS := $(OPTIONS) $(RELEASEOPTIONS)
-release: $(EXENAME) $(TEXENAME)
-	@echo "Generating documentation"
-	@$(DOXYGEN)
+release: $(EXENAME) $(TEXENAME) documentation
 	@echo "Running tests"
 	@./$(TEXENAME)
 	@echo "Done building release!"
 
+documentation: documentation-doxygen standard/Standard.pdf
 
 clean:
 	@echo "Removing all generated files and folders."
 	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) docs $(EXENAME) $(TEXENAME)
 
 
+# documentation details
+documentation-doxygen: $(shell find -O3 $(SRCDIR) -type f -name '*.[ch]')
+	@echo "Generating documentation"
+	@$(DOXYGEN)
+
+standard/Standard.pdf: standard/Standard.tex
+	@echo "Generating standard"
+	@pdflatex -output-directory standard $< > /dev/null
+
+
+# executable details
 $(EXENAME): $(OBJS)
 	@echo "Linking $@"
 	@$(CC) -o $(EXENAME) $(OPTIONS) $(OBJS) $(LIBS)
@@ -117,6 +126,7 @@ $(DEPS): $$(patsubst $(DEPDIR)/%.dep,$(SRCDIR)/%.c,$$@) | $$(dir $$@)
 	 rm -f $@.$$$$
 
 
+# test details
 $(TEXENAME): $(TOBJS) $(OBJS)
 	@echo "Linking $@"
 	@$(CC) -o $(TEXENAME) $(OPTIONS) $(TOPTIONS) $(filter-out %main.o,$(OBJS)) $(TOBJS) $(LIBS)
