@@ -54,9 +54,6 @@ typedef struct {
   DebugDumpOption dump;
 } Options;
 
-/** global options object - initialized with defaults */
-extern Options options;
-
 /**
  * Parses arguments into global options object. Counts number of files as a
  * side effect
@@ -66,5 +63,8 @@ extern Options options;
  * @returns status code (0 = OK)
  */
 int parseArgs(size_t argc, char const *const *argv, size_t *numFiles);
+
+/** global options object - initialized with defaults */
+extern Options options;
 
 #endif  // TLC_OPTIONS_H_
