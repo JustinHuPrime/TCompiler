@@ -5,7 +5,7 @@ import = "import", ( identifier | scoped_identifier ), ";" ;
 
 definition = function_definition
            | variable_definition
-           ;
+;
 declaration = function_declaration
             | variable_declaration
             | opaque_type_declaration
@@ -13,7 +13,7 @@ declaration = function_declaration
             | union_declaration
             | enum_declaration
             | typedef_declaration
-            ;
+;
 
 function_declaration = type, identifier, "(", [ type, [ identifier ], [ "=", literal ], { ",", type, [ identifier ], [ "=", literal ] } ], ")", ";" ;
 variable_declaration = type, identifier, { ",", identifier }, ";" ;
@@ -44,7 +44,7 @@ statement = compound_statement
           | typedef_declaration
           | expression, ";"
           | ";"
-          ;
+;
 
 compound_statement = "{", { statement }, "}" ;
 if_statement = "if", "(", expression, ")", statement, [ "else", statement ] ;
@@ -60,7 +60,7 @@ variable_declaration_statement = type, identifier, [ "=", assignment_expression 
 
 expression = assignment_expression
            | assignment_expression, ",", expression
-           ;
+;
 assignment_expression = ternary_expression
                       | ternary_expression, "=", assignment_expression
                       | ternary_expression, "*=", assignment_expression
@@ -76,10 +76,10 @@ assignment_expression = ternary_expression
                       | ternary_expression, "|=", assignment_expression
                       | ternary_expression, "&&=", assignment_expression
                       | ternary_expression, "||=", assignment_expression
-                      ;
+;
 ternary_expression = logical_expression
                    | logical_expression, "?", expression, ":", ternary_expression
-                   ;
+;
 logical_expression = bitwise_expression, { ( "&&" | "||" ), bitwise_expression } ;
 bitwise_expression = equality_expression, { ( "&" | "|" | "^" ), equality_expression } ;
 equality_expression = comparison_expression, { ( "==" | "!=" ), comparison_expression } ;
@@ -96,7 +96,7 @@ prefix_expression = postfix_expression
                   | "-", prefix_expression
                   | "!", prefix_expression
                   | "~", prefix_expression
-                  ;
+;
 postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", argument_list, ")" | "[", expression, "]" | "++" | "--") } ;
 primary_expression = scoped_identifier
                    | identifier
@@ -104,14 +104,14 @@ primary_expression = scoped_identifier
                    | "cast", "[", type, "]", "(", expression, ")"
                    | "sizeof", "(", ( expression | type ), ")"
                    | "(", expression, ")"
-                   ;
+;
 argument_list = [ assignment_expression, { ",", assignment_expression } ] ;
 aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
 extended_int_literal = int_literal
                      | char_literal
                      | wchar_literal
                      | scoped_identifier
-                     ;
+;
 literal = int_literal
         | float_literal
         | string_literal
@@ -123,7 +123,7 @@ literal = int_literal
         | "null"
         | scoped_identifier
         | aggregate_initializer
-        ;
+;
 
 type = "void"
      | "ubyte"
@@ -146,6 +146,6 @@ type = "void"
      | type, "[", int_literal, "]"
      | type, "*"
      | type, "(", [ type, { ",", type } ], ")"
-     ;
+;
 
 scoped_identifier = identifier, "::", identifier, { "::", identifier } ;
