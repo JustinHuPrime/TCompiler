@@ -17,6 +17,7 @@
 // Compiles code modules into assembly files, guided by decl modules
 
 #include "constants.h"
+#include "fileList.h"
 #include "util/options.h"
 
 #include <stdbool.h>
@@ -90,6 +91,10 @@ int main(int argc, char *argv[]) {
   size_t numFiles;
   if (parseArgs((size_t)argc, (char const *const *)argv, &numFiles) != 0)
     return OPTION_ERROR;
+
+  // fill in global file list
+  if (parseFiles((size_t)argc, (char const *const *)argv, numFiles) != 0)
+    return FILE_ERROR;
 
   return SUCCESS;
 }
