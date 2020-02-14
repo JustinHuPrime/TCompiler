@@ -36,22 +36,22 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
   int err = 0;
 
   // setup the fileList
-  fileList.size = 0;
+  fileList.size = 0;  // eventually going to be numFiles long, give or take
   fileList.entries = malloc(sizeof(FileListEntry) * numFiles);
 
   // read the args
   bool allFiles = false;
-  for (size_t idx = 0; idx < argc; idx++) {
+  for (size_t idx = 1; idx < argc; idx++) {
     if (argv[idx][0] != '-' || allFiles) {
       // not an option, deal with the file
       size_t length = strlen(argv[idx]);
       bool recognized = false;
       bool isCode;
-      if (length > 3 && strcmp(argv[idx] + (length - 3), ".tc")) {
+      if (length > 3 && strcmp(argv[idx] + (length - 3), ".tc") == 0) {
         // is a code file
         recognized = true;
         isCode = true;
-      } else if (length > 3 && strcmp(argv[idx] + (length - 3), ".td")) {
+      } else if (length > 3 && strcmp(argv[idx] + (length - 3), ".td") == 0) {
         // is a decl file
         recognized = true;
         isCode = false;

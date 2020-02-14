@@ -54,7 +54,7 @@ typedef struct {
  * creates the global file list object from command line args
  * @param argc number of arguments
  * @param argv argument list, as pointer to c-strings
- * @param numFiles number of files (from parseArgs())
+ * @param numFiles maximum number of files (from parseArgs())
  * @returns status code (0 = OK)
  */
 int parseFiles(size_t argc, char const *const *argv, size_t numFiles);
