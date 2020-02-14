@@ -20,6 +20,10 @@ RM := rm -rf
 MV := mv
 MKDIR := mkdir -p
 DOXYGEN := doxygen
+TOUCH := touch
+SED := sed
+ECHO := echo
+PDFLATEX := pdflatex
 
 
 # File options
@@ -28,6 +32,8 @@ OBJDIRPREFIX := bin
 DEPDIRPREFIX := dependencies
 MAINSUFFIX := main
 TESTSUFFIX := test
+DOCSDIR := docs
+STANDARDDIR := standard
 
 # Main file options
 SRCDIR := $(SRCDIRPREFIX)/$(MAINSUFFIX)
@@ -76,70 +82,71 @@ TOPTIONS := -I$(TSRCDIR)
 LIBS :=
 
 
-.PHONY: debug release clean diagnose documentation documentation-doxygen
+.PHONY: debug release clean diagnose docs
 .SECONDEXPANSION:
 .SUFFIXES:
 
 # entry points
 debug: OPTIONS := $(OPTIONS) $(DEBUGOPTIONS)
-debug: $(EXENAME) $(TEXENAME) documentation
-	@echo "Running tests"
+debug: $(EXENAME) $(TEXENAME) docs
+	@$(ECHO) "Running tests"
 	@./$(TEXENAME)
-	@echo "Done building debug!"
+	@$(ECHO) "Done building debug!"
 
 release: OPTIONS := $(OPTIONS) $(RELEASEOPTIONS)
-release: $(EXENAME) $(TEXENAME) documentation
-	@echo "Running tests"
+release: $(EXENAME) $(TEXENAME) docs
+	@$(ECHO) "Running tests"
 	@./$(TEXENAME)
-	@echo "Done building release!"
+	@$(ECHO) "Done building release!"
 
-documentation: documentation-doxygen standard/Standard.pdf
+docs: $(DOCSDIR)/.timestamp $(STANDARDDIR)/Standard.pdf
 
 clean:
-	@echo "Removing all generated files and folders."
-	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) docs $(EXENAME) $(TEXENAME)
+	@$(ECHO) "Removing all generated files and folders."
+	@$(RM) $(OBJDIRPREFIX) $(DEPDIRPREFIX) $(DOCSDIR) $(shell find -O3 $(STANDARDDIR) ! '(' -name '*.tex' ')' -name 'Standard.*') $(EXENAME) $(TEXENAME)
 
 
 # documentation details
-documentation-doxygen: $(shell find -O3 $(SRCDIR) -type f -name '*.[ch]')
-	@echo "Generating documentation"
+$(DOCSDIR)/.timestamp: $(shell find -O3 $(SRCDIR) -type f -name '*.[ch]')
+	@$(ECHO) "Generating documentation"
 	@$(DOXYGEN)
+	@$(TOUCH) $@
 
-standard/Standard.pdf: standard/Standard.tex
-	@echo "Generating standard"
-	@pdflatex -output-directory standard $< > /dev/null
+$(STANDARDDIR)/Standard.pdf: $(STANDARDDIR)/Standard.tex
+	@$(ECHO) "Generating standard"
+	@$(PDFLATEX) -output-directory $(STANDARDDIR) $< > /dev/null
 
 
 # executable details
 $(EXENAME): $(OBJS)
-	@echo "Linking $@"
+	@$(ECHO) "Linking $@"
 	@$(CC) -o $(EXENAME) $(OPTIONS) $(OBJS) $(LIBS)
 
 $(OBJS): $$(patsubst $(OBJDIR)/%.o,$(SRCDIR)/%.c,$$@) $$(patsubst $(OBJDIR)/%.o,$(DEPDIR)/%.dep,$$@) | $$(dir $$@)
-	@echo "Compiling $@"
+	@$(ECHO) "Compiling $@"
 	@$(CC) $(OPTIONS) -c $< -o $@
 
 $(DEPS): $$(patsubst $(DEPDIR)/%.dep,$(SRCDIR)/%.c,$$@) | $$(dir $$@)
 	@set -e; $(RM) $@; \
 	 $(CC) $(OPTIONS) -MM -MT $(patsubst $(DEPDIR)/%.dep,$(OBJDIR)/%.o,$@) $< > $@.$$$$; \
-	 sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	 rm -f $@.$$$$
+	 $(SED) 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	 $(RM) $@.$$$$
 
 
 # test details
 $(TEXENAME): $(TOBJS) $(OBJS)
-	@echo "Linking $@"
+	@$(ECHO) "Linking $@"
 	@$(CC) -o $(TEXENAME) $(OPTIONS) $(TOPTIONS) $(filter-out %main.o,$(OBJS)) $(TOBJS) $(LIBS)
 
 $(TOBJS): $$(patsubst $(TOBJDIR)/%.o,$(TSRCDIR)/%.c,$$@) $$(patsubst $(TOBJDIR)/%.o,$(TDEPDIR)/%.dep,$$@) | $$(dir $$@)
-	@echo "Compiling $@"
+	@$(ECHO) "Compiling $@"
 	@$(CC) $(OPTIONS) $(TOPTIONS) -c $< -o $@
 
 $(TDEPS): $$(patsubst $(TDEPDIR)/%.dep,$(TSRCDIR)/%.c,$$@) | $$(dir $$@)
 	@set -e; $(RM) $@; \
 	 $(CC) $(OPTIONS) $(TOPTIONS) -MM -MT $(patsubst $(TDEPDIR)/%.dep,$(TOBJDIR)/%.o,$@) $< > $@.$$$$; \
-	 sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	 rm -f $@.$$$$
+	 $(SED) 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	 $(RM) $@.$$$$
 
 
 %/:
