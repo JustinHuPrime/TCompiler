@@ -107,5 +107,22 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
     }
   }
 
+  // shrink down to size
+  fileList.entries =
+      realloc(fileList.entries, sizeof(FileListEntry) * fileList.size);
+
+  // need at least one code file
+  bool noCodes = true;
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+    if (fileList.entries[idx].isCode) {
+      noCodes = false;
+      break;
+    }
+  }
+  if (noCodes) {
+    fprintf(stderr, "tlc: error: no code files provided\n");
+    err = -1;
+  }
+
   return err;
 }
