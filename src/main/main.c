@@ -67,8 +67,8 @@ int main(int argc, char *argv[]) {
         "Options:\n"
         "  --help, -h, -?    Display this information, and stop\n"
         "  --version         Display version information, and stop\n"
-        "  --arch            Set the target architecture\n"
-        "  -W...             Configure warning options\n"
+        "  --arch=...        Set the target architecture\n"
+        "  -W...=...         Configure warning options\n"
         "  --debug-dump=...  Configure debug information\n"
         "\n"
         "Please report bugs at "
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
   } else if (versionRequested((size_t)argc, argv)) {
     printf(
         "%s\n"
-        "Copyright 2019 Justin Hu\n"
+        "Copyright 2020 Justin Hu\n"
         "This software is licensed under the Apache License, Version 2.0.\n"
         "See the \"LICENSE\" file for copying conditions.\n"
         "This software is distributed on an \"AS IS\" BASIS, WITHOUT "
