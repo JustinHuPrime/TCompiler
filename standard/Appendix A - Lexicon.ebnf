@@ -5,13 +5,14 @@ whitespace = " "
            | ? any other implementation-defined whitespace ?
            | "//", ? anything excluding newline ?, newline
            | "/*", ? anything excluding "*/", "*/"
-           ;
+;
 
 token = keyword
       | punctuation
       | identifier
       | literal
-      ;
+      | magic_token
+;
 
 keyword = "module" | "import" | "opaque" | "struct" | "union"
         | "enum" | "typedef" | "if" | "else" | "while" | "do"
@@ -21,7 +22,7 @@ keyword = "module" | "import" | "opaque" | "struct" | "union"
         | "char" | "ushort" | "short" | "uint" | "int" | "wchar"
         | "ulong" | "long" | "float" | "double" | "bool" | "const"
         | "volatile"
-        ;
+;
 
 punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "."
             | "->" | "++" | "--" | "*" | "&" | "+" | "-" | "!"
@@ -30,7 +31,7 @@ punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "."
             | "||" | "?" | ":" | "=" | "*=" | "/=" | "%=" | "+="
             | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|="
             | "&&=" | "||=" | "::"
-            ;
+;
 
 identifier = ( alphabetic | "_" ), { alphabetic | digit | "_" } ;
 
@@ -40,13 +41,18 @@ literal = string_literal
         | float_literal
         | wstring_literal
         | wchar_literal
-        ;
+;
+
+magic_token = "__FILE__"
+            | "__LINE__"
+;
+
 int_literal = [ "-" | "+" ], ( nonzero_digit, { digit }
                              | "0x", hex_digit, { hex_digit }
                              | "0b", binary_digit, { binary_digit }
                              | "0", octal_digit, { octal_digit }
                              )
-                             ;
+;
 float_literal = [ "-" | "+" ], digit, { digit }, ".", digit, { digit } ;
 string_literal = '"', { alphabetic | digit | symbol | escaped | escaped_double_quote | "'" }, '"' ;
 char_literal = "'", ( alphabetic | digit | symbol | escaped | escaped_quote | '"' ), "'" ;
@@ -55,18 +61,18 @@ wchar_literal = "'", ( alphabetic | digit | symbol | escaped | escaped_wchar | e
 
 alphabetic = ? any ASCII alphabetic character ?
            | ? any implementation-defined alphabetic characters ?
-           ;
+;
 nonzero_digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 digit = "0"
       | nonzero_digit
-      ;
+;
 symbol = ? any ASCII symbol plus space ?
        | ? any implementation-defined symbols or spaces ?
-       ;
+;
 hex_digit = digit
           | "a" | "b" | "c" | "d" | "e" | "f"
           | "A" | "B" | "C" | "D" | "E" | "F"
-          ;
+;
 binary_digit = "0" | "1" ;
 octal_digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
 escaped = "\n" | "\r" | "\t" | "\0" | "\\" | "\x", hex_digit, hex_digit ;
