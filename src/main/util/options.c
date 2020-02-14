@@ -20,8 +20,8 @@
 #include <string.h>
 
 Options options = {
-    ARCH_OPTION_X86_64,   POSITION_DEPENDENCE_OPTION_PDC, WARNING_OPTION_ERROR,
-    WARNING_OPTION_ERROR, DEBUG_DUMP_OPTION_NONE,
+    OPTION_A_X86_OPTION_PD_PDCON_PDC, WARNING_OPTOPTION_W_ERROR
+    OPTION_W_ERROR, DEBUG_OPTION_DD_NONE
 };
 
 int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
@@ -36,29 +36,29 @@ int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
       numFiles += argc - idx - 1;
       break;
     } else if (strcmp(argv[idx], "--arch=x86_64") == 0) {
-      options.arch = ARCH_OPTION_X86_64;
+      options.arch = OPTION_A_X86_64;
     } else if (strcmp(argv[idx], "-fPDC") == 0) {
-      options.positionDependence = POSITION_DEPENDENCE_OPTION_PDC;
+      options.positionDependence = OPTION_PD_PDC;
     } else if (strcmp(argv[idx], "-fPIE") == 0) {
-      options.positionDependence = POSITION_DEPENDENCE_OPTION_PIE;
+      options.positionDependence = OPTION_PD_PIE;
     } else if (strcmp(argv[idx], "-fPIC") == 0) {
-      options.positionDependence = POSITION_DEPENDENCE_OPTION_PIC;
+      options.positionDependence = OPTION_PD_PIC;
     } else if (strcmp(argv[idx], "-Wduplicate-file=error") == 0) {
-      options.duplicateFile = WARNING_OPTION_ERROR;
+      options.duplicateFile = OPTION_W_ERROR;
     } else if (strcmp(argv[idx], "-Wduplicate-file=warn") == 0) {
-      options.duplicateFile = WARNING_OPTION_WARN;
+      options.duplicateFile = OPTION_W_WARN;
     } else if (strcmp(argv[idx], "-Wduplicate-file=ignore") == 0) {
-      options.duplicateFile = WARNING_OPTION_IGNORE;
+      options.duplicateFile = OPTION_W_IGNORE;
     } else if (strcmp(argv[idx], "-Wunrecognized-file=error") == 0) {
-      options.unrecognizedFile = WARNING_OPTION_ERROR;
+      options.unrecognizedFile = OPTION_W_ERROR;
     } else if (strcmp(argv[idx], "-Wunrecognized-file=warn") == 0) {
-      options.unrecognizedFile = WARNING_OPTION_WARN;
+      options.unrecognizedFile = OPTION_W_WARN;
     } else if (strcmp(argv[idx], "-Wunrecognized-file=ignore") == 0) {
-      options.unrecognizedFile = WARNING_OPTION_IGNORE;
+      options.unrecognizedFile = OPTION_W_IGNORE;
     } else if (strcmp(argv[idx], "--debug-dump=none") == 0) {
-      options.dump = DEBUG_DUMP_OPTION_NONE;
+      options.dump = OPTION_DD_NONE;
     } else if (strcmp(argv[idx], "--debug-dump=lex") == 0) {
-      options.dump = DEBUG_DUMP_OPTION_LEX;
+      options.dump = OPTION_DD_LEX;
     } else {
       fprintf(stderr, "tlc: error: options '%s' not recognized\n", argv[idx]);
       return -1;

@@ -26,24 +26,24 @@
 
 /** Possible architectures to target */
 typedef enum {
-  ARCH_OPTION_X86_64,
+  OPTION_A_X86_64,
 } ArchOption;
 /** Position dependence options */
 typedef enum {
-  POSITION_DEPENDENCE_OPTION_PDC,
-  POSITION_DEPENDENCE_OPTION_PIE,
-  POSITION_DEPENDENCE_OPTION_PIC,
+  OPTION_PD_PDC,
+  OPTION_PD_PIE,
+  OPTION_PD_PIC,
 } PositionDependenceOption;
 /** Warning levels */
 typedef enum {
-  WARNING_OPTION_IGNORE,
-  WARNING_OPTION_WARN,
-  WARNING_OPTION_ERROR,
+  OPTION_W_IGNORE,
+  OPTION_W_WARN,
+  OPTION_W_ERROR,
 } WarningOption;
 /** Debug display points */
 typedef enum {
-  DEBUG_DUMP_OPTION_NONE,
-  DEBUG_DUMP_OPTION_LEX,
+  OPTION_DD_NONE,
+  OPTION_DD_LEX,
 } DebugDumpOption;
 /** Holds options */
 typedef struct {

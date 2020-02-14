@@ -58,16 +58,16 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
       } else {
         // unrecognized
         switch (options.unrecognizedFile) {
-          case WARNING_OPTION_ERROR: {
+          case OPTION_W_ERROR: {
             fprintf(stderr, "%s: error: unrecognized extension\n", argv[idx]);
             err = -1;
             break;
           }
-          case WARNING_OPTION_WARN: {
+          case OPTION_W_WARN: {
             fprintf(stderr, "%s: warning: unrecognized extension\n", argv[idx]);
             break;
           }
-          case WARNING_OPTION_IGNORE: {
+          case OPTION_W_IGNORE: {
             break;
           }
         }
@@ -83,16 +83,16 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
         }
         if (duplicate) {
           switch (options.duplicateFile) {
-            case WARNING_OPTION_ERROR: {
+            case OPTION_W_ERROR: {
               fprintf(stderr, "%s: error: duplicated file\n", argv[idx]);
               err = -1;
               break;
             }
-            case WARNING_OPTION_WARN: {
+            case OPTION_W_WARN: {
               fprintf(stderr, "%s: warning: duplicated file\n", argv[idx]);
               break;
             }
-            case WARNING_OPTION_IGNORE: {
+            case OPTION_W_IGNORE: {
               break;
             }
           }

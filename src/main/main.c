@@ -47,12 +47,12 @@ static bool helpRequested(size_t argc, char *argv[]) {
 
 // possible return values for main
 enum {
-  SUCCESS = EXIT_SUCCESS,
-  OPTION_ERROR,
-  FILE_ERROR,
-  PARSE_ERROR,
-  BUILD_STAB_ERROR,
-  TYPECHECK_ERROR,
+  CODE_SUCCESS = EXIT_SUCCESS,
+  CODE_OPTION_ERROR,
+  CODE_FILE_ERROR,
+  CODE_PARSE_ERROR,
+  CODE_BUILD_STAB_ERROR,
+  CODE_TYPECHECK_ERROR,
 };
 
 // compile the given declaration and code files into one assembly file per code
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
         "\n"
         "Please report bugs at "
         "<https://github.com/JustinHuPrime/TCompiler/issues>\n");
-    return SUCCESS;
+    return CODE_SUCCESS;
   } else if (versionRequested((size_t)argc, argv)) {
     printf(
         "%s\n"
@@ -84,17 +84,21 @@ int main(int argc, char *argv[]) {
         "WARRANTIES OR\n"
         "CONDITIONS OF ANY KIND\n",
         VERSION_STRING);
-    return SUCCESS;
+    return CODE_SUCCESS;
   }
 
   // parse options, get number of files
   size_t numFiles;
   if (parseArgs((size_t)argc, (char const *const *)argv, &numFiles) != 0)
-    return OPTION_ERROR;
+    return CODE_OPTION_ERROR;
 
   // fill in global file list
   if (parseFiles((size_t)argc, (char const *const *)argv, numFiles) != 0)
-    return FILE_ERROR;
+    return CODE_FILE_ERROR;
 
-  return SUCCESS;
+  // debug-dump stop for lexing
+  if (options.dump == OPTION_DD_LEX) {
+  }
+
+  return CODE_SUCCESS;
 }
