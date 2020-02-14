@@ -57,6 +57,7 @@ typedef struct {
 /**
  * Parses arguments into global options object. Counts number of files as a
  * side effect
+ *
  * @param argc number of arguments
  * @param argv argument list, as pointer to c-strings
  * @param numFiles output parameter for number of files
