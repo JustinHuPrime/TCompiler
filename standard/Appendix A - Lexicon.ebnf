@@ -36,11 +36,11 @@ punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "."
 identifier = ( alphabetic | "_" ), { alphabetic | digit | "_" } ;
 
 literal = string_literal
+        | wstring_literal
         | char_literal
+        | wchar_literal
         | int_literal
         | float_literal
-        | wstring_literal
-        | wchar_literal
 ;
 
 magic_token = "__FILE__"
