@@ -148,9 +148,28 @@ typedef struct {
   char *string; /**< optional, depends on Token#type */
 } Token;
 
+/**
+ * initializes a token
+ *
+ * @param token token to initialize
+ * @param type type of token
+ * @param line line of token in source file
+ * @param character character of token in source file
+ * @param string additional data, may be null, depends on type
+ */
+void tokenInit(Token *token, TokenType type, size_t line, size_t character,
+               char *string);
+
+/**
+ * uninitializes the token
+ *
+ * @param token token to deinitialize
+ */
+void tokenUninit(Token *token);
+
 /** internal state for a lexer for some file */
 typedef struct {
-  char const *map;     /**< mmap of file */
+  char *map;           /**< mmap of file */
   size_t length;       /**< length of file */
   char const *current; /**< character about to be read */
 

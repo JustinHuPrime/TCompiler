@@ -18,12 +18,32 @@
 
 #include "fileList.h"
 
+#include <assert.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+void tokenInit(Token *token, TokenType type, size_t line, size_t character,
+               char *string) {
+  token->type = type;
+  token->line = line;
+  token->character = character;
+  token->string = string;
+
+  // consistency check
+  assert(token->string == NULL ||
+         (token->type >= TT_ID && token->type <= TT_LIT_FLOAT));
+}
+
+void tokenUninit(Token *token) {
+  // if the token is known to have a string, free it
+  if (token->type >= TT_ID && token->type <= TT_LIT_FLOAT) free(token->string);
+}
 
 int lexerStateInit(FileListEntry *entry) {
   entry->lexerState.character = 0;
@@ -42,7 +62,7 @@ int lexerStateInit(FileListEntry *entry) {
     close(fd);
     return -1;
   }
-  entry->lexerState.map =
+  entry->lexerState.current = entry->lexerState.map =
       mmap(NULL, (size_t)statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
   close(fd);
   if (entry->lexerState.map == (void *)-1) {
@@ -53,4 +73,18 @@ int lexerStateInit(FileListEntry *entry) {
   entry->lexerState.length = (size_t)statbuf.st_size;
 
   return 0;
+}
+
+int lex(FileListEntry *entry, Token *token) {}
+
+void unLex(FileListEntry *entry, Token const *token) {
+  // only one token of lookahead is allowed
+  assert(!entry->lexerState.pushedBack);
+  entry->lexerState.pushedBack = true;
+  memcpy(&entry->lexerState.previous, token, sizeof(Token));
+}
+
+void lexerStateUninit(FileListEntry *entry) {
+  munmap((void *)entry->lexerState.map, entry->lexerState.length);
+  if (entry->lexerState.pushedBack) tokenUninit(&entry->lexerState.previous);
 }
