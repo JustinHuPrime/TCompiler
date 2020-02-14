@@ -22,16 +22,20 @@
 #ifndef TLC_FILE_LIST_H_
 #define TLC_FILE_LIST_H_
 
+#include "lexer/lexer.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 
 /** an entry in the filelist */
-typedef struct {
-  char const *inputName;
+typedef struct FileListEntry {
+  char const *inputFile;
   bool isCode;
+  LexerState lexerState;
 } FileListEntry;
 /**
  * constructs a FileListEntry in-place
+ *
  * @param entry entry to create
  * @param inputName name of input file
  * @param isCode is the file a code file?
@@ -40,6 +44,7 @@ void fileListEntryInit(FileListEntry *entry, char const *inputName,
                        bool isCode);
 /**
  * destroys a FileListEntry in-place
+ *
  * @param entry entry to destroy
  */
 void fileListEntryUninit(FileListEntry *entry);
@@ -52,6 +57,7 @@ typedef struct {
 
 /**
  * creates the global file list object from command line args
+ *
  * @param argc number of arguments
  * @param argv argument list, as pointer to c-strings
  * @param numFiles maximum number of files (from parseArgs())
