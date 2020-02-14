@@ -24,8 +24,14 @@
 
 #include <stddef.h>
 
-// report an internal compiler error coming from the given file and line, with
-// the given message
+/**
+ * Report an internal compiler error. Error is specified as coming from the
+ * given file and line, with the given message
+ *
+ * @param file should be the macro \_\_FILE\_\_
+ * @param line should be the macro \_\_LINE\_\_
+ * @param message message to display
+ */
 void error(char const *file, size_t line, char const *message)
     __attribute__((noreturn));
 
