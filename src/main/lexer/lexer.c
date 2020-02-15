@@ -81,7 +81,34 @@ int lexerStateInit(FileListEntry *entry) {
   return 0;
 }
 
-int lex(FileListEntry *entry, Token *token) {}
+/**
+ * gets a character from the lexer, returns '\x04' if end of file
+ */
+static char get(LexerState *lexerState) {
+  if (lexerState->current >= lexerState->map + lexerState->length)
+    return '\x04';
+  else
+    return *lexerState->current++;
+}
+/**
+ * returns n characters to the lexer
+ * must match with a get - i.e. may not put before beginning
+ */
+static char put(LexerState *lexerState, size_t n) {
+  lexerState->current -= n;
+  assert(lexerState->current >= lexerState->map);
+}
+/**
+ * consumes whitespace while updating the entry
+ * @param entry entry to munch from
+ */
+static void lexWhitespace(FileListEntry *entry) {}
+
+int lex(FileListEntry *entry, Token *token) {
+  // munch whitespace
+  lexWhitespace(entry);
+  // return a token
+}
 
 void unLex(FileListEntry *entry, Token const *token) {
   // only one token of lookahead is allowed
