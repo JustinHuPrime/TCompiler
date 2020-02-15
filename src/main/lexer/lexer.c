@@ -31,16 +31,16 @@
 /**
  * initializes a token
  *
- * @param lexerState LexerState to draw line and character from
+ * @param state LexerState to draw line and character from
  * @param token token to initialize
  * @param type type of token
  * @param string additional data, may be null, depends on type
  */
-static void tokenInit(LexerState *lexerState, Token *token, TokenType type,
+static void tokenInit(LexerState *state, Token *token, TokenType type,
                       char *string) {
   token->type = type;
-  token->line = lexerState->line;
-  token->character = lexerState->character;
+  token->line = state->line;
+  token->character = state->character;
   token->string = string;
 
   // consistency check
@@ -50,11 +50,11 @@ static void tokenInit(LexerState *lexerState, Token *token, TokenType type,
 
 void tokenUninit(Token *token) { free(token->string); }
 
-int lexerStateInit(FileListEntry *entry) {
-  LexerState *lexerState = &entry->lexerState;
-  lexerState->character = 0;
-  lexerState->line = 0;
-  lexerState->pushedBack = 0;
+int stateInit(FileListEntry *entry) {
+  LexerState *state = &entry->lexerState;
+  state->character = 0;
+  state->line = 0;
+  state->pushedBack = 0;
 
   // try to map the file
   int fd = open(entry->inputFile, O_RDONLY);
@@ -68,15 +68,15 @@ int lexerStateInit(FileListEntry *entry) {
     close(fd);
     return -1;
   }
-  lexerState->current = lexerState->map =
+  state->current = state->map =
       mmap(NULL, (size_t)statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
   close(fd);
-  if (lexerState->map == (void *)-1) {
+  if (state->map == (void *)-1) {
     fprintf(stderr, "%s: error: cannot open file\n", entry->inputFile);
     return -1;
   }
 
-  lexerState->length = (size_t)statbuf.st_size;
+  state->length = (size_t)statbuf.st_size;
 
   return 0;
 }
@@ -84,19 +84,19 @@ int lexerStateInit(FileListEntry *entry) {
 /**
  * gets a character from the lexer, returns '\x04' if end of file
  */
-static char get(LexerState *lexerState) {
-  if (lexerState->current >= lexerState->map + lexerState->length)
+static char get(LexerState *state) {
+  if (state->current >= state->map + state->length)
     return '\x04';
   else
-    return *lexerState->current++;
+    return *state->current++;
 }
 /**
  * returns n characters to the lexer
  * must match with a get - i.e. may not put before beginning
  */
-static char put(LexerState *lexerState, size_t n) {
-  lexerState->current -= n;
-  assert(lexerState->current >= lexerState->map);
+static char put(LexerState *state, size_t n) {
+  state->current -= n;
+  assert(state->current >= state->map);
 }
 /**
  * consumes whitespace while updating the entry
@@ -112,14 +112,14 @@ int lex(FileListEntry *entry, Token *token) {
 
 void unLex(FileListEntry *entry, Token const *token) {
   // only one token of lookahead is allowed
-  LexerState *lexerState = &entry->lexerState;
-  assert(!lexerState->pushedBack);
-  lexerState->pushedBack = true;
-  memcpy(&lexerState->previous, token, sizeof(Token));
+  LexerState *state = &entry->lexerState;
+  assert(!state->pushedBack);
+  state->pushedBack = true;
+  memcpy(&state->previous, token, sizeof(Token));
 }
 
-void lexerStateUninit(FileListEntry *entry) {
-  LexerState *lexerState = &entry->lexerState;
-  munmap((void *)lexerState->map, lexerState->length);
-  if (lexerState->pushedBack) tokenUninit(&lexerState->previous);
+void stateUninit(FileListEntry *entry) {
+  LexerState *state = &entry->lexerState;
+  munmap((void *)state->map, state->length);
+  if (state->pushedBack) tokenUninit(&state->previous);
 }
