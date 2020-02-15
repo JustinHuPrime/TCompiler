@@ -14,14 +14,21 @@
 //
 // This file is part of the T Language Compiler.
 
-// Formatted string building
+/**
+ * @file
+ * Formatted string building
+ */
 
 #ifndef TLC_UTIL_FORMAT_H_
 #define TLC_UTIL_FORMAT_H_
 
 #include <stdio.h>
 
-// using a printf format string to print into a malloced string
+/**
+ * create a string (caller owns the memory) from a printf format string
+ *
+ * @param format printf format string
+ */
 char *format(char const *format, ...) __attribute__((format(printf, 1, 2)));
 
 #endif  // TLC_UTIL_FORMAT_H_
