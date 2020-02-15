@@ -4,7 +4,7 @@ whitespace = " "
            | ? tab ?
            | ? newline ?
            | ? any other implementation-defined whitespace ?
-           | "//", ? anything excluding newline ?, newline
+           | "//", ? anything excluding newline and eof ?, [ newline ]
            | "/*", ? anything excluding "*/", "*/"
 ;
 

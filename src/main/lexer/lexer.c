@@ -50,7 +50,7 @@ static void tokenInit(LexerState *state, Token *token, TokenType type,
 
 void tokenUninit(Token *token) { free(token->string); }
 
-int stateInit(FileListEntry *entry) {
+int lexerStateInit(FileListEntry *entry) {
   LexerState *state = &entry->lexerState;
   state->character = 0;
   state->line = 0;
@@ -94,7 +94,7 @@ static char get(LexerState *state) {
  * returns n characters to the lexer
  * must match with a get - i.e. may not put before beginning
  */
-static char put(LexerState *state, size_t n) {
+static void put(LexerState *state, size_t n) {
   state->current -= n;
   assert(state->current >= state->map);
 }
@@ -122,8 +122,99 @@ static int lexWhitespace(FileListEntry *entry) {
         state->character = 1;
         state->line++;
         // handle cr-lf
+        char lf = get(state);
+        if (lf != '\n') put(state, 1);
+        break;
+      }
+      case '/': {
         char next = get(state);
-        if (next != '\n') put(state, 1);
+        switch (next) {
+          case '/': {
+            // line comment
+            state->character += 2;
+
+            bool inComment = true;
+            while (inComment) {
+              char commentChar = get(state);
+              switch (commentChar) {
+                case '\x04': {
+                  // eof
+                  inComment = false;
+                  put(state, 1);
+                  break;
+                }
+                case '\n': {
+                  inComment = false;
+                  state->character = 1;
+                  state->line += 1;
+                  break;
+                }
+                case '\r': {
+                  inComment = false;
+                  state->character = 1;
+                  state->line += 1;
+                  // handle cr-lf
+                  char lf = get(state);
+                  if (lf != '\n') put(state, 1);
+                  break;
+                }
+                default: {
+                  // much that
+                  state->character += 1;
+                  break;
+                }
+              }
+            }
+            break;
+          }
+          case '*': {
+            state->character += 2;
+
+            bool inComment = true;
+            while (inComment) {
+              char commentChar = get(state);
+              switch (commentChar) {
+                case '\x04': {
+                  fprintf(stderr,
+                          "%s:%zu:%zu: error: unterminated block comment\n",
+                          entry->inputFile, state->line, state->character);
+                  return -1;
+                }
+                case '\n': {
+                  state->character = 1;
+                  state->line += 1;
+                  break;
+                }
+                case '\r': {
+                  state->character = 1;
+                  state->line += 1;
+                  // handle cr-lf
+                  char lf = get(state);
+                  if (lf != '\n') put(state, 1);
+                  break;
+                }
+                case '*': {
+                  // maybe the end?
+                  char slash = get(state);
+                  state->character += 2;
+                  inComment = slash != '/';
+                  break;
+                }
+                default: {
+                  state->character += 1;
+                  break;
+                }
+              }
+            }
+            break;
+          }
+          default: {
+            // not a comment, return initial slash and second char
+            put(state, 2);
+            whitespace = false;
+            break;
+          }
+        }
         break;
       }
       default: {
@@ -134,11 +225,13 @@ static int lexWhitespace(FileListEntry *entry) {
       }
     }
   }
+
+  return 0;
 }
 
 int lex(FileListEntry *entry, Token *token) {
   // munch whitespace
-  lexWhitespace(entry);
+  if (lexWhitespace(entry) != 0) return -1;
   // return a token
 }
 
@@ -150,7 +243,7 @@ void unLex(FileListEntry *entry, Token const *token) {
   memcpy(&state->previous, token, sizeof(Token));
 }
 
-void stateUninit(FileListEntry *entry) {
+void lexerStateUninit(FileListEntry *entry) {
   LexerState *state = &entry->lexerState;
   munmap((void *)state->map, state->length);
   if (state->pushedBack) tokenUninit(&state->previous);
