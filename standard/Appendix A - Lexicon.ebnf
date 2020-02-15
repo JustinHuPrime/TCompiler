@@ -1,6 +1,7 @@
-file = { [ whitespace ], token }, [ whitespace ], eof ;
+file = { { whitespace }, token }, { whitespace }, eof ;
 
 whitespace = " "
+           | ? tab ?
            | ? newline ?
            | ? any other implementation-defined whitespace ?
            | "//", ? anything excluding newline ?, newline

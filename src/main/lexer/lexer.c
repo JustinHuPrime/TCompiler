@@ -102,7 +102,39 @@ static char put(LexerState *state, size_t n) {
  * consumes whitespace while updating the entry
  * @param entry entry to munch from
  */
-static void lexWhitespace(FileListEntry *entry) {}
+static int lexWhitespace(FileListEntry *entry) {
+  LexerState *state = &entry->lexerState;
+  bool whitespace = true;
+  while (whitespace) {
+    char c = get(state);
+    switch (c) {
+      case ' ':
+      case '\t': {
+        state->character += 1;
+        break;
+      }
+      case '\n': {
+        state->character = 1;
+        state->line++;
+        break;
+      }
+      case '\r': {
+        state->character = 1;
+        state->line++;
+        // handle cr-lf
+        char next = get(state);
+        if (next != '\n') put(state, 1);
+        break;
+      }
+      default: {
+        // not whitespace anymore
+        put(state, 1);
+        whitespace = false;
+        break;
+      }
+    }
+  }
+}
 
 int lex(FileListEntry *entry, Token *token) {
   // munch whitespace
