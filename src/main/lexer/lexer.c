@@ -40,15 +40,13 @@ void tokenInit(Token *token, TokenType type, size_t line, size_t character,
          (token->type >= TT_ID && token->type <= TT_LIT_FLOAT));
 }
 
-void tokenUninit(Token *token) {
-  // if the token is known to have a string, free it
-  if (token->type >= TT_ID && token->type <= TT_LIT_FLOAT) free(token->string);
-}
+void tokenUninit(Token *token) { free(token->string); }
 
 int lexerStateInit(FileListEntry *entry) {
-  entry->lexerState.character = 0;
-  entry->lexerState.line = 0;
-  entry->lexerState.pushedBack = 0;
+  LexerState *lexerState = &entry->lexerState;
+  lexerState->character = 0;
+  lexerState->line = 0;
+  lexerState->pushedBack = 0;
 
   // try to map the file
   int fd = open(entry->inputFile, O_RDONLY);
@@ -62,15 +60,15 @@ int lexerStateInit(FileListEntry *entry) {
     close(fd);
     return -1;
   }
-  entry->lexerState.current = entry->lexerState.map =
+  lexerState->current = lexerState->map =
       mmap(NULL, (size_t)statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
   close(fd);
-  if (entry->lexerState.map == (void *)-1) {
+  if (lexerState->map == (void *)-1) {
     fprintf(stderr, "%s: error: cannot open file\n", entry->inputFile);
     return -1;
   }
 
-  entry->lexerState.length = (size_t)statbuf.st_size;
+  lexerState->length = (size_t)statbuf.st_size;
 
   return 0;
 }
@@ -79,12 +77,14 @@ int lex(FileListEntry *entry, Token *token) {}
 
 void unLex(FileListEntry *entry, Token const *token) {
   // only one token of lookahead is allowed
-  assert(!entry->lexerState.pushedBack);
-  entry->lexerState.pushedBack = true;
-  memcpy(&entry->lexerState.previous, token, sizeof(Token));
+  LexerState *lexerState = &entry->lexerState;
+  assert(!lexerState->pushedBack);
+  lexerState->pushedBack = true;
+  memcpy(&lexerState->previous, token, sizeof(Token));
 }
 
 void lexerStateUninit(FileListEntry *entry) {
-  munmap((void *)entry->lexerState.map, entry->lexerState.length);
-  if (entry->lexerState.pushedBack) tokenUninit(&entry->lexerState.previous);
+  LexerState *lexerState = &entry->lexerState;
+  munmap((void *)lexerState->map, lexerState->length);
+  if (lexerState->pushedBack) tokenUninit(&lexerState->previous);
 }
