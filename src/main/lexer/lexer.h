@@ -149,18 +149,6 @@ typedef struct {
 } Token;
 
 /**
- * initializes a token
- *
- * @param token token to initialize
- * @param type type of token
- * @param line line of token in source file
- * @param character character of token in source file
- * @param string additional data, may be null, depends on type
- */
-void tokenInit(Token *token, TokenType type, size_t line, size_t character,
-               char *string);
-
-/**
  * uninitializes the token
  *
  * @param token token to deinitialize

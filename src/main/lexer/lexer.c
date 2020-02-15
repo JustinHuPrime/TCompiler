@@ -28,11 +28,19 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-void tokenInit(Token *token, TokenType type, size_t line, size_t character,
-               char *string) {
+/**
+ * initializes a token
+ *
+ * @param lexerState LexerState to draw line and character from
+ * @param token token to initialize
+ * @param type type of token
+ * @param string additional data, may be null, depends on type
+ */
+static void tokenInit(LexerState *lexerState, Token *token, TokenType type,
+                      char *string) {
   token->type = type;
-  token->line = line;
-  token->character = character;
+  token->line = lexerState->line;
+  token->character = lexerState->character;
   token->string = string;
 
   // consistency check
