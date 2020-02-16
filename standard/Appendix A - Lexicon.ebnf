@@ -53,6 +53,7 @@ int_literal = [ "-" | "+" ], ( nonzero_digit, { digit }
                              | "0x", hex_digit, { hex_digit }
                              | "0b", binary_digit, { binary_digit }
                              | "0", octal_digit, { octal_digit }
+                             | "0"
                              )
 ;
 float_literal = [ "-" | "+" ], digit, { digit }, ".", digit, { digit } ;
@@ -76,7 +77,7 @@ hex_digit = digit
           | "A" | "B" | "C" | "D" | "E" | "F"
 ;
 binary_digit = "0" | "1" ;
-octal_digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
+octal_digit = binary_digit | "2" | "3" | "4" | "5" | "6" | "7" ;
 escaped = "\n" | "\r" | "\t" | "\0" | "\\" | "\x", hex_digit, hex_digit ;
 escaped_wchar = "\u", hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex_digit ;
 escaped_quote = "\'" ;

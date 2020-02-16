@@ -19,6 +19,7 @@
 #include "fileList.h"
 #include "util/conversions.h"
 #include "util/format.h"
+#include "util/internalError.h"
 
 #include <assert.h>
 #include <fcntl.h>
@@ -232,13 +233,113 @@ static int lexWhitespace(FileListEntry *entry) {
   return 0;
 }
 
-/** lexes a number */
-static int lexNumber(FileListEntry *entry, Token *token) {
-  // TODO: write this
-  return -1;
+/** gets a clip as a token, from some starting pointer */
+static void clip(LexerState *state, Token *token, char const *start,
+                 TokenType type) {
+  size_t length = (size_t)(state->current - start);
+  char *clip = strncpy(malloc(length + 1), start, length);
+  clip[length] = '\0';
+  tokenInit(state, token, type, clip);
+  state->character += length + 1;
 }
 
-/** lexes an identifier */
+/** lexes a hexadecimal number, prefix already lexed */
+static int lexHex(FileListEntry *entry, Token *token, char const *start) {
+  LexerState *state = &entry->lexerState;
+  return -1;  // TODO: write this
+}
+
+/** lexes a decimal number, prefix already lexed */
+static int lexDecimal(FileListEntry *entry, Token *token, char const *start) {
+  LexerState *state = &entry->lexerState;
+
+  TokenType type = TT_LIT_INT_D;
+  while (true) {
+    char c = get(state);
+    if (!((c >= '0' && c <= '9') || c == '.')) {
+      // end of decimal
+      put(state, 1);
+      clip(state, token, start, type);
+      return 0;
+    } else if (c == '.') {
+      // is a float, actually
+      type = TT_LIT_FLOAT;
+    }
+  }
+}
+
+/** lexes an octal number, prefix already lexed */
+static int lexOctal(FileListEntry *entry, Token *token, char const *start) {
+  return -1;  // TODO: write this
+}
+
+/** lexes a binary number, prefix already lexed */
+static int lexBinary(FileListEntry *entry, Token *token, char const *start) {
+  return -1;  // TODO: write this
+}
+
+/** lexes a number, must start with [+-][0-9] */
+static int lexNumber(FileListEntry *entry, Token *token) {
+  LexerState *state = &entry->lexerState;
+  char const *start = state->current;
+
+  char sign = get(state);
+
+  char next;
+  if (sign != '-' && sign != '+') {
+    next = sign;
+  } else {
+    next = get(state);
+  }
+
+  if (next == '0') {
+    // [+-]0
+    // maybe hex, dec (float), oct, bin, or zero
+    char second = get(state);
+    switch (second) {
+      case 'b': {
+        // [+-]0b
+        // is binary, lex it
+        return lexBinary(entry, token, start);
+      }
+      case 'x': {
+        // [+-]0x
+        // is hex, lex it
+        return lexHex(entry, token, start);
+      }
+      default: {
+        if (second >= '0' && second <= '7') {
+          // [+-]0[0-7]
+          // is octal, return the digit and lex it
+          put(state, 1);
+          return lexOctal(entry, token, start);
+        } else if (second == '.') {
+          // [+-]0.
+          // is a decimal, return the dot and the zero, and lex it
+          put(state, 2);
+          return lexDecimal(entry, token, start);
+        } else {
+          // just a zero - [+-]0
+          clip(state, token, start, TT_LIT_INT_0);
+          return 0;
+        }
+      }
+    }
+  } else if (next >= '1' && next <= '9') {
+    // [+-][1-9]
+    // is decimal, return first char, and lex it
+    put(state, 1);
+    return lexDecimal(entry, token, start);
+  } else {
+    // just [+-], not a number, error!
+    error(__FILE__, __LINE__, "lexNumber called when not a number!");
+  }
+}
+
+/**
+ * lexes an identifier, keyword, or magic token, first character must be a valid
+ * first character for an identifier or a token.
+ */
 static int lexId(FileListEntry *entry, Token *token) {
   // TODO: write this
   return -1;
