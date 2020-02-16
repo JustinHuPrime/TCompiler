@@ -17,9 +17,12 @@
 #include "lexer/lexer.h"
 
 #include "fileList.h"
+#include "util/conversions.h"
+#include "util/format.h"
 
 #include <assert.h>
 #include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -243,8 +246,12 @@ static int lexId(FileListEntry *entry, Token *token) {
 
 /** creates a pretty-print string for a character */
 static char *prettyPrintChar(char c) {
-  // TODO: write this
-  return NULL;
+  if ((c >= ' ' && c <= '~')) {
+    return format("'%c'", c);
+  } else {
+    uint8_t punned = charToU8(c);
+    return format("'\\x%hhu%hhu'", (punned >> 4) & 0xf, (punned >> 0) & 0xf);
+  }
 }
 
 int lex(FileListEntry *entry, Token *token) {
