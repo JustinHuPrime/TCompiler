@@ -629,6 +629,47 @@ int lex(FileListEntry *entry, Token *token) {
         }
       }
     }
+    case '^': {
+      char next = get(state);
+      switch (next) {
+        case '=': {
+          // ^=
+          tokenInit(state, token, TT_XORASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          // just ^
+          put(state, 1);
+          tokenInit(state, token, TT_CARET, NULL);
+          state->character += 1;
+          return 0;
+        }
+      }
+    }
+    case '?': {
+      tokenInit(state, token, TT_QUESTION, NULL);
+      state->character += 1;
+      return 0;
+    }
+    case ':': {
+      char next = get(state);
+      switch (next) {
+        case ':': {
+          // ::
+          tokenInit(state, token, TT_SCOPE, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          // just :
+          put(state, 1);
+          tokenInit(state, token, TT_COLON, NULL);
+          state->character += 1;
+          return 0;
+        }
+      }
+    }
 
     // everything else
     default: {
