@@ -229,6 +229,12 @@ static int lexWhitespace(FileListEntry *entry) {
   return 0;
 }
 
+/** lexes a number */
+static int lexNumber(FileListEntry *entry, Token *token) {
+  // TODO: write this
+  return -1;
+}
+
 int lex(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
   // munch whitespace
@@ -236,10 +242,13 @@ int lex(FileListEntry *entry, Token *token) {
   // return a token
   char c = get(state);
   switch (c) {
+    // EOF
     case '\x04': {
       tokenInit(state, token, TT_EOF, NULL);
       return 0;
     }
+
+    // punctuation
     case ';': {
       tokenInit(state, token, TT_SEMI, NULL);
       state->character += 1;
@@ -285,6 +294,92 @@ int lex(FileListEntry *entry, Token *token) {
       state->character += 1;
       return 0;
     }
+    case '-': {
+      char next = get(state);
+      switch (next) {
+        case '>': {
+          // ->
+          tokenInit(state, token, TT_ARROW, NULL);
+          state->character += 2;
+          return 0;
+        }
+        case '-': {
+          // --
+          tokenInit(state, token, TT_DEC, NULL);
+          state->character += 2;
+          return 0;
+        }
+        case '=': {
+          // -=
+          tokenInit(state, token, TT_SUBASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          if (next >= '0' && next <= '9') {
+            // number, return - and zero
+            put(state, 2);
+            return lexNumber(entry, token);
+          } else {
+            // just -
+            put(state, 1);
+            tokenInit(state, token, TT_MINUS, NULL);
+            state->character += 1;
+            return 0;
+          }
+        }
+      }
+    }
+    case '+': {
+      char next = get(state);
+      switch (next) {
+        case '+': {
+          // ++
+          tokenInit(state, token, TT_INC, NULL);
+          state->character += 2;
+          return 0;
+        }
+        case '=': {
+          // +=
+          tokenInit(state, token, TT_ADDASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          if (next >= '0' && next <= '9') {
+            // number, return + and zero
+            put(state, 2);
+            return lexNumber(entry, token);
+          } else {
+            // just +
+            put(state, 1);
+            tokenInit(state, token, TT_PLUS, NULL);
+            state->character += 1;
+            return 0;
+          }
+        }
+      }
+    }
+    case '*': {
+      char next = get(state);
+      switch (next) {
+        case '=': {
+          // *=
+          tokenInit(state, token, TT_MULASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          // just *
+          put(state, 1);
+          tokenInit(state, token, TT_STAR, NULL);
+          state->character += 1;
+          return 0;
+        }
+      }
+    }
+
+    // everything else
     default: {
       // TODO: handle unexpected char
       return -1;
