@@ -29,6 +29,9 @@ typedef struct FileListEntry FileListEntry;
 
 /** the type of a token */
 typedef enum {
+  // end of file
+  TT_EOF,
+
   // keywords
   TT_MODULE,
   TT_IMPORT,

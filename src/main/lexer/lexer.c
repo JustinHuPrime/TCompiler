@@ -230,9 +230,66 @@ static int lexWhitespace(FileListEntry *entry) {
 }
 
 int lex(FileListEntry *entry, Token *token) {
+  LexerState *state = &entry->lexerState;
   // munch whitespace
   if (lexWhitespace(entry) != 0) return -1;
   // return a token
+  char c = get(state);
+  switch (c) {
+    case '\x04': {
+      tokenInit(state, token, TT_EOF, NULL);
+      return 0;
+    }
+    case ';': {
+      tokenInit(state, token, TT_SEMI, NULL);
+      state->character += 1;
+      return 0;
+    }
+    case ',': {
+      tokenInit(state, token, TT_COMMA, NULL);
+      state->character += 1;
+      return 0;
+    }
+    case '(': {
+      tokenInit(state, token, TT_LPAREN, NULL);
+      state->character += 1;
+      return 0;
+    }
+    case ')': {
+      tokenInit(state, token, TT_RPAREN, NULL);
+      state->character += 1;
+      return 0;
+    }
+    case '[': {
+      tokenInit(state, token, TT_LSQUARE, NULL);
+      state->character += 1;
+      return 0;
+    }
+    case ']': {
+      tokenInit(state, token, TT_RSQUARE, NULL);
+      state->character += 1;
+      return 0;
+    }
+    case '{': {
+      tokenInit(state, token, TT_LBRACE, NULL);
+      state->character += 1;
+      return 0;
+    }
+    case '}': {
+      tokenInit(state, token, TT_RBRACE, NULL);
+      state->character += 1;
+      return 0;
+    }
+    case '.': {
+      tokenInit(state, token, TT_DOT, NULL);
+      state->character += 1;
+      return 0;
+    }
+    default: {
+      // TODO: handle unexpected char
+      return -1;
+    }
+  }
 }
 
 void unLex(FileListEntry *entry, Token const *token) {
