@@ -457,6 +457,73 @@ int lex(FileListEntry *entry, Token *token) {
         }
       }
     }
+    case '%': {
+      char next = get(state);
+      switch (next) {
+        case '=': {
+          // %=
+          tokenInit(state, token, TT_MODASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          // just %
+          put(state, 1);
+          tokenInit(state, token, TT_PERCENT, NULL);
+          state->character += 1;
+          return 0;
+        }
+      }
+    }
+    case '<': {
+      char next1 = get(state);
+      switch (next1) {
+        case '<': {
+          // <<
+          char next2 = get(state);
+          switch (next2) {
+            case '=': {
+              tokenInit(state, token, TT_LSHIFTASSIGN, NULL);
+              state->character += 3;
+              return 0;
+            }
+            default: {
+              // just <<
+              put(state, 1);
+              tokenInit(state, token, TT_LSHIFT, NULL);
+              state->character += 2;
+              return 0;
+            }
+          }
+        }
+        case '=': {
+          // <=
+          char next2 = get(state);
+          switch (next2) {
+            case '>': {
+              // <=>
+              tokenInit(state, token, TT_SPACESHIP, NULL);
+              state->character += 3;
+              return 0;
+            }
+            default: {
+              // just <=
+              put(state, 1);
+              tokenInit(state, token, TT_LTEQ, NULL);
+              state->character += 2;
+              return 0;
+            }
+          }
+        }
+        default: {
+          // just <
+          put(state, 1);
+          tokenInit(state, token, TT_LANGLE, NULL);
+          state->character += 1;
+          return 0;
+        }
+      }
+    }
     case '|': {
       char next1 = get(state);
       switch (next1) {
