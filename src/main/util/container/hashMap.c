@@ -19,16 +19,33 @@
 #include "util/container/hashMap.h"
 
 #include "optimization.h"
-#include "util/hash.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-HashMap *hashMapCreate(void) {
-  HashMap *map = malloc(sizeof(HashMap));
-  hashMapInit(map);
-  return map;
+/** hash a string using djb2 xor variant */
+static uint64_t djb2(char const *s) {
+  uint64_t hash = 5381;
+  while (*s != '\0') {
+    hash *= 33;
+    hash ^= (uint64_t)*s;
+    s++;
+  }
+  return hash;
 }
+
+/** has a string using djb2 add variant */
+static uint64_t djb2add(char const *s) {
+  uint64_t hash = 5381;
+  while (*s != '\0') {
+    hash *= 33;
+    hash += (uint64_t)*s;
+    s++;
+  }
+  return hash;
+}
+
 void hashMapInit(HashMap *map) {
   map->size = 0;
   map->capacity = PTR_VECTOR_INIT_CAPACITY;
@@ -58,17 +75,14 @@ void *hashMapGet(HashMap const *map, char const *key) {
   }
 }
 
-int const HM_OK = 0;
-int const HM_EEXISTS = 1;
-int hashMapPut(HashMap *map, char const *key, void *data,
-               void (*dtor)(void *)) {
+int hashMapPut(HashMap *map, char const *key, void *data) {
   uint64_t hash = djb2(key) % map->capacity;
 
   if (map->keys[hash] == NULL) {
     map->keys[hash] = key;
     map->values[hash] = data;
     map->size++;
-    return HM_OK;                                  // empty spot
+    return 0;                                      // empty spot
   } else if (strcmp(map->keys[hash], key) != 0) {  // collision
     uint64_t hash2 = djb2add(key) + 1;
     for (size_t idx = (hash + hash2) % map->capacity; idx != hash;
@@ -77,10 +91,9 @@ int hashMapPut(HashMap *map, char const *key, void *data,
         map->keys[idx] = key;
         map->values[idx] = data;
         map->size++;
-        return HM_OK;
+        return 0;
       } else if (strcmp(map->keys[idx], key) == 0) {  // already in there
-        dtor(data);
-        return HM_EEXISTS;
+        return -1;
       }
     }
     size_t oldSize = map->capacity;  // unavoidable collision
@@ -98,10 +111,9 @@ int hashMapPut(HashMap *map, char const *key, void *data,
     }
     free(oldKeys);
     free(oldValues);
-    return hashMapPut(map, key, data, dtor);  // recurse
-  } else {                                    // already in there
-    dtor(data);
-    return HM_EEXISTS;
+    return hashMapPut(map, key, data);  // recurse
+  } else {                              // already in there
+    return -1;
   }
 }
 
@@ -157,8 +169,4 @@ void hashMapUninit(HashMap *map, void (*dtor)(void *)) {
   }
   free(map->keys);
   free(map->values);
-}
-void hashMapDestroy(HashMap *map, void (*dtor)(void *)) {
-  hashMapUninit(map, dtor);
-  free(map);
 }

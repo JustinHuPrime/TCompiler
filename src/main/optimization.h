@@ -14,17 +14,19 @@
 //
 // This file is part of the T Language Compiler.
 
-// Hash functions
+/**
+ * @file
+ * Container optimization constants
+ */
 
-#ifndef TLC_UTIL_HASH_H_
-#define TLC_UTIL_HASH_H_
+#ifndef TLC_UTIL_CONTAINER_OPTIMIZATION_H_
+#define TLC_UTIL_CONTAINER_OPTIMIZATION_H_
 
-#include <stdint.h>
+#include <stddef.h>
 
-// uses the djb2 hash function, xor variant, to hash a string
-uint64_t djb2(char const *);
+/** starting capacity of a vector of pointers */
+extern size_t const PTR_VECTOR_INIT_CAPACITY;
+/** starting capacity of a vector of bytes */
+extern size_t const BYTE_VECTOR_INIT_CAPACITY;
 
-// uses the djb2 hash function, addition variant, to hash a string
-uint64_t djb2add(char const *);
-
-#endif  // TLC_UTIL_HASH_H_
+#endif  // TLC_UTIL_CONTAINER_OPTIMIZATION_H_
