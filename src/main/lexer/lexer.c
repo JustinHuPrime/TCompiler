@@ -235,6 +235,18 @@ static int lexNumber(FileListEntry *entry, Token *token) {
   return -1;
 }
 
+/** lexes an identifier */
+static int lexId(FileListEntry *entry, Token *token) {
+  // TODO: write this
+  return -1;
+}
+
+/** creates a pretty-print string for a character */
+static char *prettyPrintChar(char c) {
+  // TODO: write this
+  return NULL;
+}
+
 int lex(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
   // munch whitespace
@@ -673,8 +685,22 @@ int lex(FileListEntry *entry, Token *token) {
 
     // everything else
     default: {
-      // TODO: handle unexpected char
-      return -1;
+      if (c >= '0' && c <= '9') {
+        // number
+        put(state, 1);
+        return lexNumber(entry, token);
+      } else if (c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+        // id, keyword, magic token
+        put(state, 1);
+        return lexId(entry, token);
+      } else {
+        // error
+        char *prettyString = prettyPrintChar(c);
+        fprintf(stderr, "%s:%zu:%zu: error: unexpected character: %s\n",
+                entry->inputFile, state->line, state->character, prettyString);
+        free(prettyString);
+        return -1;
+      }
     }
   }
 }
