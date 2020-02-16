@@ -378,6 +378,122 @@ int lex(FileListEntry *entry, Token *token) {
         }
       }
     }
+    case '&': {
+      char next1 = get(state);
+      switch (next1) {
+        case '&': {
+          // &&
+          char next2 = get(state);
+          switch (next2) {
+            case '=': {
+              // &&=
+              tokenInit(state, token, TT_LANDASSIGN, NULL);
+              state->character += 3;
+              return 0;
+            }
+            default: {
+              // just &&
+              put(state, 1);
+              tokenInit(state, token, TT_LAND, NULL);
+              state->character += 2;
+              return 0;
+            }
+          }
+        }
+        case '=': {
+          // &=
+          tokenInit(state, token, TT_ANDASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          // just &
+          put(state, 1);
+          tokenInit(state, token, TT_AMP, NULL);
+          state->character += 1;
+          return 0;
+        }
+      }
+    }
+    case '!': {
+      char next = get(state);
+      switch (next) {
+        case '=': {
+          // !=
+          tokenInit(state, token, TT_NEQ, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          // just !
+          put(state, 1);
+          tokenInit(state, token, TT_BANG, NULL);
+          state->character += 1;
+          return 0;
+        }
+      }
+    }
+    case '~': {
+      tokenInit(state, token, TT_TILDE, NULL);
+      state->character += 1;
+      return 0;
+    }
+    case '/': {
+      // note - comments dealt with in whitespace
+      char next = get(state);
+      switch (next) {
+        case '=': {
+          // /=
+          tokenInit(state, token, TT_DIVASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          // just /
+          put(state, 1);
+          tokenInit(state, token, TT_SLASH, NULL);
+          state->character += 1;
+          return 0;
+        }
+      }
+    }
+    case '|': {
+      char next1 = get(state);
+      switch (next1) {
+        case '|': {
+          // ||
+          char next2 = get(state);
+          switch (next2) {
+            case '=': {
+              // ||=
+              tokenInit(state, token, TT_LORASSIGN, NULL);
+              state->character += 3;
+              return 0;
+            }
+            default: {
+              // just ||
+              put(state, 1);
+              tokenInit(state, token, TT_LOR, NULL);
+              state->character += 2;
+              return 0;
+            }
+          }
+        }
+        case '=': {
+          // |=
+          tokenInit(state, token, TT_ORASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          // just |
+          put(state, 1);
+          tokenInit(state, token, TT_BAR, NULL);
+          state->character += 1;
+          return 0;
+        }
+      }
+    }
 
     // everything else
     default: {
