@@ -87,4 +87,6 @@ escaped_double_quote = '\"' ;
 
 tab = ? tab ? ;
 newline = ? newline ? ;
-eof = ? physical end of file ? ;
+eof = ? physical end of file ?
+    | ? ascii EOF ?
+;
