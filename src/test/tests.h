@@ -14,28 +14,20 @@
 //
 // This file is part of the T Language Compiler.
 
-// Implementation of the test engine status object
+/**
+ * @file
+ * listing of all test functions to run
+ */
 
-#include "engine.h"
+#ifndef TLC_TEST_TESTS_H_
+#define TLC_TEST_TESTS_H_
 
-#include <stdlib.h>
+// unit tests
 
-TestStatus status;
+// integration tests
+/** tests command line argument parsing */
+void integrationTestCommandLineArgs(void);
+/** tests lexing */
+void integrationTestLexer(void);
 
-void testStatusInit(void) {
-  status.numTests = 0;
-  status.numPassed = 0;
-}
-int testStatusStatus(void) {
-  return status.numTests == status.numPassed ? 0 : -1;
-}
-void test(char const *name, bool condition) {
-  if (condition) {
-    status.numTests++;
-    status.numPassed++;
-  } else {
-    printf("\x1B[1;91mFAILED: %s\x1B[m\n", name);
-    status.numTests++;
-  }
-}
-void dropLine(void) { fprintf(stderr, "\x1B[1A\x1B[2K"); }
+#endif  // TLC_TEST_TESTS_H_

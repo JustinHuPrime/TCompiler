@@ -42,21 +42,11 @@ extern TestStatus status;
 
 /** initializes status */
 void testStatusInit(void);
-/** adds a test pass */
-void testStatusPass(void);
 /**
- * adds a test failure, with the name of the failed test. note that the test
- * name should be a constant c-string
- *
- * @param name name of test
+ * return status for the testing process.
+ * @returns status: 0 = OK, -1 = failed
  */
-void testStatusFail(char const *name);
-/** displays the test status to stdout */
-void testStatusDisplay(void);
-/** return status for the testing process. 0 = OK, 1 = FAILED */
 int testStatusStatus(void);
-/** in-place destructor */
-void testStatusUninit(void);
 
 /**
  * wrapper function that passes or fails a test depending on the condition. Note

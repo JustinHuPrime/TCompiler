@@ -17,13 +17,16 @@
 // Calls all test modules and reports the stats
 
 #include "engine.h"
+#include "tests.h"
 
 int main(void) {
   testStatusInit();
 
-  testStatusDisplay();
+  // unit tests
 
-  int retVal = testStatusStatus();
-  testStatusUninit();
-  return retVal;
+  // integration tests
+  integrationTestCommandLineArgs();
+  integrationTestLexer();
+
+  return testStatusStatus();
 }
