@@ -18,6 +18,7 @@
 
 #include "constants.h"
 #include "fileList.h"
+#include "util/internalError.h"
 #include "util/options.h"
 
 #include <stdbool.h>
@@ -98,6 +99,7 @@ int main(int argc, char *argv[]) {
 
   // debug-dump stop for lexing
   if (options.dump == OPTION_DD_LEX) {
+    error(__FILE__, __LINE__, "not yet implemented");
   }
 
   return CODE_SUCCESS;

@@ -30,8 +30,6 @@ void fileListEntryInit(FileListEntry *entry, char const *inputName,
   entry->isCode = isCode;
 }
 
-void fileListEntryUninit(FileListEntry *entry) {}
-
 int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
   int err = 0;
 

@@ -42,12 +42,6 @@ typedef struct FileListEntry {
  */
 void fileListEntryInit(FileListEntry *entry, char const *inputName,
                        bool isCode);
-/**
- * destroys a FileListEntry in-place
- *
- * @param entry entry to destroy
- */
-void fileListEntryUninit(FileListEntry *entry);
 
 /** global file list type */
 typedef struct {
