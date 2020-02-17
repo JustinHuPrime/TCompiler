@@ -16,9 +16,11 @@
 
 #include "lexer/lexer.h"
 
+#include "constants.h"
 #include "fileList.h"
 #include "util/conversions.h"
 #include "util/format.h"
+#include "util/functional.h"
 #include "util/internalError.h"
 
 #include <assert.h>
@@ -53,6 +55,66 @@ static void tokenInit(LexerState *state, Token *token, TokenType type,
 }
 
 void tokenUninit(Token *token) { free(token->string); }
+
+/** keyword map */
+HashMap keywordMap;
+char const *const keywordStrings[] = {
+    "module",  "import", "opaque",   "struct", "union",    "enum",   "typedef",
+    "if",      "else",   "while",    "do",     "for",      "switch", "case",
+    "default", "break",  "continue", "return", "asm",      "cast",   "sizeof",
+    "true",    "false",  "null",     "void",   "ubyte",    "byte",   "char",
+    "ushort",  "short",  "uint",     "int",    "wchar",    "ulong",  "long",
+    "float",   "double", "bool",     "const",  "volatile",
+};
+TokenType const keywordTokens[] = {
+    TT_MODULE,  TT_IMPORT, TT_OPAQUE,  TT_STRUCT,   TT_UNION,    TT_ENUM,
+    TT_TYPEDEF, TT_IF,     TT_ELSE,    TT_WHILE,    TT_DO,       TT_FOR,
+    TT_SWITCH,  TT_CASE,   TT_DEFAULT, TT_BREAK,    TT_CONTINUE, TT_RETURN,
+    TT_ASM,     TT_CAST,   TT_SIZEOF,  TT_TRUE,     TT_FALSE,    TT_NULL,
+    TT_VOID,    TT_UBYTE,  TT_BYTE,    TT_CHAR,     TT_USHORT,   TT_SHORT,
+    TT_UINT,    TT_INT,    TT_WCHAR,   TT_ULONG,    TT_LONG,     TT_FLOAT,
+    TT_DOUBLE,  TT_BOOL,   TT_CONST,   TT_VOLATILE,
+};
+
+/** magic token map */
+HashMap magicMap;
+char const *const magicStrings[] = {
+    "__FILE__",
+    "__LINE__",
+    "__VERSION__",
+};
+typedef enum {
+  MTT_FILE,
+  MTT_LINE,
+  MTT_VERSION,
+} MagicTokenType;
+MagicTokenType const magicTokens[] = {
+    MTT_FILE,
+    MTT_LINE,
+    MTT_VERSION,
+};
+
+void lexerInitMaps(void) {
+  hashMapInit(&keywordMap);
+  for (size_t idx = 0; idx < 40; idx++) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+    hashMapSet(&keywordMap, keywordStrings[idx], (void *)&keywordTokens[idx]);
+#pragma GCC diagnostic pop
+  }
+  hashMapInit(&magicMap);
+  for (size_t idx = 0; idx < 3; idx++) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+    hashMapSet(&magicMap, magicStrings[idx], (void *)&magicTokens[idx]);
+#pragma GCC diagnostic pop
+  }
+}
+
+void lexerUninitMaps(void) {
+  hashMapUninit(&keywordMap, nullDtor);
+  hashMapUninit(&magicMap, nullDtor);
+}
 
 int lexerStateInit(FileListEntry *entry) {
   LexerState *state = &entry->lexerState;
@@ -243,6 +305,21 @@ static void clip(LexerState *state, Token *token, char const *start,
   state->character += length + 1;
 }
 
+/** creates a pretty-print string for a character */
+static char *prettyPrintChar(char c) {
+  if ((c >= ' ' && c <= '~')) {
+    return format("'%c'", c);
+  } else {
+    uint8_t punned = charToU8(c);
+    return format("'\\x%hhu%hhu'", (punned >> 4) & 0xf, (punned >> 0) & 0xf);
+  }
+}
+
+/** creates an escaped version of a string */
+static char *escape(char const *input) {
+  return NULL;  // TODO: write this
+}
+
 /** lexes a hexadecimal number, prefix already lexed */
 static int lexHex(FileListEntry *entry, Token *token, char const *start) {
   LexerState *state = &entry->lexerState;
@@ -341,18 +418,75 @@ static int lexNumber(FileListEntry *entry, Token *token) {
  * first character for an identifier or a token.
  */
 static int lexId(FileListEntry *entry, Token *token) {
-  // TODO: write this
-  return -1;
+  LexerState *state = &entry->lexerState;
+  char const *start = state->current;
+
+  while (true) {
+    char c = get(state);
+    if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') ||
+          (c >= 'A' && c <= 'Z') || c == '_')) {
+      // end of identifier
+      put(state, 1);
+      size_t length = (size_t)(state->current - start);
+      char *clip = strncpy(malloc(length + 1), start, length);
+      clip[length] = '\0';
+
+      // classify the clip
+      TokenType const *keywordToken = hashMapGet(&keywordMap, clip);
+      if (keywordToken != NULL) {
+        // this is a keyword
+        tokenInit(state, token, *keywordToken, NULL);
+        state->character += length + 1;
+        free(clip);
+        return 0;
+      }
+      MagicTokenType const *magicToken = hashMapGet(&magicMap, clip);
+      if (magicToken != NULL) {
+        // this is a magic token
+        switch (*magicToken) {
+          case MTT_FILE: {
+            tokenInit(state, token, TT_LIT_STRING, escape(entry->inputFile));
+            state->character += length + 1;
+            free(clip);
+            return 0;
+          }
+          case MTT_LINE: {
+            tokenInit(state, token, TT_LIT_INT_D, format("%zu", state->line));
+            state->character += length + 1;
+            free(clip);
+            return 0;
+          }
+          case MTT_VERSION: {
+            tokenInit(state, token, TT_LIT_STRING, escape(VERSION_STRING));
+            state->character += length + 1;
+            free(clip);
+            return 0;
+          }
+        }
+      }
+
+      // this is a regular id
+      tokenInit(state, token, TT_ID, clip);
+      state->character += length + 1;
+      return 0;
+    }
+  }
 }
 
-/** creates a pretty-print string for a character */
-static char *prettyPrintChar(char c) {
-  if ((c >= ' ' && c <= '~')) {
-    return format("'%c'", c);
-  } else {
-    uint8_t punned = charToU8(c);
-    return format("'\\x%hhu%hhu'", (punned >> 4) & 0xf, (punned >> 0) & 0xf);
-  }
+/**
+ * lexes a string or wstring literal
+ */
+static int lexString(FileListEntry *entry, Token *token) {
+  LexerState *state = &entry->lexerState;
+  return -1;  // TODO: write this
+}
+
+/**
+ * lexes a char or wchar literal
+ */
+static int lexChar(FileListEntry *entry, Token *token) {
+  LexerState *state = &entry->lexerState;
+  return -1;  // TODO: write this
 }
 
 int lex(FileListEntry *entry, Token *token) {
@@ -801,6 +935,14 @@ int lex(FileListEntry *entry, Token *token) {
         // id, keyword, magic token
         put(state, 1);
         return lexId(entry, token);
+      } else if (c == '"') {
+        // string or wstring
+        put(state, 1);
+        return lexString(entry, token);
+      } else if (c == '\'') {
+        // char or wchar
+        put(state, 1);
+        return lexChar(entry, token);
       } else {
         // error
         char *prettyString = prettyPrintChar(c);

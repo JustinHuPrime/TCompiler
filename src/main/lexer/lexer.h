@@ -22,6 +22,8 @@
 #ifndef TLC_LEXER_LEXER_H_
 #define TLC_LEXER_LEXER_H_
 
+#include "util/container/hashMap.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -157,6 +159,18 @@ typedef struct {
  * @param token token to deinitialize
  */
 void tokenUninit(Token *token);
+
+/**
+ * Initializes keyword and magic token maps - must be called before any lexing
+ * is done
+ */
+void lexerInitMaps(void);
+
+/**
+ * Deinitializes keyword and magic token maps - may be called after all lexing
+ * is done
+ */
+void lexerUninitMaps(void);
 
 /** internal state for a lexer for some file */
 typedef struct {

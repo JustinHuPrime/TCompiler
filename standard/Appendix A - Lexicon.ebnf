@@ -41,6 +41,7 @@ literal = string_literal
         | char_literal
         | wchar_literal
         | int_literal
+        | double_literal
         | float_literal
 ;
 
@@ -56,7 +57,8 @@ int_literal = [ "-" | "+" ], ( nonzero_digit, { digit }
                              | "0"
                              )
 ;
-float_literal = [ "-" | "+" ], digit, { digit }, ".", digit, { digit } ;
+double_literal = [ "-" | "+" ], digit, { digit }, ".", digit, { digit } ;
+float_literal = double_literal, 'f' ;
 string_literal = '"', { alphabetic | digit | symbol | escaped | escaped_double_quote | "'" }, '"' ;
 char_literal = "'", ( alphabetic | digit | symbol | escaped | escaped_quote | '"' ), "'" ;
 wstring_literal = '"', { alphabetic | digit | symbol | escaped | escaped_wchar | escaped_double_quote | "'" } '"w' ;

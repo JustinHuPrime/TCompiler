@@ -1,4 +1,4 @@
-// Copyright 2019 Justin Hu
+// Copyright 2020 Justin Hu
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,11 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-StringBuilder *stringBuilderCreate(void) {
-  StringBuilder *sb = malloc(sizeof(StringBuilder));
-  stringBuilderInit(sb);
-  return sb;
-}
 void stringBuilderInit(StringBuilder *sb) {
   sb->size = 0;
   sb->capacity = BYTE_VECTOR_INIT_CAPACITY;
@@ -49,16 +44,7 @@ char *stringBuilderData(StringBuilder const *sb) {
 }
 void stringBuilderClear(StringBuilder *sb) { sb->size = 0; }
 void stringBuilderUninit(StringBuilder *sb) { free(sb->string); }
-void stringBuilderDestroy(StringBuilder *sb) {
-  stringBuilderUninit(sb);
-  free(sb);
-}
 
-TStringBuilder *tstringBuilderCreate(void) {
-  TStringBuilder *sb = malloc(sizeof(TStringBuilder));
-  tstringBuilderInit(sb);
-  return sb;
-}
 void tstringBuilderInit(TStringBuilder *sb) {
   sb->size = 0;
   sb->capacity = BYTE_VECTOR_INIT_CAPACITY;
@@ -80,16 +66,7 @@ uint8_t *tstringBuilderData(TStringBuilder const *sb) {
 }
 void tstringBuilderClear(TStringBuilder *sb) { sb->size = 0; }
 void tstringBuilderUninit(TStringBuilder *sb) { free(sb->string); }
-void tstringBuilderDestroy(TStringBuilder *sb) {
-  tstringBuilderUninit(sb);
-  free(sb);
-}
 
-TWStringBuilder *twstringBuilderCreate(void) {
-  TWStringBuilder *sb = malloc(sizeof(TWStringBuilder));
-  twstringBuilderInit(sb);
-  return sb;
-}
 void twstringBuilderInit(TWStringBuilder *sb) {
   sb->size = 0;
   sb->capacity = PTR_VECTOR_INIT_CAPACITY;
@@ -111,7 +88,3 @@ uint32_t *twstringBuilderData(TWStringBuilder const *sb) {
 }
 void twstringBuilderClear(TWStringBuilder *sb) { sb->size = 0; }
 void twstringBuilderUninit(TWStringBuilder *sb) { free(sb->string); }
-void twstringBuilderDestroy(TWStringBuilder *sb) {
-  twstringBuilderUninit(sb);
-  free(sb);
-}
