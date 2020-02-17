@@ -30,4 +30,11 @@
  */
 uint8_t charToU8(char c);
 
+/**
+ * converts an unsigned byte to a hex nybble
+ * 
+ * @param n value to convert - must be in the range [0, 15]
+ */
+char u8ToNybble(uint8_t n);
+
 #endif  // TLC_UTIL_CONVERSIONS_H_

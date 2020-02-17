@@ -150,7 +150,10 @@ typedef struct {
   TokenType type;
   size_t line;
   size_t character;
-  char *string; /**< optional, depends on Token#type */
+  char *string; /**< optional, depends on Token#type. For ids, contains the
+                   string of the id. For strings and chars, contains the data
+                   between the quotes (quotes excluded), for numbers, contains
+                   the whole number (sign and prefix included) */
 } Token;
 
 /**

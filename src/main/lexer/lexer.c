@@ -18,6 +18,7 @@
 
 #include "constants.h"
 #include "fileList.h"
+#include "util/container/stringBuilder.h"
 #include "util/conversions.h"
 #include "util/format.h"
 #include "util/functional.h"
@@ -317,16 +318,93 @@ static char *prettyPrintChar(char c) {
 
 /** creates an escaped version of a string */
 static char *escape(char const *input) {
-  return NULL;  // TODO: write this
+  StringBuilder sb;
+  stringBuilderInit(&sb);
+
+  for (char const *curr = input; *curr != '\0'; curr++) {
+    char c = *curr;
+    switch (*curr) {
+      case '\n': {
+        stringBuilderPush(&sb, '\\');
+        stringBuilderPush(&sb, 'n');
+        break;
+      }
+      case '\r': {
+        stringBuilderPush(&sb, '\\');
+        stringBuilderPush(&sb, 'r');
+        break;
+      }
+      case '\t': {
+        stringBuilderPush(&sb, '\\');
+        stringBuilderPush(&sb, 't');
+        break;
+      }
+      case '\\': {
+        stringBuilderPush(&sb, '\\');
+        stringBuilderPush(&sb, '\\');
+        break;
+      }
+      case '\0': {
+        stringBuilderPush(&sb, '\\');
+        stringBuilderPush(&sb, '0');
+        break;
+      }
+      case '"': {
+        stringBuilderPush(&sb, '\\');
+        stringBuilderPush(&sb, '"');
+        break;
+      }
+      default: {
+        if ((c >= ' ' && c <= '~' && c != '"' && c != '\\')) {
+          // plain character
+          stringBuilderPush(&sb, c);
+        } else {
+          // hex escape
+          stringBuilderPush(&sb, '\\');
+          stringBuilderPush(&sb, 'x');
+          uint8_t value = charToU8(*curr);
+          stringBuilderPush(&sb, u8ToNybble((value >> 4) & 0xf));
+          stringBuilderPush(&sb, u8ToNybble((value >> 0) & 0xf));
+        }
+        break;
+      }
+    }
+  }
+
+  char *retVal = stringBuilderData(&sb);
+  stringBuilderUninit(&sb);
+  return retVal;
 }
 
 /** lexes a hexadecimal number, prefix already lexed */
 static int lexHex(FileListEntry *entry, Token *token, char const *start) {
   LexerState *state = &entry->lexerState;
-  return -1;  // TODO: write this
+
+  char c = get(state);
+  if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+        (c >= 'A' && c <= 'F'))) {
+    // error!
+    fprintf(stderr, "%s:%zu:%zu: error: invalid hexadecimal integer literal\n",
+            entry->inputFile, state->line, state->character);
+    return -1;
+  }
+
+  while (true) {
+    c = get(state);
+    if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+          (c >= 'A' && c <= 'F'))) {
+      // end of number
+      put(state, 1);
+      clip(state, token, start, TT_LIT_INT_H);
+      return 0;
+    }
+  }
 }
 
-/** lexes a decimal number, prefix already lexed */
+/**
+ * Lexes a decimal number, prefix already lexed.
+ * Assumes number is at least one character long.
+ */
 static int lexDecimal(FileListEntry *entry, Token *token, char const *start) {
   LexerState *state = &entry->lexerState;
 
@@ -345,14 +423,45 @@ static int lexDecimal(FileListEntry *entry, Token *token, char const *start) {
   }
 }
 
-/** lexes an octal number, prefix already lexed */
+/**
+ * Lexes an octal number, prefix already lexed.
+ * Assumes number is at least one character long.
+ */
 static int lexOctal(FileListEntry *entry, Token *token, char const *start) {
-  return -1;  // TODO: write this
+  LexerState *state = &entry->lexerState;
+
+  while (true) {
+    char c = get(state);
+    if (!(c >= '0' && c <= '7')) {
+      // end of number
+      put(state, 1);
+      clip(state, token, start, TT_LIT_INT_O);
+      return 0;
+    }
+  }
 }
 
 /** lexes a binary number, prefix already lexed */
 static int lexBinary(FileListEntry *entry, Token *token, char const *start) {
-  return -1;  // TODO: write this
+  LexerState *state = &entry->lexerState;
+
+  char c = get(state);
+  if (!(c >= '0' && c <= '1')) {
+    // error!
+    fprintf(stderr, "%s:%zu:%zu: error: invalid binary integer literal\n",
+            entry->inputFile, state->line, state->character);
+    return -1;
+  }
+
+  while (true) {
+    c = get(state);
+    if (!(c >= '0' && c <= '1')) {
+      // end of number
+      put(state, 1);
+      clip(state, token, start, TT_LIT_INT_B);
+      return 0;
+    }
+  }
 }
 
 /** lexes a number, must start with [+-][0-9] */
@@ -402,14 +511,12 @@ static int lexNumber(FileListEntry *entry, Token *token) {
         }
       }
     }
-  } else if (next >= '1' && next <= '9') {
+  } else {
+    assert(next >= '1' && next <= '9');
     // [+-][1-9]
     // is decimal, return first char, and lex it
     put(state, 1);
     return lexDecimal(entry, token, start);
-  } else {
-    // just [+-], not a number, error!
-    error(__FILE__, __LINE__, "lexNumber called when not a number!");
   }
 }
 
