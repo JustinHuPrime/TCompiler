@@ -1,8 +1,8 @@
 file = { { whitespace }, token }, { whitespace }, eof ;
 
 whitespace = " "
-           | ? tab ?
-           | ? newline ?
+           | tab
+           | newline
            | ? any other implementation-defined whitespace ?
            | "//", ? anything excluding newline and eof ?, [ newline ]
            | "/*", ? anything excluding "*/", "*/"
@@ -59,10 +59,10 @@ int_literal = [ "-" | "+" ], ( nonzero_digit, { digit }
 ;
 double_literal = [ "-" | "+" ], digit, { digit }, ".", digit, { digit } ;
 float_literal = double_literal, 'f' ;
-string_literal = '"', { alphabetic | digit | symbol | escaped | escaped_double_quote | "'" }, '"' ;
-char_literal = "'", ( alphabetic | digit | symbol | escaped | escaped_quote | '"' ), "'" ;
-wstring_literal = '"', { alphabetic | digit | symbol | escaped | escaped_wchar | escaped_double_quote | "'" } '"w' ;
-wchar_literal = "'", ( alphabetic | digit | symbol | escaped | escaped_wchar | escaped_quote | '"' ), "'w" ;
+string_literal = '"', { alphabetic | digit | symbol | escaped | tab | escaped_double_quote | "'" }, '"' ;
+char_literal = "'", ( alphabetic | digit | symbol | escaped | tab | escaped_quote | '"' ), "'" ;
+wstring_literal = '"', { alphabetic | digit | symbol | escaped | tab | escaped_wchar | escaped_double_quote | "'" } '"w' ;
+wchar_literal = "'", ( alphabetic | digit | symbol | escaped | tab | escaped_wchar | escaped_quote | '"' ), "'w" ;
 
 alphabetic = ? any ASCII alphabetic character ?
            | ? any implementation-defined alphabetic characters ?
@@ -85,4 +85,6 @@ escaped_wchar = "\u", hex_digit, hex_digit, hex_digit, hex_digit, hex_digit, hex
 escaped_quote = "\'" ;
 escaped_double_quote = '\"' ;
 
+tab = ? tab ? ;
+newline = ? newline ? ;
 eof = ? physical end of file ? ;

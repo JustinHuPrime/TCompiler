@@ -355,7 +355,7 @@ static char *escape(char const *input) {
         break;
       }
       default: {
-        if ((c >= ' ' && c <= '~' && c != '"' && c != '\\')) {
+        if (c >= ' ' && c <= '~' && c != '"' && c != '\\') {
           // plain character
           stringBuilderPush(&sb, c);
         } else {
@@ -581,15 +581,118 @@ static int lexId(FileListEntry *entry, Token *token) {
 }
 
 /**
- * lexes a string or wstring literal
+ * lexes a string or wstring literal, opening quote already lexed
  */
 static int lexString(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
-  return -1;  // TODO: write this
+  char const *start = state->current;
+
+  TokenType type = TT_LIT_STRING;
+  while (true) {
+    char c = get(state);
+    switch (c) {
+      case '"': {
+        // end of string
+        size_t length = (size_t)(state->current - start - 1);
+        char *clip = strncpy(malloc(length + 1), start, length);
+        clip[length] = '\0';
+
+        if (type == TT_LIT_STRING) {
+          // check for w-string-ness
+          char next = get(state);
+          if (next != 'w') {
+            put(state, 1);
+          } else {
+            type = TT_LIT_WSTRING;
+          }
+        } else {
+          // check for ending w
+          char next = get(state);
+          if (next != 'w') {
+            free(clip);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: wide characters in narrow string\n",
+                    entry->inputFile, state->line, state->character);
+            return -1;
+          }
+        }
+
+        tokenInit(state, token, type, clip);
+        state->character += length + (type == TT_LIT_STRING ? 2 : 3);
+        return 0;
+      }
+      case '\\': {
+        // process escape sequence
+        char next = get(state);
+        switch (next) {
+          case 'x': {
+            // \x
+            for (size_t idx = 0; idx < 2; idx++) {
+              char hex = get(state);
+              if (!isNybble(hex)) {
+                fprintf(
+                    stderr,
+                    "%s:%zu:%zu: error: invalid hexadecimal escape sequence\n",
+                    entry->inputFile, state->line,
+                    state->character +
+                        ((size_t)(state->current - start) + 1 - idx));
+                return -1;
+              }
+            }
+            break;
+          }
+          case 'u': {
+            // \u
+            for (size_t idx = 0; idx < 8; idx++) {
+              char hex = get(state);
+              if (!isNybble(hex)) {
+                fprintf(
+                    stderr,
+                    "%s:%zu:%zu: error: invalid hexadecimal escape sequence\n",
+                    entry->inputFile, state->line,
+                    state->character +
+                        ((size_t)(state->current - start) + 1 - idx));
+                return -1;
+              }
+            }
+            type = TT_LIT_WSTRING;
+            break;
+          }
+          default: {
+            if (next != 'n' && next != 'r' && next != 't' && next != '0' &&
+                next != '\\' && next != '"') {
+              fprintf(
+                  stderr, "%s:%zu:%zu: error: unrecognized escape sequence\n",
+                  entry->inputFile, state->line,
+                  state->character + ((size_t)(state->current - start) + 1));
+              return -1;
+            }
+          }
+        }
+        break;
+      }
+      default: {
+        if (c == '\x04') {
+          fprintf(stderr, "%s:%zu:%zu: error: unterminated string literal\n",
+                  entry->inputFile, state->line,
+                  state->character + ((size_t)(state->current - start) + 1));
+          return -1;
+        } else if (!((c >= ' ' && c <= '~' && c != '"' && c != '\\') ||
+                     c == '\t')) {
+          fprintf(stderr,
+                  "%s:%zu:%zu: error: unsupported character encountered in "
+                  "string\n",
+                  entry->inputFile, state->line,
+                  state->character + ((size_t)(state->current - start) + 1));
+          return -1;
+        }
+      }
+    }
+  }
 }
 
 /**
- * lexes a char or wchar literal
+ * lexes a char or wchar literal, opening quote already lexed
  */
 static int lexChar(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
@@ -1044,11 +1147,9 @@ int lex(FileListEntry *entry, Token *token) {
         return lexId(entry, token);
       } else if (c == '"') {
         // string or wstring
-        put(state, 1);
         return lexString(entry, token);
       } else if (c == '\'') {
         // char or wchar
-        put(state, 1);
         return lexChar(entry, token);
       } else {
         // error
