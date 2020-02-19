@@ -25,8 +25,8 @@ int main(void) {
   // unit tests
 
   // integration tests
-  integrationTestCommandLineArgs();
-  integrationTestLexer();
+  testCommandLineArgs();
+  testLexer();
 
   return testStatusStatus();
 }

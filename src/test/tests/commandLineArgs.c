@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void integrationTestCommandLineArgs(void) {
+void testCommandLineArgs(void) {
   char const *const argv[] = {
       "./tlc", "foo.tc", "bar.td", "--debug-dump=lex", "--", "--baz.tc",
   };

@@ -22,12 +22,9 @@
 #ifndef TLC_TEST_TESTS_H_
 #define TLC_TEST_TESTS_H_
 
-// unit tests
-
-// integration tests
 /** tests command line argument parsing */
-void integrationTestCommandLineArgs(void);
+void testCommandLineArgs(void);
 /** tests lexing */
-void integrationTestLexer(void);
+void testLexer(void);
 
 #endif  // TLC_TEST_TESTS_H_

@@ -24,4 +24,4 @@
 #include "fileList.h"
 #include "tests.h"
 
-void integrationTestLexer(void) {}
+void testLexer(void) {}
