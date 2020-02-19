@@ -24,6 +24,7 @@
 #include "tests.h"
 #include "util/options.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 void integrationTestCommandLineArgs(void) {
@@ -59,4 +60,6 @@ void integrationTestCommandLineArgs(void) {
   test("[integration] [command line args] third file is --baz.tc (code file)",
        strcmp(fileList.entries[2].inputFile, "--baz.tc") == 0 &&
            fileList.entries[2].isCode);
+
+  free(fileList.entries);
 }
