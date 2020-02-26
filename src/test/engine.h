@@ -32,9 +32,6 @@
 typedef struct {
   size_t numTests;
   size_t numPassed;
-  size_t numMessages;
-  size_t messagesCapacity;
-  char const **messages;
 } TestStatus;
 
 /** global status object */
