@@ -1,0 +1,16 @@
+module import opaque struct union enum typedef if else while do for switch case
+default break continue return asm cast sizeof true false null void ubyte byte
+char ushort short uint int wchar ulong long float double bool const volatile
+// line comment
+;,()[]{}.->++--*&+-!~=-=!=~/%<<>> >>><=><><= >===!=|^&&||?:=*=/=%=+=-=<<=>>=
+>>>=&=^=|=&&=||=::
+
+identifier/* block comment */identifier2/* block comment
+
+end of block comment*/"string literal""wstring literal"w'c''w'w+1-0xf 0b1+0377
+/*//*
+block comment
+*/
+0 1.1+1.1f
+
+__FILE__ __LINE__ __VERSION__

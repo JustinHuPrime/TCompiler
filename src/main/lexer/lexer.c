@@ -152,10 +152,12 @@ int lexerStateInit(FileListEntry *entry) {
  * gets a character from the lexer, returns '\x04' if end of file
  */
 static char get(LexerState *state) {
-  if (state->current >= state->map + state->length)
+  if (state->current >= state->map + state->length) {
+    state->current++;
     return '\x04';
-  else
+  } else {
     return *state->current++;
+  }
 }
 /**
  * returns n characters to the lexer
@@ -263,8 +265,19 @@ static int lexWhitespace(FileListEntry *entry) {
                 case '*': {
                   // maybe the end?
                   char slash = get(state);
-                  state->character += 2;
-                  inComment = slash != '/';
+                  switch (slash) {
+                    case '/': {
+                      state->character += 2;
+                      inComment = false;
+                      break;
+                    }
+                    default: {
+                      // not the end
+                      put(state, 1);
+                      state->character += 1;
+                      break;
+                    }
+                  }
                   break;
                 }
                 default: {
@@ -303,7 +316,7 @@ static void clip(LexerState *state, Token *token, char const *start,
   char *clip = strncpy(malloc(length + 1), start, length);
   clip[length] = '\0';
   tokenInit(state, token, type, clip);
-  state->character += length + 1;
+  state->character += length;
 }
 
 /** creates a pretty-print string for a character */
@@ -414,18 +427,10 @@ static int lexDecimal(FileListEntry *entry, Token *token, char const *start) {
     if (!((c >= '0' && c <= '9') || c == '.')) {
       // end of number
       // if a floating point, maybe it's a float?
-      char next = get(state);
-      switch (next) {
-        case 'f': {
-          type = TT_LIT_FLOAT;
-          break;
-        }
-        default: {
-          put(state, 1);
-          break;
-        }
-      }
-      put(state, 1);
+      if (c == 'f' && type == TT_LIT_DOUBLE)
+        type = TT_LIT_FLOAT;
+      else
+        put(state, 1);
       clip(state, token, start, type);
       return 0;
     } else if (c == '.') {
@@ -518,6 +523,7 @@ static int lexNumber(FileListEntry *entry, Token *token) {
           return lexDecimal(entry, token, start);
         } else {
           // just a zero - [+-]0
+          put(state, 1);
           clip(state, token, start, TT_LIT_INT_0);
           return 0;
         }
@@ -784,7 +790,7 @@ static int lexChar(FileListEntry *entry, Token *token) {
     }
   }
 
-  size_t length = (size_t)(state->current - start - 1);
+  size_t length = (size_t)(state->current - start);
   char *clip = strncpy(malloc(length + 1), start, length);
   clip[length] = '\0';
 
@@ -1026,6 +1032,42 @@ int lex(FileListEntry *entry, Token *token) {
       state->character += 1;
       return 0;
     }
+    case '=': {
+      char next = get(state);
+      switch (next) {
+        case '=': {
+          // ==
+          tokenInit(state, token, TT_EQ, NULL);
+          state->character += 2;
+          return 0;
+        }
+        case '-': {
+          // =-
+          tokenInit(state, token, TT_NEGASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        case '!': {
+          // =!
+          tokenInit(state, token, TT_LNOTASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        case '~': {
+          // =~
+          tokenInit(state, token, TT_NOTASSIGN, NULL);
+          state->character += 2;
+          return 0;
+        }
+        default: {
+          // just =
+          put(state, 1);
+          tokenInit(state, token, TT_ASSIGN, NULL);
+          state->character += 1;
+          return 0;
+        }
+      }
+    }
     case '/': {
       // note - comments dealt with in whitespace
       char next = get(state);
@@ -1125,14 +1167,14 @@ int lex(FileListEntry *entry, Token *token) {
               switch (next3) {
                 case '=': {
                   // >>>=
-                  tokenInit(state, token, TT_ARSHIFTASSIGN, NULL);
+                  tokenInit(state, token, TT_LRSHIFTASSIGN, NULL);
                   state->character += 4;
                   return 0;
                 }
                 default: {
                   // just >>>
                   put(state, 1);
-                  tokenInit(state, token, TT_ARSHIFT, NULL);
+                  tokenInit(state, token, TT_LRSHIFT, NULL);
                   state->character += 3;
                   return 0;
                 }
@@ -1154,40 +1196,10 @@ int lex(FileListEntry *entry, Token *token) {
           }
         }
         case '=': {
-          char next = get(state);
-          switch (next) {
-            case '=': {
-              // ==
-              tokenInit(state, token, TT_EQ, NULL);
-              state->character += 2;
-              return 0;
-            }
-            case '-': {
-              // =-
-              tokenInit(state, token, TT_NEGASSIGN, NULL);
-              state->character += 2;
-              return 0;
-            }
-            case '!': {
-              // =!
-              tokenInit(state, token, TT_LNOTASSIGN, NULL);
-              state->character += 2;
-              return 0;
-            }
-            case '~': {
-              // =~
-              tokenInit(state, token, TT_NOTASSIGN, NULL);
-              state->character += 2;
-              return 0;
-            }
-            default: {
-              // just =
-              put(state, 1);
-              tokenInit(state, token, TT_ASSIGN, NULL);
-              state->character += 1;
-              return 0;
-            }
-          }
+          // >=
+          tokenInit(state, token, TT_GTEQ, NULL);
+          state->character += 2;
+          return 0;
         }
         default: {
           // just >
