@@ -119,9 +119,9 @@ void lexerUninitMaps(void) {
 
 int lexerStateInit(FileListEntry *entry) {
   LexerState *state = &entry->lexerState;
-  state->character = 0;
-  state->line = 0;
-  state->pushedBack = 0;
+  state->character = 1;
+  state->line = 1;
+  state->pushedBack = false;
 
   // try to map the file
   int fd = open(entry->inputFile, O_RDONLY);
@@ -412,13 +412,25 @@ static int lexDecimal(FileListEntry *entry, Token *token, char const *start) {
   while (true) {
     char c = get(state);
     if (!((c >= '0' && c <= '9') || c == '.')) {
-      // end of decimal
+      // end of number
+      // if a floating point, maybe it's a float?
+      char next = get(state);
+      switch (next) {
+        case 'f': {
+          type = TT_LIT_FLOAT;
+          break;
+        }
+        default: {
+          put(state, 1);
+          break;
+        }
+      }
       put(state, 1);
       clip(state, token, start, type);
       return 0;
     } else if (c == '.') {
-      // is a float, actually
-      type = TT_LIT_FLOAT;
+      // is a floating point, actually
+      type = TT_LIT_DOUBLE;
     }
   }
 }
@@ -543,7 +555,7 @@ static int lexId(FileListEntry *entry, Token *token) {
       if (keywordToken != NULL) {
         // this is a keyword
         tokenInit(state, token, *keywordToken, NULL);
-        state->character += length + 1;
+        state->character += length;
         free(clip);
         return 0;
       }
@@ -553,19 +565,19 @@ static int lexId(FileListEntry *entry, Token *token) {
         switch (*magicToken) {
           case MTT_FILE: {
             tokenInit(state, token, TT_LIT_STRING, escape(entry->inputFile));
-            state->character += length + 1;
+            state->character += length;
             free(clip);
             return 0;
           }
           case MTT_LINE: {
             tokenInit(state, token, TT_LIT_INT_D, format("%zu", state->line));
-            state->character += length + 1;
+            state->character += length;
             free(clip);
             return 0;
           }
           case MTT_VERSION: {
             tokenInit(state, token, TT_LIT_STRING, escape(VERSION_STRING));
-            state->character += length + 1;
+            state->character += length;
             free(clip);
             return 0;
           }
@@ -574,7 +586,7 @@ static int lexId(FileListEntry *entry, Token *token) {
 
       // this is a regular id
       tokenInit(state, token, TT_ID, clip);
-      state->character += length + 1;
+      state->character += length;
       return 0;
     }
   }
@@ -1147,6 +1159,24 @@ int lex(FileListEntry *entry, Token *token) {
             case '=': {
               // ==
               tokenInit(state, token, TT_EQ, NULL);
+              state->character += 2;
+              return 0;
+            }
+            case '-': {
+              // =-
+              tokenInit(state, token, TT_NEGASSIGN, NULL);
+              state->character += 2;
+              return 0;
+            }
+            case '!': {
+              // =!
+              tokenInit(state, token, TT_LNOTASSIGN, NULL);
+              state->character += 2;
+              return 0;
+            }
+            case '~': {
+              // =~
+              tokenInit(state, token, TT_NOTASSIGN, NULL);
               state->character += 2;
               return 0;
             }

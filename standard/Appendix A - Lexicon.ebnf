@@ -15,23 +15,20 @@ token = keyword
       | magic_token
 ;
 
-keyword = "module" | "import" | "opaque" | "struct" | "union"
-        | "enum" | "typedef" | "if" | "else" | "while" | "do"
-        | "for" | "switch" | "case" | "default" | "break"
-        | "continue" | "return" | "asm" | "cast" | "sizeof"
-        | "true" | "false" | "null" | "void" | "ubyte" | "byte"
-        | "char" | "ushort" | "short" | "uint" | "int" | "wchar"
-        | "ulong" | "long" | "float" | "double" | "bool" | "const"
-        | "volatile"
+keyword = "module" | "import" | "opaque" | "struct" | "union" | "enum"
+        | "typedef" | "if" | "else" | "while" | "do" | "for" | "switch"
+        | "case" | "default" | "break" | "continue" | "return" | "asm"
+        | "cast" | "sizeof" | "true" | "false" | "null" | "void" | "ubyte"
+        | "byte" | "char" | "ushort" | "short" | "uint" | "int" | "wchar"
+        | "ulong" | "long" | "float" | "double" | "bool" | "const" | "volatile"
 ;
 
-punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "."
-            | "->" | "++" | "--" | "*" | "&" | "+" | "-" | "!"
-            | "~" | "/" | "%" | "<<" | ">>" | ">>>" | "<=>" | "<"
-            | ">" | "<=" | ">=" | "==" | "!=" | "|" | "^" | "&&"
-            | "||" | "?" | ":" | "=" | "*=" | "/=" | "%=" | "+="
-            | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|="
-            | "&&=" | "||=" | "::"
+punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "." | "->" | "++"
+            | "--" | "*" | "&" | "+" | "-" | "!" | "~" | "=-" | "=!" | "=~"
+            | "/" | "%" | "<<" | ">>" | ">>>" | "<=>" | "<" | ">" | "<=" | ">="
+            | "==" | "!=" | "|" | "^" | "&&" | "||" | "?" | ":" | "=" | "*="
+            | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^="
+            | "|=" | "&&=" | "||=" | "::"
 ;
 
 identifier = ( alphabetic | "_" ), { alphabetic | digit | "_" } ;

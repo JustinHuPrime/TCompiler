@@ -656,7 +656,7 @@ The shift operators expect an integral value for their left hand side, and an un
 addition_expression = multiplication_expression, { ( "+" | "-" ), multiplication_expression } ;
 \end{lstlisting}
 
-Addition and subtraction expressions both support two numeric operands, in which case they will evaluate the left hand side, then the right hand side, convert to a common type (see Appendix C), and the result is produced after applying the relevant operator. However, when adding a data pointer and an integer (order irrelevant), both are evaluated, and then the integer is multiplied by the size of the type the pointer points to before being added to the pointer. It is also acceptable to subtract an integer from a data pointer (but not the other way around), and the subtracted value is also first multiplied by the size of what the pointer points to before being subtracted from the pointer.
+Addition and subtraction expressions both support two numeric operands, in which case they will evaluate the left hand side, then the right hand side, convert to a common type (see Appendix C), and the result is produced after applying the relevant operator. However, when adding a data pointer and an integer (order irrelevant), both are evaluated, and then the integer is multiplied by the size of the type the pointer points to before being added to the pointer. It is also acceptable to subtract an integer from a data pointer (but not the other way around), and the subtracted value is also first multiplied by the size of what the pointer points to before being subtracted from the pointer. Finally, if two pointers are subtracted, then their difference is divided by the size of the type the pointers point to.
 
 \subsection{Multiplication Operators}
 
@@ -695,7 +695,7 @@ The bitwise-not operator takes the expression (must be an integral value), and f
 \subsection{Postfix Operators}
 
 \begin{lstlisting}[breaklines=true]
-postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", argument_list, ")" | "[", expression, "]" | "++" | "--") } ;
+postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", argument_list, ")" | "[", expression, "]" | "++" | "--" | "=-" | "=!" | "=~" ) } ;
 \end{lstlisting}
 
 The member-access operator (\texttt{.}) takes a value of a type with members (structures or unions), and produces the named member. This value is assignable if the original value is assignable. The pointer member-access operator (\texttt{->}) takes a value of a pointer to a type with members, and produces the named member after dereferencing the pointer. Only the accessed member is accessed via the pointer. The produced value is always assignable. The type of this expression is the type of the member.
@@ -705,6 +705,8 @@ The function-call operator (\texttt{()}) takes a value that is either a function
 The array-index operator (\texttt{[]}) takes a value that is either a pointer or an array, evaluates that, and an integral index, evaluates that, and produces either that element in the array, if the value is an array, or the dereference of the sum (with pointer arithmetic as for the addition operator) of the pointer and the index.
 
 The post-increment and post-decrement operators (\texttt{++}, \texttt{--}) produce the value, then increment it or decrement it exactly like a pre-increment or pre-decrement operator. The value is only evaluated once.
+
+The in-place unary operators take the value, performs the unary operation on it, stores it, and produces the result of the unary operation. The in-place negation operator (\texttt{=-}) performs a negation on a numeric value, the in-place logical not operator (\texttt{=!}) performs a logical not on a boolean value, and the in-place bitwise not operator (\texttt{=~}) performs a bitwise not on an integral value.
 
 \section{Primary Expressions}
 

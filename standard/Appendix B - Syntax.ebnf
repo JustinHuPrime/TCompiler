@@ -97,7 +97,7 @@ prefix_expression = postfix_expression
                   | "!", prefix_expression
                   | "~", prefix_expression
 ;
-postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", argument_list, ")" | "[", expression, "]" | "++" | "--") } ;
+postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", argument_list, ")" | "[", expression, "]" | "++" | "--" | "=-" | "=!" | "=~" ) } ;
 primary_expression = scoped_identifier
                    | identifier
                    | literal

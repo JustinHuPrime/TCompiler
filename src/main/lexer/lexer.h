@@ -95,6 +95,9 @@ typedef enum {
   TT_MINUS,
   TT_BANG,
   TT_TILDE,
+  TT_NEGASSIGN,
+  TT_LNOTASSIGN,
+  TT_NOTASSIGN,
   TT_SLASH,
   TT_PERCENT,
   TT_LSHIFT,
@@ -142,6 +145,7 @@ typedef enum {
   TT_LIT_INT_O,
   TT_LIT_INT_D,
   TT_LIT_INT_H,
+  TT_LIT_DOUBLE,
   TT_LIT_FLOAT,
 } TokenType;
 
