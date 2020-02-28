@@ -18,6 +18,8 @@
 
 #include "constants.h"
 #include "fileList.h"
+#include "lexer/dump.h"
+#include "lexer/lexer.h"
 #include "util/internalError.h"
 #include "util/options.h"
 
@@ -99,7 +101,10 @@ int main(int argc, char *argv[]) {
 
   // debug-dump stop for lexing
   if (options.dump == OPTION_DD_LEX) {
-    error(__FILE__, __LINE__, "not yet implemented");
+    lexerInitMaps();
+    for (size_t idx = 0; idx < fileList.size; idx++)
+      lexDump(&fileList.entries[idx]);
+    lexerUninitMaps();
   }
 
   return CODE_SUCCESS;

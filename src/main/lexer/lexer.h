@@ -205,7 +205,7 @@ int lexerStateInit(FileListEntry *entry);
  *
  * @param entry entry to lex from
  * @param token token to write into
- * @returns status code (0 = OK)
+ * @returns status code (0 = OK, -1 = fatal error, 1 = recoverable error)
  */
 int lex(FileListEntry *entry, Token *token);
 /**
