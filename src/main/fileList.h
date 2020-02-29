@@ -23,6 +23,7 @@
 #define TLC_FILE_LIST_H_
 
 #include "lexer/lexer.h"
+#include "parser/ast.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -32,6 +33,7 @@ typedef struct FileListEntry {
   char const *inputFile;
   bool isCode;
   LexerState lexerState;
+  Node program;
 } FileListEntry;
 /**
  * constructs a FileListEntry in-place
