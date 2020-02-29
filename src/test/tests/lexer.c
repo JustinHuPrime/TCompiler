@@ -281,6 +281,47 @@ static void testErrors(void) {
     test("token is at expected line", token.line == lines[idx]);
   }
 
+  Token token;
+  int retval = lex(&entry, &token);
+  dropLine();
+  test("error is produced", retval == 1);
+
+  retval = lex(&entry, &token);
+  test("token is accepted", retval == 0);
+  test("token is eof", token.type == TT_EOF);
+  test("token is at expected character", token.character == 30);
+  test("token is at expected line", token.line == 20);
+
+  lexerStateUninit(&entry);
+
+  entry.inputFile = "testFiles/lexer/unterminatedCharLit.tc";
+
+  test("lexer initializes okay", lexerStateInit(&entry) == 0);
+
+  retval = lex(&entry, &token);
+  dropLine();
+  test("error is produced", retval == 1);
+  retval = lex(&entry, &token);
+  test("token is accepted", retval == 0);
+  test("token is eof", token.type == TT_EOF);
+  test("token is at expected character", token.character == 2);
+  test("token is at expected line", token.line == 1);
+
+  lexerStateUninit(&entry);
+
+  entry.inputFile = "testFiles/lexer/unterminatedStringLit.tc";
+
+  test("lexer initializes okay", lexerStateInit(&entry) == 0);
+
+  retval = lex(&entry, &token);
+  dropLine();
+  test("error is produced", retval == 1);
+  retval = lex(&entry, &token);
+  test("token is accepted", retval == 0);
+  test("token is eof", token.type == TT_EOF);
+  test("token is at expected character", token.character == 2);
+  test("token is at expected line", token.line == 1);
+
   lexerStateUninit(&entry);
 }
 

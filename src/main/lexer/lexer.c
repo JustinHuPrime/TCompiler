@@ -768,8 +768,7 @@ static int lexString(FileListEntry *entry, Token *token) {
       case '\x04': {
         fprintf(stderr, "%s:%zu:%zu: error: unterminated string literal\n",
                 entry->inputFile, state->line,
-                state->character + (size_t)(state->current - start) + 1);
-        put(state, 1);
+                state->character + (size_t)(state->current - start));
         state->character += (size_t)(state->current - start);
         return 1;
       }
@@ -927,9 +926,8 @@ static int lexChar(FileListEntry *entry, Token *token) {
     case '\x04': {
       fprintf(stderr, "%s:%zu:%zu: error: unterminated character literal\n",
               entry->inputFile, state->line,
-              state->character + (size_t)(state->current - start) + 1);
-      state->character += (size_t)(state->current - start + 1);
-      put(state, 1);
+              state->character + (size_t)(state->current - start));
+      state->character += (size_t)(state->current - start);
       return 1;
     }
     default: {
