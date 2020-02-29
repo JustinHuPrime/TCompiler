@@ -22,3 +22,5 @@
 size_t const PTR_VECTOR_INIT_CAPACITY = 8;
 // vectors of bytes start with 16 bytes allocated to reduce memory churn
 size_t const BYTE_VECTOR_INIT_CAPACITY = 16;
+// exponential growth factor for vectors
+size_t const VECTOR_GROWTH_FACTOR = 2;

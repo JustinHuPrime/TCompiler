@@ -105,7 +105,7 @@ int hashMapPut(HashMap *map, char const *key, void *data) {
     map->size = 0;
     for (size_t idx = 0; idx < oldSize; idx++) {
       if (oldKeys[idx] != NULL) {
-        // can set, since we know the elemnt doesn't exist
+        // can set, since we know the element doesn't exist
         hashMapSet(map, oldKeys[idx], oldValues[idx]);
       }
     }

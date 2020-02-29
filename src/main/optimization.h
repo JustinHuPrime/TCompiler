@@ -28,5 +28,7 @@
 extern size_t const PTR_VECTOR_INIT_CAPACITY;
 /** starting capacity of a vector of bytes */
 extern size_t const BYTE_VECTOR_INIT_CAPACITY;
+/** growth factor of a vector */
+extern size_t const VECTOR_GROWTH_FACTOR;
 
 #endif  // TLC_UTIL_CONTAINER_OPTIMIZATION_H_
