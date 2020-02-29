@@ -131,19 +131,22 @@ int lexerStateInit(FileListEntry *entry) {
   }
   struct stat statbuf;
   if (fstat(fd, &statbuf) != 0) {
-    fprintf(stderr, "%s: error: cannot open file\n", entry->inputFile);
+    fprintf(stderr, "%s: error: cannot stat file\n", entry->inputFile);
     close(fd);
     return -1;
   }
-  state->current = state->map =
-      mmap(NULL, (size_t)statbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-  close(fd);
-  if (state->map == (void *)-1) {
-    fprintf(stderr, "%s: error: cannot open file\n", entry->inputFile);
-    return -1;
-  }
-
   state->length = (size_t)statbuf.st_size;
+  if (state->length == 0) {
+    state->current = state->map = NULL;
+  } else {
+    state->current = state->map =
+        mmap(NULL, state->length, PROT_READ, MAP_PRIVATE, fd, 0);
+    close(fd);
+    if (state->map == (void *)-1) {
+      fprintf(stderr, "%s: error: cannot mmap file\n", entry->inputFile);
+      return -1;
+    }
+  }
 
   return 0;
 }
@@ -247,7 +250,8 @@ static int lexWhitespace(FileListEntry *entry) {
                   fprintf(stderr,
                           "%s:%zu:%zu: error: unterminated block comment\n",
                           entry->inputFile, state->line, state->character);
-                  return -1;
+                  put(state, 1);
+                  return 1;
                 }
                 case '\n': {
                   state->character = 1;
@@ -399,7 +403,9 @@ static int lexHex(FileListEntry *entry, Token *token, char const *start) {
     // error!
     fprintf(stderr, "%s:%zu:%zu: error: invalid hexadecimal integer literal\n",
             entry->inputFile, state->line, state->character);
-    return -1;
+    put(state, 1);
+    state->character += 2;
+    return 1;
   }
 
   while (true) {
@@ -467,7 +473,9 @@ static int lexBinary(FileListEntry *entry, Token *token, char const *start) {
     // error!
     fprintf(stderr, "%s:%zu:%zu: error: invalid binary integer literal\n",
             entry->inputFile, state->line, state->character);
-    return -1;
+    put(state, 1);
+    state->character += 2;
+    return 1;
   }
 
   while (true) {
@@ -599,6 +607,66 @@ static int lexId(FileListEntry *entry, Token *token) {
 }
 
 /**
+ * munches until the probable end of a string is found
+ */
+static void panicString(LexerState *state) {
+  while (true) {
+    char c = get(state);
+    switch (c) {
+      case '\\': {
+        state->character += 1;
+        char next = get(state);
+        switch (next) {
+          case 'x': {
+            // \x
+            for (size_t idx = 0; idx < 2; idx++) {
+              char hex = get(state);
+              if (!isNybble(hex)) {
+                put(state, 1);
+                break;
+              } else {
+                state->character += 1;
+              }
+            }
+            break;
+          }
+          case 'u': {
+            // \u
+            for (size_t idx = 0; idx < 8; idx++) {
+              char hex = get(state);
+              if (!isNybble(hex)) {
+                put(state, 1);
+                break;
+              } else {
+                state->character += 1;
+              }
+            }
+            break;
+          }
+          default: {
+            state->character += 1;
+            break;
+          }
+        }
+        break;
+      }
+      case '"': {
+        state->character += 1;
+        return;
+      }
+      default: {
+        if (!((c >= ' ' && c <= '~' && c != '"' && c != '\\') || c == '\t')) {
+          put(state, 1);
+          return;
+        } else {
+          state->character += 1;
+        }
+      }
+    }
+  }
+}
+
+/**
  * lexes a string or wstring literal, opening quote already lexed
  */
 static int lexString(FileListEntry *entry, Token *token) {
@@ -631,7 +699,9 @@ static int lexString(FileListEntry *entry, Token *token) {
             fprintf(stderr,
                     "%s:%zu:%zu: error: wide characters in narrow string\n",
                     entry->inputFile, state->line, state->character);
-            return -1;
+            put(state, 1);
+            state->character += length + 2;
+            return 1;
           }
         }
 
@@ -653,7 +723,10 @@ static int lexString(FileListEntry *entry, Token *token) {
                     "%s:%zu:%zu: error: invalid hexadecimal escape sequence\n",
                     entry->inputFile, state->line,
                     state->character + (size_t)(state->current - start) + 1);
-                return -1;
+                put(state, 1);
+                state->character += (size_t)(state->current - start + 1);
+                panicString(state);
+                return 1;
               }
             }
             break;
@@ -668,7 +741,10 @@ static int lexString(FileListEntry *entry, Token *token) {
                     "%s:%zu:%zu: error: invalid hexadecimal escape sequence\n",
                     entry->inputFile, state->line,
                     state->character + (size_t)(state->current - start) + 1);
-                return -1;
+                put(state, 1);
+                state->character += (size_t)(state->current - start + 1);
+                panicString(state);
+                return 1;
               }
             }
             type = TT_LIT_WSTRING;
@@ -681,7 +757,9 @@ static int lexString(FileListEntry *entry, Token *token) {
                       "%s:%zu:%zu: error: unrecognized escape sequence\n",
                       entry->inputFile, state->line,
                       state->character + (size_t)(state->current - start) + 1);
-              return -1;
+              state->character += (size_t)(state->current - start + 1);
+              panicString(state);
+              return 1;
             }
           }
         }
@@ -691,7 +769,9 @@ static int lexString(FileListEntry *entry, Token *token) {
         fprintf(stderr, "%s:%zu:%zu: error: unterminated string literal\n",
                 entry->inputFile, state->line,
                 state->character + (size_t)(state->current - start) + 1);
-        return -1;
+        put(state, 1);
+        state->character += (size_t)(state->current - start);
+        return 1;
       }
       default: {
         if (!((c >= ' ' && c <= '~' && c != '"' && c != '\\') || c == '\t')) {
@@ -700,7 +780,70 @@ static int lexString(FileListEntry *entry, Token *token) {
                   "string literal\n",
                   entry->inputFile, state->line,
                   state->character + (size_t)(state->current - start) + 1);
-          return -1;
+          put(state, 1);
+          state->character += (size_t)(state->current - start);
+          return 1;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * munches until the probable end of a char is found (multiple characters
+ * allowed)
+ */
+static void panicChar(LexerState *state) {
+  while (true) {
+    char c = get(state);
+    switch (c) {
+      case '\\': {
+        state->character += 1;
+        char next = get(state);
+        switch (next) {
+          case 'x': {
+            // \x
+            for (size_t idx = 0; idx < 2; idx++) {
+              char hex = get(state);
+              if (!isNybble(hex)) {
+                put(state, 1);
+                break;
+              } else {
+                state->character += 1;
+              }
+            }
+            break;
+          }
+          case 'u': {
+            // \u
+            for (size_t idx = 0; idx < 8; idx++) {
+              char hex = get(state);
+              if (!isNybble(hex)) {
+                put(state, 1);
+                break;
+              } else {
+                state->character += 1;
+              }
+            }
+            break;
+          }
+          default: {
+            state->character += 1;
+            break;
+          }
+        }
+        break;
+      }
+      case '\'': {
+        state->character += 1;
+        return;
+      }
+      default: {
+        if (!((c >= ' ' && c <= '~' && c != '\'' && c != '\\') || c == '\t')) {
+          put(state, 1);
+          return;
+        } else {
+          state->character += 1;
         }
       }
     }
@@ -721,7 +864,8 @@ static int lexChar(FileListEntry *entry, Token *token) {
       // empty literal
       fprintf(stderr, "%s:%zu:%zu: error: empty character literal\n",
               entry->inputFile, state->line, state->character);
-      return -1;
+      state->character += 2;
+      return 1;
     }
     case '\\': {
       // escape sequence
@@ -738,7 +882,10 @@ static int lexChar(FileListEntry *entry, Token *token) {
                   entry->inputFile, state->line,
                   state->character +
                       ((size_t)(state->current - start) + 1 - idx));
-              return -1;
+              put(state, 1);
+              state->character += (size_t)(state->current - start + 1);
+              panicChar(state);
+              return 1;
             }
           }
           break;
@@ -754,7 +901,10 @@ static int lexChar(FileListEntry *entry, Token *token) {
                   entry->inputFile, state->line,
                   state->character +
                       ((size_t)(state->current - start) + 1 - idx));
-              return -1;
+              put(state, 1);
+              state->character += (size_t)(state->current - start + 1);
+              panicChar(state);
+              return 1;
             }
           }
           type = TT_LIT_WCHAR;
@@ -766,7 +916,9 @@ static int lexChar(FileListEntry *entry, Token *token) {
             fprintf(stderr, "%s:%zu:%zu: error: unrecognized escape sequence\n",
                     entry->inputFile, state->line,
                     state->character + (size_t)(state->current - start) + 1);
-            return -1;
+            state->character += (size_t)(state->current - start + 1);
+            panicChar(state);
+            return 1;
           }
         }
       }
@@ -776,7 +928,9 @@ static int lexChar(FileListEntry *entry, Token *token) {
       fprintf(stderr, "%s:%zu:%zu: error: unterminated character literal\n",
               entry->inputFile, state->line,
               state->character + (size_t)(state->current - start) + 1);
-      return -1;
+      state->character += (size_t)(state->current - start + 1);
+      put(state, 1);
+      return 1;
     }
     default: {
       if (!((c >= ' ' && c <= '~' && c != '"' && c != '\\') || c == '\t')) {
@@ -785,7 +939,9 @@ static int lexChar(FileListEntry *entry, Token *token) {
                 "character literal\n",
                 entry->inputFile, state->line,
                 state->character + (size_t)(state->current - start) + 1);
-        return -1;
+        state->character += (size_t)(state->current - start + 1);
+        put(state, 1);
+        return 1;
       }
     }
   }
@@ -800,7 +956,10 @@ static int lexChar(FileListEntry *entry, Token *token) {
     fprintf(stderr,
             "%s:%zu:%zu: error: multiple characters in a character literal\n",
             entry->inputFile, state->line, (size_t)(state->current - start));
-    return -1;
+    put(state, 1);
+    state->character += (size_t)(state->current - start + 1);
+    panicChar(state);
+    return 1;
   }
 
   if (type == TT_LIT_CHAR) {
@@ -816,11 +975,13 @@ static int lexChar(FileListEntry *entry, Token *token) {
     char next = get(state);
     if (next != 'w') {
       free(clip);
+      put(state, 1);
       fprintf(
           stderr,
           "%s:%zu:%zu: error: wide characters in narrow character literal\n",
           entry->inputFile, state->line, state->character);
-      return -1;
+      state->character += (size_t)(state->current - start + 1);
+      return 1;
     }
   }
 
@@ -832,7 +993,8 @@ static int lexChar(FileListEntry *entry, Token *token) {
 int lex(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
   // munch whitespace
-  if (lexWhitespace(entry) != 0) return -1;
+  int rc = lexWhitespace(entry);
+  if (rc != 0) return rc;
   // return a token
   char c = get(state);
   switch (c) {
@@ -1311,7 +1473,8 @@ int lex(FileListEntry *entry, Token *token) {
         fprintf(stderr, "%s:%zu:%zu: error: unexpected character: %s\n",
                 entry->inputFile, state->line, state->character, prettyString);
         free(prettyString);
-        return -1;
+        state->character += 1;
+        return 1;
       }
     }
   }
@@ -1327,6 +1490,6 @@ void unLex(FileListEntry *entry, Token const *token) {
 
 void lexerStateUninit(FileListEntry *entry) {
   LexerState *state = &entry->lexerState;
-  munmap((void *)state->map, state->length);
+  if (state->map != NULL) munmap((void *)state->map, state->length);
   if (state->pushedBack) tokenUninit(&state->previous);
 }

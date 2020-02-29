@@ -27,14 +27,11 @@
 #include <string.h>
 
 static void testAllTokens(void) {
-  Token token;
-  int retval;
-
   FileListEntry entry;  // forge the entry
   entry.inputFile = "testFiles/lexer/allTokens.tc";
   entry.isCode = true;
 
-  lexerStateInit(&entry);
+  test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
   TokenType const types[] = {
       TT_MODULE,        TT_IMPORT,       TT_OPAQUE,
@@ -241,7 +238,8 @@ static void testAllTokens(void) {
   size_t const numTokens = 111;
 
   for (size_t idx = 0; idx < numTokens; idx++) {
-    retval = lex(&entry, &token);
+    Token token;
+    int retval = lex(&entry, &token);
     test("lex accepts token", retval == 0);
     test("token has expected type", token.type == types[idx]);
     test("token is at expected character", token.character == characters[idx]);
@@ -255,10 +253,42 @@ static void testAllTokens(void) {
   lexerStateUninit(&entry);
 }
 
+static void testErrors(void) {
+  FileListEntry entry;  // forge the entry
+  entry.inputFile = "testFiles/lexer/errors.tc";
+  entry.isCode = true;
+
+  test("lexer initializes okay", lexerStateInit(&entry) == 0);
+
+  size_t const characters[] = {
+      3, 3, 13, 7, 7, 5, 1, 3, 7, 7, 5, 1, 5, 6, 13, 2,
+  };
+  size_t const lines[] = {
+      1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18,
+  };
+  size_t const numTokens = 16;
+
+  for (size_t idx = 0; idx < numTokens; idx++) {
+    Token token;
+    int retval = lex(&entry, &token);
+    dropLine();
+    test("error is produced", retval == 1);
+
+    retval = lex(&entry, &token);
+    test("token is accepted", retval == 0);
+    test("token is semi", token.type == TT_SEMI);
+    test("token is at expected character", token.character == characters[idx]);
+    test("token is at expected line", token.line == lines[idx]);
+  }
+
+  lexerStateUninit(&entry);
+}
+
 void testLexer(void) {
   lexerInitMaps();
 
   testAllTokens();
+  testErrors();
 
   lexerUninitMaps();
 }
