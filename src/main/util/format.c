@@ -17,7 +17,7 @@
 // Implementation of formatted string building
 
 #include "util/format.h"
-#include "util/internalError.h"
+#include "internalError.h"
 
 #include <stdarg.h>
 #include <stdio.h>

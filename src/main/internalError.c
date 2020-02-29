@@ -16,7 +16,7 @@
 
 // implementation of internal compiler error handling
 
-#include "util/internalError.h"
+#include "internalError.h"
 
 #include <stdio.h>
 #include <stdlib.h>

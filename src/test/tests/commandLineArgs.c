@@ -21,8 +21,8 @@
 
 #include "engine.h"
 #include "fileList.h"
+#include "options.h"
 #include "tests.h"
-#include "util/options.h"
 
 #include <stdlib.h>
 #include <string.h>

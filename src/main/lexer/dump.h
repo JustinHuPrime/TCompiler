@@ -19,6 +19,9 @@
  * lexer debug-dumping
  */
 
+#ifndef TLC_LEXER_DUMP_H_
+#define TLC_LEXER_DUMP_H_
+
 typedef struct FileListEntry FileListEntry;
 
 /**
@@ -28,3 +31,5 @@ typedef struct FileListEntry FileListEntry;
  * @param entry entry to lex, must not be initialized for lexing already
  */
 void lexDump(FileListEntry *entry);
+
+#endif  // TLC_LEXER_DUMP_H_

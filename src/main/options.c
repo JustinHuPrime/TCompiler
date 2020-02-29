@@ -14,7 +14,7 @@
 //
 // This file is part of the T Language Compiler.
 
-#include "util/options.h"
+#include "options.h"
 
 #include <stdio.h>
 #include <string.h>

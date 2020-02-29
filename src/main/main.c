@@ -18,10 +18,10 @@
 
 #include "constants.h"
 #include "fileList.h"
+#include "internalError.h"
 #include "lexer/dump.h"
 #include "lexer/lexer.h"
-#include "util/internalError.h"
-#include "util/options.h"
+#include "options.h"
 
 #include <stdbool.h>
 #include <stdio.h>
