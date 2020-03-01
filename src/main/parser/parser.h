@@ -29,7 +29,7 @@ typedef struct FileListEntry FileListEntry;
 /**
  * parses a file
  *
- * expects entry to have an uninitialized FileListEntry#lexerState, and an empty
+ * expects entry to have an uninitialized FileListEntry#lexerState, and a null
  * FileListEntry#program
  *
  * @param entry entry to parse

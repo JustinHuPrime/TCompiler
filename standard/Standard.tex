@@ -117,7 +117,8 @@ In addition to the restrictions placed by the grammar above:
 	\item no function definitions may exist within a declaration file,
 	\item no function definition or declaration may have an optional argument (\texttt{"=", literal}) before a non-optional argument,
 	\item no break statement may exist unless in the body of a loop or switch,
-	\item no continue may exist unless in the body of a loop.
+	\item no continue may exist unless in the body of a loop,
+	\item no switch statement may contain more than one default case.
 \end{itemize}
 
 If a source file violates any of these requirements, a diagnostic message must be issued.
@@ -227,7 +228,7 @@ Any data type may form the base of a derived data type.
 \begin{lstlisting}[breaklines=true]
 declaration = function_declaration
             | variable_declaration
-            | opaque_type_declaration
+            | opaque_declaration
             | struct_declaration
             | union_declaration
             | enum_declaration
@@ -235,7 +236,7 @@ declaration = function_declaration
             ;
 \end{lstlisting}
 
-Declarations state the existence of a type, function, or variable in the current module. For type declarations, they may also serve as the definition of a type. Conceptually, a declaration is all that is required to use the declared entity, and the user need not be aware of the definition. However, for non-opaque types, it is necessary to know the definition of the type to use it completely - it is necessary to know the size of a type to declare it on the stack. For opaque types, it is not necessary to have that additional information, so both kinds of declarations - complete and forward - are considered declarations.
+Declarations state the existence of a type, function, or variable in the current module. For type declarations, they may also serve as the definition of a type. Conceptually, a declaration is all that is required to use the declared entity, and the user need not be aware of the definition. However, for non-opaque types, it is necessary to know the definition of the type to use it completely - it is necessary to know the size of a type to declare it on the stack. For opaque types, it is not necessary to have that additional information, so both kinds of declarations - complete and opaque - are considered declarations.
 
 The identifier in a declaration may not be a reserved identifier. Reserved identifiers may be used by the language implementation. Any identifier that starts with two underscores is considered reserved.
 
@@ -245,7 +246,7 @@ The identifier in a declaration may not be a reserved identifier. Reserved ident
 function_declaration = type, identifier, "(", [ type, [ identifier ], [ "=", literal ], { ",", type, [ identifier ], [ "=", literal ] } ], ")", ";" ;
 \end{lstlisting}
 
-A function declaration declares the existence of the function, having the name in the first identifier, and provides the interface to call the function and get a return value. The return type and formal parameter types must be complete types. A return value of \texttt{void} indicates that the function does not return any value. If a formal parameter is followed by an equals sign and a literal value, then any callers of this function may omit the value in the function call expression, and the default value will be substituted in as the actual argument. However, function pointers are unable to use default parameters, so when converted to a function pointer, it will be as if no default parameters were specified. The corresponding function definition need not declare any default parameters, but if any default parameters are supplied in the definition, then they must match exactly the ones specified in the declaration.
+A function declaration declares the existence of the function, having the name in the first identifier, and provides the interface to call the function and get a return value. The parameter names are not significant, and may be different from the names used in the function definition. The return type and formal parameter types must be complete types. A return value of \texttt{void} indicates that the function does not return any value. If a formal parameter is followed by an equals sign and a literal value, then any callers of this function may omit the value in the function call expression, and the default value will be substituted in as the actual argument. However, function pointers are unable to use default parameters, so when converted to a function pointer, it will be as if no default parameters were specified. The corresponding function definition must supply the same default parameters as those specified in the declaration.
 
 \subsection{Main Functions}
 
@@ -262,10 +263,10 @@ A variable declaration declares the existence of a global variable. Variable dec
 \section{Opaque Type Declarations}
 
 \begin{lstlisting}[breaklines=true]
-opaque_type_declaration = "opaque", identifier, { ",", identifier }, ";" ;
+opaque_declaration = "opaque", identifier, ";" ;
 \end{lstlisting}
 
-An opaque type declaration declares the existence of a user-defined type (structure, union, enumeration, or alias). Other than the existence of that type as a user-defined type, and the name, nothing else is specified. The comma separated list of identifiers lists out the names declared as opaque types.
+An opaque type declaration declares the existence of a user-defined type (structure, union, enumeration, or alias). Other than the existence of that type as a user-defined type, and the name, nothing else is specified.
 
 \section{Struct Declarations}
 
@@ -339,7 +340,7 @@ statement = compound_statement
           | return_statement
           | asm_statement
           | variable_declaration_statement
-          | opaque_type_declaration
+          | opaque_declaration
           | struct_declaration
           | union_declaration
           | enum_declaration
@@ -397,7 +398,10 @@ The for loop statement introduces a scope, and within that scope, the variable d
 \section{Switch Statements}
 
 \begin{lstlisting}[breaklines=true]
-switch_statement = "switch", "(", expression, ")", "{", { "case", extended_int_literal, ":", { "case", extended_int_literal, ":" }, statement | "default", ":", statement }, "}" ;
+switch_statement = "switch", "(", expression, ")", "{", switch_statement_case | switch_statement_default, { switch_statement_case | switch_statement_default }, "}" ;
+
+switch_statement_case = "case", extended_int_literal, ":", { "case", extended_int_literal, ":" }, statement ;
+switch_statement_default = "default", ":", statement ;
 \end{lstlisting}
 
 A switch statement selects between several possible cases. The expression is evaluated, and it must be an integral expression. Then, the matching case is selected, and the matching statement is executed. Then, unless execution hits a break, execution proceeds down the following cases. If no case is matched, then the default and its statement is executed, and execution of the switch continues down the remaining cases. It is an error to have multiple cases with the same value.
