@@ -15,3 +15,17 @@
 // This file is part of the T Language Compiler.
 
 #include "parser/ast.h"
+
+#include <stdlib.h>
+
+void nodeDeinit(Node *n) {
+  switch (n->type) {
+    case NT_FILE: {
+      nodeDeinit(n->data.file.module);
+      free(n->data.file.module);
+      vectorUninit(&n->data.file.imports, (void (*)(void *))nodeDeinit);
+      vectorUninit(&n->data.file.body, (void (*)(void *))nodeDeinit);
+      break;
+    }
+  }
+}
