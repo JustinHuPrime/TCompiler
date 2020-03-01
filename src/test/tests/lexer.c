@@ -24,6 +24,7 @@
 #include "fileList.h"
 #include "tests.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 static void testAllTokens(void) {
@@ -249,6 +250,8 @@ static void testAllTokens(void) {
     else
       test("token's additional data matches",
            strcmp(strings[idx], token.string) == 0);
+
+    if (token.string != NULL) free(token.string);
   }
   lexerStateUninit(&entry);
 }
