@@ -74,6 +74,10 @@ typedef enum {
   NT_MODIFIEDTYPE, /**< node for a generalized simple modified type */
   NT_ARRAYTYPE,
   NT_FUNPTRTYPE,
+
+  NT_UNPARSED, /**< tokens representing a variable declaration, definition,
+                      definition statement, or expression that are yet to be
+                      parsed*/
 } NodeType;
 
 /** the type of a syntactic binary operation */
@@ -370,13 +374,17 @@ typedef struct Node {
     struct {
       char *id;
     } id;
+
+    struct {
+      Vector tokens; /**< vector of Tokens */
+    } unparsed;
   } data;
 } Node;
 
 /**
  * deinitializes a node
  *
- * @param n Node to deinitialize
+ * @param n Node to deinitialize - not null
  */
 void nodeDeinit(Node *n);
 
