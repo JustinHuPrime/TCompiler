@@ -22,6 +22,7 @@
 #include "lexer/dump.h"
 #include "lexer/lexer.h"
 #include "options.h"
+#include "parser/parser.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -54,8 +55,6 @@ enum {
   CODE_OPTION_ERROR,
   CODE_FILE_ERROR,
   CODE_PARSE_ERROR,
-  CODE_BUILD_STAB_ERROR,
-  CODE_TYPECHECK_ERROR,
 };
 
 // compile the given declaration and code files into one assembly file per code
@@ -105,6 +104,10 @@ int main(int argc, char *argv[]) {
     for (size_t idx = 0; idx < fileList.size; idx++)
       lexDump(&fileList.entries[idx]);
     lexerUninitMaps();
+  }
+
+  if (parse() != 0) {
+    return CODE_PARSE_ERROR;
   }
 
   return CODE_SUCCESS;

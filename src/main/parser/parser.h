@@ -22,19 +22,14 @@
 #ifndef TLC_PARSER_PARSER_H_
 #define TLC_PARSER_PARSER_H_
 
-#include "parser/ast.h"
-
-typedef struct FileListEntry FileListEntry;
-
 /**
- * parses a file
+ * parses all of the files in the file list
  *
- * expects entry to have an uninitialized FileListEntry#lexerState, and a null
- * FileListEntry#program
+ * no lexer states or lexer tables may be initialized, and all file entry
+ * programs must be null
  *
- * @param entry entry to parse
  * @returns status code (0 = OK, -1 = fatal error)
  */
-int parse(FileListEntry *entry);
+int parse(void);
 
 #endif  // TLC_PARSER_PARSER_H_

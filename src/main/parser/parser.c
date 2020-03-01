@@ -15,8 +15,9 @@
 // This file is part of the T Language Compiler.
 
 #include "parser/parser.h"
+#include "parser/ast.h"
 
 #include "fileList.h"
 #include "options.h"
 
-int parse(FileListEntry *entry) { return 0; }
+int parse(void) { return 0; }
