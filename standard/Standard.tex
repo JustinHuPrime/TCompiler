@@ -216,7 +216,7 @@ Any data type may form the base of a derived data type.
 	
 	\item \textbf{Volatiles}: by appending \texttt{volatile} to a type, a type may be turned into a volatile type. Reads and writes from and to a value of volatile type are considered side effects, and must be sequenced. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant. A void base type is not allowed.
 	
-	\item \textbf{Arrays}: by appending a positive or unsigned integral constant in square brackets, a type is turned into an array of that many items. An array is guaranteed to be contiguous in memory, such that by adding (without pointer arithmetic, i.e. on the raw integer address) the size of an element, to the address of an element, you get the address of the next element. Arrays of void are not allowed.
+	\item \textbf{Arrays}: by appending a positive or unsigned extended integral constant in square brackets, a type is turned into an array of that many items. An array is guaranteed to be contiguous in memory, such that by adding (without pointer arithmetic, i.e. on the raw integer address) the size of an element, to the address of an element, you get the address of the next element. Arrays of void are not allowed.
 	
 	\item \textbf{Pointers}: by appending \texttt{*} to a type, a type is turned into a pointer to that type. Pointers hold an unsigned integer (width determined by the execution environment) that represents the location in memory 
 	

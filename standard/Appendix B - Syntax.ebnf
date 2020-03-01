@@ -147,7 +147,7 @@ type = "void"
      | scoped_identifier
      | type, "const"
      | type, "volatile"
-     | type, "[", int_literal, "]"
+     | type, "[", extended_int_literal, "]"
      | type, "*"
      | type, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")"
 ;

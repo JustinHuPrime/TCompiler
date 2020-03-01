@@ -63,17 +63,18 @@ typedef enum {
 
   NT_BINOPEXP, /**< node for a generalized syntactic binary operation */
   NT_TERNARYEXP,
-  NT_UNARYEXP, /**< node for a generalized syntactic unary operation */
+  NT_UNOPEXP, /**< node for a generalized syntactic unary operation */
   NT_FUNCALLEXP,
 
-  NT_SCOPEDID,
-  NT_ID,
   NT_LITERAL,
 
   NT_KEYWORDTYPE,
   NT_MODIFIEDTYPE, /**< node for a generalized simple modified type */
   NT_ARRAYTYPE,
   NT_FUNPTRTYPE,
+
+  NT_SCOPEDID,
+  NT_ID,
 
   NT_UNPARSED, /**< tokens representing a variable declaration, definition,
                       definition statement, or expression that are yet to be
@@ -158,6 +159,7 @@ typedef enum {
   LT_WCHAR,
   LT_BOOL,
   LT_NULL,
+  LT_ENUMCONST,
   LT_AGGREGATEINIT,
 } LiteralType;
 
@@ -242,8 +244,10 @@ typedef struct Node {
       Vector options;    /**< vector of Nodes, each is an NT_VARDECL */
     } unionDecl;
     struct {
-      struct Node *name;    /**< NT_ID */
-      Vector constantNames; /**< vector of Nodes, each is an NT_ID */
+      struct Node *name;     /**< NT_ID */
+      Vector constantNames;  /**< vector of Nodes, each is an NT_ID */
+      Vector constantValues; /**< vector of nullable Nodes, each is an extended
+                                int literal */
     } enumDecl;
     struct {
       struct Node *originalType; /**< type */
@@ -310,8 +314,8 @@ typedef struct Node {
 
     struct {
       BinOpType op;
-      struct Node *lhs; /**< expression */
-      struct Node *rhs; /**< expression */
+      struct Node *lhs;
+      struct Node *rhs;
     } binopExp;
     struct {
       struct Node *predicate;   /**< expression */
@@ -320,8 +324,8 @@ typedef struct Node {
     } ternaryExp;
     struct {
       UnOpType op;
-      struct Node *target; /**< expression */
-    } unaryExp;
+      struct Node *target;
+    } unopExp;
     struct {
       struct Node *function; /**< expression */
       Vector arguments;      /**< vector of Nodes, each is an expression */
@@ -346,6 +350,7 @@ typedef struct Node {
         uint32_t wcharVal;
         // LT_NULL has no additional data
         bool boolVal;
+        struct Node *enumConstVal;
         Vector aggregateInitVal; /**< vector of Nodes, each is an NT_LITERAL or
                                     an NT_SCOPEDID (enumeration constant) */
       } value;
@@ -360,7 +365,7 @@ typedef struct Node {
     } modifiedType;
     struct {
       struct Node *baseType; /**< type */
-      struct Node *size;     /**< int literal */
+      struct Node *size;     /**< extended int literal */
     } arrayType;
     struct {
       struct Node *returnType; /**< type */
