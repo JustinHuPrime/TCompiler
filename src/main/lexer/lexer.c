@@ -1156,7 +1156,7 @@ int lex(FileListEntry *entry, Token *token) {
         }
         case '=': {
           // &=
-          tokenInit(state, token, TT_ANDASSIGN, NULL);
+          tokenInit(state, token, TT_BITANDASSIGN, NULL);
           state->character += 2;
           return 0;
         }
@@ -1215,7 +1215,7 @@ int lex(FileListEntry *entry, Token *token) {
         }
         case '~': {
           // =~
-          tokenInit(state, token, TT_NOTASSIGN, NULL);
+          tokenInit(state, token, TT_BITNOTASSIGN, NULL);
           state->character += 2;
           return 0;
         }
@@ -1394,7 +1394,7 @@ int lex(FileListEntry *entry, Token *token) {
         }
         case '=': {
           // |=
-          tokenInit(state, token, TT_ORASSIGN, NULL);
+          tokenInit(state, token, TT_BITORASSIGN, NULL);
           state->character += 2;
           return 0;
         }
@@ -1412,7 +1412,7 @@ int lex(FileListEntry *entry, Token *token) {
       switch (next) {
         case '=': {
           // ^=
-          tokenInit(state, token, TT_XORASSIGN, NULL);
+          tokenInit(state, token, TT_BITXORASSIGN, NULL);
           state->character += 2;
           return 0;
         }
