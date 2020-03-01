@@ -106,8 +106,35 @@ int main(int argc, char *argv[]) {
     lexerUninitMaps();
   }
 
-  if (parse() != 0) {
-    return CODE_PARSE_ERROR;
+  // front-end
+
+  // parse
+  if (parse() != 0) return CODE_PARSE_ERROR;
+
+  // typecheck
+
+  // source code optimization
+
+  // translate to IR
+
+  // middle-end
+
+  // ir optimization
+
+  // back-end
+  switch (options.arch) {
+    case OPTION_A_X86_64: {
+      // assembly generation
+
+      // assembly optimization part 1
+
+      // register allocation
+
+      // assembly optimization part 2
+
+      // write out
+      break;
+    }
   }
 
   return CODE_SUCCESS;
