@@ -94,7 +94,7 @@ debug: $(EXENAME) $(TEXENAME) docs
 	@$(ECHO) "Done building debug!"
 
 release: OPTIONS := $(OPTIONS) $(RELEASEOPTIONS)
-release: $(EXENAME) $(TEXENAME) docs
+release: $(EXENAME) $(TEXENAME) $(STANDARDDIR)/Standard.pdf
 	@$(ECHO) "Running tests"
 	@./$(TEXENAME)
 	@$(ECHO) "Done building release!"
@@ -113,7 +113,7 @@ $(DOCSDIR)/.timestamp: $(shell find -O3 $(SRCDIR) -type f -name '*.[ch]')
 	@$(TOUCH) $@
 
 $(STANDARDDIR)/Standard.pdf: $(STANDARDDIR)/Standard.tex
-	@$(ECHO) "Generating standard"
+	@$(ECHO) "Compiling standard"
 	@$(PDFLATEX) -output-directory $(STANDARDDIR) $< > /dev/null
 
 
