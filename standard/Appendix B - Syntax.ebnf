@@ -117,6 +117,7 @@ extended_int_literal = int_literal
 ;
 literal = int_literal
         | float_literal
+        | double_literal
         | string_literal
         | char_literal
         | wstring_literal
@@ -148,7 +149,7 @@ type = "void"
      | type, "volatile"
      | type, "[", int_literal, "]"
      | type, "*"
-     | type, "(", [ type, { ",", type } ], ")"
+     | type, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")"
 ;
 
 scoped_identifier = identifier, "::", identifier, { "::", identifier } ;
