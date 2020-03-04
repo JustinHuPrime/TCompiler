@@ -15,9 +15,37 @@
 // This file is part of the T Language Compiler.
 
 #include "parser/parser.h"
-#include "parser/ast.h"
+#include "ast/ast.h"
+#include "lexer/lexer.h"
 
 #include "fileList.h"
 #include "options.h"
 
-int parse(void) { return 0; }
+int parse(void) {
+  int retval = 0;
+
+  lexerInitMaps();
+
+  // pass one - parse and gather top-level names, leaving some nodes as unparsed
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+    retval = lexerStateInit(&fileList.entries[idx]);
+    if (retval != 0) {
+      retval = -1;
+      continue;
+    }
+
+    // parseFile(&fileList.entries[idx]);
+
+    lexerStateUninit(&fileList.entries[idx]);
+  }
+
+  if (retval != 0) return retval;
+
+  lexerUninitMaps();
+
+  // pass two - resolve imports and parse unparsed nodes
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+  }
+
+  return 0;
+}

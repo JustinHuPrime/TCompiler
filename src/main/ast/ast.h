@@ -19,11 +19,12 @@
  * abstract syntax tree definition
  */
 
-#ifndef TLC_PARSER_AST_H_
-#define TLC_PARSER_AST_H_
+#ifndef TLC_AST_AST_H_
+#define TLC_AST_AST_H_
 
 #include <stddef.h>
 
+#include "ast/symbolTable.h"
 #include "util/container/vector.h"
 
 /** the type of an AST node */
@@ -195,6 +196,7 @@ typedef struct Node {
   size_t character;
   union {
     struct {
+      HashMap stab;        /**< symbol table for file */
       struct Node *module; /**< NT_MODULE */
       Vector imports;      /**< vector of Nodes, each is an NT_IMPORT */
       Vector body; /**< vector of Nodes, each is a definition or declaration */
@@ -208,6 +210,7 @@ typedef struct Node {
     } import;
 
     struct {
+      HashMap stab;            /**< symbol table for arguments */
       struct Node *returnType; /**< type */
       struct Node *funName;    /**< NT_ID */
       Vector argTypes;         /**< vector of Nodes, each is a type */
@@ -255,6 +258,7 @@ typedef struct Node {
     } typedefDecl;
 
     struct {
+      HashMap stab; /**< symbol table for this scope */
       Vector stmts; /**< vector of Nodes, each is a statement */
     } compoundStmt;
     struct {
@@ -271,6 +275,7 @@ typedef struct Node {
       struct Node *condition; /**< statement */
     } doWhileStmt;
     struct {
+      HashMap stab; /**< symbol table for loop */
       struct Node *
           initializer; /**< NT_VARDEFNSTMT, NT_EXPRESSIONSTMT, or NT_NULLSTMT */
       struct Node *condition; /**< expression */
@@ -393,4 +398,4 @@ typedef struct Node {
  */
 void nodeDeinit(Node *n);
 
-#endif  // TLC_PARSER_AST_H_
+#endif  // TLC_AST_AST_H_

@@ -22,8 +22,8 @@
 #ifndef TLC_FILE_LIST_H_
 #define TLC_FILE_LIST_H_
 
+#include "ast/ast.h"
 #include "lexer/lexer.h"
-#include "parser/ast.h"
 
 #include <stdbool.h>
 #include <stddef.h>

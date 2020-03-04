@@ -14,7 +14,7 @@
 //
 // This file is part of the T Language Compiler.
 
-#include "parser/ast.h"
+#include "ast/ast.h"
 
 #include "lexer/lexer.h"
 

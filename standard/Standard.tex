@@ -404,7 +404,7 @@ switch_statement_case = "case", extended_int_literal, ":", { "case", extended_in
 switch_statement_default = "default", ":", statement ;
 \end{lstlisting}
 
-A switch statement selects between several possible cases. The expression is evaluated, and it must be an integral expression. Then, the matching case is selected, and the matching statement is executed. Then, unless execution hits a break, execution proceeds down the following cases. If no case is matched, then the default and its statement is executed, and execution of the switch continues down the remaining cases. It is an error to have multiple cases with the same value.
+A switch statement selects between several possible cases. The expression is evaluated, and it must be an integral expression. Then, the matching case is selected, and the matching statement is executed. Then, unless execution hits a break, execution proceeds down the following cases. If no case is matched, then the default and its statement is executed, and execution of the switch continues down the remaining cases. It is an error to have multiple cases with the same value. Additionally, despite the curly braces, the switch itself does not define an actual scope.
 
 \section{Break Statements}
 
