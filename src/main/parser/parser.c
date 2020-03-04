@@ -21,8 +21,19 @@
 #include "fileList.h"
 #include "options.h"
 
+#include <stdlib.h>
+
+static int parseFile(FileListEntry *entry) {
+  int retval = 0;
+
+  Node *module = malloc(sizeof(Node));
+
+  return 0;
+}
+
 int parse(void) {
   int retval = 0;
+  size_t badIdx; /**< set for uninitialization in pass one if retval != 0 */
 
   lexerInitMaps();
 
@@ -30,21 +41,37 @@ int parse(void) {
   for (size_t idx = 0; idx < fileList.size; idx++) {
     retval = lexerStateInit(&fileList.entries[idx]);
     if (retval != 0) {
-      retval = -1;
+      badIdx = idx;
       continue;
     }
 
-    // parseFile(&fileList.entries[idx]);
+    retval = parseFile(&fileList.entries[idx]);
+    if (retval != 0) {
+      badIdx = idx;
+      lexerStateUninit(&fileList.entries[idx]);
+      continue;
+    }
 
     lexerStateUninit(&fileList.entries[idx]);
   }
 
-  if (retval != 0) return retval;
+  if (retval != 0) {
+    for (size_t idx = 0; idx < badIdx; idx++)
+      nodeDeinit(&fileList.entries[idx].program);
+    return retval;
+  }
 
   lexerUninitMaps();
 
   // pass two - resolve imports and parse unparsed nodes
   for (size_t idx = 0; idx < fileList.size; idx++) {
+    // TODO: write this
+  }
+
+  if (retval != 0) {
+    for (size_t idx = 0; idx < fileList.size; idx++)
+      nodeDeinit(&fileList.entries[idx].program);
+    return retval;
   }
 
   return 0;

@@ -57,9 +57,29 @@ static void nullableNodeVectorUninit(Vector *v) {
   vectorUninit(v, (void (*)(void *))nullableNodeFree);
 }
 
+/**
+ * deinits and frees a symbol table entry
+ *
+ * @param e entry to free, not null
+ */
+static void stabEntryFree(SymbolTableEntry *e) {
+  stabEntryDeinit(e);
+  free(e);
+}
+
+/**
+ * deinits a symbol table
+ *
+ * @param t table to deinit
+ */
+static void stabUninit(HashMap *t) {
+  hashMapUninit(t, (void (*)(void *))stabEntryFree);
+}
+
 void nodeDeinit(Node *n) {
   switch (n->type) {
     case NT_FILE: {
+      stabUninit(&n->data.file.stab);
       nodeFree(n->data.file.module);
       nodeVectorUninit(&n->data.file.imports);
       nodeVectorUninit(&n->data.file.body);
@@ -74,6 +94,7 @@ void nodeDeinit(Node *n) {
       break;
     }
     case NT_FUNDEFN: {
+      stabUninit(&n->data.funDefn.stab);
       nodeFree(n->data.funDefn.returnType);
       nodeFree(n->data.funDefn.funName);
       nodeVectorUninit(&n->data.funDefn.argTypes);
@@ -127,6 +148,7 @@ void nodeDeinit(Node *n) {
       break;
     }
     case NT_COMPOUNDSTMT: {
+      stabUninit(&n->data.compoundStmt.stab);
       nodeVectorUninit(&n->data.compoundStmt.stmts);
       break;
     }
@@ -147,6 +169,7 @@ void nodeDeinit(Node *n) {
       break;
     }
     case NT_FORSTMT: {
+      stabUninit(&n->data.forStmt.stab);
       nodeFree(n->data.forStmt.initializer);
       nodeFree(n->data.forStmt.condition);
       nullableNodeFree(n->data.forStmt.increment);

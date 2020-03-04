@@ -34,7 +34,7 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
   int err = 0;
 
   // setup the fileList
-  fileList.size = 0;  // eventually going to be numFiles long, give or take
+  fileList.size = 0;  // eventually going to be at most numFiles long
   fileList.entries = malloc(sizeof(FileListEntry) * numFiles);
 
   // read the args
