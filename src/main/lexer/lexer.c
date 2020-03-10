@@ -23,6 +23,7 @@
 #include "util/conversions.h"
 #include "util/format.h"
 #include "util/functional.h"
+#include "util/string.h"
 
 #include <assert.h>
 #include <fcntl.h>
@@ -323,76 +324,6 @@ static void clip(LexerState *state, Token *token, char const *start,
   state->character += length;
 }
 
-/** creates a pretty-print string for a character */
-static char *prettyPrintChar(char c) {
-  if ((c >= ' ' && c <= '~')) {
-    return format("'%c'", c);
-  } else {
-    uint8_t punned = charToU8(c);
-    return format("'\\x%hhu%hhu'", (punned >> 4) & 0xf, (punned >> 0) & 0xf);
-  }
-}
-
-/** creates an escaped version of a string */
-static char *escape(char const *input) {
-  StringBuilder sb;
-  stringBuilderInit(&sb);
-
-  for (char const *curr = input; *curr != '\0'; curr++) {
-    char c = *curr;
-    switch (*curr) {
-      case '\n': {
-        stringBuilderPush(&sb, '\\');
-        stringBuilderPush(&sb, 'n');
-        break;
-      }
-      case '\r': {
-        stringBuilderPush(&sb, '\\');
-        stringBuilderPush(&sb, 'r');
-        break;
-      }
-      case '\t': {
-        stringBuilderPush(&sb, '\\');
-        stringBuilderPush(&sb, 't');
-        break;
-      }
-      case '\\': {
-        stringBuilderPush(&sb, '\\');
-        stringBuilderPush(&sb, '\\');
-        break;
-      }
-      case '\0': {
-        stringBuilderPush(&sb, '\\');
-        stringBuilderPush(&sb, '0');
-        break;
-      }
-      case '"': {
-        stringBuilderPush(&sb, '\\');
-        stringBuilderPush(&sb, '"');
-        break;
-      }
-      default: {
-        if (c >= ' ' && c <= '~' && c != '"' && c != '\\') {
-          // plain character
-          stringBuilderPush(&sb, c);
-        } else {
-          // hex escape
-          stringBuilderPush(&sb, '\\');
-          stringBuilderPush(&sb, 'x');
-          uint8_t value = charToU8(*curr);
-          stringBuilderPush(&sb, u8ToNybble((value >> 4) & 0xf));
-          stringBuilderPush(&sb, u8ToNybble((value >> 0) & 0xf));
-        }
-        break;
-      }
-    }
-  }
-
-  char *retVal = stringBuilderData(&sb);
-  stringBuilderUninit(&sb);
-  return retVal;
-}
-
 /** lexes a hexadecimal number, prefix already lexed */
 static int lexHex(FileListEntry *entry, Token *token, char const *start) {
   LexerState *state = &entry->lexerState;
@@ -578,7 +509,8 @@ static int lexId(FileListEntry *entry, Token *token) {
         // this is a magic token
         switch (*magicToken) {
           case MTT_FILE: {
-            tokenInit(state, token, TT_LIT_STRING, escape(entry->inputFile));
+            tokenInit(state, token, TT_LIT_STRING,
+                      escapeString(entry->inputFile));
             state->character += length;
             free(clip);
             return 0;
@@ -590,7 +522,8 @@ static int lexId(FileListEntry *entry, Token *token) {
             return 0;
           }
           case MTT_VERSION: {
-            tokenInit(state, token, TT_LIT_STRING, escape(VERSION_STRING));
+            tokenInit(state, token, TT_LIT_STRING,
+                      escapeString(VERSION_STRING));
             state->character += length;
             free(clip);
             return 0;
@@ -1467,7 +1400,7 @@ int lex(FileListEntry *entry, Token *token) {
         return lexChar(entry, token);
       } else {
         // error
-        char *prettyString = prettyPrintChar(c);
+        char *prettyString = escapeChar(c);
         fprintf(stderr, "%s:%zu:%zu: error: unexpected character: %s\n",
                 entry->inputFile, state->line, state->character, prettyString);
         free(prettyString);
