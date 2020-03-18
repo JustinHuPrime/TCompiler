@@ -14,7 +14,10 @@
 //
 // This file is part of the T Language Compiler.
 
-// A vector of pointers, in java generic style
+/**
+ * @file
+ * A java-style generic vector of void *values
+ */
 
 #ifndef TLC_UTIL_CONTAINER_VECTOR_H_
 #define TLC_UTIL_CONTAINER_VECTOR_H_
