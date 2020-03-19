@@ -131,6 +131,10 @@ static char const *const TOKEN_NAMES[] = {
     "LIT_INT_H",
     "LIT_DOUBLE",
     "LIT_FLOAT",
+    "BAD_STRING",
+    "BAD_CHAR",
+    "BAD_BIN",
+    "BAD_HEX",
 };
 
 void lexDump(FileListEntry *entry) {
@@ -141,7 +145,7 @@ void lexDump(FileListEntry *entry) {
   int retval;
   do {
     retval = lex(entry, &t);
-    if (retval == 0) {
+    if (retval != -1) {
       if (t.type >= TT_ID && t.type <= TT_LIT_FLOAT)
         printf("%zu:%zu: %s (%s)\n", t.line, t.character, TOKEN_NAMES[t.type],
                t.string);

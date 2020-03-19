@@ -147,6 +147,12 @@ typedef enum {
   TT_LIT_INT_H,
   TT_LIT_DOUBLE,
   TT_LIT_FLOAT,
+
+  // error tokens
+  TT_BAD_STRING,
+  TT_BAD_CHAR,
+  TT_BAD_BIN,
+  TT_BAD_HEX,
 } TokenType;
 
 /** a token */
@@ -205,7 +211,7 @@ int lexerStateInit(FileListEntry *entry);
  *
  * @param entry entry to lex from
  * @param token token to write into
- * @returns status code (0 = OK, -1 = fatal error, 1 = recoverable error)
+ * @returns status code (0 = OK, -1 = fatal error, 1 = recovered error)
  */
 int lex(FileListEntry *entry, Token *token);
 /**
