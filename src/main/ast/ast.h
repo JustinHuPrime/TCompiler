@@ -199,7 +199,8 @@ typedef struct Node {
       HashMap stab;        /**< symbol table for file */
       struct Node *module; /**< NT_MODULE */
       Vector imports;      /**< vector of Nodes, each is an NT_IMPORT */
-      Vector body; /**< vector of Nodes, each is a definition or declaration */
+      Vector
+          bodies; /**< vector of Nodes, each is a definition or declaration */
     } file;
 
     struct {
@@ -396,6 +397,6 @@ typedef struct Node {
  *
  * @param n Node to deinitialize - not null
  */
-void nodeDeinit(Node *n);
+void nodeUninit(Node *n);
 
 #endif  // TLC_AST_AST_H_

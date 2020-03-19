@@ -26,7 +26,7 @@
  * @param n node to free
  */
 static void nodeFree(Node *n) {
-  nodeDeinit(n);
+  nodeUninit(n);
   free(n);
 }
 
@@ -76,13 +76,13 @@ static void stabUninit(HashMap *t) {
   hashMapUninit(t, (void (*)(void *))stabEntryFree);
 }
 
-void nodeDeinit(Node *n) {
+void nodeUninit(Node *n) {
   switch (n->type) {
     case NT_FILE: {
       stabUninit(&n->data.file.stab);
       nodeFree(n->data.file.module);
       nodeVectorUninit(&n->data.file.imports);
-      nodeVectorUninit(&n->data.file.body);
+      nodeVectorUninit(&n->data.file.bodies);
       break;
     }
     case NT_MODULE: {
