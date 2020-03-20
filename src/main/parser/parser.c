@@ -37,14 +37,57 @@ static char const *tokenTypeToString(TokenType type) {
 // panics
 
 /**
- * reads tokens until a semicolon (consumed) or EOF (not consumed) is
- * encountered
+ * reads tokens until the end of a top-level form
+ *
+ * semicolons are consumed, EOFs, and the start of a top level form are left
  *
  * @param entry entry to lex from
  * @returns status code: 0 = OK, -1 = fatal error
  */
-static int panicSemicolon(FileListEntry *entry) {
-  // TODO: write this
+static int panicTopLevel(FileListEntry *entry) {
+  int retval;
+  Token token;
+  while (true) {
+    retval = lex(entry, &token);
+    if (retval == -1) {
+      return -1;
+    } else {
+      switch (token.type) {
+        case TT_SEMI: {
+          tokenUninit(&token);
+          return 0;
+        }
+        case TT_MODULE:
+        case TT_IMPORT:
+        case TT_VOID:
+        case TT_UBYTE:
+        case TT_CHAR:
+        case TT_USHORT:
+        case TT_UINT:
+        case TT_INT:
+        case TT_WCHAR:
+        case TT_ULONG:
+        case TT_LONG:
+        case TT_FLOAT:
+        case TT_DOUBLE:
+        case TT_BOOL:
+        case TT_ID:
+        case TT_OPAQUE:
+        case TT_STRUCT:
+        case TT_UNION:
+        case TT_ENUM:
+        case TT_TYPEDEF:
+        case TT_EOF: {
+          unLex(entry, &token);
+          return 0;
+        }
+        default: {
+          tokenUninit(&token);
+          break;
+        }
+      }
+    }
+  }
 }
 
 // parsing
@@ -86,8 +129,12 @@ static int parseModule(FileListEntry *entry, Node *module) {
             entry->inputFile, moduleKeyword.line, moduleKeyword.character,
             tokenTypeToString(moduleKeyword.type));
     tokenUninit(&moduleKeyword);
-    panicSemicolon(entry);
-    return 1;
+    retval = panicTopLevel(entry);
+    if (retval == -1) {
+      return retval;
+    } else {
+      return 1;
+    }
   }
 
   Node *idNode = malloc(sizeof(Node));
@@ -143,7 +190,7 @@ static int parseDeclBodies(FileListEntry *entry, Vector *bodies) {
  * @returns status code: 0 = OK, 1 = recovered error, -1 = fatal error
  */
 static int parseCodeBodies(FileListEntry *entry, Vector *bodies) {
-  // TOOD: write this
+  // TODO: write this
 }
 
 /**
