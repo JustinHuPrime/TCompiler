@@ -973,6 +973,12 @@ static int lexChar(FileListEntry *entry, Token *token) {
 
 int lex(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
+
+  if (state->pushedBack) {
+    state->pushedBack = false;
+    memcpy(token, &state->previous, sizeof(Token));
+    return state->previousRetval;
+  }
   // munch whitespace
   int rc = lexWhitespace(entry);
   if (rc == -1) return rc;
@@ -1469,12 +1475,13 @@ int lex(FileListEntry *entry, Token *token) {
   }
 }
 
-void unLex(FileListEntry *entry, Token const *token) {
+void unLex(FileListEntry *entry, Token const *token, int retval) {
   // only one token of lookahead is allowed
   LexerState *state = &entry->lexerState;
   assert(!state->pushedBack);
   state->pushedBack = true;
   memcpy(&state->previous, token, sizeof(Token));
+  state->previousRetval = retval;
 }
 
 void lexerStateUninit(FileListEntry *entry) {

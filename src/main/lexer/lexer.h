@@ -195,6 +195,7 @@ typedef struct {
   size_t character;
 
   Token previous;
+  int previousRetval;
   bool pushedBack;
 } LexerState;
 
@@ -219,8 +220,9 @@ int lex(FileListEntry *entry, Token *token);
  *
  * @param entry entry to return token to
  * @param token token to return
+ * @param retval return value to return
  */
-void unLex(FileListEntry *entry, Token const *token);
+void unLex(FileListEntry *entry, Token const *token, int retval);
 
 /**
  * Uninitializes internal lexer state for the entry

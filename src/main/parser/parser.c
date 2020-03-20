@@ -295,7 +295,7 @@ static int panicTopLevel(FileListEntry *entry) {
         case TT_ENUM:
         case TT_TYPEDEF:
         case TT_EOF: {
-          unLex(entry, &token);
+          unLex(entry, &token, retval);
           return 0;
         }
         default: {
