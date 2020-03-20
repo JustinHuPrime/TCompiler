@@ -204,10 +204,10 @@ typedef struct Node {
     } file;
 
     struct {
-      struct Node *id; /**< NT_SCOPEDID */
+      struct Node *id; /**< NT_SCOPEDID or NT_ID */
     } module;
     struct {
-      struct Node *id; /**< NT_SCOPEDID */
+      struct Node *id; /**< NT_SCOPEDID or NT_ID */
     } import;
 
     struct {

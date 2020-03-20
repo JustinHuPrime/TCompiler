@@ -333,7 +333,41 @@ static Node *parseModule(FileListEntry *entry) {
  * @param imports Vector of Nodes to fill in
  */
 static void parseImports(FileListEntry *entry, Vector *imports) {
-  // TODO: write this
+  while (true) {
+    Token importKeyword;
+    lex(entry, &importKeyword);
+
+    if (importKeyword.type != TT_IMPORT) {
+      // it's the end of the imports
+      unLex(entry, &importKeyword);
+      return;
+    } else {
+      Node *id = parseAnyId(entry);
+      if (id == NULL) {
+        panicTopLevel(entry);
+        continue;
+      }
+
+      Token semicolon;
+      lex(entry, &semicolon);
+      if (semicolon.type != TT_SEMI) {
+        fprintf(stderr, "%s:%zu:%zu: error: expected %s but found %s\n",
+                entry->inputFile, semicolon.line, semicolon.character,
+                TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
+        entry->errored = true;
+        unLex(entry, &semicolon);
+        panicTopLevel(entry);
+      }
+
+      Node *import = malloc(sizeof(Node));
+      import->type = NT_IMPORT;
+      import->line = importKeyword.line;
+      import->character = importKeyword.character;
+      import->data.import.id = id;
+
+      vectorInsert(imports, import);
+    }
+  }
 }
 
 /**
