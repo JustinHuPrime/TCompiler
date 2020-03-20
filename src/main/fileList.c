@@ -28,6 +28,8 @@ void fileListEntryInit(FileListEntry *entry, char const *inputName,
                        bool isCode) {
   entry->inputFile = inputName;
   entry->isCode = isCode;
+  entry->errored = false;
+  entry->program = NULL;
 }
 
 int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {

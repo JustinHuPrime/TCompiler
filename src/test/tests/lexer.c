@@ -31,6 +31,7 @@ static void testAllTokens(void) {
   FileListEntry entry;  // forge the entry
   entry.inputFile = "testFiles/lexer/allTokens.tc";
   entry.isCode = true;
+  entry.errored = false;
 
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
@@ -240,8 +241,9 @@ static void testAllTokens(void) {
 
   for (size_t idx = 0; idx < numTokens; idx++) {
     Token token;
-    int retval = lex(&entry, &token);
-    test("lex accepts token", retval == 0);
+    lex(&entry, &token);
+    if (entry.errored) dropLine();
+    test("lex accepts token", entry.errored == false);
     test("token has expected type", token.type == types[idx]);
     test("token is at expected character", token.character == characters[idx]);
     test("token is at expected line", token.line == lines[idx]);
@@ -252,23 +254,26 @@ static void testAllTokens(void) {
            strcmp(strings[idx], token.string) == 0);
 
     if (token.string != NULL) free(token.string);
+    entry.errored = false;
   }
   lexerStateUninit(&entry);
 }
 
 static void testErrors(void) {
-  int retval;
   Token token;
 
   FileListEntry entry;  // forge the entry
   entry.inputFile = "testFiles/lexer/errors.tc";
   entry.isCode = true;
+  entry.errored = false;
 
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
-  int const retvals[] = {
-      1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
-      0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1,
+  int const errors[] = {
+      true,  false, true,  false, true,  false, true,  false, true,
+      false, true,  false, true,  false, true,  false, true,  false,
+      true,  false, true,  false, true,  false, true,  false, true,
+      false, true,  false, true,  false, true,  true,
   };
   TokenType const types[] = {
       TT_BAD_HEX,    TT_SEMI, TT_BAD_BIN,    TT_SEMI, TT_LIT_WSTRING, TT_SEMI,
@@ -296,9 +301,9 @@ static void testErrors(void) {
   size_t const numTokens = 34;
 
   for (size_t idx = 0; idx < numTokens; idx++) {
-    retval = lex(&entry, &token);
-    if (retval != 0) dropLine();
-    test("token has expected return value", retval == retvals[idx]);
+    lex(&entry, &token);
+    if (entry.errored) dropLine();
+    test("token has expected error flag", entry.errored == errors[idx]);
     test("token has expected type", token.type == types[idx]);
     test("token is at expected character", token.character == characters[idx]);
     test("token is at expected line", token.line == lines[idx]);
@@ -309,6 +314,7 @@ static void testErrors(void) {
            strcmp(strings[idx], token.string) == 0);
 
     if (token.string != NULL) free(token.string);
+    entry.errored = false;
   }
 
   lexerStateUninit(&entry);
@@ -317,15 +323,18 @@ static void testErrors(void) {
 
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
-  retval = lex(&entry, &token);
-  dropLine();
-  test("token is an error", retval == 1);
+  lex(&entry, &token);
+  if (entry.errored) dropLine();
+  test("token is an error", entry.errored == true);
   test("token is bad char", token.type == TT_BAD_CHAR);
   test("token is at expected character", token.character == 1);
   test("token is at expected line", token.line == 1);
   test("token has no additional data", token.string == NULL);
-  retval = lex(&entry, &token);
-  test("token is accepted", retval == 0);
+  entry.errored = false;
+
+  lex(&entry, &token);
+  if (entry.errored) dropLine();
+  test("token is accepted", entry.errored == false);
   test("token is eof", token.type == TT_EOF);
   test("token is at expected character", token.character == 2);
   test("token is at expected line", token.line == 1);
@@ -336,16 +345,19 @@ static void testErrors(void) {
 
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
-  retval = lex(&entry, &token);
-  dropLine();
-  test("token is an error", retval == 1);
+  lex(&entry, &token);
+  if (entry.errored) dropLine();
+  test("token is an error", entry.errored == true);
   test("token is string", token.type == TT_LIT_STRING);
   test("token is at expected character", token.character == 1);
   test("token is at expected line", token.line == 1);
   test("token's additional data is correct", strcmp(token.string, "") == 0);
   free(token.string);
-  retval = lex(&entry, &token);
-  test("token is accepted", retval == 0);
+  entry.errored = false;
+
+  lex(&entry, &token);
+  if (entry.errored) dropLine();
+  test("token is accepted", entry.errored == false);
   test("token is eof", token.type == TT_EOF);
   test("token is at expected character", token.character == 2);
   test("token is at expected line", token.line == 1);

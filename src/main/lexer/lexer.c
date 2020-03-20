@@ -175,7 +175,7 @@ static void put(LexerState *state, size_t n) {
  * consumes whitespace while updating the entry
  * @param entry entry to munch from
  */
-static int lexWhitespace(FileListEntry *entry) {
+static void lexWhitespace(FileListEntry *entry) {
   LexerState *state = &entry->lexerState;
   bool whitespace = true;
   while (whitespace) {
@@ -252,7 +252,8 @@ static int lexWhitespace(FileListEntry *entry) {
                           "%s:%zu:%zu: error: unterminated block comment\n",
                           entry->inputFile, state->line, state->character);
                   put(state, 1);
-                  return 1;
+                  entry->errored = true;
+                  return;
                 }
                 case '\n': {
                   state->character = 1;
@@ -310,8 +311,6 @@ static int lexWhitespace(FileListEntry *entry) {
       }
     }
   }
-
-  return 0;
 }
 
 /** gets a clip as a token, from some starting pointer */
@@ -325,7 +324,7 @@ static void clip(LexerState *state, Token *token, char const *start,
 }
 
 /** lexes a hexadecimal number, prefix already lexed */
-static int lexHex(FileListEntry *entry, Token *token, char const *start) {
+static void lexHex(FileListEntry *entry, Token *token, char const *start) {
   LexerState *state = &entry->lexerState;
 
   char c = get(state);
@@ -337,7 +336,8 @@ static int lexHex(FileListEntry *entry, Token *token, char const *start) {
     put(state, 1);
     tokenInit(state, token, TT_BAD_HEX, NULL);
     state->character += 2;
-    return 1;
+    entry->errored = true;
+    return;
   }
 
   while (true) {
@@ -347,7 +347,7 @@ static int lexHex(FileListEntry *entry, Token *token, char const *start) {
       // end of number
       put(state, 1);
       clip(state, token, start, TT_LIT_INT_H);
-      return 0;
+      return;
     }
   }
 }
@@ -356,7 +356,7 @@ static int lexHex(FileListEntry *entry, Token *token, char const *start) {
  * Lexes a decimal number, prefix already lexed.
  * Assumes number is at least one character long.
  */
-static int lexDecimal(FileListEntry *entry, Token *token, char const *start) {
+static void lexDecimal(FileListEntry *entry, Token *token, char const *start) {
   LexerState *state = &entry->lexerState;
 
   TokenType type = TT_LIT_INT_D;
@@ -370,7 +370,7 @@ static int lexDecimal(FileListEntry *entry, Token *token, char const *start) {
       else
         put(state, 1);
       clip(state, token, start, type);
-      return 0;
+      return;
     } else if (c == '.') {
       // is a floating point, actually
       type = TT_LIT_DOUBLE;
@@ -382,7 +382,7 @@ static int lexDecimal(FileListEntry *entry, Token *token, char const *start) {
  * Lexes an octal number, prefix already lexed.
  * Assumes number is at least one character long.
  */
-static int lexOctal(FileListEntry *entry, Token *token, char const *start) {
+static void lexOctal(FileListEntry *entry, Token *token, char const *start) {
   LexerState *state = &entry->lexerState;
 
   while (true) {
@@ -391,13 +391,13 @@ static int lexOctal(FileListEntry *entry, Token *token, char const *start) {
       // end of number
       put(state, 1);
       clip(state, token, start, TT_LIT_INT_O);
-      return 0;
+      return;
     }
   }
 }
 
 /** lexes a binary number, prefix already lexed */
-static int lexBinary(FileListEntry *entry, Token *token, char const *start) {
+static void lexBinary(FileListEntry *entry, Token *token, char const *start) {
   LexerState *state = &entry->lexerState;
 
   char c = get(state);
@@ -408,7 +408,8 @@ static int lexBinary(FileListEntry *entry, Token *token, char const *start) {
     put(state, 1);
     tokenInit(state, token, TT_BAD_BIN, NULL);
     state->character += 2;
-    return 1;
+    entry->errored = true;
+    return;
   }
 
   while (true) {
@@ -417,13 +418,13 @@ static int lexBinary(FileListEntry *entry, Token *token, char const *start) {
       // end of number
       put(state, 1);
       clip(state, token, start, TT_LIT_INT_B);
-      return 0;
+      return;
     }
   }
 }
 
 /** lexes a number, must start with [+-][0-9] */
-static int lexNumber(FileListEntry *entry, Token *token) {
+static void lexNumber(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
   char const *start = state->current;
 
@@ -444,29 +445,33 @@ static int lexNumber(FileListEntry *entry, Token *token) {
       case 'b': {
         // [+-]0b
         // is binary, lex it
-        return lexBinary(entry, token, start);
+        lexBinary(entry, token, start);
+        return;
       }
       case 'x': {
         // [+-]0x
         // is hex, lex it
-        return lexHex(entry, token, start);
+        lexHex(entry, token, start);
+        return;
       }
       default: {
         if (second >= '0' && second <= '7') {
           // [+-]0[0-7]
           // is octal, return the digit and lex it
           put(state, 1);
-          return lexOctal(entry, token, start);
+          lexOctal(entry, token, start);
+          return;
         } else if (second == '.') {
           // [+-]0.
           // is a decimal, return the dot and the zero, and lex it
           put(state, 2);
-          return lexDecimal(entry, token, start);
+          lexDecimal(entry, token, start);
+          return;
         } else {
           // just a zero - [+-]0
           put(state, 1);
           clip(state, token, start, TT_LIT_INT_0);
-          return 0;
+          return;
         }
       }
     }
@@ -475,7 +480,8 @@ static int lexNumber(FileListEntry *entry, Token *token) {
     // [+-][1-9]
     // is decimal, return first char, and lex it
     put(state, 1);
-    return lexDecimal(entry, token, start);
+    lexDecimal(entry, token, start);
+    return;
   }
 }
 
@@ -483,7 +489,7 @@ static int lexNumber(FileListEntry *entry, Token *token) {
  * lexes an identifier, keyword, or magic token, first character must be a valid
  * first character for an identifier or a token.
  */
-static int lexId(FileListEntry *entry, Token *token) {
+static void lexId(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
   char const *start = state->current;
 
@@ -504,7 +510,7 @@ static int lexId(FileListEntry *entry, Token *token) {
         tokenInit(state, token, *keywordToken, NULL);
         state->character += length;
         free(clip);
-        return 0;
+        return;
       }
       MagicTokenType const *magicToken = hashMapGet(&magicMap, clip);
       if (magicToken != NULL) {
@@ -515,20 +521,20 @@ static int lexId(FileListEntry *entry, Token *token) {
                       escapeString(entry->inputFile));
             state->character += length;
             free(clip);
-            return 0;
+            return;
           }
           case MTT_LINE: {
             tokenInit(state, token, TT_LIT_INT_D, format("%zu", state->line));
             state->character += length;
             free(clip);
-            return 0;
+            return;
           }
           case MTT_VERSION: {
             tokenInit(state, token, TT_LIT_STRING,
                       escapeString(VERSION_STRING));
             state->character += length;
             free(clip);
-            return 0;
+            return;
           }
         }
       }
@@ -536,7 +542,7 @@ static int lexId(FileListEntry *entry, Token *token) {
       // this is a regular id
       tokenInit(state, token, TT_ID, clip);
       state->character += length;
-      return 0;
+      return;
     }
   }
 }
@@ -604,7 +610,7 @@ static void panicString(LexerState *state) {
 /**
  * lexes a string or wstring literal, opening quote already lexed
  */
-static int lexString(FileListEntry *entry, Token *token) {
+static void lexString(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
   char const *start = state->current;
 
@@ -636,13 +642,14 @@ static int lexString(FileListEntry *entry, Token *token) {
             put(state, 1);
             tokenInit(state, token, TT_LIT_WSTRING, clip);
             state->character += length + 2;
-            return 1;
+            entry->errored = true;
+            return;
           }
         }
 
         tokenInit(state, token, type, clip);
         state->character += length + (type == TT_LIT_STRING ? 2 : 3);
-        return 0;
+        return;
       }
       case '\\': {
         // process escape sequence
@@ -662,7 +669,8 @@ static int lexString(FileListEntry *entry, Token *token) {
                 tokenInit(state, token, TT_BAD_STRING, NULL);
                 state->character += (size_t)(state->current - start + 1);
                 panicString(state);
-                return 1;
+                entry->errored = true;
+                return;
               }
             }
             break;
@@ -681,7 +689,8 @@ static int lexString(FileListEntry *entry, Token *token) {
                 tokenInit(state, token, TT_BAD_STRING, NULL);
                 state->character += (size_t)(state->current - start + 1);
                 panicString(state);
-                return 1;
+                entry->errored = true;
+                return;
               }
             }
             type = TT_LIT_WSTRING;
@@ -697,7 +706,8 @@ static int lexString(FileListEntry *entry, Token *token) {
               tokenInit(state, token, TT_BAD_STRING, NULL);
               state->character += (size_t)(state->current - start + 1);
               panicString(state);
-              return 1;
+              entry->errored = true;
+              return;
             }
           }
         }
@@ -717,7 +727,8 @@ static int lexString(FileListEntry *entry, Token *token) {
 
         tokenInit(state, token, type, clip);
         state->character += length + 1;
-        return 1;
+        entry->errored = true;
+        return;
       }
       default: {
         if (!((c >= ' ' && c <= '~' && c != '"' && c != '\\') || c == '\t')) {
@@ -729,7 +740,8 @@ static int lexString(FileListEntry *entry, Token *token) {
           put(state, 1);
           tokenInit(state, token, TT_BAD_STRING, NULL);
           state->character += (size_t)(state->current - start);
-          return 1;
+          entry->errored = true;
+          return;
         }
       }
     }
@@ -800,7 +812,7 @@ static void panicChar(LexerState *state) {
 /**
  * lexes a char or wchar literal, opening quote already lexed
  */
-static int lexChar(FileListEntry *entry, Token *token) {
+static void lexChar(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
   char const *start = state->current;
 
@@ -814,12 +826,12 @@ static int lexChar(FileListEntry *entry, Token *token) {
       tokenInit(state, token, TT_BAD_CHAR, NULL);
       state->character += 2;
       char next = get(state);
-      if (next != 'w') {
+      if (next != 'w')
         put(state, 1);
-      } else {
+      else
         state->character += 1;
-      }
-      return 1;
+      entry->errored = true;
+      return;
     }
     case '\\': {
       // escape sequence
@@ -840,7 +852,8 @@ static int lexChar(FileListEntry *entry, Token *token) {
               tokenInit(state, token, TT_BAD_CHAR, NULL);
               state->character += (size_t)(state->current - start + 1);
               panicChar(state);
-              return 1;
+              entry->errored = true;
+              return;
             }
           }
           break;
@@ -860,7 +873,8 @@ static int lexChar(FileListEntry *entry, Token *token) {
               tokenInit(state, token, TT_BAD_CHAR, NULL);
               state->character += (size_t)(state->current - start + 1);
               panicChar(state);
-              return 1;
+              entry->errored = true;
+              return;
             }
           }
           type = TT_LIT_WCHAR;
@@ -875,7 +889,8 @@ static int lexChar(FileListEntry *entry, Token *token) {
             tokenInit(state, token, TT_BAD_CHAR, NULL);
             state->character += (size_t)(state->current - start + 1);
             panicChar(state);
-            return 1;
+            entry->errored = true;
+            return;
           }
         }
       }
@@ -891,7 +906,8 @@ static int lexChar(FileListEntry *entry, Token *token) {
       put(state, 1);
       tokenInit(state, token, TT_BAD_CHAR, NULL);
       state->character += (size_t)(state->current - start + 1);
-      return 1;
+      entry->errored = true;
+      return;
     }
     default: {
       if (!((c >= ' ' && c <= '~' && c != '"' && c != '\\') || c == '\t')) {
@@ -903,7 +919,8 @@ static int lexChar(FileListEntry *entry, Token *token) {
         tokenInit(state, token, TT_BAD_CHAR, NULL);
         state->character += (size_t)(state->current - start + 1);
         panicChar(state);
-        return 1;
+        entry->errored = true;
+        return;
       }
     }
   }
@@ -923,7 +940,8 @@ static int lexChar(FileListEntry *entry, Token *token) {
       put(state, 1);
       tokenInit(state, token, type, clip);
       state->character += length + 1;
-      return 1;
+      entry->errored = true;
+      return;
     }
     default: {
       if (c != '\'') {
@@ -936,7 +954,8 @@ static int lexChar(FileListEntry *entry, Token *token) {
         tokenInit(state, token, type, clip);
         state->character += length + 1;
         panicChar(state);
-        return 1;
+        entry->errored = true;
+        return;
       }
 
       break;
@@ -946,11 +965,10 @@ static int lexChar(FileListEntry *entry, Token *token) {
   if (type == TT_LIT_CHAR) {
     // check for w-string-ness
     char next = get(state);
-    if (next != 'w') {
+    if (next != 'w')
       put(state, 1);
-    } else {
+    else
       type = TT_LIT_WCHAR;
-    }
   } else {
     // check for ending w
     char next = get(state);
@@ -962,80 +980,82 @@ static int lexChar(FileListEntry *entry, Token *token) {
       put(state, 1);
       tokenInit(state, token, TT_LIT_WCHAR, clip);
       state->character += length + 2;
-      return 1;
+      entry->errored = true;
+      return;
     }
   }
 
   tokenInit(state, token, type, clip);
   state->character += length + (type == TT_LIT_CHAR ? 2 : 3);
-  return 0;
 }
 
-int lex(FileListEntry *entry, Token *token) {
+void lex(FileListEntry *entry, Token *token) {
   LexerState *state = &entry->lexerState;
 
+  // check pushback buffer
   if (state->pushedBack) {
     state->pushedBack = false;
     memcpy(token, &state->previous, sizeof(Token));
-    return state->previousRetval;
+    return;
   }
+
   // munch whitespace
-  int rc = lexWhitespace(entry);
-  if (rc == -1) return rc;
+  lexWhitespace(entry);
+
   // return a token
   char c = get(state);
   switch (c) {
     // EOF
     case '\x04': {
       tokenInit(state, token, TT_EOF, NULL);
-      return rc;
+      return;
     }
 
     // punctuation
     case ';': {
       tokenInit(state, token, TT_SEMI, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case ',': {
       tokenInit(state, token, TT_COMMA, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case '(': {
       tokenInit(state, token, TT_LPAREN, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case ')': {
       tokenInit(state, token, TT_RPAREN, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case '[': {
       tokenInit(state, token, TT_LSQUARE, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case ']': {
       tokenInit(state, token, TT_RSQUARE, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case '{': {
       tokenInit(state, token, TT_LBRACE, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case '}': {
       tokenInit(state, token, TT_RBRACE, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case '.': {
       tokenInit(state, token, TT_DOT, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case '-': {
       char next = get(state);
@@ -1044,32 +1064,32 @@ int lex(FileListEntry *entry, Token *token) {
           // ->
           tokenInit(state, token, TT_ARROW, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         case '-': {
           // --
           tokenInit(state, token, TT_DEC, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         case '=': {
           // -=
           tokenInit(state, token, TT_SUBASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           if (next >= '0' && next <= '9') {
             // number, return - and zero
             put(state, 2);
-            int subRc = lexNumber(entry, token);
-            return subRc == 0 ? rc : subRc;
+            lexNumber(entry, token);
+            return;
           } else {
             // just -
             put(state, 1);
             tokenInit(state, token, TT_MINUS, NULL);
             state->character += 1;
-            return rc;
+            return;
           }
         }
       }
@@ -1081,26 +1101,26 @@ int lex(FileListEntry *entry, Token *token) {
           // ++
           tokenInit(state, token, TT_INC, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         case '=': {
           // +=
           tokenInit(state, token, TT_ADDASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           if (next >= '0' && next <= '9') {
             // number, return + and zero
             put(state, 2);
-            int subRc = lexNumber(entry, token);
-            return subRc == 0 ? rc : subRc;
+            lexNumber(entry, token);
+            return;
           } else {
             // just +
             put(state, 1);
             tokenInit(state, token, TT_PLUS, NULL);
             state->character += 1;
-            return rc;
+            return;
           }
         }
       }
@@ -1112,14 +1132,14 @@ int lex(FileListEntry *entry, Token *token) {
           // *=
           tokenInit(state, token, TT_MULASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           // just *
           put(state, 1);
           tokenInit(state, token, TT_STAR, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
@@ -1134,14 +1154,14 @@ int lex(FileListEntry *entry, Token *token) {
               // &&=
               tokenInit(state, token, TT_LANDASSIGN, NULL);
               state->character += 3;
-              return rc;
+              return;
             }
             default: {
               // just &&
               put(state, 1);
               tokenInit(state, token, TT_LAND, NULL);
               state->character += 2;
-              return rc;
+              return;
             }
           }
         }
@@ -1149,14 +1169,14 @@ int lex(FileListEntry *entry, Token *token) {
           // &=
           tokenInit(state, token, TT_BITANDASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           // just &
           put(state, 1);
           tokenInit(state, token, TT_AMP, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
@@ -1167,21 +1187,21 @@ int lex(FileListEntry *entry, Token *token) {
           // !=
           tokenInit(state, token, TT_NEQ, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           // just !
           put(state, 1);
           tokenInit(state, token, TT_BANG, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
     case '~': {
       tokenInit(state, token, TT_TILDE, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case '=': {
       char next = get(state);
@@ -1190,32 +1210,32 @@ int lex(FileListEntry *entry, Token *token) {
           // ==
           tokenInit(state, token, TT_EQ, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         case '-': {
           // =-
           tokenInit(state, token, TT_NEGASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         case '!': {
           // =!
           tokenInit(state, token, TT_LNOTASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         case '~': {
           // =~
           tokenInit(state, token, TT_BITNOTASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           // just =
           put(state, 1);
           tokenInit(state, token, TT_ASSIGN, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
@@ -1227,14 +1247,14 @@ int lex(FileListEntry *entry, Token *token) {
           // /=
           tokenInit(state, token, TT_DIVASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           // just /
           put(state, 1);
           tokenInit(state, token, TT_SLASH, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
@@ -1245,14 +1265,14 @@ int lex(FileListEntry *entry, Token *token) {
           // %=
           tokenInit(state, token, TT_MODASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           // just %
           put(state, 1);
           tokenInit(state, token, TT_PERCENT, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
@@ -1266,14 +1286,14 @@ int lex(FileListEntry *entry, Token *token) {
             case '=': {
               tokenInit(state, token, TT_LSHIFTASSIGN, NULL);
               state->character += 3;
-              return rc;
+              return;
             }
             default: {
               // just <<
               put(state, 1);
               tokenInit(state, token, TT_LSHIFT, NULL);
               state->character += 2;
-              return rc;
+              return;
             }
           }
         }
@@ -1285,14 +1305,14 @@ int lex(FileListEntry *entry, Token *token) {
               // <=>
               tokenInit(state, token, TT_SPACESHIP, NULL);
               state->character += 3;
-              return rc;
+              return;
             }
             default: {
               // just <=
               put(state, 1);
               tokenInit(state, token, TT_LTEQ, NULL);
               state->character += 2;
-              return rc;
+              return;
             }
           }
         }
@@ -1301,7 +1321,7 @@ int lex(FileListEntry *entry, Token *token) {
           put(state, 1);
           tokenInit(state, token, TT_LANGLE, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
@@ -1320,14 +1340,14 @@ int lex(FileListEntry *entry, Token *token) {
                   // >>>=
                   tokenInit(state, token, TT_LRSHIFTASSIGN, NULL);
                   state->character += 4;
-                  return rc;
+                  return;
                 }
                 default: {
                   // just >>>
                   put(state, 1);
                   tokenInit(state, token, TT_LRSHIFT, NULL);
                   state->character += 3;
-                  return rc;
+                  return;
                 }
               }
             }
@@ -1335,14 +1355,14 @@ int lex(FileListEntry *entry, Token *token) {
               // >>=
               tokenInit(state, token, TT_ARSHIFTASSIGN, NULL);
               state->character += 3;
-              return rc;
+              return;
             }
             default: {
               // just >>
               put(state, 1);
               tokenInit(state, token, TT_ARSHIFT, NULL);
               state->character += 2;
-              return rc;
+              return;
             }
           }
         }
@@ -1350,14 +1370,14 @@ int lex(FileListEntry *entry, Token *token) {
           // >=
           tokenInit(state, token, TT_GTEQ, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           // just >
           put(state, 1);
           tokenInit(state, token, TT_RANGLE, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
@@ -1372,14 +1392,14 @@ int lex(FileListEntry *entry, Token *token) {
               // ||=
               tokenInit(state, token, TT_LORASSIGN, NULL);
               state->character += 3;
-              return rc;
+              return;
             }
             default: {
               // just ||
               put(state, 1);
               tokenInit(state, token, TT_LOR, NULL);
               state->character += 2;
-              return rc;
+              return;
             }
           }
         }
@@ -1387,14 +1407,14 @@ int lex(FileListEntry *entry, Token *token) {
           // |=
           tokenInit(state, token, TT_BITORASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           // just |
           put(state, 1);
           tokenInit(state, token, TT_BAR, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
@@ -1405,21 +1425,21 @@ int lex(FileListEntry *entry, Token *token) {
           // ^=
           tokenInit(state, token, TT_BITXORASSIGN, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           // just ^
           put(state, 1);
           tokenInit(state, token, TT_CARET, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
     case '?': {
       tokenInit(state, token, TT_QUESTION, NULL);
       state->character += 1;
-      return rc;
+      return;
     }
     case ':': {
       char next = get(state);
@@ -1428,14 +1448,14 @@ int lex(FileListEntry *entry, Token *token) {
           // ::
           tokenInit(state, token, TT_SCOPE, NULL);
           state->character += 2;
-          return rc;
+          return;
         }
         default: {
           // just :
           put(state, 1);
           tokenInit(state, token, TT_COLON, NULL);
           state->character += 1;
-          return rc;
+          return;
         }
       }
     }
@@ -1445,21 +1465,21 @@ int lex(FileListEntry *entry, Token *token) {
       if (c >= '0' && c <= '9') {
         // number
         put(state, 1);
-        int subRc = lexNumber(entry, token);
-        return subRc == 0 ? rc : subRc;
+        lexNumber(entry, token);
+        return;
       } else if (c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
         // id, keyword, magic token
         put(state, 1);
-        int subRc = lexId(entry, token);
-        return subRc == 0 ? rc : subRc;
+        lexId(entry, token);
+        return;
       } else if (c == '"') {
         // string or wstring
-        int subRc = lexString(entry, token);
-        return subRc == 0 ? rc : subRc;
+        lexString(entry, token);
+        return;
       } else if (c == '\'') {
         // char or wchar
-        int subRc = lexChar(entry, token);
-        return subRc == 0 ? rc : subRc;
+        lexChar(entry, token);
+        return;
       } else {
         // error
         char *prettyString = escapeChar(c);
@@ -1467,21 +1487,21 @@ int lex(FileListEntry *entry, Token *token) {
                 entry->inputFile, state->line, state->character, prettyString);
         free(prettyString);
         state->character += 1;
-        // pretend it doesn't exist, try again
-        int subRc = lex(entry, token);
-        return subRc == 0 ? 1 : subRc;
+        entry->errored = true;
+        // skip character and try again
+        lex(entry, token);
+        return;
       }
     }
   }
 }
 
-void unLex(FileListEntry *entry, Token const *token, int retval) {
+void unLex(FileListEntry *entry, Token const *token) {
   // only one token of lookahead is allowed
   LexerState *state = &entry->lexerState;
   assert(!state->pushedBack);
   state->pushedBack = true;
   memcpy(&state->previous, token, sizeof(Token));
-  state->previousRetval = retval;
 }
 
 void lexerStateUninit(FileListEntry *entry) {

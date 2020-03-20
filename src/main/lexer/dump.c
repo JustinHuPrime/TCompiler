@@ -142,17 +142,14 @@ void lexDump(FileListEntry *entry) {
   if (lexerStateInit(entry) != 0) return;
 
   Token t;
-  int retval;
   do {
-    retval = lex(entry, &t);
-    if (retval != -1) {
-      if (t.type >= TT_ID && t.type <= TT_LIT_FLOAT)
-        printf("%zu:%zu: %s (%s)\n", t.line, t.character, TOKEN_NAMES[t.type],
-               t.string);
-      else
-        printf("%zu:%zu: %s\n", t.line, t.character, TOKEN_NAMES[t.type]);
-    }
-  } while (t.type != TT_EOF && retval != -1);
+    lex(entry, &t);
+    if (t.type >= TT_ID && t.type <= TT_LIT_FLOAT)
+      printf("%zu:%zu: %s (%s)\n", t.line, t.character, TOKEN_NAMES[t.type],
+             t.string);
+    else
+      printf("%zu:%zu: %s\n", t.line, t.character, TOKEN_NAMES[t.type]);
+  } while (t.type != TT_EOF);
 
   lexerStateUninit(entry);
 }
