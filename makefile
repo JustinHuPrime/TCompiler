@@ -115,6 +115,7 @@ $(DOCSDIR)/.timestamp: $(shell find -O3 $(SRCDIR) -type f -name '*.[ch]')
 $(STANDARDDIR)/Standard.pdf: $(STANDARDDIR)/Standard.tex
 	@$(ECHO) "Compiling standard"
 	@$(PDFLATEX) -output-directory $(STANDARDDIR) $< > /dev/null
+	@$(PDFLATEX) -output-directory $(STANDARDDIR) $< > /dev/null
 
 
 # executable details
