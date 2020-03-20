@@ -225,16 +225,7 @@ Any data type may form the base of a derived data type.
 
 \chapter{Declarations}
 
-\begin{lstlisting}[breaklines=true]
-declaration = function_declaration
-            | variable_declaration
-            | opaque_declaration
-            | struct_declaration
-            | union_declaration
-            | enum_declaration
-            | typedef_declaration
-            ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=9, lastline=16]{"Appendix B - Syntax.ebnf"}
 
 Declarations state the existence of a type, function, or variable in the current module. For type declarations, they may also serve as the definition of a type. Conceptually, a declaration is all that is required to use the declared entity, and the user need not be aware of the definition. However, for non-opaque types, it is necessary to know the definition of the type to use it completely - it is necessary to know the size of a type to declare it on the stack. For opaque types, it is not necessary to have that additional information, so both kinds of declarations - complete and opaque - are considered declarations.
 
@@ -242,9 +233,7 @@ The identifier in a declaration may not be a reserved identifier. Reserved ident
 
 \section{Function Declarations}\label{section:Function Declarations}
 
-\begin{lstlisting}[breaklines=true]
-function_declaration = type, identifier, "(", [ type, [ identifier ], [ "=", literal ], { ",", type, [ identifier ], [ "=", literal ] } ], ")", ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=21, lastline=21]{"Appendix B - Syntax.ebnf"}
 
 A function declaration declares the existence of the function, having the name in the first identifier, and provides the interface to call the function and get a return value. The parameter names are not significant, and may be different from the names used in the function definition. The return type and formal parameter types must be complete types. A return value of \texttt{void} indicates that the function does not return any value. If a formal parameter is followed by an equals sign and a literal value, then any callers of this function may omit the value in the function call expression, and the default value will be substituted in as the actual argument. However, function pointers are unable to use default parameters, so when converted to a function pointer, it will be as if no default parameters were specified. The corresponding function definition must supply the same default parameters as those specified in the declaration.
 
@@ -254,117 +243,73 @@ Any function named 'main' is considered a main function. The main function does 
 
 \section{Variable Declarations}
 
-\begin{lstlisting}[breaklines=true]
-variable_declaration = type, identifier, { ",", identifier }, ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=22, lastline=22]{"Appendix B - Syntax.ebnf"}
 
 A variable declaration declares the existence of a global variable. Variable declarations may use an incomplete type (the corresponding definition must not use an incomplete type). The comma separated list of identifiers lists out the names declared as a variable.
 
 \section{Opaque Type Declarations}
 
-\begin{lstlisting}[breaklines=true]
-opaque_declaration = "opaque", identifier, ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=23, lastline=23]{"Appendix B - Syntax.ebnf"}
 
 An opaque type declaration declares the existence of a user-defined type (structure, union, enumeration, or alias). Other than the existence of that type as a user-defined type, and the name, nothing else is specified.
 
 \section{Struct Declarations}
 
-\begin{lstlisting}[breaklines=true]
-struct_declaration = "struct", identifier, "{", variable_declaration, { variable_declaration }, "}", ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=24, lastline=24]{"Appendix B - Syntax.ebnf"}
 
 A structure declaration defines a structure type. Each variable declaration has a set of identifiers that it declares, and each of those identifiers is a field, with the type corresponding to the type of the variable declaration.
 
 \section{Union Declarations}
 
-\begin{lstlisting}[breaklines=true]
-union_declaration = "union", identifier, "{", variable_declaration, { variable_declaration }, "}", ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=25, lastline=25]{"Appendix B - Syntax.ebnf"}
 
 A union declaration defines a union type. Each variable declaration has a set of identifiers that it declares, and each of those identifiers is an option for the union, with the type corresponding to the type of the variable declaration.
 
 \section{Enum Declaration}
 
-\begin{lstlisting}[breaklines=true]
-enum_declaration = "enum", identifier, "{", identifier, [ "=", extended_int_literal ], { ",", identifier, [ "=", extended_int_literal ] }, [ "," ], "}", ";", ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=26, lastline=26]{"Appendix B - Syntax.ebnf"}
 
 An enumeration declaration defines an enumeration type. Each identifier is a separate enumeration constant, with either an automatically set or manually set value. Numbering of constants is sequential from the previous manually set value, or zero, if no manually set value has been encountered.
 
 \section{Typedef Declaration}
 
-\begin{lstlisting}[breaklines=true]
-typedef_declaration = "typedef", type, identifier, ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=27, lastline=27]{"Appendix B - Syntax.ebnf"}
 
 A typedef declaration introduces a type alias. This type alias is treated as if it were an atomic type, disallowing any decomposition. However, the a value of this type may be cast into the original type, allowing for decomposition after a cast.
 
 \chapter{Definitions}
 
-\begin{lstlisting}[breaklines=true]
-definition = function_definition
-           | variable_definition
-           ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=6, lastline=8]{"Appendix B - Syntax.ebnf"}
 
 Definitions provide the value of a declared variable or function. Only code files may contain definitions, and in a code file, no variable declarations are allowed. Within a code file, it is permissible to have a definition without an attached declaration. If there is no corresponding declaration, or if the declaration is in the same code file, then the 
 
 \section{Function Definitions}
 
-\begin{lstlisting}[breaklines=true]
-function_definition = type, identifier, "(", [ type, [ identifier, [ "=", literal ] ] ], { ",", type, [ identifier, [ "=", literal ] ] } ], ")", compound_statement ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=18, lastline=18]{"Appendix B - Syntax.ebnf"}
 
 A function definition specifies the code for a function, in the compound statement. Additionally, the definition introduces two scopes - one from the compound statement, the function body, and the second, a scope containing the formal parameters. The formal parameter scope contains the function body scope. Any function named 'main' is considered a main function, and is subject to the limits described in \ref{section:Function Declarations}
 
 \section{Variable Definitions}
 
-\begin{lstlisting}[breaklines=true]
-variable_definition = type, identifier, [ "=", literal ], { ",", identifier, [ "=", literal ] }, ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=19, lastline=19]{"Appendix B - Syntax.ebnf"}
 
 A variable definition creates a variable, and optionally initializes the variable. If the variable is not initialized, then its value is undefined. Access to uninitialized variables is considered undefined behaviour.
 
 \chapter{Statements}
 
-\begin{lstlisting}[breaklines=true]
-statement = compound_statement
-          | if_statement
-          | while_statement
-          | do_while_statement
-          | for_statement
-          | switch_statement
-          | break_statement
-          | continue_statement
-          | return_statement
-          | asm_statement
-          | variable_declaration_statement
-          | opaque_declaration
-          | struct_declaration
-          | union_declaration
-          | enum_declaration
-          | typedef_declaration
-          | expression, ";"
-          | ";"
-          ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=29, lastline=47]{"Appendix B - Syntax.ebnf"}
 
 Statements are units of execution that generally involve either side effects or flow control. Additionally, a statement may be a type or variable definition. These types or variables exist only within the containing scope.
 
 \section{Compound Statements}
 
-\begin{lstlisting}[breaklines=true]
-compound_statement = "{", { statement }, "}" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=49, lastline=49]{"Appendix B - Syntax.ebnf"}
 
 The compound statement introduces a scope, and additionally bundles a set of statements into one statement.
 
 \section{If Statements}
 
-\begin{lstlisting}[breaklines=true]
-if_statement = "if", "(", expression, ")", statement, [ "else", statement ] ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=50, lastline=50]{"Appendix B - Syntax.ebnf"}
 
 An if statement dynamically chooses between the execution of two statements, or between executing a statement or not executing a statement. There are two forms to the if statement: the first form where there is no else, and the statement executes the statement if and only if the condition expression is true. The second form is when there is an else. The if statement will execute the first statement if and only if the condition is true, and the second statement otherwise. The condition must result in a boolean value.
 
@@ -372,77 +317,56 @@ The construct known as an else-if is a special case of the else statement: an el
 
 \section{While Loop Statements}
 
-\begin{lstlisting}[breaklines=true]
-while_statement = "while", "(", expression, ")", statement ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=51, lastline=51]{"Appendix B - Syntax.ebnf"}
 
 A while loop statement repeatedly executes the statement, checking the condition (must be a boolean expression) beforehand, and leaving the loop without executing the statement if and only if the expression is false.
 
 \section{Do-While Loop Statements}
 
-\begin{lstlisting}[breaklines=true]
-do_while_statement = "do", statement, "while", "(", expression, ")" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=52, lastline=52]{"Appendix B - Syntax.ebnf"}
 
 A do-while loop statement repeatedly executes the statement, checking the condition (must be a boolean expression) afterwards, and leaving the loop if and only if the expression is false
 \footnote{Unlike C, the do-while loop does not expect a semicolon after the while.}.
 
 \section{For Loop Statements}
 
-\begin{lstlisting}[breaklines=true]
-for_statement = "for", "(", ( variable_declaration_statement | expression, ";" | ";" ), expression, ";", [ expression ], ")", statement ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=53, lastline=53]{"Appendix B - Syntax.ebnf"}
 
 The for loop statement introduces a scope, and within that scope, the variable declaration statement resides. If the initializer is an expression, then the expression is evaluated for side-effect. Next, before each iteration of the loop, the condition is checked, then the loop body runs, then the increment expression is evaluated for side effects. Execution returns to checking for the condition. If the condition is false, the loop ends, and the increment is not run. Additionally, a continue statement will only jump to the increment expression - i.e. the end of the loop body.
 
 \section{Switch Statements}
 
-\begin{lstlisting}[breaklines=true]
-switch_statement = "switch", "(", expression, ")", "{", switch_statement_case | switch_statement_default, { switch_statement_case | switch_statement_default }, "}" ;
-
-switch_statement_case = "case", extended_int_literal, ":", { "case", extended_int_literal, ":" }, statement ;
-switch_statement_default = "default", ":", statement ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, linerange={54-54, 61-62}]{"Appendix B - Syntax.ebnf"}
 
 A switch statement selects between several possible cases. The expression is evaluated, and it must be an integral expression. Then, the matching case is selected, and the matching statement is executed. Then, unless execution hits a break, execution proceeds down the following cases. If no case is matched, then the default and its statement is executed, and execution of the switch continues down the remaining cases. It is an error to have multiple cases with the same value. Additionally, despite the curly braces, the switch itself does not define an actual scope.
 
 \section{Break Statements}
 
-\begin{lstlisting}[breaklines=true]
-break_statement = "break", ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=55, lastline=55]{"Appendix B - Syntax.ebnf"}
 
-A break statement will leave a loop or a switch statement. The break statement jump to the first statement after the end of the loop.
+A break statement will leave a loop or a switch statement. The break statement jumps to the first statement after the end of the loop or switch.
 
 \section{Continue Statements}
 
-\begin{lstlisting}[breaklines=true]
-continue_statement = "continue", ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=56, lastline=56]{"Appendix B - Syntax.ebnf"}
 
 A continue statement will jump to the end of the body of a loop. Note that in a for loop, the continue statement will not skip over the increment, as that comes just after the body.
 
 \section{Return Statements}
 
-\begin{lstlisting}[breaklines=true]
-return_statement = "return", [ expression ], ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=57, lastline=57]{"Appendix B - Syntax.ebnf"}
 
 A return statement returns from the current function. If an expression is provided, it must match the return type of the function, and the value of the expression will be the returned value. If a value is not provided, then the function must be void, or the value must have been provided in some other way - almost certainly through inline assembly.
 
 \section{Assembly Statements}
 
-\begin{lstlisting}[breaklines=true]
-asm_statement = "asm", string_literal, ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=58, lastline=58]{"Appendix B - Syntax.ebnf"}
 
 An assembly statement inserts the assembly code into the generated assembly. The string literal respects escape codes, but is otherwise inserted verbatim. It is the responsibility of the user to write valid assembly code.
 
 \section{Variable Declaration Statements}
 
-\begin{lstlisting}[breaklines=true]
-variable_declaration_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=59, lastline=59]{"Appendix B - Syntax.ebnf"}
 
 A variable declaration statement creates a variable, and optionally initializes the variable with an expression. If it is not initialized, then its value is undefined. The variable exists in the enclosing scope.
 
@@ -574,34 +498,13 @@ Operators combine one or more expressions, and produce a value. See the above fo
 
 \subsection{Sequencing Operator}
 
-\begin{lstlisting}[breaklines=true]
-expression = assignment_expression
-           | assignment_expression, ",", expression
-           ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=64, lastline=66]{"Appendix B - Syntax.ebnf"}
 
 The sequencing operator (\texttt{,}), evaluates the left hand side for side-effects, and evaluates the right hand side for a value, and produces that value.
 
 \subsection{Assignment Operators}
 
-\begin{lstlisting}[breaklines=true]
-assignment_expression = ternary_expression
-                      | ternary_expression, "=", assignment_expression
-                      | ternary_expression, "*=", assignment_expression
-                      | ternary_expression, "/=", assignment_expression
-                      | ternary_expression, "%=", assignment_expression
-                      | ternary_expression, "+=", assignment_expression
-                      | ternary_expression, "-=", assignment_expression
-                      | ternary_expression, "<<=", assignment_expression
-                      | ternary_expression, ">>=", assignment_expression
-                      | ternary_expression, ">>>=", assignment_expression
-                      | ternary_expression, "&=", assignment_expression
-                      | ternary_expression, "^=", assignment_expression
-                      | ternary_expression, "|=", assignment_expression
-                      | ternary_expression, "&&=", assignment_expression
-                      | ternary_expression, "||=", assignment_expression
-                      ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=67, lastline=82]{"Appendix B - Syntax.ebnf"}
 
 The plain assignment operator (\texttt{=}) evaluates the left hand side as a value to assign to, then evaluates the right hand side as a value, and assigns the result of the right hand side to the result of the left hand side.
 
@@ -611,84 +514,55 @@ Assignment does not require the types to match, but restrictions are applied on 
 
 \subsection{Ternary Conditional Operators}
 
-\begin{lstlisting}[breaklines=true]
-ternary_expression = logical_expression
-                   | logical_expression, "?", expression, ":", ternary_expression
-                   ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=83, lastline=85]{"Appendix B - Syntax.ebnf"}
 
 The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated. The resulting value is converted to a type that can hold the type of either branch of the expression. See Appendix C - Expression Type Merging for a table detailing these rules.
 
 \subsection{Logical Operators}
 
-\begin{lstlisting}[breaklines=true]
-logical_expression = bitwise_expression, { ( "&&" | "||" ), bitwise_expression } ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=86, lastline=86]{"Appendix B - Syntax.ebnf"}
 
 Logical operators operate on boolean values. The logical-and operator (\texttt{\&\&}) evaluates the left hand side. If the left hand value is false, it does not evaluate the right hand side, and produces false. If the left hand value is true, it produces the value of the right hand side. The logical-or operator (\texttt{||}) evaluates the left hand side. If the left hand value is true, it does not evaluate the right hand side, and produces true. If the left hand value is false, it produces the value of the right hand side.
 
 \subsection{Bitwise Operators}
 
-\begin{lstlisting}[breaklines=true]
-bitwise_expression = equality_expression, { ( "&" | "|" | "^" ), equality_expression } ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=87, lastline=87]{"Appendix B - Syntax.ebnf"}
 
 Bitwise operators operate on integer values (\texttt{ubyte}, \texttt{byte}, \texttt{ushort}, \texttt{short}, \texttt{uint}, \texttt{int}, \texttt{ulong}, \texttt{long}). Additionally, before performing any bitwise operations, the values are converted according to Appendix C, and then the operation is performed.
 
 \subsection{Comparison Operators}
 
-\begin{lstlisting}[breaklines=true]
-equality_expression = comparison_expression, { ( "==" | "!=" ), comparison_expression } ;
-comparison_expression = spaceship_expression, { ( "<" | ">" | "<=" | ">=" ), spaceship_expression } ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=88, lastline=89]{"Appendix B - Syntax.ebnf"}
 
 There are two kinds of comparison operators - equality comparison operators (\texttt{==}, \texttt{!=}), and relational comparison operators (\texttt{<}, \texttt{>}, \texttt{<=}, \texttt{>=}). All comparison operators first convert the types into a common type (see Appendix D - Comparison Type Merging for details). These comparisons are only valid on base types that are numeric, characters, booleans, or pointers. The comparisons check for numeric equality, inequality, or numeric relations. The result is a boolean value.
 
 \subsection{Three-Way Comparison Operators}
 
-\begin{lstlisting}[breaklines=true]
-spaceship_expression = shift_expression, { "<=>", shift_expression } ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=90, lastline=90]{"Appendix B - Syntax.ebnf"}
 
 The three-way comparison operator expects its inputs to be numeric, characters, booleans, or pointers. It evaluates both inputs, and converts them to a common type (see Appendix D). Then, it compares these inputs. If the left hand side is less than the right hand side, it produces -1, if they are equal, 0, and if the left hand side is greater than the right hand side, it produces 1. The inputs are only evaluated once, and the output is a \texttt{byte}.
 
 \subsection{Shift Operators}
 
-\begin{lstlisting}[breaklines=true]
-shift_expression = addition_expression, { ( "<<" | ">>" | ">>>" ), addition_expression } ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=91, lastline=91]{"Appendix B - Syntax.ebnf"}
 
 The shift operators expect an integral value for their left hand side, and an unsigned integral value for their right hand side. Performing no conversion, the value is bit-shifted by the number of bits given in the right hand side value. This value must be less than the number of bits in the left hand side value. In case of a left-shift operator (\texttt{<<}) or a logical-right-shift operator (\texttt{>>>}), the value is zero-filled. In case of an arithmetic-right-shift operator (\texttt{>>}), the value is sign-filled.
 
 \subsection{Addition Operators}
 
-\begin{lstlisting}[breaklines=true]
-addition_expression = multiplication_expression, { ( "+" | "-" ), multiplication_expression } ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=92, lastline=92]{"Appendix B - Syntax.ebnf"}
 
 Addition and subtraction expressions both support two numeric operands, in which case they will evaluate the left hand side, then the right hand side, convert to a common type (see Appendix C), and the result is produced after applying the relevant operator. However, when adding a data pointer and an integer (order irrelevant), both are evaluated, and then the integer is multiplied by the size of the type the pointer points to before being added to the pointer. It is also acceptable to subtract an integer from a data pointer (but not the other way around), and the subtracted value is also first multiplied by the size of what the pointer points to before being subtracted from the pointer. Finally, if two pointers are subtracted, then their difference is divided by the size of the type the pointers point to before being produces. Both pointers must point to the same type.
 
 \subsection{Multiplication Operators}
 
-\begin{lstlisting}[breaklines=true]
-multiplication_expression = prefix_expression, { ( "*" | "/" | "%" ), prefix_expression } ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=93, lastline=93]{"Appendix B - Syntax.ebnf"}
 
 Multiplication expressions operate on numeric values. The left hand side, then the right hand side are evaluated, these values are converted to a common type (see Appendix C), and the result is produced after applying the relevant operator.
 
 \subsection{Prefix Operators}
 
-\begin{lstlisting}[breaklines=true]
-prefix_expression = postfix_expression
-                  | "*", prefix_expression
-                  | "&", prefix_expression
-                  | "++", prefix_expression
-                  | "--", prefix_expression
-                  | "-", prefix_expression
-                  | "!", prefix_expression
-                  | "~", prefix_expression
-                  ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=94, lastline=102]{"Appendix B - Syntax.ebnf"}
 
 The dereference operator (\texttt{*}) takes the expression (must be a data pointer), and produces an assignable value from that expression. The result is of the base type of the pointer.
 
@@ -704,9 +578,7 @@ The bitwise-not operator takes the expression (must be an integral value), and f
 
 \subsection{Postfix Operators}
 
-\begin{lstlisting}[breaklines=true]
-postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", argument_list, ")" | "[", expression, "]" | "++" | "--" | "=-" | "=!" | "=~" ) } ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, linerange={103-103, 111-111}]{"Appendix B - Syntax.ebnf"}
 
 The member-access operator (\texttt{.}) takes a value of a type with members (structures or unions), and produces the named member. This value is assignable if the original value is assignable. The pointer member-access operator (\texttt{->}) takes a value of a pointer to a type with members, and produces the named member after dereferencing the pointer. Only the accessed member is accessed via the pointer. The produced value is always assignable. The type of this expression is the type of the member.
 
@@ -720,15 +592,7 @@ The in-place unary operators take the value, performs the unary operation on it,
 
 \section{Primary Expressions}
 
-\begin{lstlisting}[breaklines=true]
-primary_expression = scoped_identifier
-                   | identifier
-                   | literal
-                   | "cast", "[", type, "]", "(", expression, ")"
-                   | "sizeof", "(", ( expression | type ), ")"
-                   | "(", expression, ")"
-                   ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=104, lastline=110]{"Appendix B - Syntax.ebnf"}
 
 A primary expression is a value or expression that is unambiguously bound. These expressions have no precedence, and in the case of identifiers and literals, form the leaf nodes of expressions.
 
@@ -738,21 +602,7 @@ Scoped identifiers and identifiers name a value, and produce that value as an as
 
 \subsection{Literals}
 
-\begin{lstlisting}[breaklines=true]
-literal = int_literal
-        | float_literal
-        | string_literal
-        | char_literal
-        | wstring_literal
-        | wchar_literal
-        | "true"
-        | "false"
-        | "null"
-        | scoped_identifier
-        | aggregate_initializer
-        ;
-aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
-\end{lstlisting}
+\lstinputlisting[breaklines=true, firstline=117, lastline=130]{"Appendix B - Syntax.ebnf"}
 
 Literals represent a constant value, either of some type, or of an aggregate initializer. Integer literals may be signed or unsigned. Integer literals are of the smallest type capable of containing their value, preferring unsigned types over signed types. A positive integer literal may be forced into being of a signed type by prefixing it with \texttt{+}.
 

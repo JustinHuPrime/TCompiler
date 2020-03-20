@@ -109,7 +109,6 @@ primary_expression = scoped_identifier
                    | "(", expression, ")"
 ;
 argument_list = [ assignment_expression, { ",", assignment_expression } ] ;
-aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
 extended_int_literal = int_literal
                      | char_literal
                      | wchar_literal
@@ -128,6 +127,7 @@ literal = int_literal
         | scoped_identifier
         | aggregate_initializer
 ;
+aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
 
 type = "void"
      | "ubyte"
