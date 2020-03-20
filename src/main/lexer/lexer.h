@@ -169,6 +169,9 @@ typedef struct {
 /**
  * uninitializes the token
  *
+ * only needs to be called if token has a string that isn't used (i.e. token is
+ * in the range TT_ID to TT_LIT_FLOAT and Token#string was ignored)
+ *
  * @param token token to deinitialize
  */
 void tokenUninit(Token *token);
