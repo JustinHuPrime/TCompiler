@@ -190,9 +190,26 @@ static Node *createOpaqueDecl(Token *keyword, Node *name) {
   n->data.opaqueDecl.name = name;
   return n;
 }
-// structDecl
-// unionDecl
-// enumDecl
+static Node *createStructDecl(Token *keyword, Node *name, Vector *fields) {
+  Node *n = createNode(NT_STRUCTDECL, keyword->line, keyword->character);
+  n->data.structDecl.name = name;
+  n->data.structDecl.fields = fields;
+  return n;
+}
+static Node *createUnionDecl(Token *keyword, Node *name, Vector *options) {
+  Node *n = createNode(NT_UNIONDECL, keyword->line, keyword->character);
+  n->data.unionDecl.name = name;
+  n->data.unionDecl.options = options;
+  return n;
+}
+static Node *createEnumDecl(Token *keyword, Node *name, Vector *constantNames,
+                            Vector *constantValues) {
+  Node *n = createNode(NT_ENUMDECL, keyword->line, keyword->character);
+  n->data.enumDecl.name = name;
+  n->data.enumDecl.constantNames = constantNames;
+  n->data.enumDecl.constantValues = constantValues;
+  return n;
+}
 static Node *createTypedefDecl(Token *keyword, Node *originalType, Node *name) {
   Node *n = createNode(NT_TYPEDEFDECL, keyword->line, keyword->character);
   n->data.typedefDecl.originalType = originalType;
@@ -442,7 +459,7 @@ static Node *parseModule(FileListEntry *entry) {
  * never fatally errors
  *
  * @param entry entry to lex from
- * @param imports Vector of Nodes to fill in
+ * @returns list of imports
  */
 static Vector *parseImports(FileListEntry *entry) {
   Vector *imports = createVector();
@@ -478,12 +495,131 @@ static Vector *parseImports(FileListEntry *entry) {
 }
 
 /**
+ * parses a function or variable declaration
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns declaration or null if fatal error
+ */
+static Node *parseFunOrVarDecl(FileListEntry *entry, Token *start) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a function declaration, or a variable declaration or definition
+ * 
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns declaration, definition, or null if fatal error
+ */
+static Node *parseFunOrVarDeclOrDefn(FileListEntry *entry, Token *start) {
+  return NULL; // TODO: write this
+}
+
+/**
+ * parses an opaque declaration
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns declaration or null if fatal error
+ */
+static Node *parseOpaqueDecl(FileListEntry *entry, Token *start) {
+  Node *name = parseId(entry);
+  if (name == NULL) {
+    panicTopLevel(entry);
+    return NULL;
+  }
+
+  Token semicolon;
+  lex(entry, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
+            entry->inputFile, semicolon.line, semicolon.character,
+            TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
+    entry->errored = true;
+    unLex(entry, &semicolon);
+    panicTopLevel(entry);
+  }
+
+  return createOpaqueDecl(start, name);
+}
+
+/**
+ * parses a struct declaration
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns declaration or null if fatal error
+ */
+static Node *parseStructDecl(FileListEntry *entry, Token *start) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a union declaration
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns declaration or null if fatal error
+ */
+static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a enum declaration
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns declaration or null if fatal error
+ */
+static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a typedef declaration
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns declaration or null if fatal error
+ */
+static Node *parseTypedefDecl(FileListEntry *entry, Token *start) {
+  Node *originalType = parseType(entry);
+  if (originalType == NULL) {
+    panicTopLevel(entry);
+    return NULL;
+  }
+
+  Node *name = parseId(entry);
+  if (name == NULL) {
+    nodeUninit(originalType);
+    free(originalType);
+    panicTopLevel(entry);
+    return NULL;
+  }
+
+  Token semicolon;
+  lex(entry, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
+            entry->inputFile, semicolon.line, semicolon.character,
+            TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
+    entry->errored = true;
+    unLex(entry, &semicolon);
+    panicTopLevel(entry);
+  }
+
+  return createTypedefDecl(start, originalType, name);
+}
+
+/**
  * parses a set of decl file bodies
  *
  * never fatally errors, and consumes the EOF
  *
  * @param entry entry to lex from
- * @param bodies Vector of Nodes to fill in
+ * @returns Vector of declarations
  */
 static Vector *parseDeclBodies(FileListEntry *entry) {
   Vector *bodies = createVector();
@@ -505,66 +641,33 @@ static Vector *parseDeclBodies(FileListEntry *entry) {
       case TT_DOUBLE:
       case TT_BOOL:
       case TT_ID: {
-        // TODO: write this
-        // is a function or a variable declaration
+        Node *decl = parseFunOrVarDecl(entry, &start);
+        if (decl != NULL) vectorInsert(bodies, decl);
+        break;
       }
       case TT_OPAQUE: {
-        Node *id = parseId(entry);
-        if (id == NULL) {
-          panicTopLevel(entry);
-          break;
-        }
-
-        Token semicolon;
-        lex(entry, &semicolon);
-        if (semicolon.type != TT_SEMI) {
-          fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-                  entry->inputFile, semicolon.line, semicolon.character,
-                  TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
-          entry->errored = true;
-          unLex(entry, &semicolon);
-          panicTopLevel(entry);
-        }
-
-        vectorInsert(bodies, createOpaqueDecl(&start, id));
+        Node *decl = parseOpaqueDecl(entry, &start);
+        if (decl != NULL) vectorInsert(bodies, decl);
         break;
       }
       case TT_STRUCT: {
-        break;  // TODO: write this
+        Node *decl = parseStructDecl(entry, &start);
+        if (decl != NULL) vectorInsert(bodies, decl);
+        break;
       }
       case TT_UNION: {
-        break;  // TODO: write this
+        Node *decl = parseUnionDecl(entry, &start);
+        if (decl != NULL) vectorInsert(bodies, decl);
+        break;
       }
       case TT_ENUM: {
-        break;  // TODO: write this
+        Node *decl = parseEnumDecl(entry, &start);
+        if (decl != NULL) vectorInsert(bodies, decl);
+        break;
       }
       case TT_TYPEDEF: {
-        Node *originalType = parseType(entry);
-        if (originalType == NULL) {
-          panicTopLevel(entry);
-          break;
-        }
-
-        Node *name = parseId(entry);
-        if (name == NULL) {
-          nodeUninit(originalType);
-          free(originalType);
-          panicTopLevel(entry);
-          break;
-        }
-
-        Token semicolon;
-        lex(entry, &semicolon);
-        if (semicolon.type != TT_SEMI) {
-          fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-                  entry->inputFile, semicolon.line, semicolon.character,
-                  TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
-          entry->errored = true;
-          unLex(entry, &semicolon);
-          panicTopLevel(entry);
-        }
-
-        vectorInsert(bodies, createTypedefDecl(&start, originalType, name));
+        Node *decl = parseTypedefDecl(entry, &start);
+        if (decl != NULL) vectorInsert(bodies, decl);
         break;
       }
       case TT_EOF: {
@@ -591,7 +694,7 @@ static Vector *parseDeclBodies(FileListEntry *entry) {
  * never fatally errors, and consumes the EOF
  *
  * @param entry entry to lex from
- * @param bodies Vector of Nodes to fill in
+ * @returns Vector of declarations and definitions
  */
 static Vector *parseCodeBodies(FileListEntry *entry) {
   Vector *bodies = createVector();
@@ -658,7 +761,7 @@ int parse(void) {
     return -1;
   }
 
-  // pass two - generate symbol tables (part 1)
+  // pass two - generate symbol tables
   // pass three - resolve imports and parse unparsed nodes
 
   return 0;

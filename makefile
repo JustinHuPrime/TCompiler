@@ -66,7 +66,7 @@ WARNINGS := -pedantic -pedantic-errors -Wall -Wextra -Wdouble-promotion\
 -Winit-self -Wunused -Wswitch-unreachable -Wuninitialized\
 -Wstringop-truncation -Wsuggest-attribute=format -Wsuggest-attribute=malloc\
 -Wmissing-include-dirs -Wswitch-bool -Wduplicated-branches -Wduplicated-cond\
--Wtrampolines -Wfloat-equal -Wundef -Wshadow -Wunsafe-loop-optimizations\
+-Wtrampolines -Wfloat-equal -Wundef -Wunsafe-loop-optimizations\
 -Wunused-macros -Wbad-function-cast -Wcast-qual -Wcast-align -Wwrite-strings\
 -Wconversion  -Wdate-time -Wjump-misses-init -Wlogical-op -Waggregate-return\
 -Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes\
