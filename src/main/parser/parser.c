@@ -507,13 +507,13 @@ static Node *parseFunOrVarDecl(FileListEntry *entry, Token *start) {
 
 /**
  * parses a function declaration, or a variable declaration or definition
- * 
+ *
  * @param entry entry to lex from
  * @param start first token
  * @returns declaration, definition, or null if fatal error
  */
 static Node *parseFunOrVarDeclOrDefn(FileListEntry *entry, Token *start) {
-  return NULL; // TODO: write this
+  return NULL;  // TODO: write this
 }
 
 /**
@@ -614,14 +614,15 @@ static Node *parseTypedefDecl(FileListEntry *entry, Token *start) {
 }
 
 /**
- * parses a set of decl file bodies
+ * parses a set of file bodies
  *
  * never fatally errors, and consumes the EOF
+ * Is sensitive to the code-ness of the entry
  *
  * @param entry entry to lex from
- * @returns Vector of declarations
+ * @returns Vector of bodies
  */
-static Vector *parseDeclBodies(FileListEntry *entry) {
+static Vector *parseBodies(FileListEntry *entry) {
   Vector *bodies = createVector();
   while (true) {
     Token start;
@@ -641,7 +642,11 @@ static Vector *parseDeclBodies(FileListEntry *entry) {
       case TT_DOUBLE:
       case TT_BOOL:
       case TT_ID: {
-        Node *decl = parseFunOrVarDecl(entry, &start);
+        Node *decl;
+        if (entry->isCode)
+          decl = parseFunOrVarDeclOrDefn(entry, &start);
+        else
+          decl = parseFunOrVarDecl(entry, &start);
         if (decl != NULL) vectorInsert(bodies, decl);
         break;
       }
@@ -689,20 +694,6 @@ static Vector *parseDeclBodies(FileListEntry *entry) {
 }
 
 /**
- * parses a set of code file bodies
- *
- * never fatally errors, and consumes the EOF
- *
- * @param entry entry to lex from
- * @returns Vector of declarations and definitions
- */
-static Vector *parseCodeBodies(FileListEntry *entry) {
-  Vector *bodies = createVector();
-  // TODO: write this
-  return bodies;
-}
-
-/**
  * parses a file, phase one
  *
  * @param entry entry to lex from
@@ -710,14 +701,8 @@ static Vector *parseCodeBodies(FileListEntry *entry) {
  */
 static Node *parseFile(FileListEntry *entry) {
   Node *module = parseModule(entry);
-
   Vector *imports = parseImports(entry);
-
-  Vector *bodies = createVector();
-  if (entry->isCode)
-    bodies = parseCodeBodies(entry);
-  else
-    bodies = parseDeclBodies(entry);
+  Vector *bodies = parseBodies(entry);
 
   if (module == NULL) {
     // fatal error - free report error
