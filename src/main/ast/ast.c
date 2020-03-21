@@ -35,8 +35,9 @@ static void nodeFree(Node *n) {
  *
  * @param v vector to deinit
  */
-static void nodeVectorUninit(Vector *v) {
+static void nodeVectorFree(Vector *v) {
   vectorUninit(v, (void (*)(void *))nodeFree);
+  free(v);
 }
 
 /**
@@ -53,8 +54,9 @@ static void nullableNodeFree(Node *n) {
  *
  * @param v vector to deinit, may have null elements
  */
-static void nullableNodeVectorUninit(Vector *v) {
+static void nullableNodeVectorFree(Vector *v) {
   vectorUninit(v, (void (*)(void *))nullableNodeFree);
+  free(v);
 }
 
 /**
@@ -81,8 +83,8 @@ void nodeUninit(Node *n) {
     case NT_FILE: {
       stabUninit(&n->data.file.stab);
       nodeFree(n->data.file.module);
-      nodeVectorUninit(&n->data.file.imports);
-      nodeVectorUninit(&n->data.file.bodies);
+      nodeVectorFree(n->data.file.imports);
+      nodeVectorFree(n->data.file.bodies);
       break;
     }
     case NT_MODULE: {
@@ -97,29 +99,29 @@ void nodeUninit(Node *n) {
       stabUninit(&n->data.funDefn.stab);
       nodeFree(n->data.funDefn.returnType);
       nodeFree(n->data.funDefn.funName);
-      nodeVectorUninit(&n->data.funDefn.argTypes);
-      nullableNodeVectorUninit(&n->data.funDefn.argNames);
-      nullableNodeVectorUninit(&n->data.funDefn.argLiterals);
+      nodeVectorFree(n->data.funDefn.argTypes);
+      nullableNodeVectorFree(n->data.funDefn.argNames);
+      nullableNodeVectorFree(n->data.funDefn.argLiterals);
       nodeFree(n->data.funDefn.body);
       break;
     }
     case NT_VARDEFN: {
       nodeFree(n->data.varDefn.type);
-      nodeVectorUninit(&n->data.varDefn.names);
-      nullableNodeVectorUninit(&n->data.varDefn.initializers);
+      nodeVectorFree(n->data.varDefn.names);
+      nullableNodeVectorFree(n->data.varDefn.initializers);
       break;
     }
     case NT_FUNDECL: {
       nodeFree(n->data.funDecl.returnType);
       nodeFree(n->data.funDecl.funName);
-      nodeVectorUninit(&n->data.funDecl.argTypes);
-      nullableNodeVectorUninit(&n->data.funDecl.argNames);
-      nullableNodeVectorUninit(&n->data.funDecl.argLiterals);
+      nodeVectorFree(n->data.funDecl.argTypes);
+      nullableNodeVectorFree(n->data.funDecl.argNames);
+      nullableNodeVectorFree(n->data.funDecl.argLiterals);
       break;
     }
     case NT_VARDECL: {
       nodeFree(n->data.varDecl.type);
-      nodeVectorUninit(&n->data.varDecl.names);
+      nodeVectorFree(n->data.varDecl.names);
       break;
     }
     case NT_OPAQUEDECL: {
@@ -128,18 +130,18 @@ void nodeUninit(Node *n) {
     }
     case NT_STRUCTDECL: {
       nodeFree(n->data.structDecl.name);
-      nodeVectorUninit(&n->data.structDecl.fields);
+      nodeVectorFree(n->data.structDecl.fields);
       break;
     }
     case NT_UNIONDECL: {
       nodeFree(n->data.unionDecl.name);
-      nodeVectorUninit(&n->data.unionDecl.options);
+      nodeVectorFree(n->data.unionDecl.options);
       break;
     }
     case NT_ENUMDECL: {
       nodeFree(n->data.enumDecl.name);
-      nodeVectorUninit(&n->data.enumDecl.constantNames);
-      nullableNodeVectorUninit(&n->data.enumDecl.constantValues);
+      nodeVectorFree(n->data.enumDecl.constantNames);
+      nullableNodeVectorFree(n->data.enumDecl.constantValues);
       break;
     }
     case NT_TYPEDEFDECL: {
@@ -149,7 +151,7 @@ void nodeUninit(Node *n) {
     }
     case NT_COMPOUNDSTMT: {
       stabUninit(&n->data.compoundStmt.stab);
-      nodeVectorUninit(&n->data.compoundStmt.stmts);
+      nodeVectorFree(n->data.compoundStmt.stmts);
       break;
     }
     case NT_IFSTMT: {
@@ -178,7 +180,7 @@ void nodeUninit(Node *n) {
     }
     case NT_SWITCHSTMT: {
       nodeFree(n->data.switchStmt.condition);
-      nodeVectorUninit(&n->data.switchStmt.cases);
+      nodeVectorFree(n->data.switchStmt.cases);
       break;
     }
     case NT_BREAKSTMT: {
@@ -197,8 +199,8 @@ void nodeUninit(Node *n) {
     }
     case NT_VARDEFNSTMT: {
       nodeFree(n->data.varDefnStmt.type);
-      nodeVectorUninit(&n->data.varDefnStmt.names);
-      nullableNodeVectorUninit(&n->data.varDefnStmt.initializers);
+      nodeVectorFree(n->data.varDefnStmt.names);
+      nullableNodeVectorFree(n->data.varDefnStmt.initializers);
       break;
     }
     case NT_EXPRESSIONSTMT: {
@@ -209,7 +211,7 @@ void nodeUninit(Node *n) {
       break;
     }
     case NT_SWITCHCASE: {
-      nodeVectorUninit(&n->data.switchCase.values);
+      nodeVectorFree(n->data.switchCase.values);
       nodeFree(n->data.switchCase.body);
       break;
     }
@@ -218,8 +220,8 @@ void nodeUninit(Node *n) {
       break;
     }
     case NT_BINOPEXP: {
-      nodeFree(n->data.binopExp.lhs);
-      nodeFree(n->data.binopExp.rhs);
+      nodeFree(n->data.binOpExp.lhs);
+      nodeFree(n->data.binOpExp.rhs);
       break;
     }
     case NT_TERNARYEXP: {
@@ -229,12 +231,12 @@ void nodeUninit(Node *n) {
       break;
     }
     case NT_UNOPEXP: {
-      nodeFree(n->data.unopExp.target);
+      nodeFree(n->data.unOpExp.target);
       break;
     }
     case NT_FUNCALLEXP: {
       nodeFree(n->data.funCallExp.function);
-      nodeVectorUninit(&n->data.funCallExp.arguments);
+      nodeVectorFree(n->data.funCallExp.arguments);
       break;
     }
     case NT_LITERAL: {
@@ -252,7 +254,7 @@ void nodeUninit(Node *n) {
           break;
         }
         case LT_AGGREGATEINIT: {
-          nodeVectorUninit(&n->data.literal.value.aggregateInitVal);
+          nodeVectorFree(n->data.literal.value.aggregateInitVal);
           break;
         }
         default: { break; }
@@ -273,12 +275,12 @@ void nodeUninit(Node *n) {
     }
     case NT_FUNPTRTYPE: {
       nodeFree(n->data.funPtrType.returnType);
-      nodeVectorUninit(&n->data.funPtrType.argTypes);
-      nullableNodeVectorUninit(&n->data.funPtrType.argNames);
+      nodeVectorFree(n->data.funPtrType.argTypes);
+      nullableNodeVectorFree(n->data.funPtrType.argNames);
       break;
     }
     case NT_SCOPEDID: {
-      nodeVectorUninit(&n->data.scopedId.components);
+      nodeVectorFree(n->data.scopedId.components);
       break;
     }
     case NT_ID: {
@@ -286,7 +288,8 @@ void nodeUninit(Node *n) {
       break;
     }
     case NT_UNPARSED: {
-      vectorUninit(&n->data.unparsed.tokens, (void (*)(void *))tokenUninit);
+      vectorUninit(n->data.unparsed.tokens, (void (*)(void *))tokenUninit);
+      free(n->data.unparsed.tokens);
       break;
     }
   }

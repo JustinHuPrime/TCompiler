@@ -141,6 +141,106 @@ static char const *const TOKEN_NAMES[] = {
     "an integer literal",
 };
 
+// constructors
+
+/** create an initialized vector */
+static Vector *createVector(void) {
+  Vector *v = malloc(sizeof(Vector));
+  vectorInit(v);
+  return v;
+}
+/** create an uninitialized node */
+static Node *createNode(NodeType type, size_t line, size_t character) {
+  Node *n = malloc(sizeof(Node));
+  n->type = type;
+  n->line = line;
+  n->character = character;
+  return n;
+}
+/** create a file node */
+static Node *createFile(Node *module, Vector *imports, Vector *bodies) {
+  Node *n = createNode(NT_FILE, module->line, module->character);
+  n->data.file.module = module;
+  n->data.file.imports = imports;
+  n->data.file.bodies = bodies;
+  hashMapInit(&n->data.file.stab);
+  return n;
+}
+/** create a module node */
+static Node *createModule(Token *keyword, Node *id) {
+  Node *n = createNode(NT_MODULE, keyword->line, keyword->character);
+  n->data.module.id = id;
+  return n;
+}
+/** create an import node */
+static Node *createImport(Token *keyword, Node *id) {
+  Node *n = createNode(NT_IMPORT, keyword->line, keyword->character);
+  n->data.import.id = id;
+  n->data.import.referenced = NULL;
+  return n;
+}
+
+// funDefn
+// varDefn
+
+// funDecl
+// varDecl
+static Node *createOpaqueDecl(Token *keyword, Node *name) {
+  Node *n = createNode(NT_OPAQUEDECL, keyword->line, keyword->character);
+  n->data.opaqueDecl.name = name;
+  return n;
+}
+// structDecl
+// unionDecl
+// enumDecl
+static Node *createTypedefDecl(Token *keyword, Node *originalType, Node *name) {
+  Node *n = createNode(NT_TYPEDEFDECL, keyword->line, keyword->character);
+  n->data.typedefDecl.originalType = originalType;
+  n->data.typedefDecl.name = name;
+  return n;
+}
+
+// compoundStmt
+// ifStmt
+// whileStmt
+// doWhileStmt
+// forStmt
+// switchStmt
+// breakStmt
+// continueStmt
+// returnStmt
+// asmStmt
+// varDefnStmt
+// expressionStmt
+// nullStmt
+
+// switchCase
+// switchDefault
+
+// binOpExp
+// ternaryExp
+// unOpExp
+// funCallExp
+
+// literal
+
+// keywordType
+// modifiedType
+// arrayType
+// funPtrType
+
+static Node *createScopedId(Vector *components) {
+  Node *first = components->elements[0];
+  Node *n = createNode(NT_SCOPEDID, first->line, first->character);
+  n->data.scopedId.components = components;
+  return n;
+}
+static Node *createId(Token *id) {
+  Node *n = createNode(NT_ID, id->line, id->character);
+  n->data.id.id = id->string;
+  return n;
+}
+
 // panics
 
 /**
@@ -220,26 +320,12 @@ static Node *parseAnyId(FileListEntry *entry) {
   if (scope.type != TT_SCOPE) {
     // not a scoped id
     unLex(entry, &scope);
-    Node *id = malloc(sizeof(Node));
-    id->type = NT_ID;
-    id->line = idToken.line;
-    id->character = idToken.character;
-    id->data.id.id = idToken.string;
-    return id;
+    return createId(&idToken);
   } else {
     // scoped id - saw scope
-    Node *scoped = malloc(sizeof(Node));
-    scoped->type = NT_SCOPEDID;
-    scoped->line = idToken.line;
-    scoped->character = idToken.character;
-    vectorInit(&scoped->data.scopedId.components);
+    Vector *components = createVector();
 
-    Node *id = malloc(sizeof(Node));
-    id->type = NT_ID;
-    id->line = idToken.line;
-    id->character = idToken.character;
-    id->data.id.id = idToken.string;
-    vectorInsert(&scoped->data.scopedId.components, id);
+    vectorInsert(components, createId(&idToken));
     while (true) {
       // expect an id, add it to the node
       lex(entry, &idToken);
@@ -251,28 +337,23 @@ static Node *parseAnyId(FileListEntry *entry) {
         unLex(entry, &idToken);
 
         // assume it was a garbage scope operator
-        if (scoped->data.scopedId.components.size == 1) {
-          Node *retval = scoped->data.scopedId.components.elements[0];
-          free(scoped->data.scopedId.components.elements);
-          free(scoped);
+        if (components->size == 1) {
+          Node *retval = components->elements[0];
+          free(components->elements);
+          free(components);
           return retval;
         } else {
-          return scoped;
+          return createScopedId(components);
         }
       } else {
-        id = malloc(sizeof(Node));
-        id->type = NT_ID;
-        id->line = idToken.line;
-        id->character = idToken.character;
-        id->data.id.id = idToken.string;
-        vectorInsert(&scoped->data.scopedId.components, id);
+        vectorInsert(components, createId(&idToken));
       }
 
       // if there's a scope, keep going, else return
       lex(entry, &scope);
       if (scope.type != TT_SCOPE) {
         unLex(entry, &scope);
-        return scoped;
+        return createScopedId(components);
       }
     }
   }
@@ -299,12 +380,7 @@ static Node *parseId(FileListEntry *entry) {
     return NULL;
   }
 
-  Node *id = malloc(sizeof(Node));
-  id->type = NT_ID;
-  id->line = idToken.line;
-  id->character = idToken.character;
-  id->data.id.id = idToken.string;
-  return id;
+  return createId(&idToken);
 }
 
 /**
@@ -357,12 +433,7 @@ static Node *parseModule(FileListEntry *entry) {
     panicTopLevel(entry);
   }
 
-  Node *module = malloc(sizeof(Node));
-  module->type = NT_MODULE;
-  module->line = moduleKeyword.line;
-  module->character = moduleKeyword.character;
-  module->data.module.id = id;
-  return module;
+  return createModule(&moduleKeyword, id);
 }
 
 /**
@@ -400,13 +471,7 @@ static void parseImports(FileListEntry *entry, Vector *imports) {
         panicTopLevel(entry);
       }
 
-      Node *import = malloc(sizeof(Node));
-      import->type = NT_IMPORT;
-      import->line = importKeyword.line;
-      import->character = importKeyword.character;
-      import->data.import.id = id;
-
-      vectorInsert(imports, import);
+      vectorInsert(imports, createImport(&importKeyword, id));
     }
   }
 }
@@ -459,13 +524,7 @@ static void parseDeclBodies(FileListEntry *entry, Vector *bodies) {
           panicTopLevel(entry);
         }
 
-        Node *opaque = malloc(sizeof(Node));
-        opaque->type = NT_IMPORT;
-        opaque->line = start.line;
-        opaque->character = start.character;
-        opaque->data.opaqueDecl.name = id;
-
-        vectorInsert(bodies, opaque);
+        vectorInsert(bodies, createOpaqueDecl(&start, id));
         break;
       }
       case TT_STRUCT: {
@@ -478,16 +537,16 @@ static void parseDeclBodies(FileListEntry *entry, Vector *bodies) {
         break;  // TODO: write this
       }
       case TT_TYPEDEF: {
-        Node *type = parseType(entry);
-        if (type == NULL) {
+        Node *originalType = parseType(entry);
+        if (originalType == NULL) {
           panicTopLevel(entry);
           break;
         }
 
-        Node *id = parseId(entry);
-        if (id == NULL) {
-          nodeUninit(type);
-          free(type);
+        Node *name = parseId(entry);
+        if (name == NULL) {
+          nodeUninit(originalType);
+          free(originalType);
           panicTopLevel(entry);
           break;
         }
@@ -503,14 +562,7 @@ static void parseDeclBodies(FileListEntry *entry, Vector *bodies) {
           panicTopLevel(entry);
         }
 
-        Node *typedefDecl = malloc(sizeof(Node));
-        typedefDecl->type = NT_IMPORT;
-        typedefDecl->line = start.line;
-        typedefDecl->character = start.character;
-        typedefDecl->data.typedefDecl.originalType = type;
-        typedefDecl->data.typedefDecl.name = id;
-
-        vectorInsert(bodies, typedefDecl);
+        vectorInsert(bodies, createTypedefDecl(&start, originalType, name));
         break;
       }
       case TT_EOF: {
@@ -550,31 +602,26 @@ static void parseCodeBodies(FileListEntry *entry, Vector *bodies) {
  * @returns AST node or NULL if fatal error happened
  */
 static Node *parseFile(FileListEntry *entry) {
-  Node *file = malloc(sizeof(Node));
-
   Node *module = parseModule(entry);
 
-  vectorInit(&file->data.file.imports);
-  parseImports(entry, &file->data.file.imports);
+  Vector *imports = createVector();
+  parseImports(entry, imports);
 
-  vectorInit(&file->data.file.bodies);
+  Vector *bodies = createVector();
   if (entry->isCode)
-    parseCodeBodies(entry, &file->data.file.bodies);
+    parseCodeBodies(entry, bodies);
   else
-    parseDeclBodies(entry, &file->data.file.bodies);
+    parseDeclBodies(entry, bodies);
 
   if (module == NULL) {
-    // fatal error
-    vectorUninit(&file->data.file.imports, (void (*)(void *))nodeUninit);
-    vectorUninit(&file->data.file.bodies, (void (*)(void *))nodeUninit);
-    free(file);
+    // fatal error - free report error
+    vectorUninit(imports, (void (*)(void *))nodeUninit);
+    free(imports);
+    vectorUninit(bodies, (void (*)(void *))nodeUninit);
+    free(bodies);
     return NULL;
   } else {
-    file->type = NT_FILE;
-    file->line = module->line;
-    file->character = module->character;
-    file->data.file.module = module;
-    return file;
+    return createFile(module, imports, bodies);
   }
 }
 

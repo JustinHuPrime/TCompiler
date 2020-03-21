@@ -198,59 +198,61 @@ typedef struct Node {
     struct {
       HashMap stab;        /**< symbol table for file */
       struct Node *module; /**< NT_MODULE */
-      Vector imports;      /**< vector of Nodes, each is an NT_IMPORT */
+      Vector *imports;     /**< vector of Nodes, each is an NT_IMPORT */
       Vector
-          bodies; /**< vector of Nodes, each is a definition or declaration */
+          *bodies; /**< vector of Nodes, each is a definition or declaration */
     } file;
 
     struct {
       struct Node *id; /**< NT_SCOPEDID or NT_ID */
     } module;
     struct {
-      struct Node *id; /**< NT_SCOPEDID or NT_ID */
+      struct Node *id;           /**< NT_SCOPEDID or NT_ID */
+      HashMap const *referenced; /**< symbol table that's referenced (pointer to
+                                    Node#data#file#stab) */
     } import;
 
     struct {
       HashMap stab;            /**< symbol table for arguments */
       struct Node *returnType; /**< type */
       struct Node *funName;    /**< NT_ID */
-      Vector argTypes;         /**< vector of Nodes, each is a type */
-      Vector argNames;    /**< vector of nullable Nodes, each is an NT_ID */
-      Vector argLiterals; /**< vector of nullable Nodes, each is a literal */
-      struct Node *body;  /**< NT_COMPOUNDSTMT */
+      Vector *argTypes;        /**< vector of Nodes, each is a type */
+      Vector *argNames;    /**< vector of nullable Nodes, each is an NT_ID */
+      Vector *argLiterals; /**< vector of nullable Nodes, each is a literal */
+      struct Node *body;   /**< NT_COMPOUNDSTMT */
     } funDefn;
     struct {
-      struct Node *type;   /**< type */
-      Vector names;        /**< vector of Nodes, each is an NT_ID */
-      Vector initializers; /**< vector of nullable Nodes, each is a literal */
+      struct Node *type;    /**< type */
+      Vector *names;        /**< vector of Nodes, each is an NT_ID */
+      Vector *initializers; /**< vector of nullable Nodes, each is a literal */
     } varDefn;
 
     struct {
       struct Node *returnType; /**< type */
       struct Node *funName;    /**< NT_ID */
-      Vector argTypes;         /**< vector of Nodes, each is a type */
-      Vector argNames;    /**< vector of nullable Nodes, each is an NT_ID */
-      Vector argLiterals; /**< vector of nullable Nodes, each is a literal */
+      Vector *argTypes;        /**< vector of Nodes, each is a type */
+      Vector *argNames;    /**< vector of nullable Nodes, each is an NT_ID */
+      Vector *argLiterals; /**< vector of nullable Nodes, each is a literal */
     } funDecl;
     struct {
       struct Node *type; /**< type */
-      Vector names;      /**< vector of Nodes, each is an NT_ID */
+      Vector *names;     /**< vector of Nodes, each is an NT_ID */
     } varDecl;
     struct {
       struct Node *name; /**< NT_ID */
     } opaqueDecl;
     struct {
       struct Node *name; /**< NT_ID */
-      Vector fields;     /**< vector of Nodes, each is an NT_VARDECL */
+      Vector *fields;    /**< vector of Nodes, each is an NT_VARDECL */
     } structDecl;
     struct {
       struct Node *name; /**< NT_ID */
-      Vector options;    /**< vector of Nodes, each is an NT_VARDECL */
+      Vector *options;   /**< vector of Nodes, each is an NT_VARDECL */
     } unionDecl;
     struct {
-      struct Node *name;     /**< NT_ID */
-      Vector constantNames;  /**< vector of Nodes, each is an NT_ID */
-      Vector constantValues; /**< vector of nullable Nodes, each is an extended
+      struct Node *name;      /**< NT_ID */
+      Vector *constantNames;  /**< vector of Nodes, each is an NT_ID */
+      Vector *constantValues; /**< vector of nullable Nodes, each is an extended
                                 int literal */
     } enumDecl;
     struct {
@@ -259,8 +261,8 @@ typedef struct Node {
     } typedefDecl;
 
     struct {
-      HashMap stab; /**< symbol table for this scope */
-      Vector stmts; /**< vector of Nodes, each is a statement */
+      HashMap stab;  /**< symbol table for this scope */
+      Vector *stmts; /**< vector of Nodes, each is a statement */
     } compoundStmt;
     struct {
       struct Node *predicate;   /**< expression */
@@ -285,8 +287,8 @@ typedef struct Node {
     } forStmt;
     struct {
       struct Node *condition; /**< expression */
-      Vector cases;           /**< vector of Nodes, each either NT_SWITCHCASE or
-                                 NT_SWITCHDEFAULT */
+      Vector *cases;          /**< vector of Nodes, each either NT_SWITCHCASE or
+                                NT_SWITCHDEFAULT */
     } switchStmt;
     // struct { // has no data
     // } breakStmt;
@@ -300,9 +302,9 @@ typedef struct Node {
     } asmStmt;
     struct {
       struct Node *type; /**< type */
-      Vector names;      /**< vector of Nodes, each is an NT_ID */
+      Vector *names;     /**< vector of Nodes, each is an NT_ID */
       Vector
-          initializers; /**< vector of nullable Nodes, each is an expression */
+          *initializers; /**< vector of nullable Nodes, each is an expression */
     } varDefnStmt;
     struct {
       struct Node *expression; /**< expression */
@@ -311,7 +313,7 @@ typedef struct Node {
     // } nullStmt;
 
     struct {
-      Vector values; /**< vector of Nodes, each is an extended int literal */
+      Vector *values; /**< vector of Nodes, each is an extended int literal */
       struct Node *body; /**< statement */
     } switchCase;
     struct {
@@ -322,7 +324,7 @@ typedef struct Node {
       BinOpType op;
       struct Node *lhs;
       struct Node *rhs;
-    } binopExp;
+    } binOpExp;
     struct {
       struct Node *predicate;   /**< expression */
       struct Node *consequent;  /**< expression */
@@ -331,10 +333,10 @@ typedef struct Node {
     struct {
       UnOpType op;
       struct Node *target;
-    } unopExp;
+    } unOpExp;
     struct {
       struct Node *function; /**< expression */
-      Vector arguments;      /**< vector of Nodes, each is an expression */
+      Vector *arguments;     /**< vector of Nodes, each is an expression */
     } funCallExp;
 
     struct {
@@ -357,7 +359,7 @@ typedef struct Node {
         // LT_NULL has no additional data
         bool boolVal;
         struct Node *enumConstVal;
-        Vector aggregateInitVal; /**< vector of Nodes, each is an NT_LITERAL or
+        Vector *aggregateInitVal; /**< vector of Nodes, each is an NT_LITERAL or
                                     an NT_SCOPEDID (enumeration constant) */
       } value;
     } literal;
@@ -375,19 +377,20 @@ typedef struct Node {
     } arrayType;
     struct {
       struct Node *returnType; /**< type */
-      Vector argTypes;         /**< vector of Nodes, each is a type */
-      Vector argNames; /**< vector of nullable Nodes, each is an NT_ID */
+      Vector *argTypes;        /**< vector of Nodes, each is a type */
+      Vector *argNames; /**< vector of nullable Nodes, each is an NT_ID */
     } funPtrType;
 
     struct {
-      Vector components; /**< vector of Nodes, each is an NT_ID */
+      Vector *
+          components; /**< vector of Nodes, each is an NT_ID. At least 2 long */
     } scopedId;
     struct {
       char *id;
     } id;
 
     struct {
-      Vector tokens; /**< vector of Tokens */
+      Vector *tokens; /**< vector of Tokens */
     } unparsed;
   } data;
 } Node;
