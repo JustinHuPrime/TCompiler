@@ -157,7 +157,6 @@ static void panicTopLevel(FileListEntry *entry) {
 
     switch (token.type) {
       case TT_SEMI: {
-        tokenUninit(&token);
         return;
       }
       case TT_MODULE:
@@ -195,7 +194,7 @@ static void panicTopLevel(FileListEntry *entry) {
 // parsing
 
 /**
- * parses an ID
+ * parses an ID or scoped ID
  *
  * does not do error recovery
  *
@@ -207,7 +206,7 @@ static Node *parseAnyId(FileListEntry *entry) {
   lex(entry, &idToken);
 
   if (idToken.type != TT_ID) {
-    fprintf(stderr, "%s:%zu:%zu: error: expected %s but found %s\n",
+    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
             entry->inputFile, idToken.line, idToken.character,
             TOKEN_NAMES[TT_ID], TOKEN_NAMES[idToken.type]);
     entry->errored = true;
@@ -245,7 +244,7 @@ static Node *parseAnyId(FileListEntry *entry) {
       // expect an id, add it to the node
       lex(entry, &idToken);
       if (idToken.type != TT_ID) {
-        fprintf(stderr, "%s:%zu:%zu: error: expected %s but found %s\n",
+        fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
                 entry->inputFile, idToken.line, idToken.character,
                 TOKEN_NAMES[TT_ID], TOKEN_NAMES[idToken.type]);
         entry->errored = true;
@@ -280,6 +279,48 @@ static Node *parseAnyId(FileListEntry *entry) {
 }
 
 /**
+ * parses an ID (not scoped)
+ *
+ * does not do error recovery
+ *
+ * @param entry entry to lex from
+ * @returns AST node or NULL if fatal error happened
+ */
+static Node *parseId(FileListEntry *entry) {
+  Token idToken;
+  lex(entry, &idToken);
+
+  if (idToken.type != TT_ID) {
+    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
+            entry->inputFile, idToken.line, idToken.character,
+            TOKEN_NAMES[TT_ID], TOKEN_NAMES[idToken.type]);
+    entry->errored = true;
+    unLex(entry, &idToken);
+    return NULL;
+  }
+
+  Node *id = malloc(sizeof(Node));
+  id->type = NT_ID;
+  id->line = idToken.line;
+  id->character = idToken.character;
+  id->data.id.id = idToken.string;
+  return id;
+}
+
+/**
+ * parses a type
+ *
+ * does not do error recovery
+ *
+ * @param entry entry to lex from
+ * @returns AST node or NULL if fatal error happened
+ */
+static Node *parseType(FileListEntry *entry) {
+  return NULL;
+  // TODO: write this
+}
+
+/**
  * parses a module line
  *
  * @param entry entry to lex from
@@ -290,7 +331,7 @@ static Node *parseModule(FileListEntry *entry) {
   lex(entry, &moduleKeyword);
 
   if (moduleKeyword.type != TT_MODULE) {
-    fprintf(stderr, "%s:%zu:%zu: error: expected %s but found %s\n",
+    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
             entry->inputFile, moduleKeyword.line, moduleKeyword.character,
             TOKEN_NAMES[TT_MODULE], TOKEN_NAMES[moduleKeyword.type]);
     entry->errored = true;
@@ -308,7 +349,7 @@ static Node *parseModule(FileListEntry *entry) {
   Token semicolon;
   lex(entry, &semicolon);
   if (semicolon.type != TT_SEMI) {
-    fprintf(stderr, "%s:%zu:%zu: error: expected %s but found %s\n",
+    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
             entry->inputFile, semicolon.line, semicolon.character,
             TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
     entry->errored = true;
@@ -351,7 +392,7 @@ static void parseImports(FileListEntry *entry, Vector *imports) {
       Token semicolon;
       lex(entry, &semicolon);
       if (semicolon.type != TT_SEMI) {
-        fprintf(stderr, "%s:%zu:%zu: error: expected %s but found %s\n",
+        fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
                 entry->inputFile, semicolon.line, semicolon.character,
                 TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
         entry->errored = true;
@@ -379,7 +420,115 @@ static void parseImports(FileListEntry *entry, Vector *imports) {
  * @param bodies Vector of Nodes to fill in
  */
 static void parseDeclBodies(FileListEntry *entry, Vector *bodies) {
-  // TODO: write this
+  while (true) {
+    Token start;
+    lex(entry, &start);
+
+    switch (start.type) {
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
+      case TT_ID: {
+        // TODO: write this
+        // is a function or a variable declaration
+      }
+      case TT_OPAQUE: {
+        Node *id = parseId(entry);
+        if (id == NULL) {
+          panicTopLevel(entry);
+          break;
+        }
+
+        Token semicolon;
+        lex(entry, &semicolon);
+        if (semicolon.type != TT_SEMI) {
+          fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
+                  entry->inputFile, semicolon.line, semicolon.character,
+                  TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
+          entry->errored = true;
+          unLex(entry, &semicolon);
+          panicTopLevel(entry);
+        }
+
+        Node *opaque = malloc(sizeof(Node));
+        opaque->type = NT_IMPORT;
+        opaque->line = start.line;
+        opaque->character = start.character;
+        opaque->data.opaqueDecl.name = id;
+
+        vectorInsert(bodies, opaque);
+        break;
+      }
+      case TT_STRUCT: {
+        break;  // TODO: write this
+      }
+      case TT_UNION: {
+        break;  // TODO: write this
+      }
+      case TT_ENUM: {
+        break;  // TODO: write this
+      }
+      case TT_TYPEDEF: {
+        Node *type = parseType(entry);
+        if (type == NULL) {
+          panicTopLevel(entry);
+          break;
+        }
+
+        Node *id = parseId(entry);
+        if (id == NULL) {
+          nodeUninit(type);
+          free(type);
+          panicTopLevel(entry);
+          break;
+        }
+
+        Token semicolon;
+        lex(entry, &semicolon);
+        if (semicolon.type != TT_SEMI) {
+          fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
+                  entry->inputFile, semicolon.line, semicolon.character,
+                  TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
+          entry->errored = true;
+          unLex(entry, &semicolon);
+          panicTopLevel(entry);
+        }
+
+        Node *typedefDecl = malloc(sizeof(Node));
+        typedefDecl->type = NT_IMPORT;
+        typedefDecl->line = start.line;
+        typedefDecl->character = start.character;
+        typedefDecl->data.typedefDecl.originalType = type;
+        typedefDecl->data.typedefDecl.name = id;
+
+        vectorInsert(bodies, typedefDecl);
+        break;
+      }
+      case TT_EOF: {
+        // reached end of file
+        return;
+      }
+      default: {
+        // unexpected token
+        fprintf(stderr,
+                "%s:%zu:%zu: error: expected a declaration, but found %s\n",
+                entry->inputFile, start.line, start.character,
+                TOKEN_NAMES[start.type]);
+        entry->errored = true;
+        panicTopLevel(entry);
+        break;
+      }
+    }
+  }
 }
 
 /**
