@@ -444,7 +444,8 @@ static Node *parseModule(FileListEntry *entry) {
  * @param entry entry to lex from
  * @param imports Vector of Nodes to fill in
  */
-static void parseImports(FileListEntry *entry, Vector *imports) {
+static Vector *parseImports(FileListEntry *entry) {
+  Vector *imports = createVector();
   while (true) {
     Token importKeyword;
     lex(entry, &importKeyword);
@@ -452,7 +453,7 @@ static void parseImports(FileListEntry *entry, Vector *imports) {
     if (importKeyword.type != TT_IMPORT) {
       // it's the end of the imports
       unLex(entry, &importKeyword);
-      return;
+      return imports;
     } else {
       Node *id = parseAnyId(entry);
       if (id == NULL) {
@@ -484,7 +485,8 @@ static void parseImports(FileListEntry *entry, Vector *imports) {
  * @param entry entry to lex from
  * @param bodies Vector of Nodes to fill in
  */
-static void parseDeclBodies(FileListEntry *entry, Vector *bodies) {
+static Vector *parseDeclBodies(FileListEntry *entry) {
+  Vector *bodies = createVector();
   while (true) {
     Token start;
     lex(entry, &start);
@@ -567,7 +569,7 @@ static void parseDeclBodies(FileListEntry *entry, Vector *bodies) {
       }
       case TT_EOF: {
         // reached end of file
-        return;
+        return bodies;
       }
       default: {
         // unexpected token
@@ -591,8 +593,10 @@ static void parseDeclBodies(FileListEntry *entry, Vector *bodies) {
  * @param entry entry to lex from
  * @param bodies Vector of Nodes to fill in
  */
-static void parseCodeBodies(FileListEntry *entry, Vector *bodies) {
+static Vector *parseCodeBodies(FileListEntry *entry) {
+  Vector *bodies = createVector();
   // TODO: write this
+  return bodies;
 }
 
 /**
@@ -604,14 +608,13 @@ static void parseCodeBodies(FileListEntry *entry, Vector *bodies) {
 static Node *parseFile(FileListEntry *entry) {
   Node *module = parseModule(entry);
 
-  Vector *imports = createVector();
-  parseImports(entry, imports);
+  Vector *imports = parseImports(entry);
 
   Vector *bodies = createVector();
   if (entry->isCode)
-    parseCodeBodies(entry, bodies);
+    bodies = parseCodeBodies(entry);
   else
-    parseDeclBodies(entry, bodies);
+    bodies = parseDeclBodies(entry);
 
   if (module == NULL) {
     // fatal error - free report error
