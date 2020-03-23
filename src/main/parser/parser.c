@@ -27,6 +27,7 @@
 
 // utility functions and data
 
+/** array between token type (as int) and token name */
 static char const *const TOKEN_NAMES[] = {
     "the end of file",
     "the keyword 'module'",
@@ -141,6 +142,34 @@ static char const *const TOKEN_NAMES[] = {
     "an integer literal",
 };
 
+/**
+ * prints an error complaining about a wrong token, specifying what token it
+ * should have been
+ *
+ * @param entry entry to attribute the error to
+ * @param expected TokenType expected
+ * @param actual actual token
+ */
+static void errorExpectedToken(FileListEntry *entry, TokenType expected,
+                               Token *actual) {
+  fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
+          entry->inputFile, actual->line, actual->character,
+          TOKEN_NAMES[expected], TOKEN_NAMES[actual->type]);
+  entry->errored = true;
+}
+
+/**
+ * prints an error complaining about a wrong token, specifying what it should
+ * have been, as a string
+ */
+static void errorExpectedString(FileListEntry *entry, char const *expected,
+                                Token *actual) {
+  fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
+          entry->inputFile, actual->line, actual->character, expected,
+          TOKEN_NAMES[actual->type]);
+  entry->errored = true;
+}
+
 // constructors
 
 /** create an initialized vector */
@@ -157,7 +186,7 @@ static Node *createNode(NodeType type, size_t line, size_t character) {
   n->character = character;
   return n;
 }
-/** create a file node */
+
 static Node *createFile(Node *module, Vector *imports, Vector *bodies) {
   Node *n = createNode(NT_FILE, module->line, module->character);
   n->data.file.module = module;
@@ -166,13 +195,11 @@ static Node *createFile(Node *module, Vector *imports, Vector *bodies) {
   hashMapInit(&n->data.file.stab);
   return n;
 }
-/** create a module node */
 static Node *createModule(Token *keyword, Node *id) {
   Node *n = createNode(NT_MODULE, keyword->line, keyword->character);
   n->data.module.id = id;
   return n;
 }
-/** create an import node */
 static Node *createImport(Token *keyword, Node *id) {
   Node *n = createNode(NT_IMPORT, keyword->line, keyword->character);
   n->data.import.id = id;
@@ -184,7 +211,12 @@ static Node *createImport(Token *keyword, Node *id) {
 // varDefn
 
 // funDecl
-// varDecl
+static Node *createVarDecl(Node *type, Vector *names) {
+  Node *n = createNode(NT_VARDECL, type->line, type->character);
+  n->data.varDecl.type = type;
+  n->data.varDecl.names = names;
+  return n;
+}
 static Node *createOpaqueDecl(Token *keyword, Node *name) {
   Node *n = createNode(NT_OPAQUEDECL, keyword->line, keyword->character);
   n->data.opaqueDecl.name = name;
@@ -261,7 +293,7 @@ static Node *createId(Token *id) {
 // panics
 
 /**
- * reads tokens until the end of a top-level form
+ * reads tokens until a top-level form boundary
  *
  * semicolons are consumed, EOFs, and the start of a top level form are left
  *
@@ -308,6 +340,48 @@ static void panicTopLevel(FileListEntry *entry) {
   }
 }
 
+/**
+ * reads tokens until a field or option boundary
+ *
+ * semicolons are consumed, EOFs and the start of a type are left
+ *
+ * @param entry entry to lex from
+ */
+static void panicFieldOrOption(FileListEntry *entry) {
+  Token token;
+  while (true) {
+    lex(entry, &token);
+
+    switch (token.type) {
+      case TT_SEMI: {
+        return;
+      }
+      case TT_RBRACE:
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
+      case TT_ID:
+      case TT_EOF: {
+        unLex(entry, &token);
+        return;
+      }
+      default: {
+        tokenUninit(&token);
+        break;
+      }
+    }
+  }
+}
+
 // parsing
 
 /**
@@ -323,10 +397,7 @@ static Node *parseAnyId(FileListEntry *entry) {
   lex(entry, &idToken);
 
   if (idToken.type != TT_ID) {
-    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-            entry->inputFile, idToken.line, idToken.character,
-            TOKEN_NAMES[TT_ID], TOKEN_NAMES[idToken.type]);
-    entry->errored = true;
+    errorExpectedToken(entry, TT_ID, &idToken);
     unLex(entry, &idToken);
     return NULL;
   }
@@ -347,10 +418,7 @@ static Node *parseAnyId(FileListEntry *entry) {
       // expect an id, add it to the node
       lex(entry, &idToken);
       if (idToken.type != TT_ID) {
-        fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-                entry->inputFile, idToken.line, idToken.character,
-                TOKEN_NAMES[TT_ID], TOKEN_NAMES[idToken.type]);
-        entry->errored = true;
+        errorExpectedToken(entry, TT_ID, &idToken);
         unLex(entry, &idToken);
 
         // assume it was a garbage scope operator
@@ -389,10 +457,7 @@ static Node *parseId(FileListEntry *entry) {
   lex(entry, &idToken);
 
   if (idToken.type != TT_ID) {
-    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-            entry->inputFile, idToken.line, idToken.character,
-            TOKEN_NAMES[TT_ID], TOKEN_NAMES[idToken.type]);
-    entry->errored = true;
+    errorExpectedToken(entry, TT_ID, &idToken);
     unLex(entry, &idToken);
     return NULL;
   }
@@ -424,10 +489,7 @@ static Node *parseModule(FileListEntry *entry) {
   lex(entry, &moduleKeyword);
 
   if (moduleKeyword.type != TT_MODULE) {
-    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-            entry->inputFile, moduleKeyword.line, moduleKeyword.character,
-            TOKEN_NAMES[TT_MODULE], TOKEN_NAMES[moduleKeyword.type]);
-    entry->errored = true;
+    errorExpectedToken(entry, TT_MODULE, &moduleKeyword);
     unLex(entry, &moduleKeyword);
     panicTopLevel(entry);
     return NULL;
@@ -442,12 +504,10 @@ static Node *parseModule(FileListEntry *entry) {
   Token semicolon;
   lex(entry, &semicolon);
   if (semicolon.type != TT_SEMI) {
-    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-            entry->inputFile, semicolon.line, semicolon.character,
-            TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
-    entry->errored = true;
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
     unLex(entry, &semicolon);
     panicTopLevel(entry);
+    return createModule(&moduleKeyword, id);
   }
 
   return createModule(&moduleKeyword, id);
@@ -481,12 +541,10 @@ static Vector *parseImports(FileListEntry *entry) {
       Token semicolon;
       lex(entry, &semicolon);
       if (semicolon.type != TT_SEMI) {
-        fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-                entry->inputFile, semicolon.line, semicolon.character,
-                TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
-        entry->errored = true;
+        errorExpectedToken(entry, TT_SEMI, &semicolon);
         unLex(entry, &semicolon);
         panicTopLevel(entry);
+        vectorInsert(imports, createImport(&importKeyword, id));
       }
 
       vectorInsert(imports, createImport(&importKeyword, id));
@@ -533,15 +591,73 @@ static Node *parseOpaqueDecl(FileListEntry *entry, Token *start) {
   Token semicolon;
   lex(entry, &semicolon);
   if (semicolon.type != TT_SEMI) {
-    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-            entry->inputFile, semicolon.line, semicolon.character,
-            TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
-    entry->errored = true;
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
     unLex(entry, &semicolon);
     panicTopLevel(entry);
+    return createOpaqueDecl(start, name);
   }
 
   return createOpaqueDecl(start, name);
+}
+
+/**
+ * parses a field or option declaration
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns declaration or null if fatal error
+ */
+static Node *parseFieldOptionDecl(FileListEntry *entry, Token *start) {
+  unLex(entry, start);
+  Node *type = parseType(entry);
+  if (type == NULL) {
+    panicFieldOrOption(entry);
+    return NULL;
+  }
+
+  Vector *names = createVector();
+  bool done = false;
+  while (!done) {
+    Token id;
+    lex(entry, &id);
+    if (id.type != TT_ID) {
+      errorExpectedToken(entry, TT_ID, &id);
+      unLex(entry, &id);
+      panicFieldOrOption(entry);
+      break;
+    }
+
+    vectorInsert(names, createId(&id));
+
+    Token peek;
+    lex(entry, &peek);
+    switch (peek.type) {
+      case TT_SEMI: {
+        // end of the names
+        done = true;
+        break;
+      }
+      case TT_COMMA: {
+        // comma between names - do nothing
+        break;
+      }
+      default: {
+        errorExpectedString(entry, "a semicolon or a comma", &peek);
+        unLex(entry, &peek);
+        panicFieldOrOption(entry);
+        done = true;
+        break;
+      }
+    }
+  }
+
+  if (names->size == 0) {
+    nodeUninit(type);
+    free(type);
+    return NULL;
+  }
+
+  return createVarDecl(type, names);
 }
 
 /**
@@ -552,7 +668,81 @@ static Node *parseOpaqueDecl(FileListEntry *entry, Token *start) {
  * @returns declaration or null if fatal error
  */
 static Node *parseStructDecl(FileListEntry *entry, Token *start) {
-  return NULL;  // TODO: write this
+  Node *name = parseId(entry);
+  if (name == NULL) {
+    panicTopLevel(entry);
+    return NULL;
+  }
+
+  Token lbrace;
+  lex(entry, &lbrace);
+  if (lbrace.type != TT_LBRACE) {
+    errorExpectedToken(entry, TT_LBRACE, &lbrace);
+    unLex(entry, &lbrace);
+    panicTopLevel(entry);
+    nodeUninit(name);
+    free(name);
+    return NULL;
+  }
+
+  Vector *fields = createVector();
+  bool doneFields = false;
+  while (!doneFields) {
+    Token peek;
+    lex(entry, &peek);
+    switch (peek.type) {
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
+      case TT_ID: {
+        // this is the start of a field
+        Node *field = parseFieldOptionDecl(entry, &peek);
+        if (field != NULL) vectorInsert(fields, field);
+        break;
+      }
+      case TT_RBRACE: {
+        doneFields = true;
+        break;
+      }
+      default: {
+        // error! assume this is the end of the fields and of the struct
+        errorExpectedString(entry, "a right brace or a field", &peek);
+        unLex(entry, &peek);
+        panicTopLevel(entry);
+        return createStructDecl(start, name, fields);
+      }
+    }
+  }
+
+  if (fields->size == 0) {
+    fprintf(stderr, "%s:%zu:%zu: error: expected at least one field in a \n",
+            entry->inputFile, lbrace.line, lbrace.character);
+    entry->errored = true;
+    nodeUninit(name);
+    free(name);
+    vectorUninit(fields, (void (*)(void *))nodeUninit);
+    return NULL;
+  }
+
+  Token semicolon;
+  lex(entry, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
+    unLex(entry, &semicolon);
+    panicTopLevel(entry);
+    return createStructDecl(start, name, fields);
+  }
+
+  return createStructDecl(start, name, fields);
 }
 
 /**
@@ -602,12 +792,10 @@ static Node *parseTypedefDecl(FileListEntry *entry, Token *start) {
   Token semicolon;
   lex(entry, &semicolon);
   if (semicolon.type != TT_SEMI) {
-    fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-            entry->inputFile, semicolon.line, semicolon.character,
-            TOKEN_NAMES[TT_SEMI], TOKEN_NAMES[semicolon.type]);
-    entry->errored = true;
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
     unLex(entry, &semicolon);
     panicTopLevel(entry);
+    return createTypedefDecl(start, originalType, name);
   }
 
   return createTypedefDecl(start, originalType, name);
@@ -681,13 +869,9 @@ static Vector *parseBodies(FileListEntry *entry) {
       }
       default: {
         // unexpected token
-        fprintf(stderr,
-                "%s:%zu:%zu: error: expected a declaration, but found %s\n",
-                entry->inputFile, start.line, start.character,
-                TOKEN_NAMES[start.type]);
-        entry->errored = true;
+        errorExpectedString(entry, "a declaration", &start);
         panicTopLevel(entry);
-        break;
+        continue;
       }
     }
   }
