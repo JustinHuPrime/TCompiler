@@ -109,7 +109,7 @@ static char const *const TOKEN_NAMES[] = {
     "a logical-or operator",
     "a question mark",
     "a colon",
-    "an equal sign",
+    "an equals sign",
     "a compound multiplication-assignment operator",
     "a compound division-assignment operator",
     "a compound modulo-assignment operator",
@@ -382,12 +382,41 @@ static void panicFieldOrOption(FileListEntry *entry) {
   }
 }
 
+/**
+ * reads tokens until an enumeration constant boundary
+ *
+ * commas are consumed, EOFs and IDs are left
+ *
+ * @param entry entry to lex from
+ */
+static void panicEnumEntry(FileListEntry *entry) {
+  Token token;
+  while (true) {
+    lex(entry, &token);
+
+    switch (token.type) {
+      case TT_COMMA: {
+        return;
+      }
+      case TT_ID:
+      case TT_EOF: {
+        unLex(entry, &token);
+        return;
+      }
+      default: {
+        tokenUninit(&token);
+        break;
+      }
+    }
+  }
+}
+
 // parsing
 
 /**
  * parses an ID or scoped ID
  *
- * does not do error recovery
+ * does not do error recovery, unlexes on an error
  *
  * @param entry entry to lex from
  * @returns AST node or NULL if fatal error happened
@@ -447,7 +476,7 @@ static Node *parseAnyId(FileListEntry *entry) {
 /**
  * parses an ID (not scoped)
  *
- * does not do error recovery
+ * does not do error recovery, unlexes if bad thing happened
  *
  * @param entry entry to lex from
  * @returns AST node or NULL if fatal error happened
@@ -463,6 +492,18 @@ static Node *parseId(FileListEntry *entry) {
   }
 
   return createId(&idToken);
+}
+
+/**
+ * parses an extended int literal
+ *
+ * does not do error recovery, unlexes if bad thing happened
+ *
+ * @param entry entry to lex from
+ * @returns AST node or NULL if fatal error happened
+ */
+static Node *parseExtendedIntLiteral(FileListEntry *entry) {
+  return NULL;  // TODO: write this
 }
 
 /**
@@ -724,12 +765,15 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
   }
 
   if (fields->size == 0) {
-    fprintf(stderr, "%s:%zu:%zu: error: expected at least one field in a \n",
+    fprintf(stderr,
+            "%s:%zu:%zu: error: expected at least one field in a struct "
+            "declaration\n",
             entry->inputFile, lbrace.line, lbrace.character);
     entry->errored = true;
     nodeUninit(name);
     free(name);
     vectorUninit(fields, (void (*)(void *))nodeUninit);
+    free(fields);
     return NULL;
   }
 
@@ -753,7 +797,84 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
  * @returns declaration or null if fatal error
  */
 static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
-  return NULL;  // TODO: write this
+  Node *name = parseId(entry);
+  if (name == NULL) {
+    panicTopLevel(entry);
+    return NULL;
+  }
+
+  Token lbrace;
+  lex(entry, &lbrace);
+  if (lbrace.type != TT_LBRACE) {
+    errorExpectedToken(entry, TT_LBRACE, &lbrace);
+    unLex(entry, &lbrace);
+    panicTopLevel(entry);
+    nodeUninit(name);
+    free(name);
+    return NULL;
+  }
+
+  Vector *options = createVector();
+  bool doneOptions = false;
+  while (!doneOptions) {
+    Token peek;
+    lex(entry, &peek);
+    switch (peek.type) {
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
+      case TT_ID: {
+        // this is the start of an option
+        Node *option = parseFieldOptionDecl(entry, &peek);
+        if (option != NULL) vectorInsert(options, option);
+        break;
+      }
+      case TT_RBRACE: {
+        doneOptions = true;
+        break;
+      }
+      default: {
+        // error! assume this is the end of the options and of the struct
+        errorExpectedString(entry, "a right brace or an option", &peek);
+        unLex(entry, &peek);
+        panicTopLevel(entry);
+        return createStructDecl(start, name, options);
+      }
+    }
+  }
+
+  if (options->size == 0) {
+    fprintf(stderr,
+            "%s:%zu:%zu: error: expected at least one option in a union "
+            "declaration\n",
+            entry->inputFile, lbrace.line, lbrace.character);
+    entry->errored = true;
+    nodeUninit(name);
+    free(name);
+    vectorUninit(options, (void (*)(void *))nodeUninit);
+    free(options);
+    return NULL;
+  }
+
+  Token semicolon;
+  lex(entry, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
+    unLex(entry, &semicolon);
+    panicTopLevel(entry);
+    return createUnionDecl(start, name, options);
+  }
+
+  return createUnionDecl(start, name, options);
 }
 
 /**
@@ -764,7 +885,112 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
  * @returns declaration or null if fatal error
  */
 static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
-  return NULL;  // TODO: write this
+  Node *name = parseId(entry);
+  if (name == NULL) {
+    panicTopLevel(entry);
+    return NULL;
+  }
+
+  Token lbrace;
+  lex(entry, &lbrace);
+  if (lbrace.type != TT_LBRACE) {
+    errorExpectedToken(entry, TT_LBRACE, &lbrace);
+    unLex(entry, &lbrace);
+    panicTopLevel(entry);
+    nodeUninit(name);
+    free(name);
+    return NULL;
+  }
+
+  Vector *constantNames = createVector();
+  Vector *constantValues = createVector();
+  bool doneConstants = false;
+  while (!doneConstants) {
+    Token peek;
+    lex(entry, &peek);
+    switch (peek.type) {
+      case TT_ID: {
+        // this is the start of a constant line
+        vectorInsert(constantNames, createId(&peek));
+
+        Token next;
+        lex(entry, &next);
+        switch (next.type) {
+          case TT_EQ: {
+            // has an extended int literal
+            Node *literal = parseExtendedIntLiteral(entry);
+            vectorInsert(constantValues, literal);
+            if (literal == NULL) {
+              panicEnumEntry(entry);
+              break;
+            }
+
+            Token comma;
+            lex(entry, &comma);
+            if (comma.type != TT_COMMA) {
+              errorExpectedToken(entry, TT_COMMA, &comma);
+              unLex(entry, &comma);
+              panicEnumEntry(entry);
+              break;
+            }
+
+            break;
+          }
+          case TT_COMMA: {
+            // done this
+            vectorInsert(constantValues, NULL);
+            break;
+          }
+          default: {
+            vectorInsert(constantValues, NULL);
+            errorExpectedString(entry, "a comma or an equals sign", &peek);
+            unLex(entry, &peek);
+            panicEnumEntry(entry);
+            break;
+          }
+        }
+        break;
+      }
+      case TT_RBRACE: {
+        doneConstants = true;
+        break;
+      }
+      default: {
+        // error! assume this is the end of the fields and of the struct
+        errorExpectedString(entry, "a right brace or an enumeration constant",
+                            &peek);
+        unLex(entry, &peek);
+        panicTopLevel(entry);
+        return createEnumDecl(start, name, constantNames, constantValues);
+      }
+    }
+  }
+
+  if (constantNames->size == 0) {
+    fprintf(stderr,
+            "%s:%zu:%zu: error: expected at least one enumeration constant in "
+            "a enumeration declaration\n",
+            entry->inputFile, lbrace.line, lbrace.character);
+    entry->errored = true;
+    nodeUninit(name);
+    free(name);
+    vectorUninit(constantNames, (void (*)(void *))nodeUninit);
+    free(constantNames);
+    vectorUninit(constantValues, (void (*)(void *))nodeUninit);
+    free(constantValues);
+    return NULL;
+  }
+
+  Token semicolon;
+  lex(entry, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
+    unLex(entry, &semicolon);
+    panicTopLevel(entry);
+    return createEnumDecl(start, name, constantNames, constantValues);
+  }
+
+  return createEnumDecl(start, name, constantNames, constantValues);
 }
 
 /**
