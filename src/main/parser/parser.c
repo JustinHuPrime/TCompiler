@@ -885,7 +885,17 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
       }
     }
   }
-  return NULL;  // TODO: write this
+
+  Token semicolon;
+  lex(entry, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
+    unLex(entry, &semicolon);
+    panicTopLevel(entry);
+    return createFunDecl(returnType, name, argTypes, argNames, argDefaults);
+  }
+
+  return createFunDecl(returnType, name, argTypes, argNames, argDefaults);
 }
 
 /**
