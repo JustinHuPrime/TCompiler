@@ -161,6 +161,10 @@ static void errorExpectedToken(FileListEntry *entry, TokenType expected,
 /**
  * prints an error complaining about a wrong token, specifying what it should
  * have been, as a string
+ *
+ * @param entry entry to attribute the error to
+ * @param expected string describing the expected tokens
+ * @param actual actual token
  */
 static void errorExpectedString(FileListEntry *entry, char const *expected,
                                 Token *actual) {
@@ -172,13 +176,13 @@ static void errorExpectedString(FileListEntry *entry, char const *expected,
 
 // constructors
 
-/** create an initialized vector */
+/** create an initialized, empty vector */
 static Vector *createVector(void) {
   Vector *v = malloc(sizeof(Vector));
   vectorInit(v);
   return v;
 }
-/** create an uninitialized node */
+/** create a partially initialized node */
 static Node *createNode(NodeType type, size_t line, size_t character) {
   Node *n = malloc(sizeof(Node));
   n->type = type;
@@ -207,10 +211,36 @@ static Node *createImport(Token *keyword, Node *id) {
   return n;
 }
 
-// funDefn
-// varDefn
+static Node *createFunDefn(Node *returnType, Node *name, Vector *argTypes,
+                           Vector *argNames, Vector *argDefaults, Node *body) {
+  Node *n = createNode(NT_FUNDEFN, returnType->line, returnType->character);
+  n->data.funDefn.returnType = returnType;
+  n->data.funDefn.name = name;
+  n->data.funDefn.argTypes = argTypes;
+  n->data.funDefn.argNames = argNames;
+  n->data.funDefn.argDefaults = argDefaults;
+  n->data.funDefn.body = body;
+  hashMapInit(&n->data.funDefn.stab);
+  return n;
+}
+static Node *createVarDefn(Node *type, Vector *names, Vector *initializers) {
+  Node *n = createNode(NT_VARDEFN, type->line, type->character);
+  n->data.varDefn.type = type;
+  n->data.varDefn.names = names;
+  n->data.varDefn.initializers = initializers;
+  return n;
+}
 
-// funDecl
+static Node *createFunDecl(Node *returnType, Node *name, Vector *argTypes,
+                           Vector *argNames, Vector *argDefaults) {
+  Node *n = createNode(NT_FUNDECL, returnType->line, returnType->character);
+  n->data.funDecl.returnType = returnType;
+  n->data.funDecl.name = name;
+  n->data.funDecl.argTypes = argTypes;
+  n->data.funDecl.argNames = argNames;
+  n->data.funDecl.argDefaults = argDefaults;
+  return n;
+}
 static Node *createVarDecl(Node *type, Vector *names) {
   Node *n = createNode(NT_VARDECL, type->line, type->character);
   n->data.varDecl.type = type;
@@ -343,7 +373,7 @@ static void panicTopLevel(FileListEntry *entry) {
 /**
  * reads tokens until a field or option boundary
  *
- * semicolons are consumed, EOFs and the start of a type are left
+ * semicolons are consumed, right braces, EOFs and the start of a type are left
  *
  * @param entry entry to lex from
  */
@@ -398,6 +428,48 @@ static void panicEnumEntry(FileListEntry *entry) {
       case TT_COMMA: {
         return;
       }
+      case TT_ID:
+      case TT_EOF: {
+        unLex(entry, &token);
+        return;
+      }
+      default: {
+        tokenUninit(&token);
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * reads tokens until an argument boundary
+ *
+ * commas are consumed, right parens, EOFs, and the start of a type are left
+ *
+ * @param entry entry to lex from
+ */
+static void panicArgDecl(FileListEntry *entry) {
+  Token token;
+  while (true) {
+    lex(entry, &token);
+
+    switch (token.type) {
+      case TT_COMMA: {
+        return;
+      }
+      case TT_RPAREN:
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
       case TT_ID:
       case TT_EOF: {
         unLex(entry, &token);
@@ -507,6 +579,19 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
 }
 
 /**
+ * parses any literal
+ *
+ * does not do error recovery, unlexes if bad thing happened
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns AST nde or NULL if fatal error happened
+ */
+static Node *parseLiteral(FileListEntry *entry, Token *start) {
+  return NULL;  // TODO: write this
+}
+
+/**
  * parses a type
  *
  * does not do error recovery
@@ -594,6 +679,216 @@ static Vector *parseImports(FileListEntry *entry) {
 }
 
 /**
+ * finishes parsing a variable declaration
+ *
+ * @param entry entry to lex from
+ * @param type type of the var decl
+ * @param names vector of names, partially filled
+ */
+static Node *finishVarDecl(FileListEntry *entry, Node *type, Vector *names) {
+  while (true) {
+    Node *id = parseId(entry);
+    if (id == NULL) {
+      panicTopLevel(entry);
+      return createVarDecl(type, names);
+    }
+
+    Token next;
+    lex(entry, &next);
+    switch (next.type) {
+      case TT_COMMA: {
+        // continue;
+        break;
+      }
+      case TT_SEMI: {
+        // done
+        return createVarDecl(type, names);
+      }
+      default: {
+        errorExpectedString(entry, "a comma or a semicolon", &next);
+        unLex(entry, &next);
+        panicTopLevel(entry);
+        return createVarDecl(type, names);
+      }
+    }
+  }
+}
+
+/**
+ * finishes parsing a function declaration
+ *
+ * @param entry entry to lex from
+ * @param returnType return type of function
+ * @param name name of the function
+ */
+static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
+  Vector *argTypes = createVector();
+  Vector *argNames = createVector();
+  Vector *argDefaults = createVector();
+
+  bool doneArgs = false;
+  while (!doneArgs) {
+    Token peek;
+    lex(entry, &peek);
+
+    switch (peek.type) {
+      case TT_RPAREN: {
+        // done with arguments
+        doneArgs = true;
+        break;
+      }
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
+      case TT_ID: {
+        // start of an argument
+        unLex(entry, &peek);
+        Node *argType = parseType(entry);
+        if (argType == NULL) {
+          panicArgDecl(entry);
+          break;
+        }
+
+        lex(entry, &peek);
+        switch (peek.type) {
+          case TT_ID: {
+            Node *argName = createId(&peek);
+
+            lex(entry, &peek);
+            switch (peek.type) {
+              case TT_EQ: {
+                lex(entry, &peek);
+                switch (peek.type) {
+                  case TT_LIT_INT_0:
+                  case TT_LIT_INT_B:
+                  case TT_LIT_INT_O:
+                  case TT_LIT_INT_D:
+                  case TT_LIT_INT_H:
+                  case TT_LIT_STRING:
+                  case TT_LIT_CHAR:
+                  case TT_LIT_WSTRING:
+                  case TT_LIT_WCHAR:
+                  case TT_TRUE:
+                  case TT_FALSE:
+                  case TT_NULL:
+                  case TT_ID:
+                  case TT_LBRACE:
+                  case TT_BAD_BIN:
+                  case TT_BAD_HEX:
+                  case TT_BAD_CHAR:
+                  case TT_BAD_STRING: {
+                    Node *argLiteral = parseLiteral(entry, &peek);
+                    if (argLiteral == NULL) {
+                      panicArgDecl(entry);
+                    }
+                    vectorInsert(argTypes, argType);
+                    vectorInsert(argNames, argName);
+                    vectorInsert(argDefaults, argLiteral);
+
+                    Token next;
+                    lex(entry, &next);
+                    switch (next.type) {
+                      case TT_RPAREN: {
+                        doneArgs = true;
+                        break;
+                      }
+                      case TT_COMMA: {
+                        // keep going
+                        break;
+                      }
+                      default: {
+                        errorExpectedString(
+                            entry, "a comma or a right parenthesis", &next);
+                        unLex(entry, &next);
+                        panicArgDecl(entry);
+                        break;
+                      }
+                    }
+                    break;
+                  }
+                  default: {
+                    errorExpectedString(entry, "a literal", &peek);
+                    unLex(entry, &peek);
+                    panicArgDecl(entry);
+                    vectorInsert(argTypes, argType);
+                    vectorInsert(argNames, argName);
+                    vectorInsert(argDefaults, NULL);
+                    break;
+                  }
+                }
+                break;
+              }
+              case TT_RPAREN: {
+                doneArgs = true;
+                vectorInsert(argTypes, argType);
+                vectorInsert(argNames, argName);
+                vectorInsert(argDefaults, NULL);
+                break;
+              }
+              case TT_COMMA: {
+                vectorInsert(argTypes, argType);
+                vectorInsert(argNames, argName);
+                vectorInsert(argDefaults, NULL);
+                break;
+              }
+              default: {
+                errorExpectedString(entry, "an equal sign or a comma", &peek);
+                unLex(entry, &peek);
+                panicArgDecl(entry);
+                vectorInsert(argTypes, argType);
+                vectorInsert(argNames, argName);
+                vectorInsert(argDefaults, NULL);
+                break;
+              }
+            }
+            break;
+          }
+          case TT_RPAREN: {
+            doneArgs = true;
+            vectorInsert(argTypes, argType);
+            vectorInsert(argNames, NULL);
+            vectorInsert(argDefaults, NULL);
+            break;
+          }
+          case TT_COMMA: {
+            vectorInsert(argTypes, argType);
+            vectorInsert(argNames, NULL);
+            vectorInsert(argDefaults, NULL);
+            break;
+          }
+          default: {
+            errorExpectedString(
+                entry, "an identifier, right parentesis, or a comma", &peek);
+            unLex(entry, &peek);
+            panicArgDecl(entry);
+            vectorInsert(argTypes, argType);
+            vectorInsert(argNames, NULL);
+            vectorInsert(argDefaults, NULL);
+            break;
+          }
+        }
+        break;
+      }
+      default: {
+        errorExpectedString(entry, "a right parenthesis or a type", &peek);
+        unLex(entry, &peek);
+        return createFunDecl(returnType, name, argTypes, argNames, argDefaults);
+      }
+    }
+  }
+  return NULL;  // TODO: write this
+}
+
+/**
  * parses a function or variable declaration
  *
  * @param entry entry to lex from
@@ -601,7 +896,51 @@ static Vector *parseImports(FileListEntry *entry) {
  * @returns declaration or null if fatal error
  */
 static Node *parseFunOrVarDecl(FileListEntry *entry, Token *start) {
-  return NULL;  // TODO: write this
+  unLex(entry, start);
+  Node *type = parseType(entry);
+  if (type == NULL) {
+    panicTopLevel(entry);
+    return NULL;
+  }
+
+  Node *id = parseId(entry);
+  if (id == NULL) {
+    nodeUninit(type);
+    free(type);
+    panicTopLevel(entry);
+    return NULL;
+  }
+
+  Token next;
+  lex(entry, &next);
+  switch (next.type) {
+    case TT_SEMI: {
+      // var decl, ends here
+      Vector *names = createVector();
+      vectorInsert(names, id);
+      return createVarDecl(type, names);
+    }
+    case TT_COMMA: {
+      // var decl, continued
+      Vector *names = createVector();
+      vectorInsert(names, id);
+      return finishVarDecl(entry, type, names);
+    }
+    case TT_LPAREN: {
+      // func decl, continued
+      return finishFunDecl(entry, type, id);
+    }
+    default: {
+      errorExpectedString(entry, "a semicolon, comma, or a left paren", &next);
+      nodeUninit(id);
+      free(id);
+      nodeUninit(type);
+      free(type);
+      unLex(entry, &next);
+      panicTopLevel(entry);
+      return NULL;
+    }
+  }
 }
 
 /**
@@ -1096,6 +1435,7 @@ static Vector *parseBodies(FileListEntry *entry) {
       default: {
         // unexpected token
         errorExpectedString(entry, "a declaration", &start);
+        unLex(entry, &start);
         panicTopLevel(entry);
         continue;
       }

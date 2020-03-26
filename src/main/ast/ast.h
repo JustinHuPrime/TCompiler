@@ -215,10 +215,10 @@ typedef struct Node {
     struct {
       HashMap stab;            /**< symbol table for arguments */
       struct Node *returnType; /**< type */
-      struct Node *funName;    /**< NT_ID */
+      struct Node *name;       /**< NT_ID */
       Vector *argTypes;        /**< vector of Nodes, each is a type */
       Vector *argNames;    /**< vector of nullable Nodes, each is an NT_ID */
-      Vector *argLiterals; /**< vector of nullable Nodes, each is a literal */
+      Vector *argDefaults; /**< vector of nullable Nodes, each is a literal */
       struct Node *body;   /**< NT_COMPOUNDSTMT */
     } funDefn;
     struct {
@@ -229,10 +229,10 @@ typedef struct Node {
 
     struct {
       struct Node *returnType; /**< type */
-      struct Node *funName;    /**< NT_ID */
+      struct Node *name;       /**< NT_ID */
       Vector *argTypes;        /**< vector of Nodes, each is a type */
       Vector *argNames;    /**< vector of nullable Nodes, each is an NT_ID */
-      Vector *argLiterals; /**< vector of nullable Nodes, each is a literal */
+      Vector *argDefaults; /**< vector of nullable Nodes, each is a literal */
     } funDecl;
     struct {
       struct Node *type; /**< type */

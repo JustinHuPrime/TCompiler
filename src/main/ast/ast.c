@@ -80,10 +80,10 @@ void nodeUninit(Node *n) {
     case NT_FUNDEFN: {
       stabUninit(&n->data.funDefn.stab);
       nodeFree(n->data.funDefn.returnType);
-      nodeFree(n->data.funDefn.funName);
+      nodeFree(n->data.funDefn.name);
       nodeVectorFree(n->data.funDefn.argTypes);
       nodeVectorFree(n->data.funDefn.argNames);
-      nodeVectorFree(n->data.funDefn.argLiterals);
+      nodeVectorFree(n->data.funDefn.argDefaults);
       nodeFree(n->data.funDefn.body);
       break;
     }
@@ -95,10 +95,10 @@ void nodeUninit(Node *n) {
     }
     case NT_FUNDECL: {
       nodeFree(n->data.funDecl.returnType);
-      nodeFree(n->data.funDecl.funName);
+      nodeFree(n->data.funDecl.name);
       nodeVectorFree(n->data.funDecl.argTypes);
       nodeVectorFree(n->data.funDecl.argNames);
-      nodeVectorFree(n->data.funDecl.argLiterals);
+      nodeVectorFree(n->data.funDecl.argDefaults);
       break;
     }
     case NT_VARDECL: {
