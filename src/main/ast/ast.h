@@ -398,8 +398,22 @@ typedef struct Node {
 /**
  * deinitializes a node
  *
- * @param n Node to deinitialize - not null
+ * @param n Node to deinitialize
  */
 void nodeUninit(Node *n);
+
+/**
+ * de-inits and frees a node
+ *
+ * @param n node to free, may be null
+ */
+void nodeFree(Node *n);
+
+/**
+ * deinits a vector of nodes
+ *
+ * @param v vector to deinit, can have null elements, may not itself be null
+ */
+void nodeVectorFree(Vector *v);
 
 #endif  // TLC_AST_AST_H_

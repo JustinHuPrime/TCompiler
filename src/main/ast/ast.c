@@ -21,26 +21,6 @@
 #include <stdlib.h>
 
 /**
- * de-inits and frees a node
- *
- * @param n node to free, may be null
- */
-static void nodeFree(Node *n) {
-  nodeUninit(n);
-  free(n);
-}
-
-/**
- * deinits a vector of nodes
- *
- * @param v vector to deinit, can have null elements, may not itself be null
- */
-static void nodeVectorFree(Vector *v) {
-  vectorUninit(v, (void (*)(void *))nodeFree);
-  free(v);
-}
-
-/**
  * deinits and frees a symbol table entry
  *
  * @param e entry to free, not null
@@ -275,4 +255,14 @@ void nodeUninit(Node *n) {
       break;
     }
   }
+}
+
+void nodeFree(Node *n) {
+  nodeUninit(n);
+  free(n);
+}
+
+void nodeVectorFree(Vector *v) {
+  vectorUninit(v, (void (*)(void *))nodeFree);
+  free(v);
 }
