@@ -628,7 +628,7 @@ static Node *parseLiteral(FileListEntry *entry) {
  * @returns AST node or NULL if fatal error happened
  */
 static Node *parseType(FileListEntry *entry) {
-  return NULL; // TODO: write this
+  return NULL;  // TODO: write this
 }
 
 // context-aware parsers
@@ -1035,13 +1035,122 @@ static Node *parseFunOrVarDecl(FileListEntry *entry, Token *start) {
  * @param type type of the definition
  * @param names vector of names in the definition
  * @param initializers vector of initializers in the definition
- * @param current current token type, decides if an initializer is expected or
- * not
+ * @param hasLiteral does this defn have a literal after its first name?
  * @returns definition, or NULL if fatal error
  */
 static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
-                           Vector *initializers, TokenType current) {
-  return NULL;  // TODO: write this
+                           Vector *initializers, bool hasLiteral) {
+  if (hasLiteral) {
+    Node *literal = parseLiteral(entry);
+    if (literal == NULL) {
+      panicTopLevel(entry);
+
+      nodeFree(type);
+      nodeVectorFree(names);
+      nodeVectorFree(initializers);
+      return NULL;
+    }
+    vectorInsert(initializers, literal);
+
+    Token peek;
+    lex(entry, &peek);
+    switch (peek.type) {
+      case TT_COMMA: {
+        // declaration continues
+        break;
+      }
+      case TT_SEMI: {
+        // end of declaration
+        return createVarDefn(type, names, initializers);
+      }
+      default: {
+        errorExpectedString(entry, "a comma or a semicolon", &peek);
+
+        unLex(entry, &peek);
+        panicTopLevel(entry);
+
+        nodeFree(type);
+        nodeVectorFree(names);
+        nodeVectorFree(initializers);
+        return NULL;
+      }
+    }
+  }
+
+  while (true) {
+    Node *id = parseId(entry);
+    if (id == NULL) {
+      panicTopLevel(entry);
+
+      nodeFree(type);
+      nodeVectorFree(names);
+      return NULL;
+    }
+
+    Token next;
+    lex(entry, &next);
+    switch (next.type) {
+      case TT_EQ: {
+        // has initializer
+        Node *literal = parseLiteral(entry);
+        if (literal == NULL) {
+          panicTopLevel(entry);
+
+          nodeFree(type);
+          nodeVectorFree(names);
+          nodeVectorFree(initializers);
+          return NULL;
+        }
+        vectorInsert(initializers, literal);
+
+        Token peek;
+        lex(entry, &peek);
+        switch (peek.type) {
+          case TT_COMMA: {
+            // declaration continues
+            break;
+          }
+          case TT_SEMI: {
+            // end of declaration
+            return createVarDefn(type, names, initializers);
+          }
+          default: {
+            errorExpectedString(entry, "a comma or a semicolon", &peek);
+
+            unLex(entry, &peek);
+            panicTopLevel(entry);
+
+            nodeFree(type);
+            nodeVectorFree(names);
+            nodeVectorFree(initializers);
+            return NULL;
+          }
+        }
+        break;
+      }
+      case TT_COMMA: {
+        // continue declaration
+        vectorInsert(initializers, NULL);
+        break;
+      }
+      case TT_SEMI: {
+        // done
+        return createVarDefn(type, names, initializers);
+      }
+      default: {
+        errorExpectedString(entry, "a comma, a semicolon, or an equals sign",
+                            &next);
+
+        unLex(entry, &next);
+        panicTopLevel(entry);
+
+        nodeFree(type);
+        nodeVectorFree(names);
+        nodeVectorFree(initializers);
+        return NULL;
+      }
+    }
+  }
 }
 
 /**
@@ -1097,7 +1206,7 @@ static Node *parseFunOrVarDeclOrDefn(FileListEntry *entry, Token *start) {
       vectorInsert(names, id);
       Vector *initializers = createVector();
       vectorInsert(initializers, NULL);
-      return finishVarDefn(entry, type, names, initializers, next.type);
+      return finishVarDefn(entry, type, names, initializers, false);
     }
     case TT_EQ: {
       // var defn, continued with initializer
@@ -1105,7 +1214,7 @@ static Node *parseFunOrVarDeclOrDefn(FileListEntry *entry, Token *start) {
       vectorInsert(names, id);
       Vector *initializers = createVector();
       vectorInsert(initializers, NULL);
-      return finishVarDefn(entry, type, names, initializers, next.type);
+      return finishVarDefn(entry, type, names, initializers, true);
     }
     case TT_LPAREN: {
       // func decl or defn, continued
