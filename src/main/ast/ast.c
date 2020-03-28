@@ -211,10 +211,6 @@ void nodeUninit(Node *n) {
           free(n->data.literal.value.wstringVal);
           break;
         }
-        case LT_ENUMCONST: {
-          nodeFree(n->data.literal.value.enumConstVal);
-          break;
-        }
         case LT_AGGREGATEINIT: {
           nodeVectorFree(n->data.literal.value.aggregateInitVal);
           break;

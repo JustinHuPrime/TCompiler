@@ -140,6 +140,8 @@ typedef enum {
   UO_BITNOTASSIGN,
   UO_SIZEOFEXP,  /**< sizeof operator applied to an expression */
   UO_SIZEOFTYPE, /**< sizeof operator applied to a type */
+  UO_PARENS, /**< included only for line/character tracking, no semantic effects
+              */
 } UnOpType;
 
 /** the type of a literal */
@@ -160,16 +162,15 @@ typedef enum {
   LT_WCHAR,
   LT_BOOL,
   LT_NULL,
-  LT_ENUMCONST,
   LT_AGGREGATEINIT,
 } LiteralType;
 
 /** the type of a simple type modifier */
 typedef enum {
-  TMT_CONST,
-  TMT_VOLATILE,
-  TMT_POINTER,
-} TypeModifierType;
+  TM_CONST,
+  TM_VOLATILE,
+  TM_POINTER,
+} TypeModifier;
 
 /** the type of a type keword */
 typedef enum {
@@ -358,7 +359,6 @@ typedef struct Node {
         uint32_t wcharVal;
         // LT_NULL has no additional data
         bool boolVal;
-        struct Node *enumConstVal;
         Vector *aggregateInitVal; /**< vector of Nodes, each is an NT_LITERAL or
                                     an NT_SCOPEDID (enumeration constant) */
       } value;
@@ -368,7 +368,7 @@ typedef struct Node {
       TypeKeyword keyword;
     } keywordType;
     struct {
-      TypeModifierType modifier;
+      TypeModifier modifier;
       struct Node *baseType; /**< type */
     } modifiedType;
     struct {

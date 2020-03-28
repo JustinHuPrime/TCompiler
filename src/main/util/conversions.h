@@ -16,31 +16,31 @@
 
 /**
  * @file
- * type punning conversions
+ * type conversions
  */
 
 #ifndef TLC_UTIL_CONVERSIONS_H_
 #define TLC_UTIL_CONVERSIONS_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /**
- * converts a char to an unsigned byte
+ * converts a char to an unsigned byte through a type pun
  * @param c char to convert
  */
 uint8_t charToU8(char c);
 
 /**
- * converts an unsigned byte to a hex nybble
- * 
+ * converts an unsigned byte to a hex nybble character
+ *
  * @param n value to convert - must be in the range [0, 15]
  */
 char u8ToNybble(uint8_t n);
 
 /**
- * is the character a hex nybble? (i.e. is c in [0-9a-fA-F])
- * 
+ * is the character a hex nybble? (i.e. is c in /[0-9a-fA-F]/ ?)
+ *
  * @param c character to query
  */
 bool isNybble(char c);
