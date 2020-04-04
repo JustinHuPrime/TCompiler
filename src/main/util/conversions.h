@@ -39,6 +39,13 @@ uint8_t charToU8(char c);
 char u8ToNybble(uint8_t n);
 
 /**
+ * converts a hex nybble character to an unsigned byte
+ *
+ * @param c character to convert - must be in /[0-9a-fA-F]/
+ */
+uint8_t nybbleToU8(char c);
+
+/**
  * is the character a hex nybble? (i.e. is c in /[0-9a-fA-F]/ ?)
  *
  * @param c character to query

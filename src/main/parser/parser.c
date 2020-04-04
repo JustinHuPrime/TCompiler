@@ -18,9 +18,12 @@
 #include "ast/ast.h"
 #include "lexer/lexer.h"
 
+#include "constants.h"
 #include "fileList.h"
 #include "internalError.h"
 #include "options.h"
+#include "util/container/stringBuilder.h"
+#include "util/conversions.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -172,6 +175,221 @@ static void errorExpectedString(FileListEntry *entry, char const *expected,
           entry->inputFile, actual->line, actual->character, expected,
           TOKEN_NAMES[actual->type]);
   entry->errored = true;
+}
+
+/**
+ * prints an error complaining about a too-large integral value
+ *
+ * @param entry entry to attribute the error to
+ * @param token the bad token
+ */
+static void errorIntOverflow(FileListEntry *entry, Token *token) {
+  fprintf(stderr, "%s:%zu:%zu: error: integer constant is too large\n",
+          entry->inputFile, token->line, token->character);
+  entry->errored = true;
+}
+
+/**
+ * converts a binary integer to a sign and a magnitude
+ *
+ * @param string string to convert (from lexer - assumes string is good)
+ * @param sign output pointer to sign
+ * @param magnitude output pointer to magnitude
+ * @returns status code - 0 for OK, 1 for size error
+ */
+static int binaryToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut) {
+  // check sign
+  switch (string[0]) {
+    case '0': {
+      // 0b...
+      *sign = 0;  // unsigned
+      string += 2;
+      break;
+    }
+    case '-': {
+      // -0b...
+      *sign = -1;
+      string += 3;
+      break;
+    }
+    case '+': {
+      // +0...
+      *sign = 1;
+      string += 3;
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "invalid binary literal passed to binaryToInteger");
+    }
+  }
+
+  // get value
+  uint64_t magnitude = 0;
+  for (; *string != '\0'; string++) {
+    uint64_t oldMagnitude = magnitude;
+    magnitude *= 2;
+    magnitude += (uint8_t)(charToU8(*string) - charToU8('0'));
+    if (magnitude < oldMagnitude) {
+      // overflowed!
+      return -1;
+    }
+  }
+
+  *magnitudeOut = magnitude;
+  return 0;
+}
+
+/**
+ * converts an octal integer to a sign and a magnitude
+ *
+ * @param string string to convert (from lexer - assumes string is good)
+ * @param sign output pointer to sign
+ * @param magnitude output pointer to magnitude
+ * @returns status code - 0 for OK, 1 for size error
+ */
+static int octalToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut) {
+  // check sign
+  switch (string[0]) {
+    case '0': {
+      // 0...
+      *sign = 0;  // unsigned
+      string += 1;
+      break;
+    }
+    case '-': {
+      // -0...
+      *sign = -1;
+      string += 2;
+      break;
+    }
+    case '+': {
+      // +0...
+      *sign = 1;
+      string += 2;
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "invalid octal literal passed to binaryToInteger");
+    }
+  }
+
+  // get value
+  uint64_t magnitude = 0;
+  for (; *string != '\0'; string++) {
+    uint64_t oldMagnitude = magnitude;
+    magnitude *= 8;
+    magnitude += (uint8_t)(charToU8(*string) - charToU8('0'));
+    if (magnitude < oldMagnitude) {
+      // overflowed!
+      return -1;
+    }
+  }
+
+  *magnitudeOut = magnitude;
+  return 0;
+}
+
+/**
+ * converts a decimal integer to a sign and a magnitude
+ *
+ * @param string string to convert (from lexer - assumes string is good)
+ * @param sign output pointer to sign
+ * @param magnitude output pointer to magnitude
+ * @returns status code - 0 for OK, 1 for size error
+ */
+static int decimalToInteger(char *string, int8_t *sign,
+                            uint64_t *magnitudeOut) {
+  // check sign
+  switch (string[0]) {
+    case '-': {
+      // -...
+      *sign = -1;
+      string += 1;
+      break;
+    }
+    case '+': {
+      // +...
+      *sign = 1;
+      string += 1;
+      break;
+    }
+    default: {
+      if (string[0] >= '0' && string[0] <= '9')
+        *sign = 0;
+      else
+        error(__FILE__, __LINE__,
+              "invalid octal literal passed to binaryToInteger");
+    }
+  }
+
+  // get value
+  uint64_t magnitude = 0;
+  for (; *string != '\0'; string++) {
+    uint64_t oldMagnitude = magnitude;
+    magnitude *= 10;
+    magnitude += (uint8_t)(charToU8(*string) - charToU8('0'));
+    if (magnitude < oldMagnitude) {
+      // overflowed!
+      return -1;
+    }
+  }
+
+  *magnitudeOut = magnitude;
+  return 0;
+}
+
+/**
+ * converts a hexadecimal integer to a sign and a magnitude
+ *
+ * @param string string to convert (from lexer - assumes string is good)
+ * @param sign output pointer to sign
+ * @param magnitude output pointer to magnitude
+ * @returns status code - 0 for OK, 1 for size error
+ */
+static int hexadecimalToInteger(char *string, int8_t *sign,
+                                uint64_t *magnitudeOut) {
+  // check sign
+  switch (string[0]) {
+    case '0': {
+      // 0...
+      *sign = 0;  // unsigned
+      string += 2;
+      break;
+    }
+    case '-': {
+      // -0...
+      *sign = -1;
+      string += 3;
+      break;
+    }
+    case '+': {
+      // +0...
+      *sign = 1;
+      string += 3;
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "invalid octal literal passed to binaryToInteger");
+    }
+  }
+
+  // get value
+  uint64_t magnitude = 0;
+  for (; *string != '\0'; string++) {
+    uint64_t oldMagnitude = magnitude;
+    magnitude *= 16;
+    magnitude += nybbleToU8(*string);
+    if (magnitude < oldMagnitude) {
+      // overflowed!
+      return -1;
+    }
+  }
+
+  *magnitudeOut = magnitude;
+  return 0;
 }
 
 // constructors
@@ -404,18 +622,325 @@ static Node *createFunCallExp(Node *function, Vector *arguments) {
   return n;
 }
 
-// TODO: write literal node ctors
-// static Node *createLiteralNode(LiteralType type, size_t line, size_t
-// character) {
-//   Node *n = createNode(NT_LITERAL, line, character);
-//   n->data.literal.type = type;
-//   return n;
-// }
-// static Node *createUbyteLiteral(Token *constant, uint8_t value) {
-//   Node *n = createLiteralNode(LT_UBYTE, constant->line, constant->character);
-//   n->data.literal.value.ubyteVal = value;
-//   return n;
-// }
+static Node *createLiteralNode(LiteralType type, Token *t) {
+  Node *n = createNode(NT_LITERAL, t->line, t->character);
+  n->data.literal.type = type;
+  return n;
+}
+static Node *createCharLiteralNode(Token *t) {
+  Node *n = createNode(NT_LITERAL, t->line, t->character);
+  n->data.literal.type = LT_CHAR;
+  char *string = t->string;
+
+  if (string[0] == '\\') {
+    // escape sequence
+    switch (string[1]) {
+      case 'n': {
+        n->data.literal.value.charVal = charToU8('\n');
+        break;
+      }
+      case 'r': {
+        n->data.literal.value.charVal = charToU8('\r');
+        break;
+      }
+      case 't': {
+        n->data.literal.value.charVal = charToU8('\t');
+        break;
+      }
+      case '0': {
+        n->data.literal.value.charVal = charToU8('\0');
+        break;
+      }
+      case '\\': {
+        n->data.literal.value.charVal = charToU8('\\');
+        break;
+      }
+      case 'x': {
+        n->data.literal.value.charVal = (uint8_t)((nybbleToU8(string[2]) << 4) +
+                                                  (nybbleToU8(string[3]) << 0));
+        break;
+      }
+      case '\'': {
+        n->data.literal.value.charVal = charToU8('\'');
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__,
+              "bad char literal string passed to createCharLiteralNode");
+      }
+    }
+  } else {
+    // not an escape statement
+    n->data.literal.value.charVal = charToU8(string[0]);
+  }
+
+  tokenUninit(t);
+  return n;
+}
+static Node *createWcharLiteralNode(Token *t) {
+  Node *n = createNode(NT_LITERAL, t->line, t->character);
+  n->data.literal.type = LT_WCHAR;
+  char *string = t->string;
+
+  if (string[0] == '\\') {
+    // escape sequence
+    switch (string[1]) {
+      case 'n': {
+        n->data.literal.value.wcharVal = charToU8('\n');
+        break;
+      }
+      case 'r': {
+        n->data.literal.value.wcharVal = charToU8('\r');
+        break;
+      }
+      case 't': {
+        n->data.literal.value.wcharVal = charToU8('\t');
+        break;
+      }
+      case '0': {
+        n->data.literal.value.wcharVal = charToU8('\0');
+        break;
+      }
+      case '\\': {
+        n->data.literal.value.wcharVal = charToU8('\\');
+        break;
+      }
+      case 'x': {
+        n->data.literal.value.wcharVal = (uint8_t)(
+            (nybbleToU8(string[2]) << 4) + (nybbleToU8(string[3]) << 0));
+        break;
+      }
+      case 'u': {
+        n->data.literal.value.wcharVal = 0;
+        for (size_t idx = 0; idx < 8; idx++) {
+          n->data.literal.value.wcharVal <<= 4;
+          n->data.literal.value.wcharVal += nybbleToU8(string[idx + 2]);
+        }
+        break;
+      }
+      case '\'': {
+        n->data.literal.value.wcharVal = charToU8('\'');
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__,
+              "bad wchar literal string passed to createWcharLiteralNode");
+      }
+    }
+  } else {
+    // not an escape statement
+    n->data.literal.value.wcharVal = charToU8(string[0]);
+  }
+
+  tokenUninit(t);
+  return n;
+}
+static Node *createStringLiteralNode(Token *t) {
+  Node *n = createNode(NT_LITERAL, t->line, t->character);
+  n->data.literal.type = LT_STRING;
+  char *string = t->string;
+
+  TStringBuilder sb;
+  tstringBuilderInit(&sb);
+  for (; *string != '\0'; string++) {
+    if (*string == '\\') {
+      string++;
+      // escape sequence
+      switch (*string) {
+        case 'n': {
+          tstringBuilderPush(&sb, charToU8('\n'));
+          break;
+        }
+        case 'r': {
+          tstringBuilderPush(&sb, charToU8('\r'));
+          break;
+        }
+        case 't': {
+          tstringBuilderPush(&sb, charToU8('\t'));
+          break;
+        }
+        case '0': {
+          tstringBuilderPush(&sb, charToU8('\0'));
+          break;
+        }
+        case '\\': {
+          tstringBuilderPush(&sb, charToU8('\\'));
+          break;
+        }
+        case 'x': {
+          char high = *string++;
+          char low = *string;
+          tstringBuilderPush(
+              &sb, (uint8_t)((nybbleToU8(high) << 4) + (nybbleToU8(low) << 0)));
+          break;
+        }
+        case '\'': {
+          tstringBuilderPush(&sb, charToU8('\''));
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "bad string literal string passed to createStringLiteralNode");
+        }
+      }
+    } else {
+      // not an escape statement
+      tstringBuilderPush(&sb, charToU8(*string));
+    }
+  }
+
+  n->data.literal.value.stringVal = tstringBuilderData(&sb);
+  tstringBuilderUninit(&sb);
+  tokenUninit(t);
+  return n;
+}
+static Node *createWstringLiteralNode(Token *t) {
+  Node *n = createNode(NT_LITERAL, t->line, t->character);
+  n->data.literal.type = LT_WSTRING;
+  char *string = t->string;
+
+  TWStringBuilder sb;
+  twstringBuilderInit(&sb);
+  for (; *string != '\0'; string++) {
+    if (*string == '\\') {
+      string++;
+      // escape sequence
+      switch (*string) {
+        case 'n': {
+          twstringBuilderPush(&sb, charToU8('\n'));
+          break;
+        }
+        case 'r': {
+          twstringBuilderPush(&sb, charToU8('\r'));
+          break;
+        }
+        case 't': {
+          twstringBuilderPush(&sb, charToU8('\t'));
+          break;
+        }
+        case '0': {
+          twstringBuilderPush(&sb, charToU8('\0'));
+          break;
+        }
+        case '\\': {
+          twstringBuilderPush(&sb, charToU8('\\'));
+          break;
+        }
+        case 'x': {
+          char high = *string++;
+          char low = *string;
+          twstringBuilderPush(
+              &sb, (uint8_t)((nybbleToU8(high) << 4) + (nybbleToU8(low) << 0)));
+          break;
+        }
+        case 'u': {
+          uint32_t value = 0;
+          for (size_t idx = 0; idx < 8; idx++, string++) {
+            value <<= 4;
+            value += nybbleToU8(*string);
+          }
+          twstringBuilderPush(&sb, value);
+          break;
+        }
+        case '\'': {
+          twstringBuilderPush(&sb, charToU8('\''));
+          break;
+        }
+        default: {
+          error(
+              __FILE__, __LINE__,
+              "bad wstring literal string passed to createWstringLiteralNode");
+        }
+      }
+    } else {
+      // not an escape statement
+      twstringBuilderPush(&sb, charToU8(*string));
+    }
+  }
+
+  n->data.literal.value.wstringVal = twstringBuilderData(&sb);
+  twstringBuilderUninit(&sb);
+  tokenUninit(t);
+  return n;
+}
+static Node *createSizedIntegerLiteral(FileListEntry *entry, Token *t,
+                                       int8_t sign, uint64_t magnitude) {
+  if (sign == 0) {
+    // is unsigned
+    if (magnitude <= UBYTE_MAX) {
+      Node *n = createLiteralNode(LT_UBYTE, t);
+      n->data.literal.value.ubyteVal = (uint8_t)magnitude;
+      return n;
+    } else if (magnitude <= USHORT_MAX) {
+      Node *n = createLiteralNode(LT_USHORT, t);
+      n->data.literal.value.ushortVal = (uint16_t)magnitude;
+      return n;
+    } else if (magnitude <= UINT_MAX) {
+      Node *n = createLiteralNode(LT_UINT, t);
+      n->data.literal.value.uintVal = (uint32_t)magnitude;
+      return n;
+    } else if (magnitude <= ULONG_MAX) {
+      Node *n = createLiteralNode(LT_ULONG, t);
+      n->data.literal.value.ulongVal = (uint64_t)magnitude;
+      return n;
+    } else {
+      error(__FILE__, __LINE__,
+            "magnitude larger than ULONG_MAX passed to "
+            "createSizedIntegerLiteral (CPU bug?)");
+    }
+  } else if (sign == -1) {
+    // negative
+    if (magnitude <= BYTE_MIN) {
+      Node *n = createLiteralNode(LT_BYTE, t);
+      n->data.literal.value.byteVal = (int8_t)-magnitude;
+      return n;
+    } else if (magnitude <= SHORT_MIN) {
+      Node *n = createLiteralNode(LT_SHORT, t);
+      n->data.literal.value.shortVal = (int16_t)-magnitude;
+      return n;
+    } else if (magnitude <= INT_MIN) {
+      Node *n = createLiteralNode(LT_INT, t);
+      n->data.literal.value.intVal = (int32_t)-magnitude;
+      return n;
+    } else if (magnitude <= LONG_MIN) {
+      Node *n = createLiteralNode(LT_LONG, t);
+      n->data.literal.value.longVal = (int64_t)-magnitude;
+      return n;
+    } else {
+      // user-side size error
+      errorIntOverflow(entry, t);
+      tokenUninit(t);
+      return NULL;
+    }
+  } else if (sign == 1) {
+    // positive
+    if (magnitude <= BYTE_MAX) {
+      Node *n = createLiteralNode(LT_BYTE, t);
+      n->data.literal.value.byteVal = (int8_t)magnitude;
+      return n;
+    } else if (magnitude <= SHORT_MAX) {
+      Node *n = createLiteralNode(LT_SHORT, t);
+      n->data.literal.value.shortVal = (int16_t)magnitude;
+      return n;
+    } else if (magnitude <= INT_MAX) {
+      Node *n = createLiteralNode(LT_INT, t);
+      n->data.literal.value.intVal = (int32_t)magnitude;
+      return n;
+    } else if (magnitude <= LONG_MAX) {
+      Node *n = createLiteralNode(LT_LONG, t);
+      n->data.literal.value.longVal = (int64_t)magnitude;
+      return n;
+    } else {
+      // user-side size error
+      errorIntOverflow(entry, t);
+      tokenUninit(t);
+      return NULL;
+    }
+  } else {
+    error(__FILE__, __LINE__,
+          "invalid sign passed to createSizedIntegerLiteral");
+  }
+}
 
 static Node *createKeywordType(TypeKeyword keyword, Token *keywordToken) {
   Node *n =

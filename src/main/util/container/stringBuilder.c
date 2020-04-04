@@ -37,8 +37,48 @@ void stringBuilderPush(StringBuilder *sb, char c) {
 }
 char *stringBuilderData(StringBuilder const *sb) {
   char *string = malloc((sb->size + 1) * sizeof(char));
-  memcpy(string, sb->string, sb->size);
+  memcpy(string, sb->string, sb->size * sizeof(char));
   string[sb->size] = '\0';
   return string;
 }
 void stringBuilderUninit(StringBuilder *sb) { free(sb->string); }
+
+void tstringBuilderInit(TStringBuilder *sb) {
+  sb->size = 0;
+  sb->capacity = BYTE_VECTOR_INIT_CAPACITY;
+  sb->string = malloc(sb->capacity * sizeof(uint8_t));
+}
+void tstringBuilderPush(TStringBuilder *sb, uint8_t c) {
+  if (sb->size == sb->capacity) {
+    sb->capacity *= VECTOR_GROWTH_FACTOR;
+    sb->string = realloc(sb->string, sb->capacity * sizeof(char));
+  }
+  sb->string[sb->size++] = c;
+}
+uint8_t *tstringBuilderData(TStringBuilder const *sb) {
+  uint8_t *string = malloc((sb->size + 1) * sizeof(char));
+  memcpy(string, sb->string, sb->size * sizeof(uint8_t));
+  string[sb->size] = '\0';
+  return string;
+}
+void tstringBuilderUninit(TStringBuilder *sb) { free(sb->string); }
+
+void twstringBuilderInit(TWStringBuilder *sb) {
+  sb->size = 0;
+  sb->capacity = INT_VECTOR_INIT_CAPACITY;
+  sb->string = malloc(sb->capacity * sizeof(uint32_t));
+}
+void twstringBuilderPush(TWStringBuilder *sb, uint32_t c) {
+  if (sb->size == sb->capacity) {
+    sb->capacity *= VECTOR_GROWTH_FACTOR;
+    sb->string = realloc(sb->string, sb->capacity * sizeof(char));
+  }
+  sb->string[sb->size++] = c;
+}
+uint32_t *twstringBuilderData(TWStringBuilder const *sb) {
+  uint32_t *string = malloc((sb->size + 1) * sizeof(char));
+  memcpy(string, sb->string, sb->size * sizeof(uint32_t));
+  string[sb->size] = '\0';
+  return string;
+}
+void twstringBuilderUninit(TWStringBuilder *sb) { free(sb->string); }

@@ -26,6 +26,8 @@
 
 /** starting capacity of a vector of pointers */
 extern size_t const PTR_VECTOR_INIT_CAPACITY;
+/** starting capacity of a vector of ints */
+extern size_t const INT_VECTOR_INIT_CAPACITY;
 /** starting capacity of a vector of bytes */
 extern size_t const BYTE_VECTOR_INIT_CAPACITY;
 /** growth factor of a vector */

@@ -16,11 +16,39 @@
 
 /**
  * @file
- * global constants
+ * globally used constants that don't fit elsewhere
  */
 
 #ifndef TLC_CONSTANTS_H_
 #define TLC_CONSTANTS_H_
+
+#include <stddef.h>
+#include <stdint.h>
+
+// sizeof fundamental data types
+extern size_t const BYTE_WIDTH;
+extern size_t const SHORT_WIDTH;
+extern size_t const INT_WIDTH;
+extern size_t const LONG_WIDTH;
+extern size_t const FLOAT_WIDTH;
+extern size_t const DOUBLE_WIDTH;
+extern size_t const POINTER_WIDTH;
+extern size_t const CHAR_WIDTH;
+extern size_t const WCHAR_WIDTH;
+
+// absolute value of limits for some data type
+extern uint64_t const UBYTE_MAX;
+extern uint64_t const BYTE_MAX;
+extern uint64_t const BYTE_MIN;
+extern uint64_t const USHORT_MAX;
+extern uint64_t const SHORT_MAX;
+extern uint64_t const SHORT_MIN;
+extern uint64_t const UINT_MAX;
+extern uint64_t const INT_MAX;
+extern uint64_t const INT_MIN;
+extern uint64_t const ULONG_MAX;
+extern uint64_t const LONG_MAX;
+extern uint64_t const LONG_MIN;
 
 /** Compiler version string, human readable */
 extern char const *VERSION_STRING;

@@ -37,6 +37,18 @@ char u8ToNybble(uint8_t n) {
   }
 }
 
+uint8_t nybbleToU8(char c) {
+  if (c >= '0' && c <= '9') {
+    return (uint8_t)(charToU8(c) - charToU8('0'));
+  } else if (c >= 'a' && c <= 'f') {
+    return (uint8_t)(charToU8(c) - charToU8('a') + 10);
+  } else if (c >= 'A' && c <= 'F') {
+    return (uint8_t)(charToU8(c) - charToU8('A') + 10);
+  } else {
+    error(__FILE__, __LINE__, "non-nybble character given");
+  }
+}
+
 bool isNybble(char c) {
   return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
          (c >= 'A' && c <= 'F');
