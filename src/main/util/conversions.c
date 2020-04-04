@@ -16,7 +16,7 @@
 
 #include "util/conversions.h"
 
-#include <assert.h>
+#include "internalError.h"
 
 uint8_t charToU8(char c) {
   union {
@@ -30,9 +30,10 @@ uint8_t charToU8(char c) {
 char u8ToNybble(uint8_t n) {
   if (n <= 9) {
     return (char)('0' + n);
-  } else {
-    assert(n <= 15);
+  } else if (n <= 15) {
     return (char)('a' + n - 10);
+  } else {
+    error(__FILE__, __LINE__, "non-nybble value given");
   }
 }
 

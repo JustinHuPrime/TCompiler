@@ -25,7 +25,6 @@
 #include "util/functional.h"
 #include "util/string.h"
 
-#include <assert.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -52,8 +51,11 @@ static void tokenInit(LexerState *state, Token *token, TokenType type,
   token->string = string;
 
   // consistency check
-  assert(token->string == NULL ||
-         (token->type >= TT_ID && token->type <= TT_LIT_FLOAT));
+  if (!(token->string == NULL ||
+        (token->type >= TT_ID && token->type <= TT_LIT_FLOAT)))
+    error(__FILE__, __LINE__,
+          "string given for non-stringed token type, or no string given for "
+          "stringed token type");
 }
 
 void tokenUninit(Token *token) { free(token->string); }
@@ -169,7 +171,8 @@ static char get(LexerState *state) {
  */
 static void put(LexerState *state, size_t n) {
   state->current -= n;
-  assert(state->current >= state->map);
+  if (state->current < state->map)
+    error(__FILE__, __LINE__, "lexer pushed back past start of mapping");
 }
 /**
  * consumes whitespace while updating the entry
@@ -476,7 +479,9 @@ static void lexNumber(FileListEntry *entry, Token *token) {
       }
     }
   } else {
-    assert(next >= '1' && next <= '9');
+    if (!(next >= '1' && next <= '9'))
+      error(__FILE__, __LINE__,
+            "lexNumber called when not at the start of a number");
     // [+-][1-9]
     // is decimal, return first char, and lex it
     put(state, 1);
@@ -1499,7 +1504,8 @@ void lex(FileListEntry *entry, Token *token) {
 void unLex(FileListEntry *entry, Token const *token) {
   // only one token of lookahead is allowed
   LexerState *state = &entry->lexerState;
-  assert(!state->pushedBack);
+  if (state->pushedBack)
+    error(__FILE__, __LINE__, "unLex called while token already pushed back");
   state->pushedBack = true;
   memcpy(&state->previous, token, sizeof(Token));
 }
