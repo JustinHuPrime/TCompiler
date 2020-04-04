@@ -477,10 +477,9 @@ static Node *createId(Token *id) {
  * @param entry entry to lex from
  */
 static void panicTopLevel(FileListEntry *entry) {
-  Token token;
   while (true) {
+    Token token;
     lex(entry, &token);
-
     switch (token.type) {
       case TT_SEMI: {
         return;
@@ -500,6 +499,61 @@ static void panicTopLevel(FileListEntry *entry) {
       case TT_DOUBLE:
       case TT_BOOL:
       case TT_ID:
+      case TT_OPAQUE:
+      case TT_STRUCT:
+      case TT_UNION:
+      case TT_ENUM:
+      case TT_TYPEDEF:
+      case TT_EOF: {
+        unLex(entry, &token);
+        return;
+      }
+      default: {
+        tokenUninit(&token);
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * reads tokens until a probable statement-level form boundary
+ *
+ * semicolons are consumed, EOFs, and the start of a statement (excluding
+ * expressions) are left
+ *
+ * @param entry entry to lex from
+ */
+static void panicStmt(FileListEntry *entry) {
+  while (true) {
+    Token token;
+    lex(entry, &token);
+    switch (token.type) {
+      case TT_SEMI: {
+        return;
+      }
+      case TT_LBRACE:
+      case TT_IF:
+      case TT_WHILE:
+      case TT_DO:
+      case TT_FOR:
+      case TT_SWITCH:
+      case TT_BREAK:
+      case TT_CONTINUE:
+      case TT_RETURN:
+      case TT_ASM:
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
       case TT_OPAQUE:
       case TT_STRUCT:
       case TT_UNION:
@@ -575,6 +629,48 @@ static Node *parseAnyId(FileListEntry *entry) {
 }
 
 /**
+ * parses a scoped ID
+ *
+ * does not do error recovery, unlexes on an error
+ *
+ * @param entry entry to lex from
+ * @returns AST node or NULL if fatal error happened
+ */
+static Node *parseScopedId(FileListEntry *entry) {
+  Vector *components = createVector();
+  while (true) {
+    Token peek;
+    // expect an id, add it to the node
+    lex(entry, &peek);
+    if (peek.type != TT_ID) {
+      errorExpectedToken(entry, TT_ID, &peek);
+
+      unLex(entry, &peek);
+
+      nodeVectorFree(components);
+      return NULL;
+    } else {
+      vectorInsert(components, createId(&peek));
+    }
+
+    // if there's a scope, keep going, else return
+    lex(entry, &peek);
+    if (peek.type != TT_SCOPE) {
+      unLex(entry, &peek);
+
+      if (components->size >= 2) {
+        return createScopedId(components);
+      } else {
+        errorExpectedToken(entry, TT_SCOPE, &peek);
+
+        nodeVectorFree(components);
+        return NULL;
+      }
+    }
+  }
+}
+
+/**
  * parses an ID (not scoped)
  *
  * does not do error recovery, unlexes if bad thing happened
@@ -604,7 +700,147 @@ static Node *parseId(FileListEntry *entry) {
  * @returns AST node or NULL if fatal error happened
  */
 static Node *parseExtendedIntLiteral(FileListEntry *entry) {
-  return NULL;  // TODO: write this
+  Token peek;
+  lex(entry, &peek);
+  switch (peek.type) {
+    case TT_LIT_CHAR: {
+      return createCharLiteralNode(&peek);
+    }
+    case TT_LIT_WCHAR: {
+      return createWcharLiteralNode(&peek);
+    }
+    case TT_LIT_INT_B: {
+      int8_t sign;
+      uint64_t magnitude;
+      int retval = binaryToInteger(peek.string, &sign, &magnitude);
+      if (retval != 0) {
+        errorIntOverflow(entry, &peek);
+
+        tokenUninit(&peek);
+
+        return NULL;
+      }
+      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+    }
+    case TT_LIT_INT_O: {
+      int8_t sign;
+      uint64_t magnitude;
+      int retval = octalToInteger(peek.string, &sign, &magnitude);
+      if (retval != 0) {
+        errorIntOverflow(entry, &peek);
+
+        tokenUninit(&peek);
+
+        return NULL;
+      }
+      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+    }
+    case TT_LIT_INT_0:
+    case TT_LIT_INT_D: {
+      int8_t sign;
+      uint64_t magnitude;
+      int retval = decimalToInteger(peek.string, &sign, &magnitude);
+      if (retval != 0) {
+        errorIntOverflow(entry, &peek);
+
+        tokenUninit(&peek);
+
+        return NULL;
+      }
+      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+    }
+    case TT_LIT_INT_H: {
+      int8_t sign;
+      uint64_t magnitude;
+      int retval = hexadecimalToInteger(peek.string, &sign, &magnitude);
+      if (retval != 0) {
+        errorIntOverflow(entry, &peek);
+
+        tokenUninit(&peek);
+
+        return NULL;
+      }
+      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+    }
+    case TT_BAD_CHAR:
+    case TT_BAD_BIN:
+    case TT_BAD_HEX: {
+      return NULL;
+    }
+    case TT_ID: {
+      unLex(entry, &peek);
+      return parseScopedId(entry);
+    }
+    default: {
+      errorExpectedString(entry, "an exended integer literal", &peek);
+
+      unLex(entry, &peek);
+
+      return NULL;
+    }
+  }
+}
+
+static Node *parseLiteral(FileListEntry *entry);
+/**
+ * parses an aggregate initializer
+ *
+ * does not do error recovery, unlexes if errored
+ *
+ * @param entry entry to lex from
+ * @param start first token in aggregate init
+ * @returns AST node or NULL if fatal error happened
+ */
+static Node *parseAggregateInitializer(FileListEntry *entry, Token *start) {
+  Vector *literals = createVector();
+  while (true) {
+    Token peek;
+    lex(entry, &peek);
+    switch (peek.type) {
+      case TT_LIT_STRING:
+      case TT_LIT_WSTRING:
+      case TT_LIT_CHAR:
+      case TT_LIT_WCHAR:
+      case TT_LIT_INT_0:
+      case TT_LIT_INT_B:
+      case TT_LIT_INT_O:
+      case TT_LIT_INT_D:
+      case TT_LIT_INT_H:
+      case TT_LIT_DOUBLE:
+      case TT_LIT_FLOAT:
+      case TT_BAD_STRING:
+      case TT_BAD_CHAR:
+      case TT_BAD_BIN:
+      case TT_BAD_HEX:
+      case TT_ID:
+      case TT_LSQUARE: {
+        // this is the start of a field
+        unLex(entry, &peek);
+        Node *literal = parseLiteral(entry);
+        if (literal == NULL) {
+          nodeVectorFree(literals);
+          return NULL;
+        }
+        vectorInsert(literals, literal);
+        break;
+      }
+      case TT_RSQUARE: {
+        // end of the init
+        Node *n = createLiteralNode(LT_AGGREGATEINIT, start);
+        n->data.literal.value.aggregateInitVal = literals;
+        return n;
+      }
+      default: {
+        errorExpectedString(entry, "a right square bracket or a literal",
+                            &peek);
+
+        unLex(entry, &peek);
+
+        nodeVectorFree(literals);
+        return NULL;
+      }
+    }
+  }
 }
 
 /**
@@ -616,7 +852,102 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
  * @returns AST node or NULL if fatal error happened
  */
 static Node *parseLiteral(FileListEntry *entry) {
-  return NULL;  // TODO: write this
+  Token peek;
+  lex(entry, &peek);
+  switch (peek.type) {
+    case TT_LIT_STRING: {
+      return createStringLiteralNode(&peek);
+    }
+    case TT_LIT_WSTRING: {
+      return createWstringLiteralNode(&peek);
+    }
+    case TT_LIT_CHAR: {
+      return createCharLiteralNode(&peek);
+    }
+    case TT_LIT_WCHAR: {
+      return createWcharLiteralNode(&peek);
+    }
+    case TT_LIT_INT_B: {
+      int8_t sign;
+      uint64_t magnitude;
+      int retval = binaryToInteger(peek.string, &sign, &magnitude);
+      if (retval != 0) {
+        errorIntOverflow(entry, &peek);
+
+        tokenUninit(&peek);
+
+        return NULL;
+      }
+      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+    }
+    case TT_LIT_INT_O: {
+      int8_t sign;
+      uint64_t magnitude;
+      int retval = octalToInteger(peek.string, &sign, &magnitude);
+      if (retval != 0) {
+        errorIntOverflow(entry, &peek);
+
+        tokenUninit(&peek);
+
+        return NULL;
+      }
+      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+    }
+    case TT_LIT_INT_0:
+    case TT_LIT_INT_D: {
+      int8_t sign;
+      uint64_t magnitude;
+      int retval = decimalToInteger(peek.string, &sign, &magnitude);
+      if (retval != 0) {
+        errorIntOverflow(entry, &peek);
+
+        tokenUninit(&peek);
+
+        return NULL;
+      }
+      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+    }
+    case TT_LIT_INT_H: {
+      int8_t sign;
+      uint64_t magnitude;
+      int retval = hexadecimalToInteger(peek.string, &sign, &magnitude);
+      if (retval != 0) {
+        errorIntOverflow(entry, &peek);
+
+        tokenUninit(&peek);
+
+        return NULL;
+      }
+      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+    }
+    case TT_LIT_DOUBLE: {
+      // TODO: write this
+    }
+    case TT_LIT_FLOAT: {
+      // TODO: write this
+    }
+    case TT_BAD_STRING:
+    case TT_BAD_CHAR:
+    case TT_BAD_BIN:
+    case TT_BAD_HEX: {
+      return NULL;
+    }
+    case TT_ID: {
+      unLex(entry, &peek);
+      return parseScopedId(entry);
+    }
+    case TT_LSQUARE: {
+      // aggregate initializer
+      return parseAggregateInitializer(entry, &peek);
+    }
+    default: {
+      errorExpectedString(entry, "a literal", &peek);
+
+      unLex(entry, &peek);
+
+      return NULL;
+    }
+  }
 }
 
 /**
@@ -636,6 +967,30 @@ static Node *parseType(FileListEntry *entry) {
 // expressions
 
 // statements
+
+static Node *parseStmt(FileListEntry *entry, Token *start);
+/**
+ * parses a compound statement
+ *
+ * @param entry entry to lex from
+ * @param lbrace first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseCompoundStmt(FileListEntry *entry, Token *lbrace) {
+  Vector *stmts = createVector();
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses any statement
+ *
+ * @param entry entry to lex from
+ * @param start first token of statement
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseStmt(FileListEntry *entry, Token *start) {
+  return NULL;  // TODO: write this
+}
 
 // top level stuff
 
@@ -1163,7 +1518,209 @@ static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
  */
 static Node *finishFunDeclOrDefn(FileListEntry *entry, Node *returnType,
                                  Node *name) {
-  return NULL;  // TODO: write this
+  Vector *argTypes = createVector();
+  Vector *argNames = createVector();
+  Vector *argDefaults = createVector();
+
+  bool doneArgs = false;
+  Token peek;
+  lex(entry, &peek);
+  if (peek.type == TT_RPAREN)
+    doneArgs = true;
+  else
+    unLex(entry, &peek);
+  while (!doneArgs) {
+    lex(entry, &peek);
+    switch (peek.type) {
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
+      case TT_ID: {
+        // start of an arg decl
+        unLex(entry, &peek);
+        Node *type = parseType(entry);
+        if (type == NULL) {
+          panicTopLevel(entry);
+
+          nodeFree(returnType);
+          nodeFree(name);
+          nodeVectorFree(argTypes);
+          nodeVectorFree(argNames);
+          nodeVectorFree(argDefaults);
+          return NULL;
+        }
+        vectorInsert(argTypes, type);
+
+        lex(entry, &peek);
+        switch (peek.type) {
+          case TT_ID: {
+            // id - arg decl continues
+            vectorInsert(argNames, createId(&peek));
+
+            lex(entry, &peek);
+            switch (peek.type) {
+              case TT_EQ: {
+                // has a literal - arg decl continues
+                Node *literal = parseLiteral(entry);
+                if (literal == NULL) {
+                  unLex(entry, &peek);
+                  panicTopLevel(entry);
+
+                  nodeFree(returnType);
+                  nodeFree(name);
+                  nodeVectorFree(argTypes);
+                  nodeVectorFree(argNames);
+                  nodeVectorFree(argDefaults);
+                  return NULL;
+                }
+                vectorInsert(argDefaults, literal);
+
+                lex(entry, &peek);
+                switch (peek.type) {
+                  case TT_COMMA: {
+                    // done this arg decl;
+                    break;
+                  }
+                  case TT_RPAREN: {
+                    // done all arg decls
+                    doneArgs = true;
+                    break;
+                  }
+                  default: {
+                    errorExpectedString(entry, "a comma or a right parenthesis",
+                                        &peek);
+
+                    unLex(entry, &peek);
+                    panicTopLevel(entry);
+
+                    nodeFree(returnType);
+                    nodeFree(name);
+                    nodeVectorFree(argTypes);
+                    nodeVectorFree(argNames);
+                    nodeVectorFree(argDefaults);
+                    return NULL;
+                  }
+                }
+                break;
+              }
+              case TT_COMMA: {
+                // done this arg decl
+                vectorInsert(argDefaults, NULL);
+                break;
+              }
+              case TT_RPAREN: {
+                // done all arg decls
+                vectorInsert(argDefaults, NULL);
+                doneArgs = true;
+                break;
+              }
+              default: {
+                errorExpectedString(
+                    entry, "an equals sign, a comma, or a right parenthesis",
+                    &peek);
+
+                unLex(entry, &peek);
+                panicTopLevel(entry);
+
+                nodeFree(returnType);
+                nodeFree(name);
+                nodeVectorFree(argTypes);
+                nodeVectorFree(argNames);
+                nodeVectorFree(argDefaults);
+                return NULL;
+              }
+            }
+            break;
+          }
+          case TT_COMMA: {
+            // done this arg decl
+            vectorInsert(argNames, NULL);
+            vectorInsert(argDefaults, NULL);
+            break;
+          }
+          case TT_RPAREN: {
+            // done all arg decls
+            vectorInsert(argNames, NULL);
+            vectorInsert(argDefaults, NULL);
+            doneArgs = true;
+            break;
+          }
+          default: {
+            errorExpectedString(entry, "an id, a comma, or a right parenthesis",
+                                &peek);
+
+            unLex(entry, &peek);
+            panicTopLevel(entry);
+
+            nodeFree(returnType);
+            nodeFree(name);
+            nodeVectorFree(argTypes);
+            nodeVectorFree(argNames);
+            nodeVectorFree(argDefaults);
+            return NULL;
+          }
+        }
+        break;
+      }
+      default: {
+        errorExpectedString(entry, "a type", &peek);
+
+        unLex(entry, &peek);
+        panicTopLevel(entry);
+
+        nodeFree(returnType);
+        nodeFree(name);
+        nodeVectorFree(argTypes);
+        nodeVectorFree(argNames);
+        nodeVectorFree(argDefaults);
+        return NULL;
+      }
+    }
+  }
+
+  lex(entry, &peek);
+  switch (peek.type) {
+    case TT_SEMI: {
+      return createFunDecl(returnType, name, argTypes, argNames, argDefaults);
+    }
+    case TT_LBRACE: {
+      Node *body = parseCompoundStmt(entry, &peek);
+      if (body == NULL) {
+        panicTopLevel(entry);
+
+        nodeFree(returnType);
+        nodeFree(name);
+        nodeVectorFree(argTypes);
+        nodeVectorFree(argNames);
+        nodeVectorFree(argDefaults);
+        return NULL;
+      }
+      return createFunDefn(returnType, name, argTypes, argNames, argDefaults,
+                           body);
+    }
+    default: {
+      errorExpectedString(entry, "a semicolon or a left brace", &peek);
+
+      unLex(entry, &peek);
+      panicTopLevel(entry);
+
+      nodeFree(returnType);
+      nodeFree(name);
+      nodeVectorFree(argTypes);
+      nodeVectorFree(argNames);
+      nodeVectorFree(argDefaults);
+      return NULL;
+    }
+  }
 }
 
 /**
