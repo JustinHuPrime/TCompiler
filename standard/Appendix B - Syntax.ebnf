@@ -114,17 +114,14 @@ extended_int_literal = int_literal
                      | wchar_literal
                      | scoped_identifier
 ;
-literal = int_literal
+literal = extended_int_literal
         | float_literal
         | double_literal
         | string_literal
-        | char_literal
         | wstring_literal
-        | wchar_literal
         | "true"
         | "false"
         | "null"
-        | scoped_identifier
         | aggregate_initializer
 ;
 aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
