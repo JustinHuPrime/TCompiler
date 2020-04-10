@@ -52,4 +52,56 @@ uint8_t nybbleToU8(char c);
  */
 bool isNybble(char c);
 
+/**
+ * converts a binary integer to a sign and a magnitude
+ *
+ * @param string string to convert (from lexer - assumes string is good)
+ * @param sign output pointer to sign
+ * @param magnitudeOut output pointer to magnitude
+ * @returns status code - 0 for OK, 1 for size error
+ */
+int binaryToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut);
+/**
+ * converts an octal integer to a sign and a magnitude
+ *
+ * @param string string to convert (from lexer - assumes string is good)
+ * @param sign output pointer to sign
+ * @param magnitudeOut output pointer to magnitude
+ * @returns status code - 0 for OK, 1 for size error
+ */
+int octalToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut);
+/**
+ * converts a decimal integer to a sign and a magnitude
+ *
+ * @param string string to convert (from lexer - assumes string is good)
+ * @param sign output pointer to sign
+ * @param magnitudeOut output pointer to magnitude
+ * @returns status code - 0 for OK, 1 for size error
+ */
+int decimalToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut);
+/**
+ * converts a hexadecimal integer to a sign and a magnitude
+ *
+ * @param string string to convert (from lexer - assumes string is good)
+ * @param sign output pointer to sign
+ * @param magnitudeOut output pointer to magnitude
+ * @returns status code - 0 for OK, 1 for size error
+ */
+int hexadecimalToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut);
+
+/**
+ * converts a float to a set of bits
+ *
+ * @param string string to convert (from lexer - assumes string is good)
+ * @returns converted number as a float
+ */
+uint32_t floatToBits(char const *string);
+/**
+ * converts a double to a set of bits
+ *
+ * @param string string to convert (from lexer - assumes string is good)
+ * @returns converted number as a double
+ */
+uint64_t doubleToBits(char const *string);
+
 #endif  // TLC_UTIL_CONVERSIONS_H_

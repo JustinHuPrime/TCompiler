@@ -16,16 +16,16 @@
 
 /**
  * @file
- * globally used constants that don't fit elsewhere
+ * numeric size and limit constants
  */
 
-#ifndef TLC_CONSTANTS_H_
-#define TLC_CONSTANTS_H_
+#ifndef TLC_NUMERICSIZING_H_
+#define TLC_NUMERICSIZING_H_
 
 #include <stddef.h>
 #include <stdint.h>
 
-// sizeof fundamental data types
+/** sizeof fundamental data types - number of bits in a byte must be 8 */
 extern size_t const BYTE_WIDTH;
 extern size_t const SHORT_WIDTH;
 extern size_t const INT_WIDTH;
@@ -36,7 +36,7 @@ extern size_t const POINTER_WIDTH;
 extern size_t const CHAR_WIDTH;
 extern size_t const WCHAR_WIDTH;
 
-// absolute value of limits for some data type
+/** absolute value of limits for some data type */
 extern uint64_t const UBYTE_MAX;
 extern uint64_t const BYTE_MAX;
 extern uint64_t const BYTE_MIN;
@@ -50,7 +50,12 @@ extern uint64_t const ULONG_MAX;
 extern uint64_t const LONG_MAX;
 extern uint64_t const LONG_MIN;
 
-/** Compiler version string, human readable */
-extern char const *VERSION_STRING;
+/** number of bits in floating point numbers */
+extern size_t const FLOAT_MANTISSA_BITS;
+extern int16_t const FLOAT_EXPONENT_MAX;
+extern int16_t const FLOAT_EXPONENT_MIN;
+extern size_t const DOUBLE_MANTISSA_BITS;
+extern int16_t const DOUBLE_EXPONENT_MAX;
+extern int16_t const DOUBLE_EXPONENT_MIN;
 
-#endif  // TLC_CONSTANTS_H_
+#endif  // TLC_NUMERICSIZING_H_

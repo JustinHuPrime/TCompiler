@@ -18,9 +18,9 @@
 #include "ast/ast.h"
 #include "lexer/lexer.h"
 
-#include "constants.h"
 #include "fileList.h"
 #include "internalError.h"
+#include "numericSizing.h"
 #include "options.h"
 #include "util/container/stringBuilder.h"
 #include "util/conversions.h"
@@ -187,209 +187,6 @@ static void errorIntOverflow(FileListEntry *entry, Token *token) {
   fprintf(stderr, "%s:%zu:%zu: error: integer constant is too large\n",
           entry->inputFile, token->line, token->character);
   entry->errored = true;
-}
-
-/**
- * converts a binary integer to a sign and a magnitude
- *
- * @param string string to convert (from lexer - assumes string is good)
- * @param sign output pointer to sign
- * @param magnitude output pointer to magnitude
- * @returns status code - 0 for OK, 1 for size error
- */
-static int binaryToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut) {
-  // check sign
-  switch (string[0]) {
-    case '0': {
-      // 0b...
-      *sign = 0;  // unsigned
-      string += 2;
-      break;
-    }
-    case '-': {
-      // -0b...
-      *sign = -1;
-      string += 3;
-      break;
-    }
-    case '+': {
-      // +0...
-      *sign = 1;
-      string += 3;
-      break;
-    }
-    default: {
-      error(__FILE__, __LINE__,
-            "invalid binary literal passed to binaryToInteger");
-    }
-  }
-
-  // get value
-  uint64_t magnitude = 0;
-  for (; *string != '\0'; string++) {
-    uint64_t oldMagnitude = magnitude;
-    magnitude *= 2;
-    magnitude += (uint8_t)(charToU8(*string) - charToU8('0'));
-    if (magnitude < oldMagnitude) {
-      // overflowed!
-      return -1;
-    }
-  }
-
-  *magnitudeOut = magnitude;
-  return 0;
-}
-
-/**
- * converts an octal integer to a sign and a magnitude
- *
- * @param string string to convert (from lexer - assumes string is good)
- * @param sign output pointer to sign
- * @param magnitude output pointer to magnitude
- * @returns status code - 0 for OK, 1 for size error
- */
-static int octalToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut) {
-  // check sign
-  switch (string[0]) {
-    case '0': {
-      // 0...
-      *sign = 0;  // unsigned
-      string += 1;
-      break;
-    }
-    case '-': {
-      // -0...
-      *sign = -1;
-      string += 2;
-      break;
-    }
-    case '+': {
-      // +0...
-      *sign = 1;
-      string += 2;
-      break;
-    }
-    default: {
-      error(__FILE__, __LINE__,
-            "invalid octal literal passed to binaryToInteger");
-    }
-  }
-
-  // get value
-  uint64_t magnitude = 0;
-  for (; *string != '\0'; string++) {
-    uint64_t oldMagnitude = magnitude;
-    magnitude *= 8;
-    magnitude += (uint8_t)(charToU8(*string) - charToU8('0'));
-    if (magnitude < oldMagnitude) {
-      // overflowed!
-      return -1;
-    }
-  }
-
-  *magnitudeOut = magnitude;
-  return 0;
-}
-
-/**
- * converts a decimal integer to a sign and a magnitude
- *
- * @param string string to convert (from lexer - assumes string is good)
- * @param sign output pointer to sign
- * @param magnitude output pointer to magnitude
- * @returns status code - 0 for OK, 1 for size error
- */
-static int decimalToInteger(char *string, int8_t *sign,
-                            uint64_t *magnitudeOut) {
-  // check sign
-  switch (string[0]) {
-    case '-': {
-      // -...
-      *sign = -1;
-      string += 1;
-      break;
-    }
-    case '+': {
-      // +...
-      *sign = 1;
-      string += 1;
-      break;
-    }
-    default: {
-      if (string[0] >= '0' && string[0] <= '9')
-        *sign = 0;
-      else
-        error(__FILE__, __LINE__,
-              "invalid octal literal passed to binaryToInteger");
-    }
-  }
-
-  // get value
-  uint64_t magnitude = 0;
-  for (; *string != '\0'; string++) {
-    uint64_t oldMagnitude = magnitude;
-    magnitude *= 10;
-    magnitude += (uint8_t)(charToU8(*string) - charToU8('0'));
-    if (magnitude < oldMagnitude) {
-      // overflowed!
-      return -1;
-    }
-  }
-
-  *magnitudeOut = magnitude;
-  return 0;
-}
-
-/**
- * converts a hexadecimal integer to a sign and a magnitude
- *
- * @param string string to convert (from lexer - assumes string is good)
- * @param sign output pointer to sign
- * @param magnitude output pointer to magnitude
- * @returns status code - 0 for OK, 1 for size error
- */
-static int hexadecimalToInteger(char *string, int8_t *sign,
-                                uint64_t *magnitudeOut) {
-  // check sign
-  switch (string[0]) {
-    case '0': {
-      // 0...
-      *sign = 0;  // unsigned
-      string += 2;
-      break;
-    }
-    case '-': {
-      // -0...
-      *sign = -1;
-      string += 3;
-      break;
-    }
-    case '+': {
-      // +0...
-      *sign = 1;
-      string += 3;
-      break;
-    }
-    default: {
-      error(__FILE__, __LINE__,
-            "invalid octal literal passed to binaryToInteger");
-    }
-  }
-
-  // get value
-  uint64_t magnitude = 0;
-  for (; *string != '\0'; string++) {
-    uint64_t oldMagnitude = magnitude;
-    magnitude *= 16;
-    magnitude += nybbleToU8(*string);
-    if (magnitude < oldMagnitude) {
-      // overflowed!
-      return -1;
-    }
-  }
-
-  *magnitudeOut = magnitude;
-  return 0;
 }
 
 // constructors
@@ -1446,10 +1243,16 @@ static Node *parseLiteral(FileListEntry *entry) {
       return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
     }
     case TT_LIT_DOUBLE: {
-      // TODO: write this
+      uint64_t bits = doubleToBits(peek.string);
+      Node *n = createLiteralNode(LT_DOUBLE, &peek);
+      n->data.literal.value.doubleBits = bits;
+      return n;
     }
     case TT_LIT_FLOAT: {
-      // TODO: write this
+      uint32_t bits = floatToBits(peek.string);
+      Node *n = createLiteralNode(LT_FLOAT, &peek);
+      n->data.literal.value.floatBits = bits;
+      return n;
     }
     case TT_BAD_STRING:
     case TT_BAD_CHAR:

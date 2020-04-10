@@ -16,13 +16,13 @@
 
 // Compiles code modules into assembly files, guided by decl modules
 
-#include "constants.h"
 #include "fileList.h"
 #include "internalError.h"
 #include "lexer/dump.h"
 #include "lexer/lexer.h"
 #include "options.h"
 #include "parser/parser.h"
+#include "version.h"
 
 #include <stdbool.h>
 #include <stdio.h>

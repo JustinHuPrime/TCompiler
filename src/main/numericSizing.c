@@ -16,7 +16,7 @@
 
 // global constants
 
-#include "constants.h"
+#include "numericSizing.h"
 
 size_t const BYTE_WIDTH = 1;
 size_t const SHORT_WIDTH = 2;
@@ -41,4 +41,9 @@ uint64_t const ULONG_MAX = 18446744073709551615UL;
 uint64_t const LONG_MAX = 9223372036854775807;
 uint64_t const LONG_MIN = 9223372036854775808UL;
 
-char const *VERSION_STRING = "T Language Compiler (tlc) version 0.2.0";
+size_t const FLOAT_MANTISSA_BITS = 23;
+int16_t const FLOAT_EXPONENT_MAX = 127;
+int16_t const FLOAT_EXPONENT_MIN = -126;
+size_t const DOUBLE_MANTISSA_BITS = 52;
+int16_t const DOUBLE_EXPONENT_MAX = 1023;
+int16_t const DOUBLE_EXPONENT_MIN = -1024;
