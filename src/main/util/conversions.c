@@ -526,13 +526,28 @@ static uint8_t digitChainRound(DigitChain *chain, uint8_t evenResult) {
   }
 }
 /**
+ * finds whether the digit chain is zero
+ *
+ * @param chain chain to query
+ * @returns true if the digit chain has all zeroes
+ */
+static bool digitChainIsZero(DigitChain *chain) {
+  for (size_t idx = 0; idx < chain->size; idx++) {
+    if (chain->digits[idx] != 0) return false;
+  }
+  return true;
+}
+/**
  * frees resourced allocate by the digit chain
  *
  * @param chain chain to uninit
  */
 static void digitChainUninit(DigitChain *chain) { free(chain->digits); }
 
-uint32_t floatStringToBits(char const *string) {
+static uint64_t floatOrDoubleStringToBits(
+    char const *string, size_t mantissaBits, int64_t maxExponent,
+    int64_t minNormalExponent, int64_t minSubnormalExponent, uint64_t minusZero,
+    uint64_t plusInfinity, uint64_t minusInfinity, uint64_t mantissaMask) {
   int8_t sign;
   // check sign
   switch (string[0]) {
@@ -564,159 +579,7 @@ uint32_t floatStringToBits(char const *string) {
       break;
     }
   }
-  if (isZero) return sign == -1 ? 0x80000000 : 0x0;
-
-  // exponent
-  int64_t exponent;
-  // mantissa used to construct the number
-  uint32_t roundedMantissa;
-
-  // convert whole number part
-  BigInteger mantissa;
-  bigIntInit(&mantissa);
-
-  for (; *string != '.'; string++) {
-    bigIntMul(&mantissa, 10);
-    bigIntAdd(&mantissa, (uint8_t)(charToU8(*string) - charToU8('0')));
-  }
-  string++;  // skip the dot
-
-  if (bigIntCountSigBits(&mantissa) > FLOAT_MANTISSA_BITS) {
-    // has 53 or more significant (non-leading-zero) bits set
-    // round off the decimal part (remember the rounding error sign), then
-    // round it off to 53 bits
-    uint8_t firstDigit = (uint8_t)(charToU8(*string) - charToU8('0'));
-    if (firstDigit == 0) {
-      // if following digits are all zeroes, then no rounding, otherwise round
-      // down
-      string++;
-      for (; *string != '\0'; string++) {
-        uint8_t digit = (uint8_t)(charToU8(*string) - charToU8('0'));
-        if (digit != 0) {
-          // round down
-          mantissa.roundingErrorSign = -1;
-          break;
-        }
-      }
-    } else if (firstDigit < 5) {
-      // rounded down
-      mantissa.roundingErrorSign = -1;
-    } else if (firstDigit > 5) {
-      // rounded up
-      bigIntAdd(&mantissa, 1);
-      mantissa.roundingErrorSign = 1;
-    } else {
-      // may be a round to even
-      string++;
-      for (; *string != '\0'; string++) {
-        uint8_t digit = (uint8_t)(charToU8(*string) - charToU8('0'));
-        if (digit != 0) {
-          // 0.5...x... - round up
-          bigIntAdd(&mantissa, 1);
-          mantissa.roundingErrorSign = 1;
-          break;
-        }
-      }
-      if (mantissa.roundingErrorSign == 0) {
-        // didn't round - now round to even
-        if (bigIntBitAtIndex(&mantissa, 0) == 0) {
-          // round down
-          mantissa.roundingErrorSign = -1;
-        } else {
-          // round up
-          bigIntAdd(&mantissa, 1);
-          mantissa.roundingErrorSign = 1;
-        }
-      }
-    }
-
-    // done rounding the decimal part - round the rest
-    bigIntRoundToN(&mantissa, FLOAT_MANTISSA_BITS + 1);
-    roundedMantissa =
-        (uint32_t)bigIntGetNBits(&mantissa, FLOAT_MANTISSA_BITS + 1);
-
-    // get the exponent
-    exponent = (int64_t)(bigIntCountSigBits(&mantissa) - 1);
-
-    bigIntUninit(&mantissa);
-  } else {
-    // fill in enough bits to make 23 bits
-    exponent = (int64_t)(bigIntCountSigBits(&mantissa) - 1);
-
-    // construct a digit chain from the fractional part
-    DigitChain chain;
-    digitChainInit(&chain, string);
-    while (bigIntCountSigBits(&mantissa) < FLOAT_MANTISSA_BITS + 1) {
-      bigIntMul(&mantissa, 2);
-      bigIntAdd(&mantissa, digitChainMul2(&chain));
-      if (bigIntIsZero(&mantissa)) exponent--;
-    }
-
-    // round off the rest of the fractional part
-    bigIntAdd(&mantissa,
-              digitChainRound(&chain, bigIntBitAtIndex(&mantissa, 0)));
-    roundedMantissa =
-        (uint32_t)bigIntGetNBits(&mantissa, FLOAT_MANTISSA_BITS + 1);
-
-    bigIntUninit(&mantissa);
-    digitChainUninit(&chain);
-  }
-
-  // check for infinity
-  if (exponent > 127) {
-    // infinity!
-    return sign == 1 ? 0x7f800000 : 0xff800000;
-  } else if (exponent < -126 && exponent >= -149) {
-    // subnormal float
-    uint32_t bits = sign == -1 ? 0x80000000 : 0x0;
-    // need to round off the discarded bits // FIXME:
-    bits |= roundedMantissa >> -(exponent + 126);
-    return bits;
-  } else if (exponent < -149) {
-    // rounds down to zero
-    return sign == -1 ? 0x80000000 : 0x0;
-  } else {
-    // regular float
-    uint32_t bits = sign == -1 ? 0x80000000 : 0x0;
-    bits |= (uint32_t)(exponent + 127) << FLOAT_MANTISSA_BITS;
-    bits |= roundedMantissa & 0xffffffff >> (32 - FLOAT_MANTISSA_BITS);
-    return bits;
-  }
-}
-
-uint64_t doubleStringToBits(char const *string) {
-  int8_t sign;
-  // check sign
-  switch (string[0]) {
-    case '-': {
-      // negative
-      sign = -1;
-      string++;
-      break;
-    }
-    default: {
-      // positive
-      if (string[0] >= '0' && string[0] <= '9') {
-        sign = 1;
-      } else if (string[0] == '+') {
-        sign = 1;
-        string++;
-      } else {
-        error(__FILE__, __LINE__,
-              "invalid double literal passed to doubleStringToBits");
-      }
-      break;
-    }
-  }
-  // may be a zero - stop here if it is
-  bool isZero = true;
-  for (char const *scan = string; *scan != '\0'; scan++) {
-    if (*scan != '0' && *scan != '.') {
-      isZero = false;
-      break;
-    }
-  }
-  if (isZero) return sign == -1 ? 0x8000000000000000 : 0x0;
+  if (isZero) return sign == -1 ? minusZero : 0x0;
 
   // exponent
   int64_t exponent;
@@ -733,10 +596,10 @@ uint64_t doubleStringToBits(char const *string) {
   }
   string++;  // skip the dot
 
-  if (bigIntCountSigBits(&mantissa) > DOUBLE_MANTISSA_BITS) {
-    // has 53 or more significant (non-leading-zero) bits set
+  if (bigIntCountSigBits(&mantissa) > mantissaBits) {
+    // has mantissaBits or more significant (non-leading-zero) bits set
     // round off the decimal part (remember the rounding error sign), then
-    // round it off to 53 bits
+    // round it off to mantissaBits bits
     uint8_t firstDigit = (uint8_t)(charToU8(*string) - charToU8('0'));
     if (firstDigit == 0) {
       // if following digits are all zeroes, then no rounding, otherwise round
@@ -783,53 +646,81 @@ uint64_t doubleStringToBits(char const *string) {
     }
 
     // done rounding the decimal part - round the rest
-    bigIntRoundToN(&mantissa, DOUBLE_MANTISSA_BITS + 1);
-    roundedMantissa = bigIntGetNBits(&mantissa, DOUBLE_MANTISSA_BITS + 1);
+    bigIntRoundToN(&mantissa, mantissaBits + 1);
+    roundedMantissa = bigIntGetNBits(&mantissa, mantissaBits + 1);
 
     // get the exponent
     exponent = (int64_t)(bigIntCountSigBits(&mantissa) - 1);
-
-    bigIntUninit(&mantissa);
   } else {
-    // fill in enough bits to make 53 bits
+    // fill in enough bits to make mantissaBits bits
     exponent = (int64_t)(bigIntCountSigBits(&mantissa) - 1);
 
     // construct a digit chain from the fractional part
     DigitChain chain;
     digitChainInit(&chain, string);
-    while (bigIntCountSigBits(&mantissa) < DOUBLE_MANTISSA_BITS + 1) {
+    while (bigIntCountSigBits(&mantissa) < mantissaBits + 1) {
       bigIntMul(&mantissa, 2);
       bigIntAdd(&mantissa, digitChainMul2(&chain));
       if (bigIntIsZero(&mantissa)) exponent--;
     }
 
     // round off the rest of the fractional part
-    bigIntAdd(&mantissa,
-              digitChainRound(&chain, bigIntBitAtIndex(&mantissa, 0)));
-    roundedMantissa = bigIntGetNBits(&mantissa, DOUBLE_MANTISSA_BITS + 1);
+    uint8_t adjustment =
+        digitChainRound(&chain, bigIntBitAtIndex(&mantissa, 0));
+    bigIntAdd(&mantissa, adjustment);
+    roundedMantissa = bigIntGetNBits(&mantissa, mantissaBits + 1);
+    // mantissa->roundingErrorSign == 0 at this point - set it for the digit
+    // chain's conversion
+    if (adjustment == 0) {
+      if (digitChainIsZero(&chain)) {
+        mantissa.roundingErrorSign = 0;
+      } else {
+        mantissa.roundingErrorSign = -1;
+      }
+    } else {
+      mantissa.roundingErrorSign = 1;
+    }
 
-    bigIntUninit(&mantissa);
     digitChainUninit(&chain);
   }
 
   // check for infinity
-  if (exponent > 1023) {
+  if (exponent > maxExponent) {
     // infinity!
-    return sign == 1 ? 0x7ff0000000000000UL : 0xfff0000000000000UL;
-  } else if (exponent < -1022 && exponent >= -1074) {
-    // subnormal float
-    uint64_t bits = sign == -1 ? 0x8000000000000000 : 0x0;
-    // need to round off the discarded bits // FIXME:
-    bits |= roundedMantissa >> -(exponent + 1022);
+    bigIntUninit(&mantissa);
+    return sign == 1 ? plusInfinity : minusInfinity;
+  } else if (exponent < minNormalExponent && exponent >= minSubnormalExponent) {
+    // subnormal
+    uint64_t bits = sign == -1 ? minusZero : 0x0;
+    size_t ndigits = mantissaBits - (size_t)(exponent - minNormalExponent);
+    bigIntRoundToN(&mantissa, ndigits);
+    bits |= bigIntGetNBits(&mantissa, ndigits) >> (mantissaBits - ndigits);
+    bigIntUninit(&mantissa);
     return bits;
-  } else if (exponent < -1074) {
+  } else if (exponent < minSubnormalExponent) {
     // rounds down to zero
-    return sign == -1 ? 0x8000000000000000 : 0x0;
+    bigIntUninit(&mantissa);
+    return sign == -1 ? minusZero : 0x0;
   } else {
-    // regular float
-    uint64_t bits = sign == -1 ? 0x8000000000000000 : 0x0;
-    bits |= (uint64_t)(exponent + 1023) << DOUBLE_MANTISSA_BITS;
-    bits |= roundedMantissa & 0xffffffffffffffff >> (64 - DOUBLE_MANTISSA_BITS);
+    // normal
+    uint64_t bits = sign == -1 ? minusZero : 0x0;
+    bits |= (uint64_t)(exponent + maxExponent) << mantissaBits;
+    bits |= roundedMantissa & mantissaMask;
+    bigIntUninit(&mantissa);
     return bits;
   }
+}
+
+uint32_t floatStringToBits(char const *string) {
+  return (uint32_t)floatOrDoubleStringToBits(
+      string, FLOAT_MANTISSA_BITS, FLOAT_EXPONENT_MAX, FLOAT_EXPONENT_MIN,
+      FLOAT_EXPONENT_MIN_SUBNORMAL, 0x80000000, 0x7f800000, 0xff800000,
+      0x7fffff);
+}
+
+uint64_t doubleStringToBits(char const *string) {
+  return floatOrDoubleStringToBits(
+      string, DOUBLE_MANTISSA_BITS, DOUBLE_EXPONENT_MAX, DOUBLE_EXPONENT_MIN,
+      DOUBLE_EXPONENT_MIN_SUBNORMAL, 0x8000000000000000, 0x7ff0000000000000,
+      0xfff0000000000000, 0xfffffffffffff);
 }

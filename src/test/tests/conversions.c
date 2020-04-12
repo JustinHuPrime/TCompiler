@@ -32,11 +32,11 @@
 
 char *ignored;
 
-// static uint64_t longRand(void) {
-//   uint64_t high = (uint32_t)rand();
-//   uint64_t low = (uint32_t)rand();
-//   return high << 32 | low;
-// }
+static uint64_t longRand(void) {
+  uint64_t high = (uint32_t)rand();
+  uint64_t low = (uint32_t)rand();
+  return high << 32 | low;
+}
 
 static void testNormalFloatConversions(void) {
   srand(0);  // keep tests repeatable
@@ -59,9 +59,7 @@ static void testNormalFloatConversions(void) {
 
     float stdlibValue = strtof(stringValue, &ignored);
     uint32_t stdlibBits = floatToBits(stdlibValue);
-
     uint32_t conversionBits = floatStringToBits(stringValue);
-    // float conversionsValue = bitsToFloat(conversionBits);
     if (stdlibBits != conversionBits) floatOK = false;
     free(stringValue);
   }
@@ -76,7 +74,7 @@ static void testNormalDoubleConversions(void) {
   for (size_t count = 0; count < 10000; count++) {
     uint8_t sign = (uint8_t)(rand() % 2);
     uint16_t exponent = (uint16_t)(rand() % 0x800);
-    uint64_t mantissa = (uint64_t)(rand() % 0x10000000000000);
+    uint64_t mantissa = (uint64_t)(longRand() % 0x10000000000000);
 
     uint64_t doubleBits = ((uint64_t)sign << 63) | ((uint64_t)exponent << 52) |
                           (uint64_t)mantissa;
@@ -89,21 +87,8 @@ static void testNormalDoubleConversions(void) {
 
     double stdlibValue = strtod(stringValue, &ignored);
     uint64_t stdlibBits = doubleToBits(stdlibValue);
-
     uint64_t conversionBits = doubleStringToBits(stringValue);
-    double conversionsValue = bitsToDouble(conversionBits);
-    if (stdlibBits != conversionBits) {
-      printf("String = %s\n", stringValue);
-      printf("Sign: expected %lu, got %lu\n", stdlibBits >> 63,
-             conversionBits >> 63);
-      printf("Exponent: expected %lu, got %lu\n", (stdlibBits >> 52) & 0x7ff,
-             (conversionBits >> 52) & 0x7ff);
-      printf("Mantissa: expected %lu (0x%lX), got %lu (0x%lX)\n",
-             stdlibBits & 0xfffffffffffff, stdlibBits & 0xfffffffffffff,
-             conversionBits & 0xfffffffffffff,
-             conversionBits & 0xfffffffffffff);
-      doubleOK = false;
-    }
+    if (stdlibBits != conversionBits) doubleOK = false;
     free(stringValue);
   }
   test("double parsing succeeded", doubleOK);

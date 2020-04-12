@@ -52,10 +52,13 @@ extern uint64_t const LONG_MIN;
 
 /** number of bits in floating point numbers */
 extern size_t const FLOAT_MANTISSA_BITS;
-extern int16_t const FLOAT_EXPONENT_MAX;
-extern int16_t const FLOAT_EXPONENT_MIN;
+extern int64_t const FLOAT_EXPONENT_MAX;
+extern int64_t const FLOAT_EXPONENT_MIN;
+extern int64_t const FLOAT_EXPONENT_MIN_SUBNORMAL;
+
 extern size_t const DOUBLE_MANTISSA_BITS;
-extern int16_t const DOUBLE_EXPONENT_MAX;
-extern int16_t const DOUBLE_EXPONENT_MIN;
+extern int64_t const DOUBLE_EXPONENT_MAX;
+extern int64_t const DOUBLE_EXPONENT_MIN;
+extern int64_t const DOUBLE_EXPONENT_MIN_SUBNORMAL;
 
 #endif  // TLC_NUMERICSIZING_H_
