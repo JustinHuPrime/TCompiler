@@ -22,6 +22,8 @@
 #ifndef TLC_TEST_TESTS_H_
 #define TLC_TEST_TESTS_H_
 
+/** tests numeric conversions */
+void testConversions(void);
 /** tests command line argument parsing */
 void testCommandLineArgs(void);
 /** tests lexing */

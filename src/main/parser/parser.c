@@ -1243,13 +1243,13 @@ static Node *parseLiteral(FileListEntry *entry) {
       return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
     }
     case TT_LIT_DOUBLE: {
-      uint64_t bits = doubleToBits(peek.string);
+      uint64_t bits = doubleStringToBits(peek.string);
       Node *n = createLiteralNode(LT_DOUBLE, &peek);
       n->data.literal.value.doubleBits = bits;
       return n;
     }
     case TT_LIT_FLOAT: {
-      uint32_t bits = floatToBits(peek.string);
+      uint32_t bits = floatStringToBits(peek.string);
       Node *n = createLiteralNode(LT_FLOAT, &peek);
       n->data.literal.value.floatBits = bits;
       return n;

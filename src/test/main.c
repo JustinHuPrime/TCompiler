@@ -23,6 +23,7 @@ int main(void) {
   testStatusInit();
 
   // unit tests
+  testConversions();
 
   // integration tests
   testCommandLineArgs();

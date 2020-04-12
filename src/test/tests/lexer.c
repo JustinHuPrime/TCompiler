@@ -20,6 +20,7 @@
  */
 
 #include "lexer/lexer.h"
+
 #include "engine.h"
 #include "fileList.h"
 #include "tests.h"

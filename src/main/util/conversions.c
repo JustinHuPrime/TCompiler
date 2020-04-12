@@ -32,6 +32,39 @@ uint8_t charToU8(char c) {
   return u.u;
 }
 
+float bitsToFloat(uint32_t bits) {
+  union {
+    uint32_t u;
+    float f;
+  } u;
+  u.u = bits;
+  return u.f;
+}
+double bitsToDouble(uint64_t bits) {
+  union {
+    uint64_t u;
+    double d;
+  } u;
+  u.u = bits;
+  return u.d;
+}
+uint32_t floatToBits(float f) {
+  union {
+    uint32_t u;
+    float f;
+  } u;
+  u.f = f;
+  return u.u;
+}
+uint64_t doubleToBits(double d) {
+  union {
+    uint64_t u;
+    double d;
+  } u;
+  u.d = d;
+  return u.u;
+}
+
 char u8ToNybble(uint8_t n) {
   if (n <= 9) {
     return (char)('0' + n);
@@ -266,10 +299,10 @@ static void bigIntAddDigit(BigInteger *integer) {
 static void bigIntMul(BigInteger *integer, uint32_t n) {
   uint32_t carry = 0;
   for (size_t idx = 0; idx < integer->size; idx++) {
-    uint64_t digitResult = integer->digits[idx] * n + carry;
-    integer->digits[idx] = (uint32_t)(digitResult % UINT32_MAX);
-    carry = (uint32_t)(digitResult / UINT32_MAX);
-    if (idx + 1 == integer->size)
+    uint64_t digitResult = (uint64_t)integer->digits[idx] * n + carry;
+    integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
+    carry = (uint32_t)(digitResult / 0x100000000);
+    if (idx + 1 == integer->size && carry != 0)
       // add a digit to be carried in to
       bigIntAddDigit(integer);
   }
@@ -282,11 +315,11 @@ static void bigIntMul(BigInteger *integer, uint32_t n) {
  */
 static void bigIntAdd(BigInteger *integer, uint32_t n) {
   uint32_t carry = n;
-  for (size_t idx = 0; idx < integer->size && carry != 0; idx++) {
-    uint64_t digitResult = integer->digits[idx] + carry;
-    integer->digits[idx] = (uint32_t)(digitResult % UINT32_MAX);
-    carry = (uint32_t)(digitResult / UINT32_MAX);
-    if (idx + 1 == integer->size)
+  for (size_t idx = 0; idx < integer->size; idx++) {
+    uint64_t digitResult = (uint64_t)integer->digits[idx] + carry;
+    integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
+    carry = (uint32_t)(digitResult / 0x100000000);
+    if (idx + 1 == integer->size && carry != 0)
       // add a digit to be carried in to
       bigIntAddDigit(integer);
   }
@@ -421,6 +454,12 @@ static uint64_t bigIntGetNBits(BigInteger *integer, size_t n) {
 static bool bigIntIsZero(BigInteger *integer) {
   return integer->size == 1 && integer->digits[0] == 0;
 }
+/**
+ * uninitializes a big integer
+ *
+ * @param integer integer to uninit
+ */
+static void bigIntUninit(BigInteger *integer) { free(integer->digits); }
 
 /**
  * a chain of decimal digits, as unpacked BCD
@@ -486,31 +525,46 @@ static uint8_t digitChainRound(DigitChain *chain, uint8_t evenResult) {
     return evenResult;
   }
 }
+/**
+ * frees resourced allocate by the digit chain
+ *
+ * @param chain chain to uninit
+ */
+static void digitChainUninit(DigitChain *chain) { free(chain->digits); }
 
-uint32_t floatToBits(char const *string) {
+uint32_t floatStringToBits(char const *string) {
   int8_t sign;
   // check sign
   switch (string[0]) {
     case '-': {
       // negative
-      sign = 1;
+      sign = -1;
       string++;
       break;
     }
     default: {
       // positive
       if (string[0] >= '0' && string[0] <= '9') {
-        sign = 0;
-      } else if (string[1] == '+') {
-        sign = 0;
+        sign = 1;
+      } else if (string[0] == '+') {
+        sign = 1;
         string++;
       } else {
         error(__FILE__, __LINE__,
-              "invalid float literal passed to floatToBits");
+              "invalid float literal passed to floatStringToBits");
       }
       break;
     }
   }
+  // may be a zero - stop here if it is
+  bool isZero = true;
+  for (char const *scan = string; *scan != '\0'; scan++) {
+    if (*scan != '0' && *scan != '.') {
+      isZero = false;
+      break;
+    }
+  }
+  if (isZero) return sign == -1 ? 0x80000000 : 0x0;
 
   // exponent
   int64_t exponent;
@@ -583,17 +637,19 @@ uint32_t floatToBits(char const *string) {
 
     // get the exponent
     exponent = (int64_t)(bigIntCountSigBits(&mantissa) - 1);
+
+    bigIntUninit(&mantissa);
   } else {
-    // fill in enough bits to make 53 bits
+    // fill in enough bits to make 23 bits
     exponent = (int64_t)(bigIntCountSigBits(&mantissa) - 1);
 
     // construct a digit chain from the fractional part
     DigitChain chain;
     digitChainInit(&chain, string);
     while (bigIntCountSigBits(&mantissa) < FLOAT_MANTISSA_BITS + 1) {
-      if (bigIntIsZero(&mantissa)) exponent--;
       bigIntMul(&mantissa, 2);
       bigIntAdd(&mantissa, digitChainMul2(&chain));
+      if (bigIntIsZero(&mantissa)) exponent--;
     }
 
     // round off the rest of the fractional part
@@ -601,6 +657,9 @@ uint32_t floatToBits(char const *string) {
               digitChainRound(&chain, bigIntBitAtIndex(&mantissa, 0)));
     roundedMantissa =
         (uint32_t)bigIntGetNBits(&mantissa, FLOAT_MANTISSA_BITS + 1);
+
+    bigIntUninit(&mantissa);
+    digitChainUninit(&chain);
   }
 
   // check for infinity
@@ -610,6 +669,7 @@ uint32_t floatToBits(char const *string) {
   } else if (exponent < -126 && exponent >= -149) {
     // subnormal float
     uint32_t bits = sign == -1 ? 0x80000000 : 0x0;
+    // need to round off the discarded bits // FIXME:
     bits |= roundedMantissa >> -(exponent + 126);
     return bits;
   } else if (exponent < -149) {
@@ -624,30 +684,39 @@ uint32_t floatToBits(char const *string) {
   }
 }
 
-uint64_t doubleToBits(char const *string) {
+uint64_t doubleStringToBits(char const *string) {
   int8_t sign;
   // check sign
   switch (string[0]) {
     case '-': {
       // negative
-      sign = 1;
+      sign = -1;
       string++;
       break;
     }
     default: {
       // positive
       if (string[0] >= '0' && string[0] <= '9') {
-        sign = 0;
-      } else if (string[1] == '+') {
-        sign = 0;
+        sign = 1;
+      } else if (string[0] == '+') {
+        sign = 1;
         string++;
       } else {
         error(__FILE__, __LINE__,
-              "invalid double literal passed to doubleToBits");
+              "invalid double literal passed to doubleStringToBits");
       }
       break;
     }
   }
+  // may be a zero - stop here if it is
+  bool isZero = true;
+  for (char const *scan = string; *scan != '\0'; scan++) {
+    if (*scan != '0' && *scan != '.') {
+      isZero = false;
+      break;
+    }
+  }
+  if (isZero) return sign == -1 ? 0x8000000000000000 : 0x0;
 
   // exponent
   int64_t exponent;
@@ -719,6 +788,8 @@ uint64_t doubleToBits(char const *string) {
 
     // get the exponent
     exponent = (int64_t)(bigIntCountSigBits(&mantissa) - 1);
+
+    bigIntUninit(&mantissa);
   } else {
     // fill in enough bits to make 53 bits
     exponent = (int64_t)(bigIntCountSigBits(&mantissa) - 1);
@@ -727,15 +798,18 @@ uint64_t doubleToBits(char const *string) {
     DigitChain chain;
     digitChainInit(&chain, string);
     while (bigIntCountSigBits(&mantissa) < DOUBLE_MANTISSA_BITS + 1) {
-      if (bigIntIsZero(&mantissa)) exponent--;
       bigIntMul(&mantissa, 2);
       bigIntAdd(&mantissa, digitChainMul2(&chain));
+      if (bigIntIsZero(&mantissa)) exponent--;
     }
 
     // round off the rest of the fractional part
     bigIntAdd(&mantissa,
               digitChainRound(&chain, bigIntBitAtIndex(&mantissa, 0)));
     roundedMantissa = bigIntGetNBits(&mantissa, DOUBLE_MANTISSA_BITS + 1);
+
+    bigIntUninit(&mantissa);
+    digitChainUninit(&chain);
   }
 
   // check for infinity
@@ -745,6 +819,7 @@ uint64_t doubleToBits(char const *string) {
   } else if (exponent < -1022 && exponent >= -1074) {
     // subnormal float
     uint64_t bits = sign == -1 ? 0x8000000000000000 : 0x0;
+    // need to round off the discarded bits // FIXME:
     bits |= roundedMantissa >> -(exponent + 1022);
     return bits;
   } else if (exponent < -1074) {

@@ -19,8 +19,9 @@
  * integration tests for command line arguments
  */
 
-#include "engine.h"
 #include "fileList.h"
+
+#include "engine.h"
 #include "options.h"
 #include "tests.h"
 
