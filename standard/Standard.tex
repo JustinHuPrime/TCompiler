@@ -22,6 +22,10 @@
 
 This document specifies the syntax and semantics of the T programming language, specifically with respect to the implementation of the reference compiler for the language. T is a systems oriented, module-based programming language. The language is statically-typed, with neither classes nor a garbage collector. Conceptually, a T program consists of a set of modules, each module exposing some public interface. An implementation of T takes in the declaration files of the used modules, and code files or linkable files (distinguished in some manner\footnote{\textbf{Reference compiler behaviour}: the reference compiler distinguishes between declaration and code files using filename extensions. Declaration files have a .td extension, while code files have a .tc extension.}), each of which implement the interface for some module, and produces an executable. This executable may then be run, in some environment, to produce some sequence of effects.
 
+\section{Copyright}
+
+This work and all of its appendices are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License. To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/4.0/.
+
 \section{Compiler Structure}
 
 A T program is translated into an executable in several phases. Since the T grammar is not context free, it is necessary to make multiple passes over the same file. These phases are considered distinct and necessary, and are expected to be present in all compiler implementations. At any point during this process, if a requirement of the standard is violated, a diagnostic message is issued, and translation may halt.

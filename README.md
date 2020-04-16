@@ -84,4 +84,4 @@ The T compiler will memory map all referenced files. As such, the system must ha
 
 ## Contributing
 
-The T Langauge Compiler uses clang-format as the code style enforcer. Your code style must match exactly with what clang-format generates. As per Google code style, indentation is in spaces, and one level of indent is two spaces. Doxygen is used to generate documentation. All header file declarations should have Doxygen documentation. Implementation file only declarations (static functions, etc.) may omit Doxygen documentation, but this is discouraged except in cases of truly trivial functions.
+The T Langauge Compiler uses clang-format as the code style enforcer. Your code style must match exactly with what clang-format generates. As per Google's C++ code style, indentation is in spaces, and one level of indent is two spaces. Doxygen is used to generate documentation. All header file declarations should have Doxygen documentation. Implementation file only declarations (static functions, etc.) may omit Doxygen documentation, but this is discouraged except in cases of truly trivial functions.
