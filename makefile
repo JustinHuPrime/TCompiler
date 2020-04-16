@@ -13,7 +13,7 @@
 # Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with
-# The T Language Compiler. If not, see <https://www.gnu.org/licenses/>.
+# the T Language Compiler. If not, see <https://www.gnu.org/licenses/>.
 # 
 # SPDX-License-Identifier: GPL-3.0-or-later
 
