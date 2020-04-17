@@ -344,7 +344,7 @@ static size_t bigIntCountSigBits(BigInteger *integer) {
  */
 static uint8_t bigIntBitAtIndex(BigInteger *integer, size_t idx) {
   uint32_t digit = integer->digits[idx / 32];
-  return (digit & (0x1U << idx % 32)) != 0 ? 1 : 0;
+  return (digit & (1U << idx % 32)) != 0 ? 1 : 0;
 }
 /**
  * adds one to the nth bit
@@ -356,11 +356,11 @@ static uint8_t bigIntBitAtIndex(BigInteger *integer, size_t idx) {
  */
 static void bigIntAddOneToBit(BigInteger *integer, size_t n) {
   uint32_t carry = 1U << n % 32;
-  for (size_t idx = n / 32; idx < integer->size && carry != 0; idx++) {
+  for (size_t idx = n / 32; idx < integer->size; idx++) {
     uint64_t digitResult = integer->digits[idx] + carry;
     integer->digits[idx] = (uint32_t)(digitResult % UINT32_MAX);
     carry = (uint32_t)(digitResult / UINT32_MAX);
-    if (idx + 1 == integer->size)
+    if (idx + 1 == integer->size && carry != 0)
       // add a digit to be carried in to
       bigIntAddDigit(integer);
   }
@@ -660,7 +660,8 @@ static uint64_t floatOrDoubleStringToBits(
     digitChainInit(&chain, string);
     while (bigIntCountSigBits(&mantissa) < mantissaBits + 1) {
       bigIntMul(&mantissa, 2);
-      bigIntAdd(&mantissa, digitChainMul2(&chain));
+      uint8_t digit = digitChainMul2(&chain);
+      bigIntAdd(&mantissa, digit);
       if (bigIntIsZero(&mantissa)) exponent--;
     }
 
@@ -692,9 +693,10 @@ static uint64_t floatOrDoubleStringToBits(
   } else if (exponent < minNormalExponent && exponent >= minSubnormalExponent) {
     // subnormal
     uint64_t bits = sign == -1 ? minusZero : 0x0;
-    size_t ndigits = mantissaBits - (size_t)(exponent - minNormalExponent);
+    size_t ndigits = mantissaBits - (size_t)(minNormalExponent - exponent);
     bigIntRoundToN(&mantissa, ndigits);
-    bits |= bigIntGetNBits(&mantissa, ndigits) >> (mantissaBits - ndigits);
+    roundedMantissa = bigIntGetNBits(&mantissa, mantissaBits);  // trouble here?
+    bits |= roundedMantissa >> (mantissaBits - ndigits - 1);
     bigIntUninit(&mantissa);
     return bits;
   } else if (exponent < minSubnormalExponent) {
