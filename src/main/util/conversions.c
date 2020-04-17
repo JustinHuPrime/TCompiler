@@ -23,6 +23,7 @@
 #include "numericSizing.h"
 #include "optimization.h"
 
+#include <stdio.h>  // FIXME:
 #include <stdlib.h>
 #include <string.h>
 
@@ -30,42 +31,50 @@ uint8_t charToU8(char c) {
   union {
     char c;
     uint8_t u;
-  } u;
-  u.c = c;
-  return u.u;
+  } convert;
+  convert.c = c;
+  return convert.u;
+}
+char u8ToChar(uint8_t u) {
+  union {
+    char c;
+    uint8_t u;
+  } convert;
+  convert.u = u;
+  return convert.c;
 }
 
 float bitsToFloat(uint32_t bits) {
   union {
     uint32_t u;
     float f;
-  } u;
-  u.u = bits;
-  return u.f;
+  } convert;
+  convert.u = bits;
+  return convert.f;
 }
 double bitsToDouble(uint64_t bits) {
   union {
     uint64_t u;
     double d;
-  } u;
-  u.u = bits;
-  return u.d;
+  } convert;
+  convert.u = bits;
+  return convert.d;
 }
 uint32_t floatToBits(float f) {
   union {
     uint32_t u;
     float f;
-  } u;
-  u.f = f;
-  return u.u;
+  } convert;
+  convert.f = f;
+  return convert.u;
 }
 uint64_t doubleToBits(double d) {
   union {
     uint64_t u;
     double d;
-  } u;
-  u.d = d;
-  return u.u;
+  } convert;
+  convert.d = d;
+  return convert.u;
 }
 
 char u8ToNybble(uint8_t n) {
@@ -299,8 +308,8 @@ static void bigIntAddDigit(BigInteger *integer) {
  * @param integer integer to multiply
  * @param n value to multiply by
  */
-static void bigIntMul(BigInteger *integer, uint32_t n) {
-  uint32_t carry = 0;
+static void bigIntMul(BigInteger *integer, uint64_t n) {
+  uint64_t carry = 0;
   for (size_t idx = 0; idx < integer->size; idx++) {
     uint64_t digitResult = (uint64_t)integer->digits[idx] * n + carry;
     integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
@@ -316,8 +325,8 @@ static void bigIntMul(BigInteger *integer, uint32_t n) {
  * @param integer integer to add to
  * @param n value to add
  */
-static void bigIntAdd(BigInteger *integer, uint32_t n) {
-  uint32_t carry = n;
+static void bigIntAdd(BigInteger *integer, uint64_t n) {
+  uint64_t carry = n;
   for (size_t idx = 0; idx < integer->size; idx++) {
     uint64_t digitResult = (uint64_t)integer->digits[idx] + carry;
     integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
@@ -345,9 +354,18 @@ static size_t bigIntCountSigBits(BigInteger *integer) {
  * @param integer integer to get the bit from
  * @param idx index to get
  */
-static uint8_t bigIntBitAtIndex(BigInteger *integer, size_t idx) {
+static uint8_t bigIntGetBitAtIndex(BigInteger *integer, size_t idx) {
   uint32_t digit = integer->digits[idx / 32];
-  return (digit & (1U << idx % 32)) != 0 ? 1 : 0;
+  return (digit >> idx % 32) & 0x1U;
+}
+/**
+ * clears the nth bit from the least signficant bit
+ *
+ * @param integer integer to set the bit in
+ * @param idx index to set
+ */
+static void bigIntClearBitAtIndex(BigInteger *integer, size_t idx) {
+  integer->digits[idx / 32] &= ~(0x1U << idx % 32);
 }
 /**
  * adds one to the nth bit
@@ -369,28 +387,26 @@ static void bigIntAddOneToBit(BigInteger *integer, size_t n) {
   }
 }
 /**
- * change the n most significant bits to be as though the number was rounded
- * to n bits
- *
- * doesn't actually change bits if they would be truncated.
+ * round the number to n bits
  *
  * @param integer integer to round
  * @param n number of bits to round to
  */
 static void bigIntRoundToN(BigInteger *integer, size_t n) {
   // get a 'bit pointer' to the first bit in the first digit
-  size_t cutoffIndex = bigIntCountSigBits(integer) - 1;
+  size_t sigBits = bigIntCountSigBits(integer);
+  size_t cutoffIndex = sigBits - 1;
   // move that pointer to the bits to cut off
-  if (cutoffIndex < n + 1) return;  // already rounded
-  cutoffIndex -= n + 1;
+  if (cutoffIndex + 1 <= n) return;  // already rounded
+  cutoffIndex -= n;
 
   // cutoffIndex now points at the bits to round off
-  uint8_t firstBit = bigIntBitAtIndex(integer, cutoffIndex);
+  uint8_t firstBit = bigIntGetBitAtIndex(integer, cutoffIndex);
   if (firstBit == 0) {
     // if following digits are all zeroes, then no rounding, otherwise round
     // down
     for (size_t offset = 1; offset < cutoffIndex; offset++) {
-      if (bigIntBitAtIndex(integer, cutoffIndex - offset) == 1) {
+      if (bigIntGetBitAtIndex(integer, cutoffIndex - offset) == 1) {
         // round down
         integer->roundingErrorSign = -1;
       }
@@ -399,7 +415,7 @@ static void bigIntRoundToN(BigInteger *integer, size_t n) {
     // may be a round to even
     bool rounded = false;
     for (size_t offset = 1; offset < cutoffIndex; offset++) {
-      if (bigIntBitAtIndex(integer, cutoffIndex - offset) != 0) {
+      if (bigIntGetBitAtIndex(integer, cutoffIndex - offset) != 0) {
         // 0b...1...1... - round up
         integer->roundingErrorSign = 1;
         bigIntAddOneToBit(integer, cutoffIndex + 1);
@@ -418,7 +434,7 @@ static void bigIntRoundToN(BigInteger *integer, size_t n) {
         integer->roundingErrorSign = -1;
       } else {
         // really a round to even
-        if (bigIntBitAtIndex(integer, cutoffIndex + 1) == 0) {
+        if (bigIntGetBitAtIndex(integer, cutoffIndex + 1) == 0) {
           // round down
           integer->roundingErrorSign = -1;
         } else {
@@ -429,6 +445,10 @@ static void bigIntRoundToN(BigInteger *integer, size_t n) {
       }
     }
   }
+
+  // zero out the bits
+  for (size_t idx = 0; idx < sigBits - n; idx++)
+    bigIntClearBitAtIndex(integer, idx);
 }
 /**
  * get the n most significant, non-leading zero bits
@@ -444,7 +464,7 @@ static uint64_t bigIntGetNBits(BigInteger *integer, size_t n) {
   size_t start = bigIntCountSigBits(integer) - 1;
   for (size_t offset = 0; offset < n; offset++) {
     retval <<= 1;
-    retval |= bigIntBitAtIndex(integer, start - offset);
+    retval |= bigIntGetBitAtIndex(integer, start - offset);
   }
   return retval;
 }
@@ -637,7 +657,7 @@ static uint64_t floatOrDoubleStringToBits(
       }
       if (mantissa.roundingErrorSign == 0) {
         // didn't round - now round to even
-        if (bigIntBitAtIndex(&mantissa, 0) == 0) {
+        if (bigIntGetBitAtIndex(&mantissa, 0) == 0) {
           // round down
           mantissa.roundingErrorSign = -1;
         } else {
@@ -670,7 +690,7 @@ static uint64_t floatOrDoubleStringToBits(
 
     // round off the rest of the fractional part
     uint8_t adjustment =
-        digitChainRound(&chain, bigIntBitAtIndex(&mantissa, 0));
+        digitChainRound(&chain, bigIntGetBitAtIndex(&mantissa, 0));
     bigIntAdd(&mantissa, adjustment);
     roundedMantissa = bigIntGetNBits(&mantissa, mantissaBits + 1);
     // mantissa->roundingErrorSign == 0 at this point - set it for the digit
@@ -697,8 +717,8 @@ static uint64_t floatOrDoubleStringToBits(
     // subnormal
     uint64_t bits = sign == -1 ? minusZero : 0x0;
     size_t ndigits = mantissaBits - (size_t)(minNormalExponent - exponent);
-    bigIntRoundToN(&mantissa, ndigits);
-    roundedMantissa = bigIntGetNBits(&mantissa, mantissaBits);  // trouble here?
+    bigIntRoundToN(&mantissa, ndigits + 1);
+    roundedMantissa = bigIntGetNBits(&mantissa, mantissaBits);
     bits |= roundedMantissa >> (mantissaBits - ndigits - 1);
     bigIntUninit(&mantissa);
     return bits;

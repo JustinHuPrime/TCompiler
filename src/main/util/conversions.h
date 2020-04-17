@@ -35,6 +35,13 @@
  * @returns converted value
  */
 uint8_t charToU8(char c);
+/**
+ * converts an unsigned byte to a char through a type pun
+ *
+ * @param u byte to convert
+ * @returns converted value
+ */
+char u8ToChar(uint8_t u);
 
 /**
  * converts a set of 32 bits to a float through a type pun

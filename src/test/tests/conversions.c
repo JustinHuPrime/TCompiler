@@ -29,8 +29,9 @@
 #include "util/format.h"
 
 #include <math.h>
-#include <stdio.h>
+#include <stdio.h>  // FIXME:
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 char *ignored;
@@ -112,13 +113,8 @@ static void testSubnormalFloatConversions(void) {
     float stdlibValue = strtof(stringValue, &ignored);
     uint32_t stdlibBits = floatToBits(stdlibValue);
     uint32_t conversionBits = floatStringToBits(stringValue);
-    if (stdlibBits != conversionBits) {
-      printf("String = %s\n", stringValue);
-      printf("Mantissa: expected 0x%X (%u), got 0x%X (%u)\n",
-             stdlibBits & 0x7fffff, stdlibBits & 0x7fffff,
-             conversionBits & 0x7fffff, conversionBits & 0x7fffff);
-      floatOK = false;
-    }
+    if (stdlibBits != conversionBits) floatOK = false;
+
     free(stringValue);
   }
   test("subnormal float parsing", floatOK);
@@ -126,8 +122,7 @@ static void testSubnormalFloatConversions(void) {
 
 static void testSubnormalDoubleConversions(void) {
   srand(0);
-
-  bool floatOK = true;
+  bool doubleOK = true;
   for (size_t count = 0; count < 10000; count++) {
     uint8_t sign = (uint8_t)(rand() % 2);
     uint16_t exponent = 0;
@@ -138,19 +133,159 @@ static void testSubnormalDoubleConversions(void) {
     double originalValue = bitsToDouble(doubleBits);
     char *stringValue = format("%.325f", originalValue);
 
+    double stdlibValue = strtod(stringValue, &ignored);
+    uint64_t stdlibBits = doubleToBits(stdlibValue);
+    uint64_t conversionBits = doubleStringToBits(stringValue);
+    if (stdlibBits != conversionBits) doubleOK = false;
+
+    free(stringValue);
+  }
+  test("subnormal double parsing", doubleOK);
+}
+
+static void testOverflowFloatConversions(void) {
+  srand(0);
+
+  bool floatOK = true;
+  for (size_t count = 0; count < 10000; count++) {
+    uint8_t sign = (uint8_t)(rand() % 2);
+
+    size_t stringLength = 39 + (unsigned)rand() % 20;
+    char *digits = calloc(stringLength + 1, sizeof(char));
+    digits[0] = u8ToChar((uint8_t)(charToU8('1') + rand() % 9));
+    for (size_t idx = 1; idx < stringLength; idx++)
+      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + rand() % 10));
+
+    char *stringValue = format("%c%s.0", sign == 0 ? '+' : '-', digits);
+    free(digits);
+
+    float stdlibValue = strtof(stringValue, &ignored);
+    uint32_t stdlibBits = floatToBits(stdlibValue);
+    uint32_t conversionBits = floatStringToBits(stringValue);
+    if (stdlibBits != conversionBits) floatOK = false;
+
+    free(stringValue);
+  }
+  test("overflow float parsing", floatOK);
+}
+
+static void testOverflowDoubleConversions(void) {
+  srand(0);
+
+  bool floatOK = true;
+  for (size_t count = 0; count < 10000; count++) {
+    uint8_t sign = (uint8_t)(rand() % 2);
+
+    size_t stringLength = 309 + (unsigned)rand() % 20;
+    char *digits = calloc(stringLength + 1, sizeof(char));
+    digits[0] = u8ToChar((uint8_t)(charToU8('1') + rand() % 9));
+    for (size_t idx = 1; idx < stringLength; idx++)
+      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + rand() % 10));
+
+    char *stringValue = format("%c%s.0", sign == 0 ? '+' : '-', digits);
+    free(digits);
+
+    double stdlibValue = strtod(stringValue, &ignored);
+    uint64_t stdlibBits = doubleToBits(stdlibValue);
+    uint64_t conversionBits = doubleStringToBits(stringValue);
+    if (stdlibBits != conversionBits) floatOK = false;
+
+    free(stringValue);
+  }
+  test("overflow double parsing", floatOK);
+}
+
+static void testUnderflowFloatConversions(void) {
+  srand(0);
+
+  bool floatOK = true;
+  for (size_t count = 0; count < 10000; count++) {
+    uint8_t sign = (uint8_t)(rand() % 2);
+
+    size_t zeroLength = 36 + (unsigned)rand() % 10;
+    char *zeroes = calloc(zeroLength + 1, sizeof(char));
+    memset(zeroes, '0', zeroLength);
+
+    size_t digitLength = 1 + (unsigned)rand() % 10;
+    char *digits = calloc(digitLength + 1, sizeof(char));
+    digits[0] = u8ToChar((uint8_t)(charToU8('1') + rand() % 9));
+    for (size_t idx = 1; idx < digitLength; idx++)
+      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + rand() % 10));
+
+    char *stringValue =
+        format("%c0.%s%s", sign == 0 ? '+' : '-', zeroes, digits);
+    free(digits);
+
     float stdlibValue = strtof(stringValue, &ignored);
     uint32_t stdlibBits = floatToBits(stdlibValue);
     uint32_t conversionBits = floatStringToBits(stringValue);
     if (stdlibBits != conversionBits) {
-      printf("String = %s\n", stringValue);
-      printf("Mantissa: expected 0x%X (%u), got 0x%X (%u)\n",
-             stdlibBits & 0x7fffff, stdlibBits & 0x7fffff,
-             conversionBits & 0x7fffff, conversionBits & 0x7fffff);
+      printf("Value: expected 0x%x, got 0x%x\n", stdlibBits, conversionBits);
       floatOK = false;
     }
+
     free(stringValue);
   }
-  test("subnormal float parsing", floatOK);
+  test("underflow float parsing", floatOK);
+}
+
+static void testUnderflowDoubleConversions(void) {
+  srand(0);
+
+  bool floatOK = true;
+  for (size_t count = 0; count < 10000; count++) {
+    uint8_t sign = (uint8_t)(rand() % 2);
+    size_t stringLength = 309 + (unsigned)rand() % 20;
+    char *digits = calloc(stringLength + 1, sizeof(char));
+    digits[0] = u8ToChar((uint8_t)(charToU8('1') + rand() % 9));
+    for (size_t idx = 1; idx < stringLength; idx++) {
+      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + rand() % 10));
+    }
+    char *stringValue = format("%c%s.0", sign == 0 ? '+' : '-', digits);
+    free(digits);
+
+    double stdlibValue = strtod(stringValue, &ignored);
+    uint64_t stdlibBits = doubleToBits(stdlibValue);
+    uint64_t conversionBits = doubleStringToBits(stringValue);
+    if (stdlibBits != conversionBits) floatOK = false;
+
+    free(stringValue);
+  }
+  test("underflow double parsing", floatOK);
+}
+
+static void testSpecial(void) {
+  srand(0);
+
+  bool floatOK = true;
+  for (size_t count = 0; count < 10000; count++) {
+    uint8_t sign = (uint8_t)(rand() % 2);
+
+    size_t zeroLength = 36 + (unsigned)rand() % 10;
+    char *zeroes = calloc(zeroLength + 1, sizeof(char));
+    memset(zeroes, '0', zeroLength);
+
+    size_t digitLength = 1 + (unsigned)rand() % 10;
+    char *digits = calloc(digitLength + 1, sizeof(char));
+    digits[0] = u8ToChar((uint8_t)(charToU8('1') + rand() % 9));
+    for (size_t idx = 1; idx < digitLength; idx++)
+      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + rand() % 10));
+
+    char *stringValue =
+        format("%c0.%s%s", sign == 0 ? '+' : '-', zeroes, digits);
+    free(digits);
+
+    float stdlibValue = strtof(stringValue, &ignored);
+    uint32_t stdlibBits = floatToBits(stdlibValue);
+    uint32_t conversionBits = floatStringToBits(stringValue);
+    if (stdlibBits != conversionBits) {
+      printf("Value: expected 0x%x, got 0x%x\n", stdlibBits, conversionBits);
+      floatOK = false;
+    }
+
+    free(stringValue);
+  }
+  test("underflow float parsing", floatOK);
 }
 
 void testConversions(void) {
@@ -158,4 +293,7 @@ void testConversions(void) {
   testNormalDoubleConversions();
   testSubnormalFloatConversions();
   testSubnormalDoubleConversions();
+  testOverflowFloatConversions();
+  testOverflowDoubleConversions();
+  // testUnderflowFloatConversions();
 }
