@@ -343,6 +343,7 @@ static void bigIntAdd(BigInteger *integer, uint64_t n) {
  * @returns number of non-leading zero bits
  */
 static size_t bigIntCountSigBits(BigInteger *integer) {
+  if (integer->size == 0) return 0;
   size_t count = 32 * (integer->size - 1);
   for (uint32_t msd = integer->digits[integer->size - 1]; msd != 0; msd >>= 1)
     count++;
@@ -379,8 +380,8 @@ static void bigIntAddOneToBit(BigInteger *integer, size_t n) {
   uint32_t carry = 1U << n % 32;
   for (size_t idx = n / 32; idx < integer->size; idx++) {
     uint64_t digitResult = integer->digits[idx] + carry;
-    integer->digits[idx] = (uint32_t)(digitResult % UINT32_MAX);
-    carry = (uint32_t)(digitResult / UINT32_MAX);
+    integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
+    carry = (uint32_t)(digitResult / 0x100000000);
     if (idx + 1 == integer->size && carry != 0)
       // add a digit to be carried in to
       bigIntAddDigit(integer);
@@ -405,7 +406,7 @@ static void bigIntRoundToN(BigInteger *integer, size_t n) {
   if (firstBit == 0) {
     // if following digits are all zeroes, then no rounding, otherwise round
     // down
-    for (size_t offset = 1; offset < cutoffIndex; offset++) {
+    for (size_t offset = 1; offset <= cutoffIndex; offset++) {
       if (bigIntGetBitAtIndex(integer, cutoffIndex - offset) == 1) {
         // round down
         integer->roundingErrorSign = -1;
@@ -414,10 +415,11 @@ static void bigIntRoundToN(BigInteger *integer, size_t n) {
   } else {
     // may be a round to even
     bool rounded = false;
-    for (size_t offset = 1; offset < cutoffIndex; offset++) {
+    for (size_t offset = 1; offset <= cutoffIndex; offset++) {
       if (bigIntGetBitAtIndex(integer, cutoffIndex - offset) != 0) {
         // 0b...1...1... - round up
         integer->roundingErrorSign = 1;
+        printf("Adding one to the %zuth bit\n", cutoffIndex + 1);
         bigIntAddOneToBit(integer, cutoffIndex + 1);
         rounded = true;
         break;
@@ -447,7 +449,7 @@ static void bigIntRoundToN(BigInteger *integer, size_t n) {
   }
 
   // zero out the bits
-  for (size_t idx = 0; idx < sigBits - n; idx++)
+  for (size_t idx = 0; idx < cutoffIndex; idx++)
     bigIntClearBitAtIndex(integer, idx);
 }
 /**
@@ -483,6 +485,17 @@ static bool bigIntIsZero(BigInteger *integer) {
  * @param integer integer to uninit
  */
 static void bigIntUninit(BigInteger *integer) { free(integer->digits); }
+/**
+ * DEBUG ONLY - prints the mantissa
+ *
+ * @param integer integer to look at
+ */
+static void bigIntPrintMantissa(BigInteger *integer) {
+  printf("0x");
+  for (size_t offset = 1; offset <= integer->size; offset++)
+    printf("%X", integer->digits[integer->size - offset]);
+  printf("\n");
+}
 
 /**
  * a chain of decimal digits, as unpacked BCD
@@ -619,6 +632,8 @@ static uint64_t floatOrDoubleStringToBits(
   }
   string++;  // skip the dot
 
+  bigIntPrintMantissa(&mantissa);
+
   if (bigIntCountSigBits(&mantissa) > mantissaBits) {
     // has mantissaBits or more significant (non-leading-zero) bits set
     // round off the decimal part (remember the rounding error sign), then
@@ -688,6 +703,8 @@ static uint64_t floatOrDoubleStringToBits(
       if (bigIntIsZero(&mantissa)) exponent--;
     }
 
+    bigIntPrintMantissa(&mantissa);
+
     // round off the rest of the fractional part
     uint8_t adjustment =
         digitChainRound(&chain, bigIntGetBitAtIndex(&mantissa, 0));
@@ -705,6 +722,8 @@ static uint64_t floatOrDoubleStringToBits(
       mantissa.roundingErrorSign = 1;
     }
 
+    bigIntPrintMantissa(&mantissa);
+
     digitChainUninit(&chain);
   }
 
@@ -716,10 +735,22 @@ static uint64_t floatOrDoubleStringToBits(
   } else if (exponent < minNormalExponent && exponent >= minSubnormalExponent) {
     // subnormal
     uint64_t bits = sign == -1 ? minusZero : 0x0;
-    size_t ndigits = mantissaBits - (size_t)(minNormalExponent - exponent);
-    bigIntRoundToN(&mantissa, ndigits + 1);
+    size_t ndigits = mantissaBits - (size_t)(minNormalExponent - exponent) + 1;
+    size_t sigBitsBefore = bigIntCountSigBits(&mantissa);
+    bigIntPrintMantissa(&mantissa);
+    printf("DEBUG: trying to round to %zu bits\n", ndigits);
+    bigIntRoundToN(&mantissa, ndigits);
+    size_t sigBitsAfter = bigIntCountSigBits(&mantissa);
+    size_t sigBitDelta = sigBitsAfter - sigBitsBefore;
     roundedMantissa = bigIntGetNBits(&mantissa, mantissaBits);
-    bits |= roundedMantissa >> (mantissaBits - ndigits - 1);
+    bigIntPrintMantissa(&mantissa);
+
+    if (ndigits != 0) {
+      bits |= roundedMantissa >>
+              ((size_t)(minNormalExponent - exponent) - 1 - sigBitDelta);
+    } else {
+      bits |= roundedMantissa >> (mantissaBits - 1);
+    }
     bigIntUninit(&mantissa);
     return bits;
   } else if (exponent < minSubnormalExponent) {
