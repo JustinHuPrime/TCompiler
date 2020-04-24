@@ -43,7 +43,7 @@ typedef enum {
  */
 typedef struct {
   SymbolType type;
-  // TODO: fill in the actual data
+  // TODO: more data needed later
 } SymbolTableEntry;
 
 /**

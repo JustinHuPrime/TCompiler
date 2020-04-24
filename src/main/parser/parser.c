@@ -1297,6 +1297,17 @@ static Node *parseType(FileListEntry *entry) {
 
 // expressions
 
+/**
+ * parses an expression - this must be an expression
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseExpressionStmt(FileListEntry *entry, Token *start) {
+  return NULL;  // TODO: write this
+}
+
 // statements
 
 static Node *parseStmt(FileListEntry *entry, Token *start);
@@ -1313,6 +1324,126 @@ static Node *parseCompoundStmt(FileListEntry *entry, Token *lbrace) {
 }
 
 /**
+ * parses an if statement
+ *
+ * @param entry entry to lex from
+ * @param keyword first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseIfStmt(FileListEntry *entry, Token *keyword) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a while statement
+ *
+ * @param entry entry to lex from
+ * @param keyword first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseWhileStmt(FileListEntry *entry, Token *keyword) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a do-while statement
+ *
+ * @param entry entry to lex from
+ * @param keyword first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseDoWhileStmt(FileListEntry *entry, Token *keyword) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a for statement
+ *
+ * @param entry entry to lex from
+ * @param keyword first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseForStmt(FileListEntry *entry, Token *keyword) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a switch statement
+ *
+ * @param entry entry to lex from
+ * @param keyword first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseSwitchStmt(FileListEntry *entry, Token *keyword) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a break statement
+ *
+ * @param entry entry to lex from
+ * @param keyword first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseBreakStmt(FileListEntry *entry, Token *keyword) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a continue statement
+ *
+ * @param entry entry to lex from
+ * @param keyword first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseContinueStmt(FileListEntry *entry, Token *keyword) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a return statement
+ *
+ * @param entry entry to lex from
+ * @param keyword first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseReturnStmt(FileListEntry *entry, Token *keyword) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses an asm statement
+ *
+ * @param entry entry to lex from
+ * @param keyword first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseAsmStmt(FileListEntry *entry, Token *keyword) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses an expression or var decl into an unparsed node
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns ast node or null if fatal error happened
+ */
+static Node *parseExpressionOrVarDeclStmt(FileListEntry *entry, Token *start) {
+  return NULL;  // TODO: write this
+}
+
+static Node *parseOpaqueDecl(FileListEntry *entry, Token *start,
+                             void (*panic)(FileListEntry *));
+static Node *parseStructDecl(FileListEntry *entry, Token *start,
+                             void (*panic)(FileListEntry *));
+static Node *parseUnionDecl(FileListEntry *entry, Token *start,
+                            void (*panic)(FileListEntry *));
+static Node *parseEnumDecl(FileListEntry *entry, Token *start,
+                           void (*panic)(FileListEntry *));
+static Node *parseTypedefDecl(FileListEntry *entry, Token *start,
+                              void (*panic)(FileListEntry *));
+/**
  * parses any statement
  *
  * @param entry entry to lex from
@@ -1320,7 +1451,91 @@ static Node *parseCompoundStmt(FileListEntry *entry, Token *lbrace) {
  * @returns ast node or null if fatal error happened
  */
 static Node *parseStmt(FileListEntry *entry, Token *start) {
-  return NULL;  // TODO: write this
+  switch (start->type) {
+    case TT_LBRACE: {
+      return parseCompoundStmt(entry, start);
+    }
+    case TT_IF: {
+      return parseIfStmt(entry, start);
+    }
+    case TT_WHILE: {
+      return parseWhileStmt(entry, start);
+    }
+    case TT_DO: {
+      return parseDoWhileStmt(entry, start);
+    }
+    case TT_FOR: {
+      return parseForStmt(entry, start);
+    }
+    case TT_SWITCH: {
+      return parseSwitchStmt(entry, start);
+    }
+    case TT_BREAK: {
+      return parseBreakStmt(entry, start);
+    }
+    case TT_CONTINUE: {
+      return parseContinueStmt(entry, start);
+    }
+    case TT_RETURN: {
+      return parseReturnStmt(entry, start);
+    }
+    case TT_ASM: {
+      return parseAsmStmt(entry, start);
+    }
+    case TT_ID: {
+      return parseExpressionOrVarDeclStmt(entry, start);
+    }
+    case TT_OPAQUE: {
+      return parseOpaqueDecl(entry, start, panicStmt);
+    }
+    case TT_STRUCT: {
+      return parseStructDecl(entry, start, panicStmt);
+    }
+    case TT_UNION: {
+      return parseUnionDecl(entry, start, panicStmt);
+    }
+    case TT_ENUM: {
+      return parseEnumDecl(entry, start, panicStmt);
+    }
+    case TT_TYPEDEF: {
+      return parseTypedefDecl(entry, start, panicStmt);
+    }
+    case TT_STAR:
+    case TT_AMP:
+    case TT_INC:
+    case TT_DEC:
+    case TT_MINUS:
+    case TT_BANG:
+    case TT_TILDE:
+    case TT_LIT_INT_0:
+    case TT_LIT_INT_B:
+    case TT_LIT_INT_O:
+    case TT_LIT_INT_D:
+    case TT_LIT_INT_H:
+    case TT_LIT_CHAR:
+    case TT_LIT_WCHAR:
+    case TT_LIT_FLOAT:
+    case TT_LIT_DOUBLE:
+    case TT_LIT_STRING:
+    case TT_LIT_WSTRING:
+    case TT_TRUE:
+    case TT_FALSE:
+    case TT_NULL:
+    case TT_LSQUARE: {
+      return parseExpressionStmt(entry, start);
+    }
+    case TT_SEMI: {
+      return createNullStmt(start);
+    }
+    default: {
+      errorExpectedString(entry, "a statement", start);
+
+      unLex(entry, start);
+      panicStmt(entry);
+
+      return NULL;
+    }
+  }
 }
 
 // top level stuff
@@ -2128,10 +2343,11 @@ static Node *parseFunOrVarDeclOrDefn(FileListEntry *entry, Token *start) {
  * @param start first token
  * @returns declaration or null if fatal error
  */
-static Node *parseOpaqueDecl(FileListEntry *entry, Token *start) {
+static Node *parseOpaqueDecl(FileListEntry *entry, Token *start,
+                             void (*panic)(FileListEntry *)) {
   Node *name = parseId(entry);
   if (name == NULL) {
-    panicTopLevel(entry);
+    panic(entry);
     return NULL;
   }
 
@@ -2141,7 +2357,7 @@ static Node *parseOpaqueDecl(FileListEntry *entry, Token *start) {
     errorExpectedToken(entry, TT_SEMI, &semicolon);
 
     unLex(entry, &semicolon);
-    panicTopLevel(entry);
+    panic(entry);
 
     nodeFree(name);
     return NULL;
@@ -2223,10 +2439,11 @@ static Node *parseFieldOrOptionDecl(FileListEntry *entry, Token *start) {
  * @param start first token
  * @returns declaration or null if fatal error
  */
-static Node *parseStructDecl(FileListEntry *entry, Token *start) {
+static Node *parseStructDecl(FileListEntry *entry, Token *start,
+                             void (*panic)(FileListEntry *)) {
   Node *name = parseId(entry);
   if (name == NULL) {
-    panicTopLevel(entry);
+    panic(entry);
     return NULL;
   }
 
@@ -2236,7 +2453,7 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
     errorExpectedToken(entry, TT_LBRACE, &lbrace);
 
     unLex(entry, &lbrace);
-    panicTopLevel(entry);
+    panic(entry);
 
     nodeFree(name);
     return NULL;
@@ -2264,7 +2481,7 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
         // this is the start of a field
         Node *field = parseFieldOrOptionDecl(entry, &peek);
         if (field == NULL) {
-          panicTopLevel(entry);
+          panic(entry);
 
           nodeFree(name);
           nodeVectorFree(fields);
@@ -2281,7 +2498,7 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
         errorExpectedString(entry, "a right brace or a field", &peek);
 
         unLex(entry, &peek);
-        panicTopLevel(entry);
+        panic(entry);
 
         nodeFree(name);
         nodeVectorFree(fields);
@@ -2308,7 +2525,7 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
     errorExpectedToken(entry, TT_SEMI, &semicolon);
 
     unLex(entry, &semicolon);
-    panicTopLevel(entry);
+    panic(entry);
 
     nodeFree(name);
     nodeVectorFree(fields);
@@ -2325,10 +2542,11 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
  * @param start first token
  * @returns declaration or null if fatal error
  */
-static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
+static Node *parseUnionDecl(FileListEntry *entry, Token *start,
+                            void (*panic)(FileListEntry *)) {
   Node *name = parseId(entry);
   if (name == NULL) {
-    panicTopLevel(entry);
+    panic(entry);
     return NULL;
   }
 
@@ -2338,7 +2556,7 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
     errorExpectedToken(entry, TT_LBRACE, &lbrace);
 
     unLex(entry, &lbrace);
-    panicTopLevel(entry);
+    panic(entry);
 
     nodeFree(name);
     return NULL;
@@ -2366,7 +2584,7 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
         // this is the start of an option
         Node *option = parseFieldOrOptionDecl(entry, &peek);
         if (option == NULL) {
-          panicTopLevel(entry);
+          panic(entry);
 
           nodeFree(name);
           nodeVectorFree(options);
@@ -2383,7 +2601,7 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
         errorExpectedString(entry, "a right brace or an option", &peek);
 
         unLex(entry, &peek);
-        panicTopLevel(entry);
+        panic(entry);
 
         nodeFree(name);
         nodeVectorFree(options);
@@ -2410,7 +2628,7 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
     errorExpectedToken(entry, TT_SEMI, &semicolon);
 
     unLex(entry, &semicolon);
-    panicTopLevel(entry);
+    panic(entry);
 
     nodeFree(name);
     nodeVectorFree(options);
@@ -2427,10 +2645,11 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
  * @param start first token
  * @returns declaration or null if fatal error
  */
-static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
+static Node *parseEnumDecl(FileListEntry *entry, Token *start,
+                           void (*panic)(FileListEntry *)) {
   Node *name = parseId(entry);
   if (name == NULL) {
-    panicTopLevel(entry);
+    panic(entry);
     return NULL;
   }
 
@@ -2440,7 +2659,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
     errorExpectedToken(entry, TT_LBRACE, &lbrace);
 
     unLex(entry, &lbrace);
-    panicTopLevel(entry);
+    panic(entry);
 
     nodeFree(name);
     return NULL;
@@ -2463,7 +2682,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
             // has an extended int literal
             Node *literal = parseExtendedIntLiteral(entry);
             if (literal == NULL) {
-              panicTopLevel(entry);
+              panic(entry);
 
               nodeFree(name);
               nodeVectorFree(constantNames);
@@ -2487,7 +2706,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
                 errorExpectedString(entry, "a comma or a right brace", &peek);
 
                 unLex(entry, &peek);
-                panicTopLevel(entry);
+                panic(entry);
 
                 nodeFree(name);
                 nodeVectorFree(constantNames);
@@ -2514,7 +2733,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
                 entry, "a comma, an equals sign, or a right brace", &peek);
 
             unLex(entry, &peek);
-            panicTopLevel(entry);
+            panic(entry);
 
             nodeFree(name);
             nodeVectorFree(constantNames);
@@ -2533,7 +2752,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
                             &peek);
 
         unLex(entry, &peek);
-        panicTopLevel(entry);
+        panic(entry);
 
         nodeFree(name);
         nodeVectorFree(constantNames);
@@ -2550,7 +2769,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
             entry->inputFile, lbrace.line, lbrace.character);
     entry->errored = true;
 
-    panicTopLevel(entry);
+    panic(entry);
 
     nodeFree(name);
     nodeVectorFree(constantNames);
@@ -2564,7 +2783,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
     errorExpectedToken(entry, TT_SEMI, &semicolon);
 
     unLex(entry, &semicolon);
-    panicTopLevel(entry);
+    panic(entry);
 
     nodeFree(name);
     nodeVectorFree(constantNames);
@@ -2582,17 +2801,18 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
  * @param start first token
  * @returns declaration or null if fatal error
  */
-static Node *parseTypedefDecl(FileListEntry *entry, Token *start) {
+static Node *parseTypedefDecl(FileListEntry *entry, Token *start,
+                              void (*panic)(FileListEntry *)) {
   Node *originalType = parseType(entry);
   if (originalType == NULL) {
-    panicTopLevel(entry);
+    panic(entry);
 
     return NULL;
   }
 
   Node *name = parseId(entry);
   if (name == NULL) {
-    panicTopLevel(entry);
+    panic(entry);
 
     nodeFree(originalType);
     return NULL;
@@ -2604,7 +2824,7 @@ static Node *parseTypedefDecl(FileListEntry *entry, Token *start) {
     errorExpectedToken(entry, TT_SEMI, &semicolon);
 
     unLex(entry, &semicolon);
-    panicTopLevel(entry);
+    panic(entry);
 
     nodeFree(originalType);
     nodeFree(name);
@@ -2652,27 +2872,27 @@ static Vector *parseBodies(FileListEntry *entry) {
         break;
       }
       case TT_OPAQUE: {
-        Node *decl = parseOpaqueDecl(entry, &start);
+        Node *decl = parseOpaqueDecl(entry, &start, panicStmt);
         if (decl != NULL) vectorInsert(bodies, decl);
         break;
       }
       case TT_STRUCT: {
-        Node *decl = parseStructDecl(entry, &start);
+        Node *decl = parseStructDecl(entry, &start, panicStmt);
         if (decl != NULL) vectorInsert(bodies, decl);
         break;
       }
       case TT_UNION: {
-        Node *decl = parseUnionDecl(entry, &start);
+        Node *decl = parseUnionDecl(entry, &start, panicStmt);
         if (decl != NULL) vectorInsert(bodies, decl);
         break;
       }
       case TT_ENUM: {
-        Node *decl = parseEnumDecl(entry, &start);
+        Node *decl = parseEnumDecl(entry, &start, panicStmt);
         if (decl != NULL) vectorInsert(bodies, decl);
         break;
       }
       case TT_TYPEDEF: {
-        Node *decl = parseTypedefDecl(entry, &start);
+        Node *decl = parseTypedefDecl(entry, &start, panicStmt);
         if (decl != NULL) vectorInsert(bodies, decl);
         break;
       }
@@ -2718,7 +2938,7 @@ int parse(void) {
 
   lexerInitMaps();
 
-  // pass one - parse and gather top-level names, leaving some nodes as unparsed
+  // pass one - parse, without populating symbol tables
   for (size_t idx = 0; idx < fileList.size; idx++) {
     retval = lexerStateInit(&fileList.entries[idx]);
     if (retval != 0) {
@@ -2741,8 +2961,9 @@ int parse(void) {
     return -1;
   }
 
-  // pass two - generate symbol tables
-  // pass three - resolve imports and parse unparsed nodes
+  // pass two - populate symbol tables
+  // pass three - resolve imports and parse unparsed nodes, populating the
+  // symbol table as we go
 
   return 0;
 }
