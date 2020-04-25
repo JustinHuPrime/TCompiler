@@ -37,12 +37,12 @@ statement = compound_statement
           | return_statement
           | asm_statement
           | variable_definition_statement
+          | expression_statement
           | opaque_declaration
           | struct_declaration
           | union_declaration
           | enum_declaration
           | typedef_declaration
-          | expression, ";"
           | ";"
 ;
 
@@ -50,13 +50,14 @@ compound_statement = "{", { statement }, "}" ;
 if_statement = "if", "(", expression, ")", statement, [ "else", statement ] ;
 while_statement = "while", "(", expression, ")", statement ;
 do_while_statement = "do", statement, "while", "(", expression, ")" ;
-for_statement = "for", "(", ( variable_definition_statement | expression, ";" | ";" ), expression, ";", [ expression ], ")", statement ;
+for_statement = "for", "(", ( variable_definition_statement | expression_statement | ";" ), expression, ";", [ expression ], ")", statement ;
 switch_statement = "switch", "(", expression, ")", "{", switch_statement_case | switch_statement_default, { switch_statement_case | switch_statement_default }, "}" ;
 break_statement = "break", ";" ;
 continue_statement = "continue", ";" ;
 return_statement = "return", [ expression ], ";" ;
 asm_statement = "asm", string_literal, ";" ;
 variable_definition_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
+expression_statement = expression, ";" ;
 
 switch_statement_case = "case", extended_int_literal, ":", { "case", extended_int_literal, ":" }, statement ;
 switch_statement_default = "default", ":", statement ;

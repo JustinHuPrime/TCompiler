@@ -376,6 +376,8 @@ A variable declaration statement creates a variable, and optionally initializes 
 
 \section{Expression Statement}
 
+\lstinputlisting[breaklines=true, firstline=60, lastline=60]{"Appendix B - Syntax.ebnf"}
+
 The expression statement is an expression followed by a semicolon. The expression is evaluated for side-effects, and only side-effects.
 
 \section{Empty Statement}
@@ -502,13 +504,13 @@ Operators combine one or more expressions, and produce a value. See the above fo
 
 \subsection{Sequencing Operator}
 
-\lstinputlisting[breaklines=true, firstline=64, lastline=66]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=65, lastline=67]{"Appendix B - Syntax.ebnf"}
 
 The sequencing operator (\texttt{,}), evaluates the left hand side for side-effects, and evaluates the right hand side for a value, and produces that value.
 
 \subsection{Assignment Operators}
 
-\lstinputlisting[breaklines=true, firstline=67, lastline=82]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=68, lastline=83]{"Appendix B - Syntax.ebnf"}
 
 The plain assignment operator (\texttt{=}) evaluates the left hand side as a value to assign to, then evaluates the right hand side as a value, and assigns the result of the right hand side to the result of the left hand side.
 
@@ -518,55 +520,55 @@ Assignment does not require the types to match, but restrictions are applied on 
 
 \subsection{Ternary Conditional Operators}
 
-\lstinputlisting[breaklines=true, firstline=83, lastline=85]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=84, lastline=86]{"Appendix B - Syntax.ebnf"}
 
 The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated. The resulting value is converted to a type that can hold the type of either branch of the expression. See Appendix C - Expression Type Merging for a table detailing these rules.
 
 \subsection{Logical Operators}
 
-\lstinputlisting[breaklines=true, firstline=86, lastline=86]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=87, lastline=87]{"Appendix B - Syntax.ebnf"}
 
 Logical operators operate on boolean values. The logical-and operator (\texttt{\&\&}) evaluates the left hand side. If the left hand value is false, it does not evaluate the right hand side, and produces false. If the left hand value is true, it produces the value of the right hand side. The logical-or operator (\texttt{||}) evaluates the left hand side. If the left hand value is true, it does not evaluate the right hand side, and produces true. If the left hand value is false, it produces the value of the right hand side.
 
 \subsection{Bitwise Operators}
 
-\lstinputlisting[breaklines=true, firstline=87, lastline=87]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=88, lastline=88]{"Appendix B - Syntax.ebnf"}
 
 Bitwise operators operate on integer values (\texttt{ubyte}, \texttt{byte}, \texttt{ushort}, \texttt{short}, \texttt{uint}, \texttt{int}, \texttt{ulong}, \texttt{long}). Additionally, before performing any bitwise operations, the values are converted according to Appendix C, and then the operation is performed.
 
 \subsection{Comparison Operators}
 
-\lstinputlisting[breaklines=true, firstline=88, lastline=89]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=89, lastline=90]{"Appendix B - Syntax.ebnf"}
 
 There are two kinds of comparison operators - equality comparison operators (\texttt{==}, \texttt{!=}), and relational comparison operators (\texttt{<}, \texttt{>}, \texttt{<=}, \texttt{>=}). All comparison operators first convert the types into a common type (see Appendix D - Comparison Type Merging for details). These comparisons are only valid on base types that are numeric, characters, booleans, or pointers. The comparisons check for numeric equality, inequality, or numeric relations. The result is a boolean value.
 
 \subsection{Three-Way Comparison Operators}
 
-\lstinputlisting[breaklines=true, firstline=90, lastline=90]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=91, lastline=91]{"Appendix B - Syntax.ebnf"}
 
 The three-way comparison operator expects its inputs to be numeric, characters, booleans, or pointers. It evaluates both inputs, and converts them to a common type (see Appendix D). Then, it compares these inputs. If the left hand side is less than the right hand side, it produces -1, if they are equal, 0, and if the left hand side is greater than the right hand side, it produces 1. The inputs are only evaluated once, and the output is a \texttt{byte}.
 
 \subsection{Shift Operators}
 
-\lstinputlisting[breaklines=true, firstline=91, lastline=91]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=92, lastline=92]{"Appendix B - Syntax.ebnf"}
 
 The shift operators expect an integral value for their left hand side, and an unsigned integral value for their right hand side. Performing no conversion, the value is bit-shifted by the number of bits given in the right hand side value. This value must be less than the number of bits in the left hand side value. In case of a left-shift operator (\texttt{<<}) or a logical-right-shift operator (\texttt{>>>}), the value is zero-filled. In case of an arithmetic-right-shift operator (\texttt{>>}), the value is sign-filled.
 
 \subsection{Addition Operators}
 
-\lstinputlisting[breaklines=true, firstline=92, lastline=92]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=93, lastline=93]{"Appendix B - Syntax.ebnf"}
 
 Addition and subtraction expressions both support two numeric operands, in which case they will evaluate the left hand side, then the right hand side, convert to a common type (see Appendix C), and the result is produced after applying the relevant operator. However, when adding a data pointer and an integer (order irrelevant), both are evaluated, and then the integer is multiplied by the size of the type the pointer points to before being added to the pointer. It is also acceptable to subtract an integer from a data pointer (but not the other way around), and the subtracted value is also first multiplied by the size of what the pointer points to before being subtracted from the pointer. Finally, if two pointers are subtracted, then their difference is divided by the size of the type the pointers point to before being produces. Both pointers must point to the same type.
 
 \subsection{Multiplication Operators}
 
-\lstinputlisting[breaklines=true, firstline=93, lastline=93]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=94, lastline=94]{"Appendix B - Syntax.ebnf"}
 
 Multiplication expressions operate on numeric values. The left hand side, then the right hand side are evaluated, these values are converted to a common type (see Appendix C), and the result is produced after applying the relevant operator.
 
 \subsection{Prefix Operators}
 
-\lstinputlisting[breaklines=true, firstline=94, lastline=102]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=95, lastline=103]{"Appendix B - Syntax.ebnf"}
 
 The dereference operator (\texttt{*}) takes the expression (must be a data pointer), and produces an assignable value from that expression. The result is of the base type of the pointer.
 
@@ -582,7 +584,7 @@ The bitwise-not operator takes the expression (must be an integral value), and f
 
 \subsection{Postfix Operators}
 
-\lstinputlisting[breaklines=true, linerange={103-103, 111-111}]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, linerange={104-104, 112-112}]{"Appendix B - Syntax.ebnf"}
 
 The member-access operator (\texttt{.}) takes a value of a type with members (structures or unions), and produces the named member. This value is assignable if the original value is assignable. The pointer member-access operator (\texttt{->}) takes a value of a pointer to a type with members, and produces the named member after dereferencing the pointer. Only the accessed member is accessed via the pointer. The produced value is always assignable. The type of this expression is the type of the member.
 
@@ -596,7 +598,7 @@ The in-place unary operators take the value, performs the unary operation on it,
 
 \section{Primary Expressions}
 
-\lstinputlisting[breaklines=true, firstline=104, lastline=110]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=105, lastline=111]{"Appendix B - Syntax.ebnf"}
 
 A primary expression is a value or expression that is unambiguously bound. These expressions have no precedence, and in the case of identifiers and literals, form the leaf nodes of expressions.
 
@@ -606,7 +608,7 @@ Scoped identifiers and identifiers name a value, and produce that value as an as
 
 \subsection{Literals}
 
-\lstinputlisting[breaklines=true, firstline=117, lastline=130]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=118, lastline=131]{"Appendix B - Syntax.ebnf"}
 
 Literals represent a constant value, either of some type, or of an aggregate initializer. Integer literals may be signed or unsigned. Integer literals are of the smallest type capable of containing their value, preferring unsigned types over signed types. A positive integer literal may be forced into being of a signed type by prefixing it with \texttt{+}.
 
