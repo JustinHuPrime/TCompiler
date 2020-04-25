@@ -539,11 +539,10 @@ static Node *createWcharLiteralNode(Token *t) {
 static Node *createStringLiteralNode(Token *t) {
   Node *n = createNode(NT_LITERAL, t->line, t->character);
   n->data.literal.type = LT_STRING;
-  char *string = t->string;
 
   TStringBuilder sb;
   tstringBuilderInit(&sb);
-  for (; *string != '\0'; string++) {
+  for (char *string = t->string; *string != '\0'; string++) {
     if (*string == '\\') {
       string++;
       // escape sequence
@@ -598,11 +597,10 @@ static Node *createStringLiteralNode(Token *t) {
 static Node *createWstringLiteralNode(Token *t) {
   Node *n = createNode(NT_LITERAL, t->line, t->character);
   n->data.literal.type = LT_WSTRING;
-  char *string = t->string;
 
   TWStringBuilder sb;
   twstringBuilderInit(&sb);
-  for (; *string != '\0'; string++) {
+  for (char *string = t->string; *string != '\0'; string++) {
     if (*string == '\\') {
       string++;
       // escape sequence
@@ -849,60 +847,60 @@ static void panicTopLevel(FileListEntry *entry) {
   }
 }
 
-/**
- * reads tokens until a probable statement-level form boundary
- *
- * semicolons are consumed, EOFs, and the start of a statement (excluding
- * expressions) are left
- *
- * @param entry entry to lex from
- */
-static void panicStmt(FileListEntry *entry) {
-  while (true) {
-    Token token;
-    lex(entry, &token);
-    switch (token.type) {
-      case TT_SEMI: {
-        return;
-      }
-      case TT_LBRACE:
-      case TT_IF:
-      case TT_WHILE:
-      case TT_DO:
-      case TT_FOR:
-      case TT_SWITCH:
-      case TT_BREAK:
-      case TT_CONTINUE:
-      case TT_RETURN:
-      case TT_ASM:
-      case TT_VOID:
-      case TT_UBYTE:
-      case TT_CHAR:
-      case TT_USHORT:
-      case TT_UINT:
-      case TT_INT:
-      case TT_WCHAR:
-      case TT_ULONG:
-      case TT_LONG:
-      case TT_FLOAT:
-      case TT_DOUBLE:
-      case TT_BOOL:
-      case TT_OPAQUE:
-      case TT_STRUCT:
-      case TT_UNION:
-      case TT_ENUM:
-      case TT_TYPEDEF:
-      case TT_EOF: {
-        unLex(entry, &token);
-        return;
-      }
-      default: {
-        tokenUninit(&token);
-        break;
-      }
-    }
-  }
-}
+// /**
+//  * reads tokens until a probable statement-level form boundary
+//  *
+//  * semicolons are consumed, EOFs, and the start of a statement (excluding
+//  * expressions) are left
+//  *
+//  * @param entry entry to lex from
+//  */
+// static void panicStmt(FileListEntry *entry) {
+//   while (true) {
+//     Token token;
+//     lex(entry, &token);
+//     switch (token.type) {
+//       case TT_SEMI: {
+//         return;
+//       }
+//       case TT_LBRACE:
+//       case TT_IF:
+//       case TT_WHILE:
+//       case TT_DO:
+//       case TT_FOR:
+//       case TT_SWITCH:
+//       case TT_BREAK:
+//       case TT_CONTINUE:
+//       case TT_RETURN:
+//       case TT_ASM:
+//       case TT_VOID:
+//       case TT_UBYTE:
+//       case TT_CHAR:
+//       case TT_USHORT:
+//       case TT_UINT:
+//       case TT_INT:
+//       case TT_WCHAR:
+//       case TT_ULONG:
+//       case TT_LONG:
+//       case TT_FLOAT:
+//       case TT_DOUBLE:
+//       case TT_BOOL:
+//       case TT_OPAQUE:
+//       case TT_STRUCT:
+//       case TT_UNION:
+//       case TT_ENUM:
+//       case TT_TYPEDEF:
+//       case TT_EOF: {
+//         unLex(entry, &token);
+//         return;
+//       }
+//       default: {
+//         tokenUninit(&token);
+//         break;
+//       }
+//     }
+//   }
+// }
 
 // parsing
 
@@ -1287,7 +1285,208 @@ static Node *parseLiteral(FileListEntry *entry) {
  * @returns AST node or NULL if fatal error happened
  */
 static Node *parseType(FileListEntry *entry) {
-  return NULL;  // TODO: write this
+  Node *type;
+
+  Token start;
+  lex(entry, &start);
+  switch (start.type) {
+    case TT_VOID: {
+      type = createKeywordType(TK_VOID, &start);
+      break;
+    }
+    case TT_UBYTE: {
+      type = createKeywordType(TK_UBYTE, &start);
+      break;
+    }
+    case TT_CHAR: {
+      type = createKeywordType(TK_CHAR, &start);
+      break;
+    }
+    case TT_USHORT: {
+      type = createKeywordType(TK_USHORT, &start);
+      break;
+    }
+    case TT_SHORT: {
+      type = createKeywordType(TK_SHORT, &start);
+      break;
+    }
+    case TT_UINT: {
+      type = createKeywordType(TK_UINT, &start);
+      break;
+    }
+    case TT_INT: {
+      type = createKeywordType(TK_INT, &start);
+      break;
+    }
+    case TT_WCHAR: {
+      type = createKeywordType(TK_WCHAR, &start);
+      break;
+    }
+    case TT_ULONG: {
+      type = createKeywordType(TK_ULONG, &start);
+      break;
+    }
+    case TT_LONG: {
+      type = createKeywordType(TK_LONG, &start);
+      break;
+    }
+    case TT_FLOAT: {
+      type = createKeywordType(TK_FLOAT, &start);
+      break;
+    }
+    case TT_DOUBLE: {
+      type = createKeywordType(TK_DOUBLE, &start);
+      break;
+    }
+    case TT_BOOL: {
+      type = createKeywordType(TK_BOOL, &start);
+      break;
+    }
+    case TT_ID: {
+      unLex(entry, &start);
+      type = parseAnyId(entry);
+      if (type == NULL) return NULL;
+      break;
+    }
+    default: {
+      errorExpectedString(entry, "a type", &start);
+
+      unLex(entry, &start);
+
+      return NULL;
+    }
+  }
+
+  while (true) {
+    Token next1;
+    lex(entry, &next1);
+    switch (next1.type) {
+      case TT_CONST: {
+        type = createModifiedType(TM_CONST, type);
+        break;
+      }
+      case TT_VOLATILE: {
+        type = createModifiedType(TM_VOLATILE, type);
+        break;
+      }
+      case TT_LSQUARE: {
+        Node *size = parseExtendedIntLiteral(entry);
+        if (size == NULL) {
+          nodeFree(type);
+
+          return NULL;
+        }
+
+        Token rsquare;
+        lex(entry, &rsquare);
+        if (rsquare.type != TT_RSQUARE) {
+          errorExpectedToken(entry, TT_RSQUARE, &rsquare);
+
+          unLex(entry, &rsquare);
+
+          nodeFree(type);
+          nodeFree(size);
+          return NULL;
+        }
+
+        type = createArrayType(type, size);
+        return NULL;
+      }
+      case TT_STAR: {
+        type = createModifiedType(TM_POINTER, type);
+        break;
+      }
+      case TT_LPAREN: {
+        Vector *argTypes = createVector();
+        Vector *argNames = createVector();
+        bool doneArgs = false;
+
+        Token peek;
+        lex(entry, &peek);
+        if (peek.type == TT_RPAREN)
+          doneArgs = true;
+        else
+          unLex(entry, &peek);
+        while (!doneArgs) {
+          Token next2;
+          lex(entry, &next2);
+          switch (next2.type) {
+            case TT_VOID:
+            case TT_UBYTE:
+            case TT_CHAR:
+            case TT_USHORT:
+            case TT_SHORT:
+            case TT_UINT:
+            case TT_INT:
+            case TT_WCHAR:
+            case TT_ULONG:
+            case TT_LONG:
+            case TT_FLOAT:
+            case TT_DOUBLE:
+            case TT_BOOL:
+            case TT_ID: {
+              unLex(entry, &start);
+              Node *argType = parseType(entry);
+              if (argType == NULL) {
+                nodeVectorFree(argTypes);
+                nodeVectorFree(argNames);
+                nodeFree(type);
+                return NULL;
+              }
+              vectorInsert(argTypes, argType);
+
+              Token id;
+              lex(entry, &id);
+              if (id.type == TT_ID)
+                // has an identifier - ignore this
+                tokenUninit(&id);
+              else
+                unLex(entry, &id);
+
+              Token next3;
+              lex(entry, &next3);
+              switch (next3.type) {
+                case TT_COMMA: {
+                  // more to follow
+                  break;
+                }
+                case TT_RPAREN: {
+                  // done this one
+                  doneArgs = true;
+                  break;
+                }
+                default: {
+                  errorExpectedString(entry, "a comma or a right parenthesis",
+                                      &next3);
+
+                  unLex(entry, &next3);
+
+                  nodeVectorFree(argTypes);
+                  nodeFree(type);
+                  return NULL;
+                }
+              }
+            }
+            default: {
+              errorExpectedString(entry, "a type", &next2);
+
+              unLex(entry, &next2);
+
+              nodeVectorFree(argTypes);
+              nodeFree(type);
+              return NULL;
+            }
+          }
+        }
+
+        type = createFunPtrType(type, argTypes, argNames);
+      }
+      default: {
+        unLex(entry, &next1);
+        return type;
+      }
+    }
+  }
 }
 
 // expressions
@@ -1836,6 +2035,7 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
         levels--;
         break;
       }
+      default: { break; }
     }
     vectorInsert(tokens, token);
   }
@@ -2721,7 +2921,7 @@ int parse(void) {
 
   lexerInitMaps();
 
-  // pass one - parse, without populating symbol tables
+  // pass one - parse top level stuff, without populating symbol tables
   for (size_t idx = 0; idx < fileList.size; idx++) {
     retval = lexerStateInit(&fileList.entries[idx]);
     if (retval != 0) {
@@ -2745,6 +2945,9 @@ int parse(void) {
   }
 
   // pass two - populate symbol tables
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+  }
+
   // pass three - resolve imports and parse unparsed nodes, populating the
   // symbol table as we go
 

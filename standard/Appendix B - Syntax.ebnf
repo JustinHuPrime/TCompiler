@@ -127,27 +127,23 @@ literal = extended_int_literal
 ;
 aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
 
-type = "void"
-     | "ubyte"
-     | "byte"
-     | "char"
-     | "ushort"
-     | "short"
-     | "uint"
-     | "int"
-     | "wchar"
-     | "ulong"
-     | "long"
-     | "float"
-     | "double"
-     | "bool"
-     | identifier
-     | scoped_identifier
-     | type, "const"
-     | type, "volatile"
-     | type, "[", extended_int_literal, "]"
-     | type, "*"
-     | type, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")"
+type = base_type, { "const" | "volatile" | "[", extended_int_literal, "]" | "*" | "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")" } ;
+base_type = "void"
+          | "ubyte"
+          | "byte"
+          | "char"
+          | "ushort"
+          | "short"
+          | "uint"
+          | "int"
+          | "wchar"
+          | "ulong"
+          | "long"
+          | "float"
+          | "double"
+          | "bool"
+          | identifier
+          | scoped_identifier
 ;
 
 scoped_identifier = identifier, "::", identifier, { "::", identifier } ;
