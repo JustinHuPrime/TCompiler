@@ -43,6 +43,12 @@ typedef struct {
  */
 void vectorInit(Vector *v);
 /**
+ * allocating ctor
+ *
+ * @returns allocated and initialiezd empty Vector
+ */
+Vector *vectorCreate(void);
+/**
  * insert - amortized constant time
  *
  * @param v Vector to add to

@@ -23,9 +23,7 @@
 
 #include "fileList.h"
 #include "internalError.h"
-#include "numericSizing.h"
 #include "options.h"
-#include "util/container/stringBuilder.h"
 #include "util/conversions.h"
 
 #include <stdio.h>
@@ -193,600 +191,6 @@ static void errorIntOverflow(FileListEntry *entry, Token *token) {
   entry->errored = true;
 }
 
-// constructors
-
-/** create an initialized, empty vector */
-static Vector *createVector(void) {
-  Vector *v = malloc(sizeof(Vector));
-  vectorInit(v);
-  return v;
-}
-/** create a partially initialized node */
-static Node *createNode(NodeType type, size_t line, size_t character) {
-  Node *n = malloc(sizeof(Node));
-  n->type = type;
-  n->line = line;
-  n->character = character;
-  return n;
-}
-
-static Node *createFile(Node *module, Vector *imports, Vector *bodies) {
-  Node *n = createNode(NT_FILE, module->line, module->character);
-  n->data.file.module = module;
-  n->data.file.imports = imports;
-  n->data.file.bodies = bodies;
-  hashMapInit(&n->data.file.stab);
-  return n;
-}
-static Node *createModule(Token *keyword, Node *id) {
-  Node *n = createNode(NT_MODULE, keyword->line, keyword->character);
-  n->data.module.id = id;
-  return n;
-}
-static Node *createImport(Token *keyword, Node *id) {
-  Node *n = createNode(NT_IMPORT, keyword->line, keyword->character);
-  n->data.import.id = id;
-  n->data.import.referenced = NULL;
-  return n;
-}
-
-static Node *createFunDefn(Node *returnType, Node *name, Vector *argTypes,
-                           Vector *argNames, Vector *argDefaults, Node *body) {
-  Node *n = createNode(NT_FUNDEFN, returnType->line, returnType->character);
-  n->data.funDefn.returnType = returnType;
-  n->data.funDefn.name = name;
-  n->data.funDefn.argTypes = argTypes;
-  n->data.funDefn.argNames = argNames;
-  n->data.funDefn.argDefaults = argDefaults;
-  n->data.funDefn.body = body;
-  hashMapInit(&n->data.funDefn.stab);
-  return n;
-}
-static Node *createVarDefn(Node *type, Vector *names, Vector *initializers) {
-  Node *n = createNode(NT_VARDEFN, type->line, type->character);
-  n->data.varDefn.type = type;
-  n->data.varDefn.names = names;
-  n->data.varDefn.initializers = initializers;
-  return n;
-}
-
-static Node *createFunDecl(Node *returnType, Node *name, Vector *argTypes,
-                           Vector *argNames, Vector *argDefaults) {
-  Node *n = createNode(NT_FUNDECL, returnType->line, returnType->character);
-  n->data.funDecl.returnType = returnType;
-  n->data.funDecl.name = name;
-  n->data.funDecl.argTypes = argTypes;
-  n->data.funDecl.argNames = argNames;
-  n->data.funDecl.argDefaults = argDefaults;
-  return n;
-}
-static Node *createVarDecl(Node *type, Vector *names) {
-  Node *n = createNode(NT_VARDECL, type->line, type->character);
-  n->data.varDecl.type = type;
-  n->data.varDecl.names = names;
-  return n;
-}
-static Node *createOpaqueDecl(Token *keyword, Node *name) {
-  Node *n = createNode(NT_OPAQUEDECL, keyword->line, keyword->character);
-  n->data.opaqueDecl.name = name;
-  return n;
-}
-static Node *createStructDecl(Token *keyword, Node *name, Vector *fields) {
-  Node *n = createNode(NT_STRUCTDECL, keyword->line, keyword->character);
-  n->data.structDecl.name = name;
-  n->data.structDecl.fields = fields;
-  return n;
-}
-static Node *createUnionDecl(Token *keyword, Node *name, Vector *options) {
-  Node *n = createNode(NT_UNIONDECL, keyword->line, keyword->character);
-  n->data.unionDecl.name = name;
-  n->data.unionDecl.options = options;
-  return n;
-}
-static Node *createEnumDecl(Token *keyword, Node *name, Vector *constantNames,
-                            Vector *constantValues) {
-  Node *n = createNode(NT_ENUMDECL, keyword->line, keyword->character);
-  n->data.enumDecl.name = name;
-  n->data.enumDecl.constantNames = constantNames;
-  n->data.enumDecl.constantValues = constantValues;
-  return n;
-}
-static Node *createTypedefDecl(Token *keyword, Node *originalType, Node *name) {
-  Node *n = createNode(NT_TYPEDEFDECL, keyword->line, keyword->character);
-  n->data.typedefDecl.originalType = originalType;
-  n->data.typedefDecl.name = name;
-  return n;
-}
-
-static Node *createCompoundStmt(Token *lbrace, Vector *stmts) {
-  Node *n = createNode(NT_COMPOUNDSTMT, lbrace->line, lbrace->character);
-  n->data.compoundStmt.stmts = stmts;
-  hashMapInit(&n->data.compoundStmt.stab);
-  return n;
-}
-static Node *createIfStmt(Token *keyword, Node *predicate, Node *consequent,
-                          Node *alternative) {
-  Node *n = createNode(NT_IFSTMT, keyword->line, keyword->character);
-  n->data.ifStmt.predicate = predicate;
-  n->data.ifStmt.consequent = consequent;
-  n->data.ifStmt.alternative = alternative;
-  return n;
-}
-static Node *createWhileStmt(Token *keyword, Node *condition, Node *body) {
-  Node *n = createNode(NT_WHILESTMT, keyword->line, keyword->character);
-  n->data.whileStmt.condition = condition;
-  n->data.whileStmt.body = body;
-  return n;
-}
-static Node *createDoWhileStmt(Token *keyword, Node *body, Node *condition) {
-  Node *n = createNode(NT_DOWHILESTMT, keyword->line, keyword->character);
-  n->data.doWhileStmt.body = body;
-  n->data.doWhileStmt.condition = condition;
-  return n;
-}
-static Node *createForStmt(Token *keyword, Node *initializer, Node *condition,
-                           Node *increment, Node *body) {
-  Node *n = createNode(NT_FORSTMT, keyword->line, keyword->character);
-  n->data.forStmt.initializer = initializer;
-  n->data.forStmt.condition = condition;
-  n->data.forStmt.increment = increment;
-  n->data.forStmt.body = body;
-  hashMapInit(&n->data.forStmt.stab);
-  return n;
-}
-static Node *createSwitchStmt(Token *keyword, Node *condition, Vector *cases) {
-  Node *n = createNode(NT_SWITCHSTMT, keyword->line, keyword->character);
-  n->data.switchStmt.condition = condition;
-  n->data.switchStmt.cases = cases;
-  return n;
-}
-static Node *createBreakStmt(Token *keyword) {
-  Node *n = createNode(NT_SWITCHSTMT, keyword->line, keyword->character);
-  return n;
-}
-static Node *createContinueStmt(Token *keyword) {
-  Node *n = createNode(NT_CONTINUESTMT, keyword->line, keyword->character);
-  return n;
-}
-static Node *createReturnStmt(Token *keyword, Node *value) {
-  Node *n = createNode(NT_RETURNSTMT, keyword->line, keyword->character);
-  n->data.returnStmt.value = value;
-  return n;
-}
-static Node *createAsmStmt(Token *keyword, Node *assembly) {
-  Node *n = createNode(NT_ASMSTMT, keyword->line, keyword->character);
-  n->data.asmStmt.assembly = assembly;
-  return n;
-}
-static Node *createVarDefnStmt(Node *type, Vector *names,
-                               Vector *initializers) {
-  Node *n = createNode(NT_VARDEFNSTMT, type->line, type->character);
-  n->data.varDefnStmt.type = type;
-  n->data.varDefnStmt.names = names;
-  n->data.varDefnStmt.initializers = initializers;
-  return n;
-}
-static Node *createExpressionStmt(Node *expression) {
-  Node *n =
-      createNode(NT_EXPRESSIONSTMT, expression->line, expression->character);
-  n->data.expressionStmt.expression = expression;
-  return n;
-}
-static Node *createNullStmt(Token *semicolon) {
-  Node *n = createNode(NT_NULLSTMT, semicolon->line, semicolon->character);
-  return n;
-}
-
-static Node *createSwitchCase(Token *keyword, Vector *values, Node *body) {
-  Node *n = createNode(NT_SWITCHCASE, keyword->line, keyword->character);
-  n->data.switchCase.values = values;
-  n->data.switchCase.body = body;
-  return n;
-}
-static Node *createSwitchDefault(Token *keyword, Node *body) {
-  Node *n = createNode(NT_SWITCHDEFAULT, keyword->line, keyword->character);
-  n->data.switchDefault.body = body;
-  return n;
-}
-
-static Node *createBinOpExp(BinOpType op, Node *lhs, Node *rhs) {
-  Node *n = createNode(NT_BINOPEXP, lhs->line, lhs->character);
-  n->data.binOpExp.op = op;
-  n->data.binOpExp.lhs = lhs;
-  n->data.binOpExp.rhs = rhs;
-  return n;
-}
-static Node *createTernaryExp(Node *predicate, Node *consequent,
-                              Node *alternative) {
-  Node *n = createNode(NT_TERNARYEXP, predicate->line, predicate->character);
-  n->data.ternaryExp.predicate = predicate;
-  n->data.ternaryExp.consequent = consequent;
-  n->data.ternaryExp.alternative = alternative;
-  return n;
-}
-static Node *createPrefixUnOpExp(UnOpType op, Token *opToken, Node *target) {
-  Node *n = createNode(NT_UNOPEXP, opToken->line, opToken->character);
-  n->data.unOpExp.op = op;
-  n->data.unOpExp.target = target;
-  return n;
-}
-static Node *createPostfixUnOpExp(UnOpType op, Node *target) {
-  Node *n = createNode(NT_UNOPEXP, target->line, target->character);
-  n->data.unOpExp.op = op;
-  n->data.unOpExp.target = target;
-  return n;
-}
-static Node *createFunCallExp(Node *function, Vector *arguments) {
-  Node *n = createNode(NT_FUNCALLEXP, function->line, function->character);
-  n->data.funCallExp.function = function;
-  n->data.funCallExp.arguments = arguments;
-  return n;
-}
-
-static Node *createLiteralNode(LiteralType type, Token *t) {
-  Node *n = createNode(NT_LITERAL, t->line, t->character);
-  n->data.literal.type = type;
-  return n;
-}
-static Node *createCharLiteralNode(Token *t) {
-  Node *n = createNode(NT_LITERAL, t->line, t->character);
-  n->data.literal.type = LT_CHAR;
-  char *string = t->string;
-
-  if (string[0] == '\\') {
-    // escape sequence
-    switch (string[1]) {
-      case 'n': {
-        n->data.literal.value.charVal = charToU8('\n');
-        break;
-      }
-      case 'r': {
-        n->data.literal.value.charVal = charToU8('\r');
-        break;
-      }
-      case 't': {
-        n->data.literal.value.charVal = charToU8('\t');
-        break;
-      }
-      case '0': {
-        n->data.literal.value.charVal = charToU8('\0');
-        break;
-      }
-      case '\\': {
-        n->data.literal.value.charVal = charToU8('\\');
-        break;
-      }
-      case 'x': {
-        n->data.literal.value.charVal = (uint8_t)((nybbleToU8(string[2]) << 4) +
-                                                  (nybbleToU8(string[3]) << 0));
-        break;
-      }
-      case '\'': {
-        n->data.literal.value.charVal = charToU8('\'');
-        break;
-      }
-      default: {
-        error(__FILE__, __LINE__,
-              "bad char literal string passed to createCharLiteralNode");
-      }
-    }
-  } else {
-    // not an escape statement
-    n->data.literal.value.charVal = charToU8(string[0]);
-  }
-
-  tokenUninit(t);
-  return n;
-}
-static Node *createWcharLiteralNode(Token *t) {
-  Node *n = createNode(NT_LITERAL, t->line, t->character);
-  n->data.literal.type = LT_WCHAR;
-  char *string = t->string;
-
-  if (string[0] == '\\') {
-    // escape sequence
-    switch (string[1]) {
-      case 'n': {
-        n->data.literal.value.wcharVal = charToU8('\n');
-        break;
-      }
-      case 'r': {
-        n->data.literal.value.wcharVal = charToU8('\r');
-        break;
-      }
-      case 't': {
-        n->data.literal.value.wcharVal = charToU8('\t');
-        break;
-      }
-      case '0': {
-        n->data.literal.value.wcharVal = charToU8('\0');
-        break;
-      }
-      case '\\': {
-        n->data.literal.value.wcharVal = charToU8('\\');
-        break;
-      }
-      case 'x': {
-        n->data.literal.value.wcharVal = (uint8_t)(
-            (nybbleToU8(string[2]) << 4) + (nybbleToU8(string[3]) << 0));
-        break;
-      }
-      case 'u': {
-        n->data.literal.value.wcharVal = 0;
-        for (size_t idx = 0; idx < 8; idx++) {
-          n->data.literal.value.wcharVal <<= 4;
-          n->data.literal.value.wcharVal += nybbleToU8(string[idx + 2]);
-        }
-        break;
-      }
-      case '\'': {
-        n->data.literal.value.wcharVal = charToU8('\'');
-        break;
-      }
-      default: {
-        error(__FILE__, __LINE__,
-              "bad wchar literal string passed to createWcharLiteralNode");
-      }
-    }
-  } else {
-    // not an escape statement
-    n->data.literal.value.wcharVal = charToU8(string[0]);
-  }
-
-  tokenUninit(t);
-  return n;
-}
-static Node *createStringLiteralNode(Token *t) {
-  Node *n = createNode(NT_LITERAL, t->line, t->character);
-  n->data.literal.type = LT_STRING;
-
-  TStringBuilder sb;
-  tstringBuilderInit(&sb);
-  for (char *string = t->string; *string != '\0'; string++) {
-    if (*string == '\\') {
-      string++;
-      // escape sequence
-      switch (*string) {
-        case 'n': {
-          tstringBuilderPush(&sb, charToU8('\n'));
-          break;
-        }
-        case 'r': {
-          tstringBuilderPush(&sb, charToU8('\r'));
-          break;
-        }
-        case 't': {
-          tstringBuilderPush(&sb, charToU8('\t'));
-          break;
-        }
-        case '0': {
-          tstringBuilderPush(&sb, charToU8('\0'));
-          break;
-        }
-        case '\\': {
-          tstringBuilderPush(&sb, charToU8('\\'));
-          break;
-        }
-        case 'x': {
-          char high = *string++;
-          char low = *string;
-          tstringBuilderPush(
-              &sb, (uint8_t)((nybbleToU8(high) << 4) + (nybbleToU8(low) << 0)));
-          break;
-        }
-        case '\'': {
-          tstringBuilderPush(&sb, charToU8('\''));
-          break;
-        }
-        default: {
-          error(__FILE__, __LINE__,
-                "bad string literal string passed to createStringLiteralNode");
-        }
-      }
-    } else {
-      // not an escape statement
-      tstringBuilderPush(&sb, charToU8(*string));
-    }
-  }
-
-  n->data.literal.value.stringVal = tstringBuilderData(&sb);
-  tstringBuilderUninit(&sb);
-  tokenUninit(t);
-  return n;
-}
-static Node *createWstringLiteralNode(Token *t) {
-  Node *n = createNode(NT_LITERAL, t->line, t->character);
-  n->data.literal.type = LT_WSTRING;
-
-  TWStringBuilder sb;
-  twstringBuilderInit(&sb);
-  for (char *string = t->string; *string != '\0'; string++) {
-    if (*string == '\\') {
-      string++;
-      // escape sequence
-      switch (*string) {
-        case 'n': {
-          twstringBuilderPush(&sb, charToU8('\n'));
-          break;
-        }
-        case 'r': {
-          twstringBuilderPush(&sb, charToU8('\r'));
-          break;
-        }
-        case 't': {
-          twstringBuilderPush(&sb, charToU8('\t'));
-          break;
-        }
-        case '0': {
-          twstringBuilderPush(&sb, charToU8('\0'));
-          break;
-        }
-        case '\\': {
-          twstringBuilderPush(&sb, charToU8('\\'));
-          break;
-        }
-        case 'x': {
-          char high = *string++;
-          char low = *string;
-          twstringBuilderPush(
-              &sb, (uint8_t)((nybbleToU8(high) << 4) + (nybbleToU8(low) << 0)));
-          break;
-        }
-        case 'u': {
-          uint32_t value = 0;
-          for (size_t idx = 0; idx < 8; idx++, string++) {
-            value <<= 4;
-            value += nybbleToU8(*string);
-          }
-          twstringBuilderPush(&sb, value);
-          break;
-        }
-        case '\'': {
-          twstringBuilderPush(&sb, charToU8('\''));
-          break;
-        }
-        default: {
-          error(
-              __FILE__, __LINE__,
-              "bad wstring literal string passed to createWstringLiteralNode");
-        }
-      }
-    } else {
-      // not an escape statement
-      twstringBuilderPush(&sb, charToU8(*string));
-    }
-  }
-
-  n->data.literal.value.wstringVal = twstringBuilderData(&sb);
-  twstringBuilderUninit(&sb);
-  tokenUninit(t);
-  return n;
-}
-static Node *createSizedIntegerLiteral(FileListEntry *entry, Token *t,
-                                       int8_t sign, uint64_t magnitude) {
-  if (sign == 0) {
-    // is unsigned
-    if (magnitude <= UBYTE_MAX) {
-      Node *n = createLiteralNode(LT_UBYTE, t);
-      n->data.literal.value.ubyteVal = (uint8_t)magnitude;
-      return n;
-    } else if (magnitude <= USHORT_MAX) {
-      Node *n = createLiteralNode(LT_USHORT, t);
-      n->data.literal.value.ushortVal = (uint16_t)magnitude;
-      return n;
-    } else if (magnitude <= UINT_MAX) {
-      Node *n = createLiteralNode(LT_UINT, t);
-      n->data.literal.value.uintVal = (uint32_t)magnitude;
-      return n;
-    } else if (magnitude <= ULONG_MAX) {
-      Node *n = createLiteralNode(LT_ULONG, t);
-      n->data.literal.value.ulongVal = (uint64_t)magnitude;
-      return n;
-    } else {
-      error(__FILE__, __LINE__,
-            "magnitude larger than ULONG_MAX passed to "
-            "createSizedIntegerLiteral (CPU bug?)");
-    }
-  } else if (sign == -1) {
-    // negative
-    if (magnitude <= BYTE_MIN) {
-      Node *n = createLiteralNode(LT_BYTE, t);
-      n->data.literal.value.byteVal = (int8_t)-magnitude;
-      return n;
-    } else if (magnitude <= SHORT_MIN) {
-      Node *n = createLiteralNode(LT_SHORT, t);
-      n->data.literal.value.shortVal = (int16_t)-magnitude;
-      return n;
-    } else if (magnitude <= INT_MIN) {
-      Node *n = createLiteralNode(LT_INT, t);
-      n->data.literal.value.intVal = (int32_t)-magnitude;
-      return n;
-    } else if (magnitude <= LONG_MIN) {
-      Node *n = createLiteralNode(LT_LONG, t);
-      n->data.literal.value.longVal = (int64_t)-magnitude;
-      return n;
-    } else {
-      // user-side size error
-      errorIntOverflow(entry, t);
-      tokenUninit(t);
-      return NULL;
-    }
-  } else if (sign == 1) {
-    // positive
-    if (magnitude <= BYTE_MAX) {
-      Node *n = createLiteralNode(LT_BYTE, t);
-      n->data.literal.value.byteVal = (int8_t)magnitude;
-      return n;
-    } else if (magnitude <= SHORT_MAX) {
-      Node *n = createLiteralNode(LT_SHORT, t);
-      n->data.literal.value.shortVal = (int16_t)magnitude;
-      return n;
-    } else if (magnitude <= INT_MAX) {
-      Node *n = createLiteralNode(LT_INT, t);
-      n->data.literal.value.intVal = (int32_t)magnitude;
-      return n;
-    } else if (magnitude <= LONG_MAX) {
-      Node *n = createLiteralNode(LT_LONG, t);
-      n->data.literal.value.longVal = (int64_t)magnitude;
-      return n;
-    } else {
-      // user-side size error
-      errorIntOverflow(entry, t);
-      tokenUninit(t);
-      return NULL;
-    }
-  } else {
-    error(__FILE__, __LINE__,
-          "invalid sign passed to createSizedIntegerLiteral");
-  }
-}
-
-static Node *createKeywordType(TypeKeyword keyword, Token *keywordToken) {
-  Node *n =
-      createNode(NT_KEYWORDTYPE, keywordToken->line, keywordToken->character);
-  n->data.keywordType.keyword = keyword;
-  return n;
-}
-static Node *createModifiedType(TypeModifier modifier, Node *baseType) {
-  Node *n = createNode(NT_MODIFIEDTYPE, baseType->line, baseType->character);
-  n->data.modifiedType.modifier = modifier;
-  n->data.modifiedType.baseType = baseType;
-  return n;
-}
-static Node *createArrayType(Node *baseType, Node *size) {
-  Node *n = createNode(NT_ARRAYTYPE, baseType->line, baseType->character);
-  n->data.arrayType.baseType = baseType;
-  n->data.arrayType.size = size;
-  return n;
-}
-static Node *createFunPtrType(Node *returnType, Vector *argTypes,
-                              Vector *argNames) {
-  Node *n = createNode(NT_FUNPTRTYPE, returnType->line, returnType->character);
-  n->data.funPtrType.returnType = returnType;
-  n->data.funPtrType.argTypes = argTypes;
-  n->data.funPtrType.argNames = argNames;
-  return n;
-}
-
-static Node *createScopedId(Vector *components) {
-  Node *first = components->elements[0];
-  Node *n = createNode(NT_SCOPEDID, first->line, first->character);
-  n->data.scopedId.components = components;
-  return n;
-}
-static Node *createId(Token *id) {
-  Node *n = createNode(NT_ID, id->line, id->character);
-  n->data.id.id = id->string;
-  return n;
-}
-
-static Node *createUnparsed(Vector *tokens) {
-  Token const *first = tokens->elements[0];
-  Node *n = createNode(NT_UNPARSED, first->line, first->character);
-  n->data.unparsed.tokens = tokens;
-  return n;
-}
-
 // calling conventions:
 // a context-ignorant parser shall unLex as much as it can if an error happens
 // (usually one token)
@@ -847,61 +251,6 @@ static void panicTopLevel(FileListEntry *entry) {
   }
 }
 
-// /**
-//  * reads tokens until a probable statement-level form boundary
-//  *
-//  * semicolons are consumed, EOFs, and the start of a statement (excluding
-//  * expressions) are left
-//  *
-//  * @param entry entry to lex from
-//  */
-// static void panicStmt(FileListEntry *entry) {
-//   while (true) {
-//     Token token;
-//     lex(entry, &token);
-//     switch (token.type) {
-//       case TT_SEMI: {
-//         return;
-//       }
-//       case TT_LBRACE:
-//       case TT_IF:
-//       case TT_WHILE:
-//       case TT_DO:
-//       case TT_FOR:
-//       case TT_SWITCH:
-//       case TT_BREAK:
-//       case TT_CONTINUE:
-//       case TT_RETURN:
-//       case TT_ASM:
-//       case TT_VOID:
-//       case TT_UBYTE:
-//       case TT_CHAR:
-//       case TT_USHORT:
-//       case TT_UINT:
-//       case TT_INT:
-//       case TT_WCHAR:
-//       case TT_ULONG:
-//       case TT_LONG:
-//       case TT_FLOAT:
-//       case TT_DOUBLE:
-//       case TT_BOOL:
-//       case TT_OPAQUE:
-//       case TT_STRUCT:
-//       case TT_UNION:
-//       case TT_ENUM:
-//       case TT_TYPEDEF:
-//       case TT_EOF: {
-//         unLex(entry, &token);
-//         return;
-//       }
-//       default: {
-//         tokenUninit(&token);
-//         break;
-//       }
-//     }
-//   }
-// }
-
 // parsing
 
 // context-ignorant parsers
@@ -930,12 +279,12 @@ static Node *parseAnyId(FileListEntry *entry) {
   if (scope.type != TT_SCOPE) {
     // not a scoped id
     unLex(entry, &scope);
-    return createId(&idToken);
+    return idNodeCreate(&idToken);
   } else {
     // scoped id - saw scope
-    Vector *components = createVector();
+    Vector *components = vectorCreate();
 
-    vectorInsert(components, createId(&idToken));
+    vectorInsert(components, idNodeCreate(&idToken));
     while (true) {
       // expect an id, add it to the node
       lex(entry, &idToken);
@@ -947,14 +296,14 @@ static Node *parseAnyId(FileListEntry *entry) {
         nodeVectorFree(components);
         return NULL;
       } else {
-        vectorInsert(components, createId(&idToken));
+        vectorInsert(components, idNodeCreate(&idToken));
       }
 
       // if there's a scope, keep going, else return
       lex(entry, &scope);
       if (scope.type != TT_SCOPE) {
         unLex(entry, &scope);
-        return createScopedId(components);
+        return scopedIdNodeCreate(components);
       }
     }
   }
@@ -967,7 +316,7 @@ static Node *parseAnyId(FileListEntry *entry) {
  * @returns AST node or NULL if fatal error happened
  */
 static Node *parseScopedId(FileListEntry *entry) {
-  Vector *components = createVector();
+  Vector *components = vectorCreate();
   while (true) {
     Token peek;
     // expect an id, add it to the node
@@ -980,7 +329,7 @@ static Node *parseScopedId(FileListEntry *entry) {
       nodeVectorFree(components);
       return NULL;
     } else {
-      vectorInsert(components, createId(&peek));
+      vectorInsert(components, idNodeCreate(&peek));
     }
 
     // if there's a scope, keep going, else return
@@ -989,7 +338,7 @@ static Node *parseScopedId(FileListEntry *entry) {
       unLex(entry, &peek);
 
       if (components->size >= 2) {
-        return createScopedId(components);
+        return scopedIdNodeCreate(components);
       } else {
         errorExpectedToken(entry, TT_SCOPE, &peek);
 
@@ -1016,7 +365,7 @@ static Node *parseId(FileListEntry *entry) {
     return NULL;
   }
 
-  return createId(&idToken);
+  return idNodeCreate(&idToken);
 }
 
 /**
@@ -1030,10 +379,10 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
   lex(entry, &peek);
   switch (peek.type) {
     case TT_LIT_CHAR: {
-      return createCharLiteralNode(&peek);
+      return charLiteralNodeCreate(&peek);
     }
     case TT_LIT_WCHAR: {
-      return createWcharLiteralNode(&peek);
+      return wcharLiteralNodeCreate(&peek);
     }
     case TT_LIT_INT_B: {
       int8_t sign;
@@ -1046,7 +395,9 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
 
         return NULL;
       }
-      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+      Node *n = sizedIntegerLiteralNodeCreate(entry, &peek, sign, magnitude);
+      if (n == NULL) errorIntOverflow(entry, &peek);
+      return n;
     }
     case TT_LIT_INT_O: {
       int8_t sign;
@@ -1059,7 +410,9 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
 
         return NULL;
       }
-      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+      Node *n = sizedIntegerLiteralNodeCreate(entry, &peek, sign, magnitude);
+      if (n == NULL) errorIntOverflow(entry, &peek);
+      return n;
     }
     case TT_LIT_INT_0:
     case TT_LIT_INT_D: {
@@ -1073,7 +426,9 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
 
         return NULL;
       }
-      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+      Node *n = sizedIntegerLiteralNodeCreate(entry, &peek, sign, magnitude);
+      if (n == NULL) errorIntOverflow(entry, &peek);
+      return n;
     }
     case TT_LIT_INT_H: {
       int8_t sign;
@@ -1086,7 +441,9 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
 
         return NULL;
       }
-      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+      Node *n = sizedIntegerLiteralNodeCreate(entry, &peek, sign, magnitude);
+      if (n == NULL) errorIntOverflow(entry, &peek);
+      return n;
     }
     case TT_BAD_CHAR:
     case TT_BAD_BIN:
@@ -1116,7 +473,7 @@ static Node *parseLiteral(FileListEntry *entry);
  * @returns AST node or NULL if fatal error happened
  */
 static Node *parseAggregateInitializer(FileListEntry *entry, Token *start) {
-  Vector *literals = createVector();
+  Vector *literals = vectorCreate();
   while (true) {
     Token peek;
     lex(entry, &peek);
@@ -1150,7 +507,7 @@ static Node *parseAggregateInitializer(FileListEntry *entry, Token *start) {
       }
       case TT_RSQUARE: {
         // end of the init
-        Node *n = createLiteralNode(LT_AGGREGATEINIT, start);
+        Node *n = literalNodeCreate(LT_AGGREGATEINIT, start);
         n->data.literal.value.aggregateInitVal = literals;
         return n;
       }
@@ -1177,92 +534,40 @@ static Node *parseLiteral(FileListEntry *entry) {
   Token peek;
   lex(entry, &peek);
   switch (peek.type) {
+    case TT_LIT_CHAR:
+    case TT_LIT_WCHAR:
+    case TT_LIT_INT_B:
+    case TT_LIT_INT_O:
+    case TT_LIT_INT_0:
+    case TT_LIT_INT_D:
+    case TT_LIT_INT_H:
+    case TT_BAD_CHAR:
+    case TT_BAD_BIN:
+    case TT_BAD_HEX:
+    case TT_ID: {
+      unLex(entry, &peek);
+      return parseExtendedIntLiteral(entry);
+    }
     case TT_LIT_STRING: {
-      return createStringLiteralNode(&peek);
+      return stringLiteralNodeCreate(&peek);
     }
     case TT_LIT_WSTRING: {
-      return createWstringLiteralNode(&peek);
-    }
-    case TT_LIT_CHAR: {
-      return createCharLiteralNode(&peek);
-    }
-    case TT_LIT_WCHAR: {
-      return createWcharLiteralNode(&peek);
-    }
-    case TT_LIT_INT_B: {
-      int8_t sign;
-      uint64_t magnitude;
-      int retval = binaryToInteger(peek.string, &sign, &magnitude);
-      if (retval != 0) {
-        errorIntOverflow(entry, &peek);
-
-        tokenUninit(&peek);
-
-        return NULL;
-      }
-      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
-    }
-    case TT_LIT_INT_O: {
-      int8_t sign;
-      uint64_t magnitude;
-      int retval = octalToInteger(peek.string, &sign, &magnitude);
-      if (retval != 0) {
-        errorIntOverflow(entry, &peek);
-
-        tokenUninit(&peek);
-
-        return NULL;
-      }
-      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
-    }
-    case TT_LIT_INT_0:
-    case TT_LIT_INT_D: {
-      int8_t sign;
-      uint64_t magnitude;
-      int retval = decimalToInteger(peek.string, &sign, &magnitude);
-      if (retval != 0) {
-        errorIntOverflow(entry, &peek);
-
-        tokenUninit(&peek);
-
-        return NULL;
-      }
-      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
-    }
-    case TT_LIT_INT_H: {
-      int8_t sign;
-      uint64_t magnitude;
-      int retval = hexadecimalToInteger(peek.string, &sign, &magnitude);
-      if (retval != 0) {
-        errorIntOverflow(entry, &peek);
-
-        tokenUninit(&peek);
-
-        return NULL;
-      }
-      return createSizedIntegerLiteral(entry, &peek, sign, magnitude);
+      return wstringLiteralNodeCreate(&peek);
     }
     case TT_LIT_DOUBLE: {
       uint64_t bits = doubleStringToBits(peek.string);
-      Node *n = createLiteralNode(LT_DOUBLE, &peek);
+      Node *n = literalNodeCreate(LT_DOUBLE, &peek);
       n->data.literal.value.doubleBits = bits;
       return n;
     }
     case TT_LIT_FLOAT: {
       uint32_t bits = floatStringToBits(peek.string);
-      Node *n = createLiteralNode(LT_FLOAT, &peek);
+      Node *n = literalNodeCreate(LT_FLOAT, &peek);
       n->data.literal.value.floatBits = bits;
       return n;
     }
-    case TT_BAD_STRING:
-    case TT_BAD_CHAR:
-    case TT_BAD_BIN:
-    case TT_BAD_HEX: {
+    case TT_BAD_STRING: {
       return NULL;
-    }
-    case TT_ID: {
-      unLex(entry, &peek);
-      return parseScopedId(entry);
     }
     case TT_LSQUARE: {
       // aggregate initializer
@@ -1291,55 +596,55 @@ static Node *parseType(FileListEntry *entry) {
   lex(entry, &start);
   switch (start.type) {
     case TT_VOID: {
-      type = createKeywordType(TK_VOID, &start);
+      type = keywordTypeNodeCreate(TK_VOID, &start);
       break;
     }
     case TT_UBYTE: {
-      type = createKeywordType(TK_UBYTE, &start);
+      type = keywordTypeNodeCreate(TK_UBYTE, &start);
       break;
     }
     case TT_CHAR: {
-      type = createKeywordType(TK_CHAR, &start);
+      type = keywordTypeNodeCreate(TK_CHAR, &start);
       break;
     }
     case TT_USHORT: {
-      type = createKeywordType(TK_USHORT, &start);
+      type = keywordTypeNodeCreate(TK_USHORT, &start);
       break;
     }
     case TT_SHORT: {
-      type = createKeywordType(TK_SHORT, &start);
+      type = keywordTypeNodeCreate(TK_SHORT, &start);
       break;
     }
     case TT_UINT: {
-      type = createKeywordType(TK_UINT, &start);
+      type = keywordTypeNodeCreate(TK_UINT, &start);
       break;
     }
     case TT_INT: {
-      type = createKeywordType(TK_INT, &start);
+      type = keywordTypeNodeCreate(TK_INT, &start);
       break;
     }
     case TT_WCHAR: {
-      type = createKeywordType(TK_WCHAR, &start);
+      type = keywordTypeNodeCreate(TK_WCHAR, &start);
       break;
     }
     case TT_ULONG: {
-      type = createKeywordType(TK_ULONG, &start);
+      type = keywordTypeNodeCreate(TK_ULONG, &start);
       break;
     }
     case TT_LONG: {
-      type = createKeywordType(TK_LONG, &start);
+      type = keywordTypeNodeCreate(TK_LONG, &start);
       break;
     }
     case TT_FLOAT: {
-      type = createKeywordType(TK_FLOAT, &start);
+      type = keywordTypeNodeCreate(TK_FLOAT, &start);
       break;
     }
     case TT_DOUBLE: {
-      type = createKeywordType(TK_DOUBLE, &start);
+      type = keywordTypeNodeCreate(TK_DOUBLE, &start);
       break;
     }
     case TT_BOOL: {
-      type = createKeywordType(TK_BOOL, &start);
+      type = keywordTypeNodeCreate(TK_BOOL, &start);
       break;
     }
     case TT_ID: {
@@ -1362,11 +667,11 @@ static Node *parseType(FileListEntry *entry) {
     lex(entry, &next1);
     switch (next1.type) {
       case TT_CONST: {
-        type = createModifiedType(TM_CONST, type);
+        type = modifiedTypeNodeCreate(TM_CONST, type);
         break;
       }
       case TT_VOLATILE: {
-        type = createModifiedType(TM_VOLATILE, type);
+        type = modifiedTypeNodeCreate(TM_VOLATILE, type);
         break;
       }
       case TT_LSQUARE: {
@@ -1389,16 +694,16 @@ static Node *parseType(FileListEntry *entry) {
           return NULL;
         }
 
-        type = createArrayType(type, size);
+        type = arrayTypeNodeCreate(type, size);
         return NULL;
       }
       case TT_STAR: {
-        type = createModifiedType(TM_POINTER, type);
+        type = modifiedTypeNodeCreate(TM_POINTER, type);
         break;
       }
       case TT_LPAREN: {
-        Vector *argTypes = createVector();
-        Vector *argNames = createVector();
+        Vector *argTypes = vectorCreate();
+        Vector *argNames = vectorCreate();
         bool doneArgs = false;
 
         Token peek;
@@ -1466,6 +771,7 @@ static Node *parseType(FileListEntry *entry) {
                   return NULL;
                 }
               }
+              break;
             }
             default: {
               errorExpectedString(entry, "a type", &next2);
@@ -1479,7 +785,8 @@ static Node *parseType(FileListEntry *entry) {
           }
         }
 
-        type = createFunPtrType(type, argTypes, argNames);
+        type = funPtrTypeNodeCreate(type, argTypes, argNames);
+        break;
       }
       default: {
         unLex(entry, &next1);
@@ -1533,7 +840,7 @@ static Node *parseModule(FileListEntry *entry) {
     return NULL;
   }
 
-  return createModule(&moduleKeyword, id);
+  return moduleNodeCreate(&moduleKeyword, id);
 }
 
 /**
@@ -1563,7 +870,7 @@ static Node *parseImport(FileListEntry *entry, Token *importKeyword) {
     return NULL;
   }
 
-  return createImport(importKeyword, id);
+  return importNodeCreate(importKeyword, id);
 }
 
 /**
@@ -1575,7 +882,7 @@ static Node *parseImport(FileListEntry *entry, Token *importKeyword) {
  * @returns list of imports
  */
 static Vector *parseImports(FileListEntry *entry) {
-  Vector *imports = createVector();
+  Vector *imports = vectorCreate();
   while (true) {
     Token importKeyword;
     lex(entry, &importKeyword);
@@ -1618,7 +925,7 @@ static Node *finishVarDecl(FileListEntry *entry, Node *type, Vector *names) {
       }
       case TT_SEMI: {
         // done
-        return createVarDecl(type, names);
+        return varDeclNodeCreate(type, names);
       }
       default: {
         errorExpectedString(entry, "a comma or a semicolon", &next);
@@ -1642,9 +949,9 @@ static Node *finishVarDecl(FileListEntry *entry, Node *type, Vector *names) {
  * @param name name of the function
  */
 static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
-  Vector *argTypes = createVector();
-  Vector *argNames = createVector();
-  Vector *argDefaults = createVector();
+  Vector *argTypes = vectorCreate();
+  Vector *argNames = vectorCreate();
+  Vector *argDefaults = vectorCreate();
 
   bool doneArgs = false;
   Token peek;
@@ -1688,7 +995,7 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
         switch (peek.type) {
           case TT_ID: {
             // id - arg decl continues
-            vectorInsert(argNames, createId(&peek));
+            vectorInsert(argNames, idNodeCreate(&peek));
 
             lex(entry, &peek);
             switch (peek.type) {
@@ -1827,7 +1134,7 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
     return NULL;
   }
 
-  return createFunDecl(returnType, name, argTypes, argNames, argDefaults);
+  return funDeclNodeCreate(returnType, name, argTypes, argNames, argDefaults);
 }
 
 /**
@@ -1858,13 +1165,13 @@ static Node *parseFunOrVarDecl(FileListEntry *entry, Token *start) {
   switch (next.type) {
     case TT_SEMI: {
       // var decl, ends here
-      Vector *names = createVector();
+      Vector *names = vectorCreate();
       vectorInsert(names, id);
-      return createVarDecl(type, names);
+      return varDeclNodeCreate(type, names);
     }
     case TT_COMMA: {
       // var decl, continued
-      Vector *names = createVector();
+      Vector *names = vectorCreate();
       vectorInsert(names, id);
       return finishVarDecl(entry, type, names);
     }
@@ -1918,7 +1225,7 @@ static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
       }
       case TT_SEMI: {
         // end of declaration
-        return createVarDefn(type, names, initializers);
+        return varDefnNodeCreate(type, names, initializers);
       }
       default: {
         errorExpectedString(entry, "a comma or a semicolon", &peek);
@@ -1969,7 +1276,7 @@ static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
           }
           case TT_SEMI: {
             // end of declaration
-            return createVarDefn(type, names, initializers);
+            return varDefnNodeCreate(type, names, initializers);
           }
           default: {
             errorExpectedString(entry, "a comma or a semicolon", &peek);
@@ -1992,7 +1299,7 @@ static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
       }
       case TT_SEMI: {
         // done
-        return createVarDefn(type, names, initializers);
+        return varDefnNodeCreate(type, names, initializers);
       }
       default: {
         errorExpectedString(entry, "a comma, a semicolon, or an equals sign",
@@ -2020,7 +1327,7 @@ static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
  * @returns unparsed node, or NULL if fatal error
  */
 static Node *parseFuncBody(FileListEntry *entry, Token *start) {
-  Vector *tokens = createVector();
+  Vector *tokens = vectorCreate();
 
   size_t levels = 1;
   while (levels > 0) {
@@ -2039,7 +1346,7 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
     }
     vectorInsert(tokens, token);
   }
-  return createUnparsed(tokens);
+  return unparsedNodeCreate(tokens);
 }
 
 /**
@@ -2052,9 +1359,9 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
  */
 static Node *finishFunDeclOrDefn(FileListEntry *entry, Node *returnType,
                                  Node *name) {
-  Vector *argTypes = createVector();
-  Vector *argNames = createVector();
-  Vector *argDefaults = createVector();
+  Vector *argTypes = vectorCreate();
+  Vector *argNames = vectorCreate();
+  Vector *argDefaults = vectorCreate();
 
   bool doneArgs = false;
   Token peek;
@@ -2098,7 +1405,7 @@ static Node *finishFunDeclOrDefn(FileListEntry *entry, Node *returnType,
         switch (peek.type) {
           case TT_ID: {
             // id - arg decl continues
-            vectorInsert(argNames, createId(&peek));
+            vectorInsert(argNames, idNodeCreate(&peek));
 
             lex(entry, &peek);
             switch (peek.type) {
@@ -2224,7 +1531,7 @@ static Node *finishFunDeclOrDefn(FileListEntry *entry, Node *returnType,
   lex(entry, &peek);
   switch (peek.type) {
     case TT_SEMI: {
-      return createFunDecl(returnType, name, argTypes, argNames, argDefaults);
+      return funDeclNodeCreate(returnType, name, argTypes, argNames, argDefaults);
     }
     case TT_LBRACE: {
       Node *body = parseFuncBody(entry, &peek);
@@ -2238,7 +1545,7 @@ static Node *finishFunDeclOrDefn(FileListEntry *entry, Node *returnType,
         nodeVectorFree(argDefaults);
         return NULL;
       }
-      return createFunDefn(returnType, name, argTypes, argNames, argDefaults,
+      return funDefnNodeCreate(returnType, name, argTypes, argNames, argDefaults,
                            body);
     }
     default: {
@@ -2285,25 +1592,25 @@ static Node *parseFunOrVarDeclOrDefn(FileListEntry *entry, Token *start) {
   switch (next.type) {
     case TT_SEMI: {
       // var defn, ends here
-      Vector *names = createVector();
+      Vector *names = vectorCreate();
       vectorInsert(names, id);
-      Vector *initializers = createVector();
+      Vector *initializers = vectorCreate();
       vectorInsert(initializers, NULL);
-      return createVarDefn(type, names, initializers);
+      return varDefnNodeCreate(type, names, initializers);
     }
     case TT_COMMA: {
       // var defn, continued
-      Vector *names = createVector();
+      Vector *names = vectorCreate();
       vectorInsert(names, id);
-      Vector *initializers = createVector();
+      Vector *initializers = vectorCreate();
       vectorInsert(initializers, NULL);
       return finishVarDefn(entry, type, names, initializers, false);
     }
     case TT_EQ: {
       // var defn, continued with initializer
-      Vector *names = createVector();
+      Vector *names = vectorCreate();
       vectorInsert(names, id);
-      Vector *initializers = createVector();
+      Vector *initializers = vectorCreate();
       vectorInsert(initializers, NULL);
       return finishVarDefn(entry, type, names, initializers, true);
     }
@@ -2350,7 +1657,7 @@ static Node *parseOpaqueDecl(FileListEntry *entry, Token *start) {
     return NULL;
   }
 
-  return createOpaqueDecl(start, name);
+  return opaqueDeclNodeCreate(start, name);
 }
 
 /**
@@ -2369,7 +1676,7 @@ static Node *parseFieldOrOptionDecl(FileListEntry *entry, Token *start) {
     return NULL;
   }
 
-  Vector *names = createVector();
+  Vector *names = vectorCreate();
   bool done = false;
   while (!done) {
     Token id;
@@ -2384,7 +1691,7 @@ static Node *parseFieldOrOptionDecl(FileListEntry *entry, Token *start) {
       return NULL;
     }
 
-    vectorInsert(names, createId(&id));
+    vectorInsert(names, idNodeCreate(&id));
 
     Token peek;
     lex(entry, &peek);
@@ -2416,7 +1723,7 @@ static Node *parseFieldOrOptionDecl(FileListEntry *entry, Token *start) {
     return NULL;
   }
 
-  return createVarDecl(type, names);
+  return varDeclNodeCreate(type, names);
 }
 
 /**
@@ -2445,7 +1752,7 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
     return NULL;
   }
 
-  Vector *fields = createVector();
+  Vector *fields = vectorCreate();
   bool doneFields = false;
   while (!doneFields) {
     Token peek;
@@ -2518,7 +1825,7 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
     return NULL;
   }
 
-  return createStructDecl(start, name, fields);
+  return structDeclNodeCreate(start, name, fields);
 }
 
 /**
@@ -2547,7 +1854,7 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
     return NULL;
   }
 
-  Vector *options = createVector();
+  Vector *options = vectorCreate();
   bool doneOptions = false;
   while (!doneOptions) {
     Token peek;
@@ -2620,7 +1927,7 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
     return NULL;
   }
 
-  return createUnionDecl(start, name, options);
+  return unionDeclNodeCreate(start, name, options);
 }
 
 /**
@@ -2649,8 +1956,8 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
     return NULL;
   }
 
-  Vector *constantNames = createVector();
-  Vector *constantValues = createVector();
+  Vector *constantNames = vectorCreate();
+  Vector *constantValues = vectorCreate();
   bool doneConstants = false;
   while (!doneConstants) {
     Token peek;
@@ -2658,7 +1965,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
     switch (peek.type) {
       case TT_ID: {
         // this is the start of a constant line
-        vectorInsert(constantNames, createId(&peek));
+        vectorInsert(constantNames, idNodeCreate(&peek));
 
         lex(entry, &peek);
         switch (peek.type) {
@@ -2775,7 +2082,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
     return NULL;
   }
 
-  return createEnumDecl(start, name, constantNames, constantValues);
+  return enumDeclNodeCreate(start, name, constantNames, constantValues);
 }
 
 /**
@@ -2814,7 +2121,7 @@ static Node *parseTypedefDecl(FileListEntry *entry, Token *start) {
     return NULL;
   }
 
-  return createTypedefDecl(start, originalType, name);
+  return typedefDeclNodeCreate(start, originalType, name);
 }
 
 /**
@@ -2827,7 +2134,7 @@ static Node *parseTypedefDecl(FileListEntry *entry, Token *start) {
  * @returns Vector of bodies
  */
 static Vector *parseBodies(FileListEntry *entry) {
-  Vector *bodies = createVector();
+  Vector *bodies = vectorCreate();
   while (true) {
     Token start;
     lex(entry, &start);
@@ -2911,7 +2218,7 @@ static Node *parseFile(FileListEntry *entry) {
     nodeVectorFree(bodies);
     return NULL;
   } else {
-    return createFile(module, imports, bodies);
+    return fileNodeCreate(module, imports, bodies);
   }
 }
 

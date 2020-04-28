@@ -28,6 +28,7 @@
 #include <stddef.h>
 
 #include "ast/symbolTable.h"
+#include "lexer/lexer.h"
 #include "util/container/vector.h"
 
 /** the type of an AST node */
@@ -399,12 +400,65 @@ typedef struct Node {
 } Node;
 
 /**
+ * Node constructors - these create and return initialized nodes
+ */
+Node *fileNodeCreate(Node *module, Vector *imports, Vector *bodies);
+Node *moduleNodeCreate(Token *keyword, Node *id);
+Node *importNodeCreate(Token *keyword, Node *id);
+Node *funDefnNodeCreate(Node *returnType, Node *name, Vector *argTypes,
+                    Vector *argNames, Vector *argDefaults, Node *body);
+Node *varDefnNodeCreate(Node *type, Vector *names, Vector *initializers);
+Node *funDeclNodeCreate(Node *returnType, Node *name, Vector *argTypes,
+                    Vector *argNames, Vector *argDefaults);
+Node *varDeclNodeCreate(Node *type, Vector *names);
+Node *opaqueDeclNodeCreate(Token *keyword, Node *name);
+Node *structDeclNodeCreate(Token *keyword, Node *name, Vector *fields);
+Node *unionDeclNodeCreate(Token *keyword, Node *name, Vector *options);
+Node *enumDeclNodeCreate(Token *keyword, Node *name, Vector *constantNames,
+                     Vector *constantValues);
+Node *typedefDeclNodeCreate(Token *keyword, Node *originalType, Node *name);
+Node *compoundStmtNodeCreate(Token *lbrace, Vector *stmts);
+Node *ifStmtNodeCreate(Token *keyword, Node *predicate, Node *consequent,
+                   Node *alternative);
+Node *whileStmtNodeCreate(Token *keyword, Node *condition, Node *body);
+Node *doWhileStmtNodeCreate(Token *keyword, Node *body, Node *condition);
+Node *forStmtNodeCreate(Token *keyword, Node *initializer, Node *condition,
+                    Node *increment, Node *body);
+Node *switchStmtNodeCreate(Token *keyword, Node *condition, Vector *cases);
+Node *breakStmtNodeCreate(Token *keyword);
+Node *continueStmtNodeCreate(Token *keyword);
+Node *returnStmtNodeCreate(Token *keyword, Node *value);
+Node *asmStmtNodeCreate(Token *keyword, Node *assembly);
+Node *varDefnStmtNodeCreate(Node *type, Vector *names, Vector *initializers);
+Node *expressionStmtNodeCreate(Node *expression);
+Node *nullStmtNodeCreate(Token *semicolon);
+Node *switchCaseNodeCreate(Token *keyword, Vector *values, Node *body);
+Node *switchDefaultNodeCreate(Token *keyword, Node *body);
+Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs);
+Node *ternaryExpNodeCreate(Node *predicate, Node *consequent, Node *alternative);
+Node *prefixUnOpExpNodeCreate(UnOpType op, Token *opToken, Node *target);
+Node *postfixUnOpExpNodeCreate(UnOpType op, Node *target);
+Node *funCallExpNodeCreate(Node *function, Vector *arguments);
+Node *literalNodeCreate(LiteralType type, Token *t);
+Node *charLiteralNodeCreate(Token *t);
+Node *wcharLiteralNodeCreate(Token *t);
+Node *stringLiteralNodeCreate(Token *t);
+Node *wstringLiteralNodeCreate(Token *t);
+Node *sizedIntegerLiteralNodeCreate(FileListEntry *entry, Token *t, int8_t sign,
+                                uint64_t magnitude);
+Node *keywordTypeNodeCreate(TypeKeyword keyword, Token *keywordToken);
+Node *modifiedTypeNodeCreate(TypeModifier modifier, Node *baseType);
+Node *arrayTypeNodeCreate(Node *baseType, Node *size);
+Node *funPtrTypeNodeCreate(Node *returnType, Vector *argTypes, Vector *argNames);
+Node *scopedIdNodeCreate(Vector *components);
+Node *idNodeCreate(Token *id);
+Node *unparsedNodeCreate(Vector *tokens);
+/**
  * deinitializes a node
  *
  * @param n Node to deinitialize
  */
 void nodeUninit(Node *n);
-
 /**
  * de-inits and frees a node
  *

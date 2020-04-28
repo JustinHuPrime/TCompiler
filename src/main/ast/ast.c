@@ -19,7 +19,11 @@
 
 #include "ast/ast.h"
 
+#include "internalError.h"
 #include "lexer/lexer.h"
+#include "numericSizing.h"
+#include "util/container/stringBuilder.h"
+#include "util/conversions.h"
 
 #include <stdlib.h>
 
@@ -42,6 +46,592 @@ static void stabUninit(HashMap *t) {
   hashMapUninit(t, (void (*)(void *))stabEntryFree);
 }
 
+/**
+ * create a partially initialized node
+ *
+ * @param type type of node to indicate
+ * @param line line to attribute node to
+ * @param character character to attribute node to
+ */
+static Node *createNode(NodeType type, size_t line, size_t character) {
+  Node *n = malloc(sizeof(Node));
+  n->type = type;
+  n->line = line;
+  n->character = character;
+  return n;
+}
+
+Node *fileNodeCreate(Node *module, Vector *imports, Vector *bodies) {
+  Node *n = createNode(NT_FILE, module->line, module->character);
+  n->data.file.module = module;
+  n->data.file.imports = imports;
+  n->data.file.bodies = bodies;
+  hashMapInit(&n->data.file.stab);
+  return n;
+}
+Node *moduleNodeCreate(Token *keyword, Node *id) {
+  Node *n = createNode(NT_MODULE, keyword->line, keyword->character);
+  n->data.module.id = id;
+  return n;
+}
+Node *importNodeCreate(Token *keyword, Node *id) {
+  Node *n = createNode(NT_IMPORT, keyword->line, keyword->character);
+  n->data.import.id = id;
+  n->data.import.referenced = NULL;
+  return n;
+}
+
+Node *funDefnNodeCreate(Node *returnType, Node *name, Vector *argTypes,
+                    Vector *argNames, Vector *argDefaults, Node *body) {
+  Node *n = createNode(NT_FUNDEFN, returnType->line, returnType->character);
+  n->data.funDefn.returnType = returnType;
+  n->data.funDefn.name = name;
+  n->data.funDefn.argTypes = argTypes;
+  n->data.funDefn.argNames = argNames;
+  n->data.funDefn.argDefaults = argDefaults;
+  n->data.funDefn.body = body;
+  hashMapInit(&n->data.funDefn.stab);
+  return n;
+}
+Node *varDefnNodeCreate(Node *type, Vector *names, Vector *initializers) {
+  Node *n = createNode(NT_VARDEFN, type->line, type->character);
+  n->data.varDefn.type = type;
+  n->data.varDefn.names = names;
+  n->data.varDefn.initializers = initializers;
+  return n;
+}
+
+Node *funDeclNodeCreate(Node *returnType, Node *name, Vector *argTypes,
+                    Vector *argNames, Vector *argDefaults) {
+  Node *n = createNode(NT_FUNDECL, returnType->line, returnType->character);
+  n->data.funDecl.returnType = returnType;
+  n->data.funDecl.name = name;
+  n->data.funDecl.argTypes = argTypes;
+  n->data.funDecl.argNames = argNames;
+  n->data.funDecl.argDefaults = argDefaults;
+  return n;
+}
+Node *varDeclNodeCreate(Node *type, Vector *names) {
+  Node *n = createNode(NT_VARDECL, type->line, type->character);
+  n->data.varDecl.type = type;
+  n->data.varDecl.names = names;
+  return n;
+}
+Node *opaqueDeclNodeCreate(Token *keyword, Node *name) {
+  Node *n = createNode(NT_OPAQUEDECL, keyword->line, keyword->character);
+  n->data.opaqueDecl.name = name;
+  return n;
+}
+Node *structDeclNodeCreate(Token *keyword, Node *name, Vector *fields) {
+  Node *n = createNode(NT_STRUCTDECL, keyword->line, keyword->character);
+  n->data.structDecl.name = name;
+  n->data.structDecl.fields = fields;
+  return n;
+}
+Node *unionDeclNodeCreate(Token *keyword, Node *name, Vector *options) {
+  Node *n = createNode(NT_UNIONDECL, keyword->line, keyword->character);
+  n->data.unionDecl.name = name;
+  n->data.unionDecl.options = options;
+  return n;
+}
+Node *enumDeclNodeCreate(Token *keyword, Node *name, Vector *constantNames,
+                     Vector *constantValues) {
+  Node *n = createNode(NT_ENUMDECL, keyword->line, keyword->character);
+  n->data.enumDecl.name = name;
+  n->data.enumDecl.constantNames = constantNames;
+  n->data.enumDecl.constantValues = constantValues;
+  return n;
+}
+Node *typedefDeclNodeCreate(Token *keyword, Node *originalType, Node *name) {
+  Node *n = createNode(NT_TYPEDEFDECL, keyword->line, keyword->character);
+  n->data.typedefDecl.originalType = originalType;
+  n->data.typedefDecl.name = name;
+  return n;
+}
+
+Node *compoundStmtNodeCreate(Token *lbrace, Vector *stmts) {
+  Node *n = createNode(NT_COMPOUNDSTMT, lbrace->line, lbrace->character);
+  n->data.compoundStmt.stmts = stmts;
+  hashMapInit(&n->data.compoundStmt.stab);
+  return n;
+}
+Node *ifStmtNodeCreate(Token *keyword, Node *predicate, Node *consequent,
+                   Node *alternative) {
+  Node *n = createNode(NT_IFSTMT, keyword->line, keyword->character);
+  n->data.ifStmt.predicate = predicate;
+  n->data.ifStmt.consequent = consequent;
+  n->data.ifStmt.alternative = alternative;
+  return n;
+}
+Node *whileStmtNodeCreate(Token *keyword, Node *condition, Node *body) {
+  Node *n = createNode(NT_WHILESTMT, keyword->line, keyword->character);
+  n->data.whileStmt.condition = condition;
+  n->data.whileStmt.body = body;
+  return n;
+}
+Node *doWhileStmtNodeCreate(Token *keyword, Node *body, Node *condition) {
+  Node *n = createNode(NT_DOWHILESTMT, keyword->line, keyword->character);
+  n->data.doWhileStmt.body = body;
+  n->data.doWhileStmt.condition = condition;
+  return n;
+}
+Node *forStmtNodeCreate(Token *keyword, Node *initializer, Node *condition,
+                    Node *increment, Node *body) {
+  Node *n = createNode(NT_FORSTMT, keyword->line, keyword->character);
+  n->data.forStmt.initializer = initializer;
+  n->data.forStmt.condition = condition;
+  n->data.forStmt.increment = increment;
+  n->data.forStmt.body = body;
+  hashMapInit(&n->data.forStmt.stab);
+  return n;
+}
+Node *switchStmtNodeCreate(Token *keyword, Node *condition, Vector *cases) {
+  Node *n = createNode(NT_SWITCHSTMT, keyword->line, keyword->character);
+  n->data.switchStmt.condition = condition;
+  n->data.switchStmt.cases = cases;
+  return n;
+}
+Node *breakStmtNodeCreate(Token *keyword) {
+  Node *n = createNode(NT_SWITCHSTMT, keyword->line, keyword->character);
+  return n;
+}
+Node *continueStmtNodeCreate(Token *keyword) {
+  Node *n = createNode(NT_CONTINUESTMT, keyword->line, keyword->character);
+  return n;
+}
+Node *returnStmtNodeCreate(Token *keyword, Node *value) {
+  Node *n = createNode(NT_RETURNSTMT, keyword->line, keyword->character);
+  n->data.returnStmt.value = value;
+  return n;
+}
+Node *asmStmtNodeCreate(Token *keyword, Node *assembly) {
+  Node *n = createNode(NT_ASMSTMT, keyword->line, keyword->character);
+  n->data.asmStmt.assembly = assembly;
+  return n;
+}
+Node *varDefnStmtNodeCreate(Node *type, Vector *names, Vector *initializers) {
+  Node *n = createNode(NT_VARDEFNSTMT, type->line, type->character);
+  n->data.varDefnStmt.type = type;
+  n->data.varDefnStmt.names = names;
+  n->data.varDefnStmt.initializers = initializers;
+  return n;
+}
+Node *expressionStmtNodeCreate(Node *expression) {
+  Node *n =
+      createNode(NT_EXPRESSIONSTMT, expression->line, expression->character);
+  n->data.expressionStmt.expression = expression;
+  return n;
+}
+Node *nullStmtNodeCreate(Token *semicolon) {
+  Node *n = createNode(NT_NULLSTMT, semicolon->line, semicolon->character);
+  return n;
+}
+
+Node *switchCaseNodeCreate(Token *keyword, Vector *values, Node *body) {
+  Node *n = createNode(NT_SWITCHCASE, keyword->line, keyword->character);
+  n->data.switchCase.values = values;
+  n->data.switchCase.body = body;
+  return n;
+}
+Node *switchDefaultNodeCreate(Token *keyword, Node *body) {
+  Node *n = createNode(NT_SWITCHDEFAULT, keyword->line, keyword->character);
+  n->data.switchDefault.body = body;
+  return n;
+}
+
+Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs) {
+  Node *n = createNode(NT_BINOPEXP, lhs->line, lhs->character);
+  n->data.binOpExp.op = op;
+  n->data.binOpExp.lhs = lhs;
+  n->data.binOpExp.rhs = rhs;
+  return n;
+}
+Node *ternaryExpNodeCreate(Node *predicate, Node *consequent, Node *alternative) {
+  Node *n = createNode(NT_TERNARYEXP, predicate->line, predicate->character);
+  n->data.ternaryExp.predicate = predicate;
+  n->data.ternaryExp.consequent = consequent;
+  n->data.ternaryExp.alternative = alternative;
+  return n;
+}
+Node *prefixUnOpExpNodeCreate(UnOpType op, Token *opToken, Node *target) {
+  Node *n = createNode(NT_UNOPEXP, opToken->line, opToken->character);
+  n->data.unOpExp.op = op;
+  n->data.unOpExp.target = target;
+  return n;
+}
+Node *postfixUnOpExpNodeCreate(UnOpType op, Node *target) {
+  Node *n = createNode(NT_UNOPEXP, target->line, target->character);
+  n->data.unOpExp.op = op;
+  n->data.unOpExp.target = target;
+  return n;
+}
+Node *funCallExpNodeCreate(Node *function, Vector *arguments) {
+  Node *n = createNode(NT_FUNCALLEXP, function->line, function->character);
+  n->data.funCallExp.function = function;
+  n->data.funCallExp.arguments = arguments;
+  return n;
+}
+
+Node *literalNodeCreate(LiteralType type, Token *t) {
+  Node *n = createNode(NT_LITERAL, t->line, t->character);
+  n->data.literal.type = type;
+  return n;
+}
+Node *charLiteralNodeCreate(Token *t) {
+  Node *n = createNode(NT_LITERAL, t->line, t->character);
+  n->data.literal.type = LT_CHAR;
+  char *string = t->string;
+
+  if (string[0] == '\\') {
+    // escape sequence
+    switch (string[1]) {
+      case 'n': {
+        n->data.literal.value.charVal = charToU8('\n');
+        break;
+      }
+      case 'r': {
+        n->data.literal.value.charVal = charToU8('\r');
+        break;
+      }
+      case 't': {
+        n->data.literal.value.charVal = charToU8('\t');
+        break;
+      }
+      case '0': {
+        n->data.literal.value.charVal = charToU8('\0');
+        break;
+      }
+      case '\\': {
+        n->data.literal.value.charVal = charToU8('\\');
+        break;
+      }
+      case 'x': {
+        n->data.literal.value.charVal = (uint8_t)((nybbleToU8(string[2]) << 4) +
+                                                  (nybbleToU8(string[3]) << 0));
+        break;
+      }
+      case '\'': {
+        n->data.literal.value.charVal = charToU8('\'');
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__,
+              "bad char literal string passed to charLiteralNodeCreate");
+      }
+    }
+  } else {
+    // not an escape statement
+    n->data.literal.value.charVal = charToU8(string[0]);
+  }
+
+  tokenUninit(t);
+  return n;
+}
+Node *wcharLiteralNodeCreate(Token *t) {
+  Node *n = createNode(NT_LITERAL, t->line, t->character);
+  n->data.literal.type = LT_WCHAR;
+  char *string = t->string;
+
+  if (string[0] == '\\') {
+    // escape sequence
+    switch (string[1]) {
+      case 'n': {
+        n->data.literal.value.wcharVal = charToU8('\n');
+        break;
+      }
+      case 'r': {
+        n->data.literal.value.wcharVal = charToU8('\r');
+        break;
+      }
+      case 't': {
+        n->data.literal.value.wcharVal = charToU8('\t');
+        break;
+      }
+      case '0': {
+        n->data.literal.value.wcharVal = charToU8('\0');
+        break;
+      }
+      case '\\': {
+        n->data.literal.value.wcharVal = charToU8('\\');
+        break;
+      }
+      case 'x': {
+        n->data.literal.value.wcharVal = (uint8_t)(
+            (nybbleToU8(string[2]) << 4) + (nybbleToU8(string[3]) << 0));
+        break;
+      }
+      case 'u': {
+        n->data.literal.value.wcharVal = 0;
+        for (size_t idx = 0; idx < 8; idx++) {
+          n->data.literal.value.wcharVal <<= 4;
+          n->data.literal.value.wcharVal += nybbleToU8(string[idx + 2]);
+        }
+        break;
+      }
+      case '\'': {
+        n->data.literal.value.wcharVal = charToU8('\'');
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__,
+              "bad wchar literal string passed to wcharLiteralNodeCreate");
+      }
+    }
+  } else {
+    // not an escape statement
+    n->data.literal.value.wcharVal = charToU8(string[0]);
+  }
+
+  tokenUninit(t);
+  return n;
+}
+Node *stringLiteralNodeCreate(Token *t) {
+  Node *n = createNode(NT_LITERAL, t->line, t->character);
+  n->data.literal.type = LT_STRING;
+
+  TStringBuilder sb;
+  tstringBuilderInit(&sb);
+  for (char *string = t->string; *string != '\0'; string++) {
+    if (*string == '\\') {
+      string++;
+      // escape sequence
+      switch (*string) {
+        case 'n': {
+          tstringBuilderPush(&sb, charToU8('\n'));
+          break;
+        }
+        case 'r': {
+          tstringBuilderPush(&sb, charToU8('\r'));
+          break;
+        }
+        case 't': {
+          tstringBuilderPush(&sb, charToU8('\t'));
+          break;
+        }
+        case '0': {
+          tstringBuilderPush(&sb, charToU8('\0'));
+          break;
+        }
+        case '\\': {
+          tstringBuilderPush(&sb, charToU8('\\'));
+          break;
+        }
+        case 'x': {
+          char high = *string++;
+          char low = *string;
+          tstringBuilderPush(
+              &sb, (uint8_t)((nybbleToU8(high) << 4) + (nybbleToU8(low) << 0)));
+          break;
+        }
+        case '\'': {
+          tstringBuilderPush(&sb, charToU8('\''));
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "bad string literal string passed to stringLiteralNodeCreate");
+        }
+      }
+    } else {
+      // not an escape statement
+      tstringBuilderPush(&sb, charToU8(*string));
+    }
+  }
+
+  n->data.literal.value.stringVal = tstringBuilderData(&sb);
+  tstringBuilderUninit(&sb);
+  tokenUninit(t);
+  return n;
+}
+Node *wstringLiteralNodeCreate(Token *t) {
+  Node *n = createNode(NT_LITERAL, t->line, t->character);
+  n->data.literal.type = LT_WSTRING;
+
+  TWStringBuilder sb;
+  twstringBuilderInit(&sb);
+  for (char *string = t->string; *string != '\0'; string++) {
+    if (*string == '\\') {
+      string++;
+      // escape sequence
+      switch (*string) {
+        case 'n': {
+          twstringBuilderPush(&sb, charToU8('\n'));
+          break;
+        }
+        case 'r': {
+          twstringBuilderPush(&sb, charToU8('\r'));
+          break;
+        }
+        case 't': {
+          twstringBuilderPush(&sb, charToU8('\t'));
+          break;
+        }
+        case '0': {
+          twstringBuilderPush(&sb, charToU8('\0'));
+          break;
+        }
+        case '\\': {
+          twstringBuilderPush(&sb, charToU8('\\'));
+          break;
+        }
+        case 'x': {
+          char high = *string++;
+          char low = *string;
+          twstringBuilderPush(
+              &sb, (uint8_t)((nybbleToU8(high) << 4) + (nybbleToU8(low) << 0)));
+          break;
+        }
+        case 'u': {
+          uint32_t value = 0;
+          for (size_t idx = 0; idx < 8; idx++, string++) {
+            value <<= 4;
+            value += nybbleToU8(*string);
+          }
+          twstringBuilderPush(&sb, value);
+          break;
+        }
+        case '\'': {
+          twstringBuilderPush(&sb, charToU8('\''));
+          break;
+        }
+        default: {
+          error(
+              __FILE__, __LINE__,
+              "bad wstring literal string passed to wstringLiteralNodeCreate");
+        }
+      }
+    } else {
+      // not an escape statement
+      twstringBuilderPush(&sb, charToU8(*string));
+    }
+  }
+
+  n->data.literal.value.wstringVal = twstringBuilderData(&sb);
+  twstringBuilderUninit(&sb);
+  tokenUninit(t);
+  return n;
+}
+Node *sizedIntegerLiteralNodeCreate(FileListEntry *entry, Token *t, int8_t sign,
+                                uint64_t magnitude) {
+  if (sign == 0) {
+    // is unsigned
+    if (magnitude <= UBYTE_MAX) {
+      Node *n = literalNodeCreate(LT_UBYTE, t);
+      n->data.literal.value.ubyteVal = (uint8_t)magnitude;
+      return n;
+    } else if (magnitude <= USHORT_MAX) {
+      Node *n = literalNodeCreate(LT_USHORT, t);
+      n->data.literal.value.ushortVal = (uint16_t)magnitude;
+      return n;
+    } else if (magnitude <= UINT_MAX) {
+      Node *n = literalNodeCreate(LT_UINT, t);
+      n->data.literal.value.uintVal = (uint32_t)magnitude;
+      return n;
+    } else if (magnitude <= ULONG_MAX) {
+      Node *n = literalNodeCreate(LT_ULONG, t);
+      n->data.literal.value.ulongVal = (uint64_t)magnitude;
+      return n;
+    } else {
+      error(__FILE__, __LINE__,
+            "magnitude larger than ULONG_MAX passed to "
+            "sizedIntegerLiteralNodeCreate (CPU bug?)");
+    }
+  } else if (sign == -1) {
+    // negative
+    if (magnitude <= BYTE_MIN) {
+      Node *n = literalNodeCreate(LT_BYTE, t);
+      n->data.literal.value.byteVal = (int8_t)-magnitude;
+      return n;
+    } else if (magnitude <= SHORT_MIN) {
+      Node *n = literalNodeCreate(LT_SHORT, t);
+      n->data.literal.value.shortVal = (int16_t)-magnitude;
+      return n;
+    } else if (magnitude <= INT_MIN) {
+      Node *n = literalNodeCreate(LT_INT, t);
+      n->data.literal.value.intVal = (int32_t)-magnitude;
+      return n;
+    } else if (magnitude <= LONG_MIN) {
+      Node *n = literalNodeCreate(LT_LONG, t);
+      n->data.literal.value.longVal = (int64_t)-magnitude;
+      return n;
+    } else {
+      // user-side size error
+      tokenUninit(t);
+      return NULL;
+    }
+  } else if (sign == 1) {
+    // positive
+    if (magnitude <= BYTE_MAX) {
+      Node *n = literalNodeCreate(LT_BYTE, t);
+      n->data.literal.value.byteVal = (int8_t)magnitude;
+      return n;
+    } else if (magnitude <= SHORT_MAX) {
+      Node *n = literalNodeCreate(LT_SHORT, t);
+      n->data.literal.value.shortVal = (int16_t)magnitude;
+      return n;
+    } else if (magnitude <= INT_MAX) {
+      Node *n = literalNodeCreate(LT_INT, t);
+      n->data.literal.value.intVal = (int32_t)magnitude;
+      return n;
+    } else if (magnitude <= LONG_MAX) {
+      Node *n = literalNodeCreate(LT_LONG, t);
+      n->data.literal.value.longVal = (int64_t)magnitude;
+      return n;
+    } else {
+      // user-side size error
+      tokenUninit(t);
+      return NULL;
+    }
+  } else {
+    error(__FILE__, __LINE__,
+          "invalid sign passed to sizedIntegerLiteralNodeCreate");
+  }
+}
+
+Node *keywordTypeNodeCreate(TypeKeyword keyword, Token *keywordToken) {
+  Node *n =
+      createNode(NT_KEYWORDTYPE, keywordToken->line, keywordToken->character);
+  n->data.keywordType.keyword = keyword;
+  return n;
+}
+Node *modifiedTypeNodeCreate(TypeModifier modifier, Node *baseType) {
+  Node *n = createNode(NT_MODIFIEDTYPE, baseType->line, baseType->character);
+  n->data.modifiedType.modifier = modifier;
+  n->data.modifiedType.baseType = baseType;
+  return n;
+}
+Node *arrayTypeNodeCreate(Node *baseType, Node *size) {
+  Node *n = createNode(NT_ARRAYTYPE, baseType->line, baseType->character);
+  n->data.arrayType.baseType = baseType;
+  n->data.arrayType.size = size;
+  return n;
+}
+Node *funPtrTypeNodeCreate(Node *returnType, Vector *argTypes, Vector *argNames) {
+  Node *n = createNode(NT_FUNPTRTYPE, returnType->line, returnType->character);
+  n->data.funPtrType.returnType = returnType;
+  n->data.funPtrType.argTypes = argTypes;
+  n->data.funPtrType.argNames = argNames;
+  return n;
+}
+
+Node *scopedIdNodeCreate(Vector *components) {
+  Node *first = components->elements[0];
+  Node *n = createNode(NT_SCOPEDID, first->line, first->character);
+  n->data.scopedId.components = components;
+  return n;
+}
+Node *idNodeCreate(Token *id) {
+  Node *n = createNode(NT_ID, id->line, id->character);
+  n->data.id.id = id->string;
+  return n;
+}
+
+Node *unparsedNodeCreate(Vector *tokens) {
+  Token const *first = tokens->elements[0];
+  Node *n = createNode(NT_UNPARSED, first->line, first->character);
+  n->data.unparsed.tokens = tokens;
+  return n;
+}
 void nodeUninit(Node *n) {
   if (n == NULL) return;
   switch (n->type) {

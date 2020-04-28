@@ -30,6 +30,11 @@ void vectorInit(Vector *vector) {
   vector->capacity = PTR_VECTOR_INIT_CAPACITY;
   vector->elements = malloc(vector->capacity * sizeof(void *));
 }
+Vector *vectorCreate(void) {
+  Vector *v = malloc(sizeof(Vector));
+  vectorInit(v);
+  return v;
+}
 void vectorInsert(Vector *vector, void *element) {
   if (vector->size == vector->capacity) {
     vector->capacity *= VECTOR_GROWTH_FACTOR;  // using exponential growth
