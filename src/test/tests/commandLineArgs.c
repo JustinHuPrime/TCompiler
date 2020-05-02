@@ -51,7 +51,7 @@ static void testNumFilesCounting(void) {
   // files with options
   argc = 5;
   char const *const argv2[] = {
-      "./tlc", "foo.tc", "foo.td", "--arch=x86_64", "folder/bar.tc",
+      "./tlc", "foo.tc", "foo.td", "--arch=x86_64-linux", "folder/bar.tc",
   };
   retval = parseArgs(argc, argv2, &numFiles);
 
@@ -61,7 +61,7 @@ static void testNumFilesCounting(void) {
   // files with dash and options
   argc = 7;
   char const *const argv3[] = {
-      "./tlc",         "foo.tc", "foo.td",    "--arch=x86_64",
+      "./tlc",         "foo.tc", "foo.td",    "--arch=x86_64-linux",
       "folder/bar.tc", "--",     "-other.td",
   };
   retval = parseArgs(argc, argv3, &numFiles);
@@ -96,17 +96,18 @@ static void testOptions(void) {
   dropLine();
   test("command line with bad option fails", retval != 0);
 
-  // --arch=x86_64
+  // --arch=x86_64-linux
   argc = 3;
   char const *const argv1[] = {
       "./tlc",
-      "--arch=x86_64",
+      "--arch=x86_64-linux",
       "foo.tc",
   };
   retval = parseArgs(argc, argv1, &numFiles);
 
-  test("command line with arch=x86_64 passes", retval == 0);
-  test("arch=x86_64 option is correctly set", options.arch == OPTION_A_X86_64);
+  test("command line with arch=x86_64-linux passes", retval == 0);
+  test("arch=x86_64-linux option is correctly set",
+       options.arch == OPTION_A_X86_64_LINUX);
 
   // -fPDC
   argc = 3;

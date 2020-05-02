@@ -29,7 +29,7 @@
 
 /** Possible architectures to target */
 typedef enum {
-  OPTION_A_X86_64,
+  OPTION_A_X86_64_LINUX,
 } ArchOption;
 /** Position dependence options */
 typedef enum {

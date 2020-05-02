@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
 
   // back-end
   switch (options.arch) {
-    case OPTION_A_X86_64: {
+    case OPTION_A_X86_64_LINUX: {
       // assembly generation
 
       // assembly optimization part 1
