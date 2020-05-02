@@ -1,5 +1,0 @@
-module foo;
-
-int main (int argc, char **argv) {
-  break; // break in bad context
-}

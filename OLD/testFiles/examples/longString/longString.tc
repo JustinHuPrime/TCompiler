@@ -1,5 +1,0 @@
-module longString;
-
-char const *str = "this is a string
-with multiple newlines
-contained in it";

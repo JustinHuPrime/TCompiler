@@ -1,6 +1,0 @@
-module varDecl::long;
-
-int main (int argc, char **argv) {
-  int x, y = 1, z;
-  return 0;
-}
