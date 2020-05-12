@@ -25,10 +25,9 @@
 int main(void) {
   testStatusInit();
 
-  // unit tests
+  testBigInteger();
   testConversions();
 
-  // integration tests
   testCommandLineArgs();
   testLexer();
 

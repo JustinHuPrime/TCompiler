@@ -43,7 +43,17 @@ typedef enum {
  */
 typedef struct {
   SymbolType type;
-  // TODO: more data needed later
+  union {
+    struct {
+      int todo;  // TODO: fill this in
+    } type;
+    struct {
+      int todo;  // TODO: fill this in
+    } function;
+    struct {
+      int todo;  // TODO: fill this in
+    } variable;
+  } data;
 } SymbolTableEntry;
 
 /**

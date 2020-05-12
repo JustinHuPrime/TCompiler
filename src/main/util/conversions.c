@@ -22,7 +22,7 @@
 #include "internalError.h"
 #include "numericSizing.h"
 #include "optimization.h"
-#include "util/bigNum.h"
+#include "util/bigInteger.h"
 #include "util/digitChain.h"
 
 #include <stdlib.h>

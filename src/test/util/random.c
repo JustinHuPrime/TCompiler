@@ -17,21 +17,19 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/**
- * @file
- * listing of all test functions to run
- */
+#include "util/random.h"
 
-#ifndef TLC_TEST_TESTS_H_
-#define TLC_TEST_TESTS_H_
+#include <stdlib.h>
 
-/** tests bigInteger */
-void testBigInteger(void);
-/** tests numeric conversions */
-void testConversions(void);
-/** tests command line argument parsing */
-void testCommandLineArgs(void);
-/** tests lexing */
-void testLexer(void);
+uint64_t longRand(void) {
+  uint64_t high = (uint32_t)rand();
+  uint64_t mid = (uint32_t)rand();
+  uint64_t low = (uint32_t)rand();
+  return high << 62 | mid << 31 | low;
+}
 
-#endif  // TLC_TEST_TESTS_H_
+uint32_t intRand(void) {
+  uint32_t high = (uint32_t)rand();
+  uint32_t low = (uint32_t)rand();
+  return high << 31 | low;
+}

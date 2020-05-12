@@ -19,19 +19,22 @@
 
 /**
  * @file
- * listing of all test functions to run
+ * random number generation utilities
  */
 
-#ifndef TLC_TEST_TESTS_H_
-#define TLC_TEST_TESTS_H_
+#ifndef TLC_TEST_UTIL_RANDOM_H_
+#define TLC_TEST_UTIL_RANDOM_H_
 
-/** tests bigInteger */
-void testBigInteger(void);
-/** tests numeric conversions */
-void testConversions(void);
-/** tests command line argument parsing */
-void testCommandLineArgs(void);
-/** tests lexing */
-void testLexer(void);
+#include <stdint.h>
 
-#endif  // TLC_TEST_TESTS_H_
+/**
+ * @returns a random 64 bit unsigned integer
+ */
+uint64_t longRand(void);
+
+/**
+ * @returns a random 32 bit unsigned integer
+ */
+uint32_t intRand(void);
+
+#endif  // TLC_TEST_UTIL_RANDOM_H_

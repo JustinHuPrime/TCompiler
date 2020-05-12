@@ -19,7 +19,7 @@
 
 /**
  * @file
- * unit tests for numeric conversions
+ * tests for numeric conversions
  */
 
 #include "util/conversions.h"
@@ -27,6 +27,7 @@
 #include "engine.h"
 #include "tests.h"
 #include "util/format.h"
+#include "util/random.h"
 
 #include <math.h>
 #include <stdio.h>  // FIXME:
@@ -36,20 +37,14 @@
 
 char *ignored;
 
-static uint64_t longRand(void) {
-  uint64_t high = (uint32_t)rand();
-  uint64_t low = (uint32_t)rand();
-  return high << 32 | low;
-}
-
 static void testNormalFloatConversions(void) {
   srand(0);  // keep tests repeatable
 
   bool floatOK = true;
   for (size_t count = 0; count < 10000; count++) {
-    uint8_t sign = (uint8_t)(rand() % 2);
-    uint16_t exponent = (uint16_t)(rand() % 0x100);
-    uint64_t mantissa = (uint64_t)(rand() % 0x1000000);
+    uint8_t sign = (uint8_t)(intRand() % 2);
+    uint16_t exponent = (uint16_t)(intRand() % 0x100);
+    uint64_t mantissa = (uint64_t)(intRand() % 0x1000000);
 
     uint32_t floatBits = ((uint32_t)sign << 31) | ((uint32_t)exponent << 23) |
                          (uint32_t)mantissa;
@@ -74,8 +69,8 @@ static void testNormalDoubleConversions(void) {
 
   bool doubleOK = true;
   for (size_t count = 0; count < 10000; count++) {
-    uint8_t sign = (uint8_t)(rand() % 2);
-    uint16_t exponent = (uint16_t)(rand() % 0x800);
+    uint8_t sign = (uint8_t)(intRand() % 2);
+    uint16_t exponent = (uint16_t)(intRand() % 0x800);
     uint64_t mantissa = (uint64_t)(longRand() % 0x10000000000000);
 
     uint64_t doubleBits = ((uint64_t)sign << 63) | ((uint64_t)exponent << 52) |
@@ -101,9 +96,9 @@ static void testSubnormalFloatConversions(void) {
 
   bool floatOK = true;
   for (size_t count = 0; count < 10000; count++) {
-    uint8_t sign = (uint8_t)(rand() % 2);
+    uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = 0;
-    uint64_t mantissa = (uint64_t)(rand() % 0x1000000);
+    uint64_t mantissa = (uint64_t)(intRand() % 0x1000000);
 
     uint32_t floatBits = ((uint32_t)sign << 31) | ((uint32_t)exponent << 23) |
                          (uint32_t)mantissa;
@@ -124,7 +119,7 @@ static void testSubnormalDoubleConversions(void) {
   srand(0);
   bool doubleOK = true;
   for (size_t count = 0; count < 10000; count++) {
-    uint8_t sign = (uint8_t)(rand() % 2);
+    uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = 0;
     uint64_t mantissa = (uint64_t)(longRand() % 0x10000000000000);
 
@@ -148,13 +143,13 @@ static void testOverflowFloatConversions(void) {
 
   bool floatOK = true;
   for (size_t count = 0; count < 10000; count++) {
-    uint8_t sign = (uint8_t)(rand() % 2);
+    uint8_t sign = (uint8_t)(intRand() % 2);
 
-    size_t stringLength = 39 + (unsigned)rand() % 20;
+    size_t stringLength = 39 + (unsigned)intRand() % 20;
     char *digits = calloc(stringLength + 1, sizeof(char));
-    digits[0] = u8ToChar((uint8_t)(charToU8('1') + rand() % 9));
+    digits[0] = u8ToChar((uint8_t)(charToU8('1') + intRand() % 9));
     for (size_t idx = 1; idx < stringLength; idx++)
-      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + rand() % 10));
+      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + intRand() % 10));
 
     char *stringValue = format("%c%s.0", sign == 0 ? '+' : '-', digits);
     free(digits);
@@ -174,13 +169,13 @@ static void testOverflowDoubleConversions(void) {
 
   bool floatOK = true;
   for (size_t count = 0; count < 10000; count++) {
-    uint8_t sign = (uint8_t)(rand() % 2);
+    uint8_t sign = (uint8_t)(intRand() % 2);
 
-    size_t stringLength = 309 + (unsigned)rand() % 20;
+    size_t stringLength = 309 + (unsigned)intRand() % 20;
     char *digits = calloc(stringLength + 1, sizeof(char));
-    digits[0] = u8ToChar((uint8_t)(charToU8('1') + rand() % 9));
+    digits[0] = u8ToChar((uint8_t)(charToU8('1') + intRand() % 9));
     for (size_t idx = 1; idx < stringLength; idx++)
-      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + rand() % 10));
+      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + intRand() % 10));
 
     char *stringValue = format("%c%s.0", sign == 0 ? '+' : '-', digits);
     free(digits);
@@ -200,17 +195,17 @@ static void testUnderflowFloatConversions(void) {
 
   bool floatOK = true;
   for (size_t count = 0; count < 10000; count++) {
-    uint8_t sign = (uint8_t)(rand() % 2);
+    uint8_t sign = (uint8_t)(intRand() % 2);
 
-    size_t zeroLength = 36 + (unsigned)rand() % 10;
+    size_t zeroLength = 36 + (unsigned)intRand() % 10;
     char *zeroes = calloc(zeroLength + 1, sizeof(char));
     memset(zeroes, '0', zeroLength);
 
-    size_t digitLength = 1 + (unsigned)rand() % 10;
+    size_t digitLength = 1 + (unsigned)intRand() % 10;
     char *digits = calloc(digitLength + 1, sizeof(char));
-    digits[0] = u8ToChar((uint8_t)(charToU8('1') + rand() % 9));
+    digits[0] = u8ToChar((uint8_t)(charToU8('1') + intRand() % 9));
     for (size_t idx = 1; idx < digitLength; idx++)
-      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + rand() % 10));
+      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + intRand() % 10));
 
     char *stringValue =
         format("%c0.%s%s", sign == 0 ? '+' : '-', zeroes, digits);
@@ -236,17 +231,17 @@ static void testUnderflowDoubleConversions(void) {
 
   bool doubleOK = true;
   for (size_t count = 0; count < 10000; count++) {
-    uint8_t sign = (uint8_t)(rand() % 2);
+    uint8_t sign = (uint8_t)(intRand() % 2);
 
-    size_t zeroLength = 306 + (unsigned)rand() % 20;
+    size_t zeroLength = 306 + (unsigned)intRand() % 20;
     char *zeroes = calloc(zeroLength + 1, sizeof(char));
     memset(zeroes, '0', zeroLength);
 
-    size_t digitLength = 1 + (unsigned)rand() % 20;
+    size_t digitLength = 1 + (unsigned)intRand() % 20;
     char *digits = calloc(digitLength + 1, sizeof(char));
-    digits[0] = u8ToChar((uint8_t)(charToU8('1') + rand() % 9));
+    digits[0] = u8ToChar((uint8_t)(charToU8('1') + intRand() % 9));
     for (size_t idx = 1; idx < digitLength; idx++)
-      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + rand() % 10));
+      digits[idx] = u8ToChar((uint8_t)(charToU8('0') + intRand() % 10));
 
     char *stringValue =
         format("%c0.%s%s", sign == 0 ? '+' : '-', zeroes, digits);

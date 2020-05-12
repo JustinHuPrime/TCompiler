@@ -16,9 +16,10 @@
 // the T Language Compiler. If not see <https://www.gnu.org/licenses/>.
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
+
 /**
  * @file
- * integration tests for command line arguments
+ * tests for command line arguments
  */
 
 #include "fileList.h"

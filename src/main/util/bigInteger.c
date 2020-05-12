@@ -17,10 +17,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "util/bigNum.h"
+#include "util/bigInteger.h"
 
 #include "optimization.h"
 
+#include <stdio.h>  // FIXME:
 #include <stdlib.h>
 
 /**
@@ -113,14 +114,13 @@ uint8_t bigIntGetBitAtIndex(BigInteger *integer, size_t idx) {
 }
 
 void bigIntRoundToN(BigInteger *integer, size_t n) {
-  // get a 'bit pointer' to the first bit in the first digit
   size_t sigBits = bigIntCountSigBits(integer);
-  size_t cutoffIndex = sigBits - 1;
-  // move that pointer to the bits to cut off
-  if (cutoffIndex + 1 <= n) return;  // already rounded
-  cutoffIndex -= n;
+  if (sigBits <= n) return;  // already rounded
+  // get a 'bit pointer' to the digits to remove
+  size_t cutoffIndex = sigBits - 1 - n;
 
-  // cutoffIndex now points at the bits to round off
+  printf("DEBUG: cutoffIndex = %zu\n", cutoffIndex);
+
   uint8_t firstBit = bigIntGetBitAtIndex(integer, cutoffIndex);
   if (firstBit == 0) {
     // if following digits are all zeroes, then no rounding, otherwise round
@@ -167,7 +167,7 @@ void bigIntRoundToN(BigInteger *integer, size_t n) {
   }
 
   // zero out the bits
-  for (size_t idx = 0; idx < cutoffIndex; idx++)
+  for (size_t idx = 0; idx <= cutoffIndex; idx++)
     bigIntClearBitAtIndex(integer, idx);
 }
 

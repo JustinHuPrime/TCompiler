@@ -19,7 +19,7 @@
 
 /**
  * @file
- * integration tests for the lexer
+ * tests for the lexer
  */
 
 #include "lexer/lexer.h"
