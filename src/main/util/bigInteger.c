@@ -57,7 +57,7 @@ static void bigIntClearBitAtIndex(BigInteger *integer, size_t idx) {
  * @param n bit to add one to
  */
 static void bigIntAddOneToBit(BigInteger *integer, size_t n) {
-  uint32_t carry = 1U << n % 32;
+  uint32_t carry = 1U << (n % 32);
   for (size_t idx = n / 32; idx < integer->size; idx++) {
     uint64_t digitResult = integer->digits[idx] + carry;
     integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
@@ -118,8 +118,6 @@ void bigIntRoundToN(BigInteger *integer, size_t n) {
   if (sigBits <= n) return;  // already rounded
   // get a 'bit pointer' to the digits to remove
   size_t cutoffIndex = sigBits - 1 - n;
-
-  printf("DEBUG: cutoffIndex = %zu\n", cutoffIndex);
 
   uint8_t firstBit = bigIntGetBitAtIndex(integer, cutoffIndex);
   if (firstBit == 0) {

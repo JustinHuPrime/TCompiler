@@ -84,7 +84,7 @@ static void testBigIntegerRounding(void) {
     BigInteger integer;
     bigIntInit(&integer);
 
-    uint64_t number = longRand();
+    uint64_t number = longRand() >> 1;
     bigIntAdd(&integer, number);
 
     size_t nbits = bigIntCountSigBits(&integer);
