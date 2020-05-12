@@ -45,7 +45,7 @@ static void bigIntAddDigit(BigInteger *integer) {
  * @param idx index to set
  */
 static void bigIntClearBitAtIndex(BigInteger *integer, size_t idx) {
-  integer->digits[idx / 32] &= ~(0x1U << idx % 32);
+  integer->digits[idx / 32] &= ~(0x1U << (idx % 32));
 }
 
 /**

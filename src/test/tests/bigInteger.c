@@ -88,7 +88,7 @@ static void testBigIntegerRounding(void) {
     bigIntAdd(&integer, number);
 
     size_t nbits = bigIntCountSigBits(&integer);
-    size_t roundTo = (rand() % nbits) + 1;
+    size_t roundTo = ((unsigned)rand() % nbits) + 1;
 
     bigIntRoundToN(&integer, roundTo);
     uint64_t bigIntRounded = bigIntGetNBits(&integer, roundTo);
