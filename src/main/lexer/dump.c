@@ -141,7 +141,7 @@ static char const *const TOKEN_NAMES[] = {
 };
 
 void lexDump(FileListEntry *entry) {
-  printf("%s:\n", entry->inputFile);
+  printf("%s:\n", entry->inputFilename);
   if (lexerStateInit(entry) != 0) return;
 
   Token t;

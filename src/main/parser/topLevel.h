@@ -32,7 +32,7 @@
  * parses a file's top level, leaving function bodies unparsed
  *
  * @param entry entry to lex from
- * @returns AST node or NULL if error happened
+ * @returns AST node or NULL if error happened, also sets entry->errored
  */
 Node *parseFile(FileListEntry *entry);
 

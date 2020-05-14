@@ -33,7 +33,7 @@
 
 static void testAllTokens(void) {
   FileListEntry entry;  // forge the entry
-  entry.inputFile = "testFiles/lexer/allTokens.tc";
+  entry.inputFilename = "testFiles/lexer/allTokens.tc";
   entry.isCode = true;
   entry.errored = false;
 
@@ -267,7 +267,7 @@ static void testErrors(void) {
   Token token;
 
   FileListEntry entry;  // forge the entry
-  entry.inputFile = "testFiles/lexer/errors.tc";
+  entry.inputFilename = "testFiles/lexer/errors.tc";
   entry.isCode = true;
   entry.errored = false;
 
@@ -323,7 +323,7 @@ static void testErrors(void) {
 
   lexerStateUninit(&entry);
 
-  entry.inputFile = "testFiles/lexer/unterminatedCharLit.tc";
+  entry.inputFilename = "testFiles/lexer/unterminatedCharLit.tc";
 
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
@@ -345,7 +345,7 @@ static void testErrors(void) {
 
   lexerStateUninit(&entry);
 
-  entry.inputFile = "testFiles/lexer/unterminatedStringLit.tc";
+  entry.inputFilename = "testFiles/lexer/unterminatedStringLit.tc";
 
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 

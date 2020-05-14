@@ -34,7 +34,7 @@
 /** an entry in the filelist */
 typedef struct FileListEntry {
   bool errored;          /**< has an error been signaled for this entry? */
-  char const *inputFile; /**< path to the input file */
+  char const *inputFilename; /**< path to the input file */
   bool isCode;           /**< does the input file path point to a code file */
   LexerState lexerState; /**< state of the lexer */
   Node *program;         /**< AST for this file */

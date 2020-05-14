@@ -18,6 +18,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "parser/topLevel.h"
+
 #include "util/conversions.h"
 
 #include <stdio.h>
@@ -151,7 +152,7 @@ static char const *const TOKEN_NAMES[] = {
 static void errorExpectedToken(FileListEntry *entry, TokenType expected,
                                Token *actual) {
   fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-          entry->inputFile, actual->line, actual->character,
+          entry->inputFilename, actual->line, actual->character,
           TOKEN_NAMES[expected], TOKEN_NAMES[actual->type]);
   entry->errored = true;
 }
@@ -167,7 +168,7 @@ static void errorExpectedToken(FileListEntry *entry, TokenType expected,
 static void errorExpectedString(FileListEntry *entry, char const *expected,
                                 Token *actual) {
   fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-          entry->inputFile, actual->line, actual->character, expected,
+          entry->inputFilename, actual->line, actual->character, expected,
           TOKEN_NAMES[actual->type]);
   entry->errored = true;
 }
@@ -180,7 +181,7 @@ static void errorExpectedString(FileListEntry *entry, char const *expected,
  */
 static void errorIntOverflow(FileListEntry *entry, Token *token) {
   fprintf(stderr, "%s:%zu:%zu: error: integer constant is too large\n",
-          entry->inputFile, token->line, token->character);
+          entry->inputFilename, token->line, token->character);
   entry->errored = true;
 }
 
@@ -1798,7 +1799,7 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
     fprintf(stderr,
             "%s:%zu:%zu: error: expected at least one field in a struct "
             "declaration\n",
-            entry->inputFile, lbrace.line, lbrace.character);
+            entry->inputFilename, lbrace.line, lbrace.character);
     entry->errored = true;
 
     nodeFree(name);
@@ -1900,7 +1901,7 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
     fprintf(stderr,
             "%s:%zu:%zu: error: expected at least one option in a union "
             "declaration\n",
-            entry->inputFile, lbrace.line, lbrace.character);
+            entry->inputFilename, lbrace.line, lbrace.character);
     entry->errored = true;
 
     nodeFree(name);
@@ -2051,7 +2052,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
     fprintf(stderr,
             "%s:%zu:%zu: error: expected at least one enumeration constant in "
             "a enumeration declaration\n",
-            entry->inputFile, lbrace.line, lbrace.character);
+            entry->inputFilename, lbrace.line, lbrace.character);
     entry->errored = true;
 
     panicTopLevel(entry);

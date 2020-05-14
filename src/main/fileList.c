@@ -29,7 +29,7 @@ FileList fileList;
 
 void fileListEntryInit(FileListEntry *entry, char const *inputName,
                        bool isCode) {
-  entry->inputFile = inputName;
+  entry->inputFilename = inputName;
   entry->isCode = isCode;
   entry->errored = false;
   entry->program = NULL;
@@ -79,7 +79,7 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
         // search for duplicates
         bool duplicate = false;
         for (size_t searchIdx = 0; searchIdx < fileList.size; searchIdx++) {
-          if (strcmp(argv[idx], fileList.entries[searchIdx].inputFile) == 0) {
+          if (strcmp(argv[idx], fileList.entries[searchIdx].inputFilename) == 0) {
             duplicate = true;
             break;
           }
