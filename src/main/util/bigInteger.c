@@ -57,11 +57,11 @@ static void bigIntClearBitAtIndex(BigInteger *integer, size_t idx) {
  * @param n bit to add one to
  */
 static void bigIntAddOneToBit(BigInteger *integer, size_t n) {
-  uint32_t carry = 1U << (n % 32);
+  uint64_t carry = 1UL << (n % 32);
   for (size_t idx = n / 32; idx < integer->size; idx++) {
-    uint64_t digitResult = integer->digits[idx] + carry;
+    uint64_t digitResult = (uint64_t)integer->digits[idx] + carry;
     integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
-    carry = (uint32_t)(digitResult / 0x100000000);
+    carry = digitResult / 0x100000000;
     if (idx + 1 == integer->size && carry != 0)
       // add a digit to be carried in to
       bigIntAddDigit(integer);
@@ -81,7 +81,7 @@ void bigIntMul(BigInteger *integer, uint64_t n) {
   for (size_t idx = 0; idx < integer->size; idx++) {
     uint64_t digitResult = (uint64_t)integer->digits[idx] * n + carry;
     integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
-    carry = (uint32_t)(digitResult / 0x100000000);
+    carry = digitResult / 0x100000000;
     if (idx + 1 == integer->size && carry != 0)
       // add a digit to be carried in to
       bigIntAddDigit(integer);
@@ -93,7 +93,7 @@ void bigIntAdd(BigInteger *integer, uint64_t n) {
   for (size_t idx = 0; idx < integer->size; idx++) {
     uint64_t digitResult = (uint64_t)integer->digits[idx] + carry;
     integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
-    carry = (uint32_t)(digitResult / 0x100000000);
+    carry = digitResult / 0x100000000;
     if (idx + 1 == integer->size && carry != 0)
       // add a digit to be carried in to
       bigIntAddDigit(integer);
