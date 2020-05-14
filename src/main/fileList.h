@@ -37,7 +37,7 @@ typedef struct FileListEntry {
   char const *inputFilename; /**< path to the input file */
   bool isCode;           /**< does the input file path point to a code file */
   LexerState lexerState; /**< state of the lexer */
-  Node *program;         /**< AST for this file */
+  Node *ast;         /**< AST for this file */
 } FileListEntry;
 /**
  * constructs a FileListEntry in-place

@@ -36,7 +36,7 @@ int parse(void) {
       continue;
     }
 
-    fileList.entries[idx].program = parseFile(&fileList.entries[idx]);
+    fileList.entries[idx].ast = parseFile(&fileList.entries[idx]);
     errored = errored || fileList.entries[idx].errored;
 
     lexerStateUninit(&fileList.entries[idx]);
@@ -47,7 +47,7 @@ int parse(void) {
   if (errored) {
     // at least one produced NULL - clean up and report that
     for (size_t idx = 0; idx < fileList.size; idx++)
-      nodeFree(fileList.entries[idx].program);
+      nodeFree(fileList.entries[idx].ast);
     return -1;
   }
 
