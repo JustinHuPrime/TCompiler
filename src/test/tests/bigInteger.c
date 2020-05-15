@@ -45,7 +45,7 @@ static void testBigIntegerInit(void) {
 static void testBigIntegerArithmetic(void) {
   srand(0);  // make test deterministic
 
-  for (size_t count = 0; count < 10000; count++) {
+  for (size_t count = 0; count < 1000; count++) {
     BigInteger integer;
     bigIntInit(&integer);
 
@@ -80,7 +80,7 @@ static size_t countBits(uint64_t n) {
 static void testBigIntegerRounding(void) {
   srand(0);  // deterministic tests
 
-  for (size_t count = 0; count < 10000; count++) {
+  for (size_t count = 0; count < 1000; count++) {
     BigInteger integer;
     bigIntInit(&integer);
 

@@ -40,7 +40,7 @@ static void testNormalFloatConversions(void) {
   srand(0);  // keep tests repeatable
 
   bool floatOK = true;
-  for (size_t count = 0; count < 10000; count++) {
+  for (size_t count = 0; count < 1000; count++) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = (uint16_t)(intRand() % 0x100);
     uint64_t mantissa = (uint64_t)(intRand() % 0x1000000);
@@ -67,7 +67,7 @@ static void testNormalDoubleConversions(void) {
   srand(0);  // keep tests repeatable
 
   bool doubleOK = true;
-  for (size_t count = 0; count < 10000; count++) {
+  for (size_t count = 0; count < 1000; count++) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = (uint16_t)(intRand() % 0x800);
     uint64_t mantissa = (uint64_t)(longRand() % 0x10000000000000);
@@ -94,7 +94,7 @@ static void testSubnormalFloatConversions(void) {
   srand(0);
 
   bool floatOK = true;
-  for (size_t count = 0; count < 10000; count++) {
+  for (size_t count = 0; count < 1000; count++) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = 0;
     uint64_t mantissa = (uint64_t)(intRand() % 0x1000000);
@@ -117,7 +117,7 @@ static void testSubnormalFloatConversions(void) {
 static void testSubnormalDoubleConversions(void) {
   srand(0);
   bool doubleOK = true;
-  for (size_t count = 0; count < 10000; count++) {
+  for (size_t count = 0; count < 1000; count++) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = 0;
     uint64_t mantissa = (uint64_t)(longRand() % 0x10000000000000);
@@ -141,7 +141,7 @@ static void testOverflowFloatConversions(void) {
   srand(0);
 
   bool floatOK = true;
-  for (size_t count = 0; count < 10000; count++) {
+  for (size_t count = 0; count < 1000; count++) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
     size_t stringLength = 39 + (unsigned)intRand() % 20;
@@ -167,7 +167,7 @@ static void testOverflowDoubleConversions(void) {
   srand(0);
 
   bool floatOK = true;
-  for (size_t count = 0; count < 10000; count++) {
+  for (size_t count = 0; count < 1000; count++) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
     size_t stringLength = 309 + (unsigned)intRand() % 20;
@@ -193,7 +193,7 @@ static void testUnderflowFloatConversions(void) {
   srand(0);
 
   bool floatOK = true;
-  for (size_t count = 0; count < 10000; count++) {
+  for (size_t count = 0; count < 1000; count++) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
     size_t zeroLength = 36 + (unsigned)intRand() % 10;
@@ -225,7 +225,7 @@ static void testUnderflowDoubleConversions(void) {
   srand(0);
 
   bool doubleOK = true;
-  for (size_t count = 0; count < 10000; count++) {
+  for (size_t count = 0; count < 1000; count++) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
     size_t zeroLength = 306 + (unsigned)intRand() % 20;
