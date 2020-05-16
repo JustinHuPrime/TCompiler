@@ -110,12 +110,6 @@ static void testBigIntegerRounding(void) {
     // don't do anything if removed < half
     kept >>= countBits(kept) - roundTo;
 
-    if (kept != bigIntRounded) {
-      printf(
-          "Originally 0x%lX (%zu bits)\nRounding to %zu bits\nExpected 0x%lX, "
-          "got 0x%lX\n",
-          number, nbits, roundTo, kept, bigIntRounded);
-    }
     test("bigInteger has the right rounded bits", bigIntRounded == kept);
 
     bigIntUninit(&integer);
