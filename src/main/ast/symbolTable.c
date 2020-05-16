@@ -21,17 +21,56 @@
 
 #include "ast/symbolTable.h"
 
-void stabEntryDeinit(SymbolTableEntry *e) {
-  // TODO: fill this in once there's data in the entry
-  switch (e->type) {
-    case ST_TYPE: {
+#include <stdlib.h>
+
+/**
+ * deinitialize and free a type
+ *
+ * @param t type to destroy
+ */
+static void typeDestroy(Type *t) {
+  typeUninit(t);
+  free(t);
+}
+
+void typeUninit(Type *t) {
+  switch (t->type) {
+    case K_POINTER: {
+      typeDestroy(t->data.pointer.base);
       break;
     }
-    case ST_FUNCTION: {
+    case K_ARRAY: {
+      typeDestroy(t->data.array.base);
       break;
     }
-    case ST_VARIABLE: {
+    case K_FUNPTR: {
+      typeDestroy(t->data.funPtr.returnType);
+      vectorUninit(&t->data.funPtr.argumentTypes,
+                   (void (*)(void *))typeDestroy);
       break;
+    }
+    default: {
+      break;  // nothing to destroy
     }
   }
+}
+
+void overloadSetElementDestroy(OverloadSetElement *e) {
+  typeUninit(&e->returnType);
+  vectorUninit(&e->argumentTypes, typeDestroy);
+}
+
+void stabEntryUninit(SymbolTableEntry *e) {
+  // TODO: fill this in once there's data in the entry
+  // switch (e->type) {
+  //   case ST_TYPE: {
+  //     break;
+  //   }
+  //   case ST_FUNCTION: {
+  //     break;
+  //   }
+  //   case ST_VARIABLE: {
+  //     break;
+  //   }
+  // }
 }

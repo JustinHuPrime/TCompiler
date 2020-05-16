@@ -24,8 +24,10 @@
 #include "numericSizing.h"
 #include "util/container/stringBuilder.h"
 #include "util/conversions.h"
+#include "util/format.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 /**
  * deinits and frees a symbol table entry
@@ -33,7 +35,7 @@
  * @param e entry to free, not null
  */
 static void stabEntryFree(SymbolTableEntry *e) {
-  stabEntryDeinit(e);
+  stabEntryUninit(e);
   free(e);
 }
 
@@ -82,7 +84,7 @@ Node *importNodeCreate(Token *keyword, Node *id) {
 }
 
 Node *funDefnNodeCreate(Node *returnType, Node *name, Vector *argTypes,
-                    Vector *argNames, Vector *argDefaults, Node *body) {
+                        Vector *argNames, Vector *argDefaults, Node *body) {
   Node *n = createNode(NT_FUNDEFN, returnType->line, returnType->character);
   n->data.funDefn.returnType = returnType;
   n->data.funDefn.name = name;
@@ -102,7 +104,7 @@ Node *varDefnNodeCreate(Node *type, Vector *names, Vector *initializers) {
 }
 
 Node *funDeclNodeCreate(Node *returnType, Node *name, Vector *argTypes,
-                    Vector *argNames, Vector *argDefaults) {
+                        Vector *argNames, Vector *argDefaults) {
   Node *n = createNode(NT_FUNDECL, returnType->line, returnType->character);
   n->data.funDecl.returnType = returnType;
   n->data.funDecl.name = name;
@@ -135,7 +137,7 @@ Node *unionDeclNodeCreate(Token *keyword, Node *name, Vector *options) {
   return n;
 }
 Node *enumDeclNodeCreate(Token *keyword, Node *name, Vector *constantNames,
-                     Vector *constantValues) {
+                         Vector *constantValues) {
   Node *n = createNode(NT_ENUMDECL, keyword->line, keyword->character);
   n->data.enumDecl.name = name;
   n->data.enumDecl.constantNames = constantNames;
@@ -156,7 +158,7 @@ Node *compoundStmtNodeCreate(Token *lbrace, Vector *stmts) {
   return n;
 }
 Node *ifStmtNodeCreate(Token *keyword, Node *predicate, Node *consequent,
-                   Node *alternative) {
+                       Node *alternative) {
   Node *n = createNode(NT_IFSTMT, keyword->line, keyword->character);
   n->data.ifStmt.predicate = predicate;
   n->data.ifStmt.consequent = consequent;
@@ -176,7 +178,7 @@ Node *doWhileStmtNodeCreate(Token *keyword, Node *body, Node *condition) {
   return n;
 }
 Node *forStmtNodeCreate(Token *keyword, Node *initializer, Node *condition,
-                    Node *increment, Node *body) {
+                        Node *increment, Node *body) {
   Node *n = createNode(NT_FORSTMT, keyword->line, keyword->character);
   n->data.forStmt.initializer = initializer;
   n->data.forStmt.condition = condition;
@@ -246,7 +248,8 @@ Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs) {
   n->data.binOpExp.rhs = rhs;
   return n;
 }
-Node *ternaryExpNodeCreate(Node *predicate, Node *consequent, Node *alternative) {
+Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,
+                           Node *alternative) {
   Node *n = createNode(NT_TERNARYEXP, predicate->line, predicate->character);
   n->data.ternaryExp.predicate = predicate;
   n->data.ternaryExp.consequent = consequent;
@@ -512,7 +515,7 @@ Node *wstringLiteralNodeCreate(Token *t) {
   return n;
 }
 Node *sizedIntegerLiteralNodeCreate(FileListEntry *entry, Token *t, int8_t sign,
-                                uint64_t magnitude) {
+                                    uint64_t magnitude) {
   if (sign == 0) {
     // is unsigned
     if (magnitude <= UBYTE_MAX) {
@@ -606,7 +609,8 @@ Node *arrayTypeNodeCreate(Node *baseType, Node *size) {
   n->data.arrayType.size = size;
   return n;
 }
-Node *funPtrTypeNodeCreate(Node *returnType, Vector *argTypes, Vector *argNames) {
+Node *funPtrTypeNodeCreate(Node *returnType, Vector *argTypes,
+                           Vector *argNames) {
   Node *n = createNode(NT_FUNPTRTYPE, returnType->line, returnType->character);
   n->data.funPtrType.returnType = returnType;
   n->data.funPtrType.argTypes = argTypes;
@@ -632,6 +636,29 @@ Node *unparsedNodeCreate(Vector *tokens) {
   n->data.unparsed.tokens = tokens;
   return n;
 }
+
+char *stringifyId(Node *id) {
+  switch (id->type) {
+    case NT_SCOPEDID: {
+      Vector const *components = id->data.scopedId.components;
+      Node const *first = components->elements[0];
+      char *stringified = strdup(first->data.id.id);
+      for (size_t idx = 1; idx < components->size; idx++) {
+        char *old = stringified;
+        Node const *component = components->elements[idx];
+        stringified = format("%s::%s", old, component->data.id.id);
+        free(old);
+      }
+
+      return stringified;
+    }
+    case NT_ID: {
+      return strdup(id->data.id.id);
+    }
+    default: { error(__FILE__, __LINE__, "attempted to stringify non-id"); }
+  }
+}
+
 void nodeUninit(Node *n) {
   if (n == NULL) return;
   switch (n->type) {
