@@ -241,7 +241,7 @@ static void testAllTokens(void) {
       "T Language Compiler (tlc) version 0.2.0",
       NULL,
   };
-  size_t const numTokens = 111;
+  size_t const numTokens = sizeof(types) / sizeof(TokenType);
 
   for (size_t idx = 0; idx < numTokens; idx++) {
     Token token;
@@ -273,7 +273,7 @@ static void testErrors(void) {
 
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
-  int const errors[] = {
+  bool const errors[] = {
       true,  false, true,  false, true,  false, true,  false, true,
       false, true,  false, true,  false, true,  false, true,  false,
       true,  false, true,  false, true,  false, true,  false, true,
@@ -302,7 +302,7 @@ static void testErrors(void) {
       NULL, NULL, NULL,          "a",  NULL,          NULL, NULL,
       "a",  NULL, "\\u00000000", NULL, NULL,          NULL,
   };
-  size_t const numTokens = 34;
+  size_t const numTokens = sizeof(types) / sizeof(TokenType);
 
   for (size_t idx = 0; idx < numTokens; idx++) {
     lex(&entry, &token);

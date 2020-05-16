@@ -32,8 +32,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-// determines if any argument in argv is "--version"
-static bool versionRequested(size_t argc, char *argv[]) {
+/**
+ * determines if any argument in argv is "--version"
+ *
+ * @param argc number of arugments (including name of program)
+ * @param argv list of arguments (including name of program)
+ * @returns whether any argument in argv is "--version"
+ */
+static bool versionRequested(size_t argc, char **argv) {
   for (size_t idx = 1; idx < argc; idx++) {
     if (strcmp(argv[idx], "--version") == 0) {
       return true;
@@ -41,8 +47,14 @@ static bool versionRequested(size_t argc, char *argv[]) {
   }
   return false;
 }
-// determines if any argument in argv is "--help", "-h", or "-?"
-static bool helpRequested(size_t argc, char *argv[]) {
+/**
+ * determines if any argument in argv is "--help", "-h", or "-?"
+ *
+ * @param argc number of arguments (including name of program)
+ * @param argv list of arguments (including name of program)
+ * @returns whether any argument in argv is asking for help
+ */
+static bool helpRequested(size_t argc, char **argv) {
   for (size_t idx = 1; idx < argc; idx++) {
     if (strcmp(argv[idx], "--help") == 0 || strcmp(argv[idx], "-h") == 0 ||
         strcmp(argv[idx], "-?") == 0) {
@@ -52,7 +64,7 @@ static bool helpRequested(size_t argc, char *argv[]) {
   return false;
 }
 
-// possible return values for main
+/** possible return values for main */
 enum {
   CODE_SUCCESS = EXIT_SUCCESS,
   CODE_OPTION_ERROR,
@@ -62,7 +74,7 @@ enum {
 
 // compile the given declaration and code files into one assembly file per code
 // file, given the flags
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
   // handle overriding command line arguments
   if (helpRequested((size_t)argc, argv)) {
     printf(
@@ -113,15 +125,19 @@ int main(int argc, char *argv[]) {
   // parse
   if (parse() != 0) return CODE_PARSE_ERROR;
 
+  // debug-dump stop for parsing
+
   // typecheck
 
   // source code optimization
+  // TODO: write this
 
   // translate to IR
 
   // middle-end
 
   // ir optimization
+  // TODO: write this
 
   // back-end
   switch (options.arch) {
@@ -129,10 +145,12 @@ int main(int argc, char *argv[]) {
       // assembly generation
 
       // assembly optimization part 1
+      // TODO: write this
 
       // register allocation
 
       // assembly optimization part 2
+      // TODO: write this
 
       // write out
       break;

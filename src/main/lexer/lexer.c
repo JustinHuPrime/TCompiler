@@ -65,7 +65,7 @@ void tokenUninit(Token *token) { free(token->string); }
 
 /** keyword map */
 HashMap keywordMap;
-char const *const keywordStrings[] = {
+char const *const KEYWORD_STRINGS[] = {
     "module",  "import", "opaque",   "struct", "union",    "enum",   "typedef",
     "if",      "else",   "while",    "do",     "for",      "switch", "case",
     "default", "break",  "continue", "return", "asm",      "cast",   "sizeof",
@@ -73,7 +73,7 @@ char const *const keywordStrings[] = {
     "ushort",  "short",  "uint",     "int",    "wchar",    "ulong",  "long",
     "float",   "double", "bool",     "const",  "volatile",
 };
-TokenType const keywordTokens[] = {
+TokenType const KEYWORD_TOKENS[] = {
     TT_MODULE,  TT_IMPORT, TT_OPAQUE,  TT_STRUCT,   TT_UNION,    TT_ENUM,
     TT_TYPEDEF, TT_IF,     TT_ELSE,    TT_WHILE,    TT_DO,       TT_FOR,
     TT_SWITCH,  TT_CASE,   TT_DEFAULT, TT_BREAK,    TT_CONTINUE, TT_RETURN,
@@ -85,7 +85,7 @@ TokenType const keywordTokens[] = {
 
 /** magic token map */
 HashMap magicMap;
-char const *const magicStrings[] = {
+char const *const MAGIC_STRINGS[] = {
     "__FILE__",
     "__LINE__",
     "__VERSION__",
@@ -95,7 +95,7 @@ typedef enum {
   MTT_LINE,
   MTT_VERSION,
 } MagicTokenType;
-MagicTokenType const magicTokens[] = {
+MagicTokenType const MAGIC_TOKENS[] = {
     MTT_FILE,
     MTT_LINE,
     MTT_VERSION,
@@ -103,17 +103,19 @@ MagicTokenType const magicTokens[] = {
 
 void lexerInitMaps(void) {
   hashMapInit(&keywordMap);
-  for (size_t idx = 0; idx < 40; idx++) {
+  for (size_t idx = 0; idx < sizeof(KEYWORD_STRINGS) / sizeof(char const *);
+       idx++) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-    hashMapSet(&keywordMap, keywordStrings[idx], (void *)&keywordTokens[idx]);
+    hashMapSet(&keywordMap, KEYWORD_STRINGS[idx], (void *)&KEYWORD_TOKENS[idx]);
 #pragma GCC diagnostic pop
   }
   hashMapInit(&magicMap);
-  for (size_t idx = 0; idx < 3; idx++) {
+  for (size_t idx = 0; idx < sizeof(MAGIC_STRINGS) / sizeof(char const *);
+       idx++) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-    hashMapSet(&magicMap, magicStrings[idx], (void *)&magicTokens[idx]);
+    hashMapSet(&magicMap, MAGIC_STRINGS[idx], (void *)&MAGIC_TOKENS[idx]);
 #pragma GCC diagnostic pop
   }
 }
@@ -1492,7 +1494,8 @@ void lex(FileListEntry *entry, Token *token) {
         // error
         char *prettyString = escapeChar(c);
         fprintf(stderr, "%s:%zu:%zu: error: unexpected character: %s\n",
-                entry->inputFilename, state->line, state->character, prettyString);
+                entry->inputFilename, state->line, state->character,
+                prettyString);
         free(prettyString);
         state->character += 1;
         entry->errored = true;
