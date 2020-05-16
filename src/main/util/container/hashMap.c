@@ -22,32 +22,10 @@
 #include "util/container/hashMap.h"
 
 #include "optimization.h"
+#include "util/hash.h"
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-/** hash a string using djb2 xor variant */
-static uint64_t djb2(char const *s) {
-  uint64_t hash = 5381;
-  while (*s != '\0') {
-    hash *= 33;
-    hash ^= (uint64_t)*s;
-    s++;
-  }
-  return hash;
-}
-
-/** has a string using djb2 add variant */
-static uint64_t djb2add(char const *s) {
-  uint64_t hash = 5381;
-  while (*s != '\0') {
-    hash *= 33;
-    hash += (uint64_t)*s;
-    s++;
-  }
-  return hash;
-}
 
 void hashMapInit(HashMap *map) {
   map->size = 0;
@@ -57,7 +35,7 @@ void hashMapInit(HashMap *map) {
 }
 
 void *hashMapGet(HashMap const *map, char const *key) {
-  uint64_t hash = djb2(key);
+  uint64_t hash = djb2xor(key);
   hash %= map->capacity;
 
   if (map->keys[hash] == NULL) {
@@ -79,7 +57,7 @@ void *hashMapGet(HashMap const *map, char const *key) {
 }
 
 int hashMapPut(HashMap *map, char const *key, void *data) {
-  uint64_t hash = djb2(key) % map->capacity;
+  uint64_t hash = djb2xor(key) % map->capacity;
 
   if (map->keys[hash] == NULL) {
     map->keys[hash] = key;
@@ -121,7 +99,7 @@ int hashMapPut(HashMap *map, char const *key, void *data) {
 }
 
 void hashMapSet(HashMap *map, char const *key, void *data) {
-  uint64_t hash = djb2(key) % map->capacity;
+  uint64_t hash = djb2xor(key) % map->capacity;
 
   if (map->keys[hash] == NULL) {
     map->keys[hash] = key;
