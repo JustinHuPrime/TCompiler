@@ -27,17 +27,19 @@
 
 #include "ast/ast.h"
 #include "lexer/lexer.h"
+#include "util/container/hashMap.h"
 
 #include <stdbool.h>
 #include <stddef.h>
 
 /** an entry in the filelist */
 typedef struct FileListEntry {
-  bool errored;          /**< has an error been signaled for this entry? */
+  bool errored;              /**< has an error been signaled for this entry? */
   char const *inputFilename; /**< path to the input file */
   bool isCode;           /**< does the input file path point to a code file */
   LexerState lexerState; /**< state of the lexer */
-  Node *ast;         /**< AST for this file */
+  Node *ast;             /**< AST for this file */
+  char *moduleName;      /**< name of the module this file is for */
 } FileListEntry;
 /**
  * constructs a FileListEntry in-place

@@ -57,7 +57,7 @@ void typeUninit(Type *t) {
 
 void overloadSetElementDestroy(OverloadSetElement *e) {
   typeUninit(&e->returnType);
-  vectorUninit(&e->argumentTypes, typeDestroy);
+  vectorUninit(&e->argumentTypes, (void (*)(void *))typeDestroy);
 }
 
 void stabEntryUninit(SymbolTableEntry *e) {

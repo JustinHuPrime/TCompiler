@@ -73,21 +73,16 @@ int hashSetPut(HashSet *set, char const *s) {
       }
     }
     size_t oldSize = set->capacity;  // unavoidable collision
-    char const **oldKeys = set->elements;
-    void **oldValues = set->elements;
+    char const **oldElements = set->elements;
     set->capacity *= 2;
     set->elements = calloc(set->capacity, sizeof(char const *));
     set->elements = malloc(set->capacity * sizeof(void *));  // resize the set
     set->size = 0;
     for (size_t idx = 0; idx < oldSize; idx++) {
-      if (oldKeys[idx] != NULL) {
-        // can set, since we know the element doesn't exist
-        hashMapSet(set, oldKeys[idx], oldValues[idx]);
-      }
+      if (oldElements[idx] != NULL) hashSetPut(set, oldElements[idx]);
     }
-    free(oldKeys);
-    free(oldValues);
-    return hashMapPut(set, s);  // recurse
+    free(oldElements);
+    return hashSetPut(set, s);  // recurse
   } else {                      // already in there
     return -1;
   }
