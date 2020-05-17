@@ -21,7 +21,6 @@
 
 #include "optimization.h"
 
-#include <stdio.h>  // FIXME:
 #include <stdlib.h>
 
 /**
