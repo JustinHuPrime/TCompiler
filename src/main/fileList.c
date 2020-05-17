@@ -35,6 +35,13 @@ void fileListEntryInit(FileListEntry *entry, char const *inputName,
   entry->ast = NULL;
 }
 
+ModuleTreeNode *moduleTreeNodeCreate(FileListEntry *entry) {
+  ModuleTreeNode *n = malloc(sizeof(ModuleTreeNode));
+  n->entry = entry;
+  hashMapInit(&n->children);
+  return n;
+}
+
 int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
   int err = 0;
 
@@ -79,7 +86,8 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
         // search for duplicates
         bool duplicate = false;
         for (size_t searchIdx = 0; searchIdx < fileList.size; searchIdx++) {
-          if (strcmp(argv[idx], fileList.entries[searchIdx].inputFilename) == 0) {
+          if (strcmp(argv[idx], fileList.entries[searchIdx].inputFilename) ==
+              0) {
             duplicate = true;
             break;
           }

@@ -41,6 +41,7 @@ typedef struct FileListEntry {
   Node *ast;             /**< AST for this file */
   char *moduleName;      /**< name of the module this file is for */
 } FileListEntry;
+
 /**
  * constructs a FileListEntry in-place
  *
@@ -51,10 +52,26 @@ typedef struct FileListEntry {
 void fileListEntryInit(FileListEntry *entry, char const *inputName,
                        bool isCode);
 
+/** a node in the module tree */
+typedef struct {
+  FileListEntry *entry; /**< the declartaion file referneced, nullable */
+  HashMap children;     /**< map between name and ModuleTreeNode */
+} ModuleTreeNode;
+
+/**
+ * allocates and constructs a ModuleTreeNode
+ *
+ * @param entry entry to associate with (nullable)
+ * @returns initialize node
+ */
+ModuleTreeNode *moduleTreeNodeCreate(FileListEntry *entry);
+
 /** global file list type */
 typedef struct {
   size_t size;
   FileListEntry *entries;
+  HashMap
+      moduleTree; /**< map between module name or prefix and ModuleTreeNode */
 } FileList;
 
 /**

@@ -97,6 +97,44 @@ int parse(void) {
   if (errored) return -1;
 
   // build module tree
+  hashMapInit(&fileList.moduleTree);
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+    if (!fileList.entries[idx].isCode) {
+      // for every declaration file, go through the tree, adding nodes if needed
+      Node *moduleNameNode =
+          fileList.entries[idx].ast->data.file.module->data.module.id;
+      if (moduleNameNode->type == NT_ID) {
+        // just foo
+        ModuleTreeNode *node =
+            hashMapGet(&fileList.moduleTree, moduleNameNode->data.id.id);
+        if (node == NULL) {
+          // node not in the tree - insert it
+          node = moduleTreeNodeCreate(&fileList.entries[idx]);
+          hashMapPut(&fileList.moduleTree, moduleNameNode->data.id.id, node);
+        } else {
+          // node is in the tree - already visited foo::bar...
+          // guarenteed to be NULL
+          node->entry = &fileList.entries[idx];
+        }
+      } else {
+        // foo::bar...
+        Vector *components = moduleNameNode->data.scopedId.components;
+        HashMap *previous = &fileList.moduleTree;
+        ModuleTreeNode *current = NULL;
+        for (size_t idx = 0; idx < components->size; idx++) {
+          Node *component = components->elements[idx];
+          current = hashMapGet(previous, component->data.id.id);
+          if (current == NULL) {
+            // node not in the tree - insert it
+            current = moduleTreeNodeCreate(NULL);
+            hashMapPut(previous, component->data.id.id, current);
+          }
+          previous = &current->children;
+        }
+        current->entry = &fileList.entries[idx];
+      }
+    }
+  }
 
   // pass two - populate symbol tables (but don't fill in entries)
   for (size_t idx = 0; idx < fileList.size; idx++)
