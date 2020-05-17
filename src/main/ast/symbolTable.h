@@ -103,6 +103,7 @@ typedef struct {
   Type returnType;
   Vector argumentTypes;
   size_t numOptional;
+  bool defined;
 } OverloadSetElement;
 
 /**
@@ -133,15 +134,16 @@ typedef struct SymbolTableEntry {
   SymbolType type;
   union {
     struct {
-      struct SymbolTableEntry const *actual;
-    } opaqueDecl;
+      Vector fields; /**< vector of Types */
+      Vector names;  /**< vector of c-strings */
+    } structDecl;
     struct {
       Vector fields; /**< vector of Types */
       Vector names;  /**< vector of c-strings */
-    } compoundDecl;
+    } unionDecl;
     struct {
-      HashMap constants; /**< map between  */
-
+      HashMap constants; /**< map between constant name and pointer to constant
+                            value */ // FIXME: how do I represent this
     } enumDecl;
     struct {
       Type actual;
@@ -150,16 +152,28 @@ typedef struct SymbolTableEntry {
       Vector overloadSet; /**< vector of OverloadSetElement */
     } function;
     struct {
-      Type type; /**< type of this variable */
+      Type type;    /**< type of this variable */
+      bool defined; /**< has this variable been defined in this context? */
     } variable;
   } data;
+  char const *file;
+  size_t line;
+  size_t character;
 } SymbolTableEntry;
+
+/**
+ * create an empty symbol table entry of the specified type
+ *
+ * @returns symbol table entry
+ */
+SymbolTableEntry *stabEntryCreate(SymbolType type, char const *file,
+                                  size_t line, size_t character);
 
 /**
  * deinitializes a symbol table entry
  *
  * @param e SymbolTableEntry to deinitialize - not null
  */
-void stabEntryUninit(SymbolTableEntry *e);
+void stabEntryDestroy(SymbolTableEntry *e);
 
 #endif  // TLC_AST_SYMBOLTABLE_H_

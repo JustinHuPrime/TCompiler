@@ -50,8 +50,20 @@ int parse(void) {
   if (buildModuleMap() != 0) return -1;
 
   // pass two - populate symbol tables (but don't fill in entries)
-  for (size_t idx = 0; idx < fileList.size; idx++)
-    parserBuildTopLevelStab(&fileList.entries[idx]);
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+    if (!fileList.entries[idx].isCode) {
+      parserBuildTopLevelStab(&fileList.entries[idx]);
+      errored = errored || fileList.entries[idx].errored;
+    }
+  }
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+    if (fileList.entries[idx].isCode) {
+      parserBuildTopLevelStab(&fileList.entries[idx]);
+      errored = errored || fileList.entries[idx].errored;
+    }
+  }
+
+  if (errored) return -1;
 
   // pass three - parse unparsed nodes, populating the symbol table as we go
   // (entries still not filled in)

@@ -21,6 +21,7 @@
 
 #include "ast/ast.h"
 #include "internalError.h"
+#include "util/container/hashMap.h"
 #include "util/container/hashSet.h"
 #include "util/container/vector.h"
 #include "util/functional.h"
@@ -87,8 +88,23 @@ int buildModuleMap(void) {
   return 0;
 }
 
+/**
+ * complain about a redeclaration
+ */
+static void errorRedeclaration(char const *file, size_t line, size_t character,
+                               char const *name, char const *collidingFile,
+                               size_t collidingLine, size_t collidingChar) {
+  fprintf(stderr,
+          "%s:%zu:%zu: error: redeclaration of %s as a different "
+          "kind of identifier\n",
+          file, line, character, name);
+  fprintf(stderr, "%s:%zu:%zu: note: previously declared here\n", collidingFile,
+          collidingLine, collidingChar);
+}
+
 void parserBuildTopLevelStab(FileListEntry *entry) {
   Node *ast = entry->ast;
+  HashMap *stab = &ast->data.file.stab;
 
   // resolve imports
   Vector *imports = ast->data.file.imports;
@@ -110,36 +126,206 @@ void parserBuildTopLevelStab(FileListEntry *entry) {
     free(importName);
   }
 
+  // resolve implicit import
+  if (entry->isCode) {
+    Node *module = ast->data.file.module;
+    char *moduleName = stringifyId(module->data.module.id);
+    FileListEntry const *implicit = hashMapGet(&fileList.moduleMap, moduleName);
+    free(moduleName);
+    if (implicit != NULL) {
+      // get the implicit import
+      HashMap const *implicitStab = &implicit->ast->data.file.stab;
+      for (size_t idx = 0; idx < implicitStab->size; idx++) {
+        if (implicitStab->keys[idx] != NULL) {
+          SymbolTableEntry *original = implicitStab->values[idx];
+          SymbolTableEntry *copy =
+              stabEntryCreate(original->type, original->file, original->line,
+                              original->character);
+          hashMapPut(stab, implicitStab->keys[idx], copy);
+        }
+      }
+    }
+  }
+
   // process top-level
   Vector *topLevels = ast->data.file.bodies;
   for (size_t idx = 0; idx < topLevels->size; idx++) {
     Node *topLevel = topLevels->elements[idx];
     switch (topLevel->type) {
       case NT_FUNDEFN: {
+        char const *name = topLevel->data.funDefn.name->data.id.id;
+        SymbolTableEntry *e =
+            stabEntryCreate(ST_FUNCTION, entry->inputFilename, topLevel->line,
+                            topLevel->character);
+        int retval = hashMapPut(stab, name, e);
+        if (retval != 0) {
+          stabEntryDestroy(e);
+          SymbolTableEntry const *colliding = hashMapGet(stab, name);
+          // allowed to collide with a function declaration
+          if (colliding->type != ST_FUNCTION) {
+            errorRedeclaration(entry->inputFilename, topLevel->line,
+                               topLevel->character, name, colliding->file,
+                               colliding->line, colliding->character);
+            entry->errored = true;
+          }
+        }
         break;
       }
       case NT_VARDEFN: {
+        Vector *names = topLevel->data.varDefn.names;
+        for (size_t idx = 0; idx < names->size; idx++) {
+          Node *nameNode = names->elements[idx];
+          char const *name = nameNode->data.id.id;
+          SymbolTableEntry *e =
+              stabEntryCreate(ST_VARIABLE, entry->inputFilename, nameNode->line,
+                              nameNode->character);
+          int retval = hashMapPut(stab, name, e);
+          if (retval != 0) {
+            stabEntryDestroy(e);
+            SymbolTableEntry const *colliding = hashMapGet(stab, name);
+            // allowed to collide with another variable
+            if (colliding->type != ST_VARIABLE) {
+              errorRedeclaration(entry->inputFilename, nameNode->line,
+                                 nameNode->character, name, colliding->file,
+                                 colliding->line, colliding->character);
+              entry->errored = true;
+            }
+          }
+        }
         break;
       }
       case NT_FUNDECL: {
+        char const *name = topLevel->data.funDecl.name->data.id.id;
+        SymbolTableEntry *e =
+            stabEntryCreate(ST_FUNCTION, entry->inputFilename, topLevel->line,
+                            topLevel->character);
+        int retval = hashMapPut(stab, name, e);
+        if (retval != 0) {
+          stabEntryDestroy(e);
+          SymbolTableEntry const *colliding = hashMapGet(stab, name);
+          // allowed to collide with a function declaration
+          if (colliding->type != ST_FUNCTION) {
+            errorRedeclaration(entry->inputFilename, topLevel->line,
+                               topLevel->character, name, colliding->file,
+                               colliding->line, colliding->character);
+            entry->errored = true;
+          }
+        }
         break;
       }
       case NT_VARDECL: {
+        Vector *names = topLevel->data.varDecl.names;
+        for (size_t idx = 0; idx < names->size; idx++) {
+          Node *nameNode = names->elements[idx];
+          char const *name = nameNode->data.id.id;
+          SymbolTableEntry *e =
+              stabEntryCreate(ST_VARIABLE, entry->inputFilename, nameNode->line,
+                              nameNode->character);
+          int retval = hashMapPut(stab, name, e);
+          if (retval != 0) {
+            stabEntryDestroy(e);
+            SymbolTableEntry const *colliding = hashMapGet(stab, name);
+            // allowed to collide with another variable
+            if (colliding->type != ST_VARIABLE) {
+              errorRedeclaration(entry->inputFilename, nameNode->line,
+                                 nameNode->character, name, colliding->file,
+                                 colliding->line, colliding->character);
+              entry->errored = true;
+            }
+          }
+        }
         break;
       }
       case NT_OPAQUEDECL: {
+        char const *name = topLevel->data.opaqueDecl.name->data.id.id;
+        SymbolTableEntry *e =
+            stabEntryCreate(ST_OPAQUE, entry->inputFilename, topLevel->line,
+                            topLevel->character);
+        int retval = hashMapPut(stab, name, e);
+        if (retval != 0) {
+          stabEntryDestroy(e);
+          SymbolTableEntry const *colliding = hashMapGet(stab, name);
+          // not allowed to collide with anything
+          errorRedeclaration(entry->inputFilename, topLevel->line,
+                             topLevel->character, name, colliding->file,
+                             colliding->line, colliding->character);
+          entry->errored = true;
+        }
         break;
       }
       case NT_STRUCTDECL: {
+        char const *name = topLevel->data.structDecl.name->data.id.id;
+        SymbolTableEntry *e =
+            stabEntryCreate(ST_STRUCT, entry->inputFilename, topLevel->line,
+                            topLevel->character);
+        int retval = hashMapPut(stab, name, e);
+        if (retval != 0) {
+          stabEntryDestroy(e);
+          SymbolTableEntry const *colliding = hashMapGet(stab, name);
+          // allowed to collide with an opaque
+          if (colliding->type != ST_OPAQUE) {
+            errorRedeclaration(entry->inputFilename, topLevel->line,
+                               topLevel->character, name, colliding->file,
+                               colliding->line, colliding->character);
+            entry->errored = true;
+          }
+        }
         break;
       }
       case NT_UNIONDECL: {
+        char const *name = topLevel->data.unionDecl.name->data.id.id;
+        SymbolTableEntry *e =
+            stabEntryCreate(ST_UNION, entry->inputFilename, topLevel->line,
+                            topLevel->character);
+        int retval = hashMapPut(stab, name, e);
+        if (retval != 0) {
+          stabEntryDestroy(e);
+          SymbolTableEntry const *colliding = hashMapGet(stab, name);
+          // allowed to collide with an opaque
+          if (colliding->type != ST_OPAQUE) {
+            errorRedeclaration(entry->inputFilename, topLevel->line,
+                               topLevel->character, name, colliding->file,
+                               colliding->line, colliding->character);
+            entry->errored = true;
+          }
+        }
         break;
       }
       case NT_ENUMDECL: {
+        char const *name = topLevel->data.enumDecl.name->data.id.id;
+        SymbolTableEntry *e = stabEntryCreate(
+            ST_ENUM, entry->inputFilename, topLevel->line, topLevel->character);
+        int retval = hashMapPut(stab, name, e);
+        if (retval != 0) {
+          stabEntryDestroy(e);
+          SymbolTableEntry const *colliding = hashMapGet(stab, name);
+          // allowed to collide with an opaque
+          if (colliding->type != ST_OPAQUE) {
+            errorRedeclaration(entry->inputFilename, topLevel->line,
+                               topLevel->character, name, colliding->file,
+                               colliding->line, colliding->character);
+            entry->errored = true;
+          }
+        }
         break;
       }
       case NT_TYPEDEFDECL: {
+        char const *name = topLevel->data.typedefDecl.name->data.id.id;
+        SymbolTableEntry *e =
+            stabEntryCreate(ST_TYPEDEF, entry->inputFilename, topLevel->line,
+                            topLevel->character);
+        int retval = hashMapPut(stab, name, e);
+        if (retval != 0) {
+          stabEntryDestroy(e);
+          SymbolTableEntry const *colliding = hashMapGet(stab, name);
+          // allowed to collide with an opaque
+          if (colliding->type != ST_OPAQUE) {
+            errorRedeclaration(entry->inputFilename, topLevel->line,
+                               topLevel->character, name, colliding->file,
+                               colliding->line, colliding->character);
+            entry->errored = true;
+          }
+        }
         break;
       }
       default: { error(__FILE__, __LINE__, "non-top level form encountered"); }

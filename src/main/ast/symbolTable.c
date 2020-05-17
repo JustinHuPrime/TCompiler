@@ -60,17 +60,47 @@ void overloadSetElementDestroy(OverloadSetElement *e) {
   vectorUninit(&e->argumentTypes, (void (*)(void *))typeDestroy);
 }
 
-void stabEntryUninit(SymbolTableEntry *e) {
-  // TODO: fill this in once there's data in the entry
-  // switch (e->type) {
-  //   case ST_TYPE: {
-  //     break;
-  //   }
-  //   case ST_FUNCTION: {
-  //     break;
-  //   }
-  //   case ST_VARIABLE: {
-  //     break;
-  //   }
-  // }
+SymbolTableEntry *stabEntryCreate(SymbolType type, char const *file,
+                                  size_t line, size_t character) {
+  SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+  e->type = type;
+  e->file = file;
+  e->line = line;
+  e->character = character;
+  return e;
+}
+
+void stabEntryDestroy(SymbolTableEntry *e) {
+  switch (e->type) {
+    case ST_OPAQUE: {
+      break;  // nothing to do
+    }
+    case ST_STRUCT: {
+      vectorUninit(&e->data.structDecl.fields, (void (*)(void *))typeDestroy);
+      vectorUninit(&e->data.structDecl.names, free);
+      break;
+    }
+    case ST_UNION: {
+      vectorUninit(&e->data.unionDecl.fields, (void (*)(void *))typeDestroy);
+      vectorUninit(&e->data.unionDecl.names, free);
+      break;
+    }
+    case ST_ENUM: {
+      break;  // FIXME: deal with representatin of enum constants
+    }
+    case ST_TYPEDEF: {
+      typeUninit(&e->data.typedefDecl.actual);
+      break;
+    }
+    case ST_FUNCTION: {
+      vectorUninit(&e->data.function.overloadSet,
+                   (void (*)(void *))overloadSetElementDestroy);
+      break;
+    }
+    case ST_VARIABLE: {
+      typeUninit(&e->data.variable.type);
+      break;
+    }
+  }
+  free(e);
 }
