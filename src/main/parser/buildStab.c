@@ -25,36 +25,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/**
- * looks up a module in the moduleTree
- *
- * @param id id to look up
- * @returns reference to the FileListEntry, or NULL if no such module exists
- */
-static FileListEntry const *lookupModule(Node *id) {
-  if (id->type == NT_ID) {
-    // just foo
-    ModuleTreeNode const *found =
-        hashMapGet(&fileList.moduleTree, id->data.id.id);
-    if (found == NULL)
-      return NULL;
-    else
-      return found->entry;
-  } else {
-    // foo::bar...
-    Vector *components = id->data.scopedId.components;
-    HashMap const *previous = &fileList.moduleTree;
-    ModuleTreeNode const *current = NULL;
-    for (size_t idx = 0; idx < components->size; idx++) {
-      Node *component = components->elements[idx];
-      current = hashMapGet(previous, component->data.id.id);
-      if (current == NULL) return NULL;
-      previous = &current->children;
-    }
-    return current->entry;
-  }
-}
-
 void parserBuildTopLevelStab(FileListEntry *entry) {
   Node *ast = entry->ast;
 
@@ -62,19 +32,20 @@ void parserBuildTopLevelStab(FileListEntry *entry) {
   Vector *imports = ast->data.file.imports;
   for (size_t idx = 0; idx < imports->size; idx++) {
     Node *import = imports->elements[idx];
-    FileListEntry const *referencedFile = lookupModule(import->data.import.id);
+    char *importName = stringifyId(import->data.import.id);
+    FileListEntry const *referencedFile =
+        hashMapGet(&fileList.moduleMap, importName);
     if (referencedFile == NULL) {
       // error - unresolved import
-      char *importName = stringifyId(import->data.import.id);
       fprintf(stderr, "%s:%zu:%zu: error: module '%s' not found",
               entry->inputFilename, import->data.import.id->line,
               import->data.import.id->character, importName);
 
-      free(importName);
-      return;
+      entry->errored = true;
     }
     // now record the stab reference
     import->data.import.referenced = &referencedFile->ast->data.file.stab;
+    free(importName);
   }
 
   // process top-level
