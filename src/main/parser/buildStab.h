@@ -28,6 +28,13 @@
 #include "fileList.h"
 
 /**
+ * builds the module map, checking for any errors
+ *
+ * @returns 0 if OK, -1 if a fatal error happened
+ */
+int buildModuleMap(void);
+
+/**
  * builds symbol table as used by the parser for the top level of the file
  *
  * sets entry->errored if an error happened.

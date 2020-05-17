@@ -22,12 +22,6 @@
 #include "fileList.h"
 #include "parser/buildStab.h"
 #include "parser/topLevel.h"
-#include "util/container/hashSet.h"
-#include "util/container/vector.h"
-#include "util/functional.h"
-
-#include <stdio.h>
-#include <string.h>
 
 int parse(void) {
   int retval = 0;
@@ -53,56 +47,7 @@ int parse(void) {
 
   if (errored) return -1;
 
-  // populate fileListEntries with moduleNames
-  for (size_t idx = 0; idx < fileList.size; idx++)
-    fileList.entries[idx].moduleName = stringifyId(
-        fileList.entries[idx].ast->data.file.module->data.module.id);
-
-  // check for duplciate decl modules
-  HashSet processed;  // set of all processed modules
-  hashSetInit(&processed);
-  for (size_t idx = 0; idx < fileList.size; idx++) {
-    char const *name = fileList.entries[idx].moduleName;
-    if (!fileList.entries[idx].isCode && !hashSetContains(&processed, name)) {
-      // for each declaration file, if its name hasn't been processed yet,
-      // process it
-      Vector duplicates;
-      vectorInit(&duplicates);
-      for (size_t compareIdx = idx + 1; compareIdx < fileList.size;
-           compareIdx++) {
-        // check it against each other file
-        if (strcmp(name, fileList.entries[idx].moduleName) == 0) {
-          // duplicate!
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-          vectorInsert(&duplicates,
-                       (char *)fileList.entries[idx].inputFilename);
-#pragma GCC diagnostic pop
-        }
-      }
-      if (duplicates.size != 0) {
-        fprintf(stderr,
-                "%s: error: module %s redeclared in the following files:\n",
-                fileList.entries[idx].inputFilename, name);
-        for (size_t printIdx = 0; printIdx < duplicates.size; printIdx++)
-          fprintf(stderr, "\t%s\n", (char const *)duplicates.elements[idx]);
-      }
-      vectorUninit(&duplicates, nullDtor);
-
-      hashSetPut(&processed, name);
-    }
-  }
-  hashSetUninit(&processed);
-
-  if (errored) return -1;
-
-  // build module map
-  hashMapInit(&fileList.moduleMap);
-  for (size_t idx = 0; idx < fileList.size; idx++) {
-    if (!fileList.entries[idx].isCode)
-      hashMapPut(&fileList.moduleMap, fileList.entries[idx].moduleName,
-                 &fileList.entries[idx]);
-  }
+  if (buildModuleMap() != 0) return -1;
 
   // pass two - populate symbol tables (but don't fill in entries)
   for (size_t idx = 0; idx < fileList.size; idx++)
@@ -110,6 +55,8 @@ int parse(void) {
 
   // pass three - parse unparsed nodes, populating the symbol table as we go
   // (entries still not filled in)
+
+  // pass four - check additional constraints and warnings
 
   return 0;
 }
