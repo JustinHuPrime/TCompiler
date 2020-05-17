@@ -514,8 +514,7 @@ Node *wstringLiteralNodeCreate(Token *t) {
   tokenUninit(t);
   return n;
 }
-Node *sizedIntegerLiteralNodeCreate(FileListEntry *entry, Token *t, int8_t sign,
-                                    uint64_t magnitude) {
+Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude) {
   if (sign == 0) {
     // is unsigned
     if (magnitude <= UBYTE_MAX) {
@@ -582,6 +581,7 @@ Node *sizedIntegerLiteralNodeCreate(FileListEntry *entry, Token *t, int8_t sign,
       return n;
     } else {
       // user-side size error
+      // FIXME: complain to the user here
       tokenUninit(t);
       return NULL;
     }

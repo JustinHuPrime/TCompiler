@@ -428,8 +428,7 @@ Node *charLiteralNodeCreate(Token *t);
 Node *wcharLiteralNodeCreate(Token *t);
 Node *stringLiteralNodeCreate(Token *t);
 Node *wstringLiteralNodeCreate(Token *t);
-Node *sizedIntegerLiteralNodeCreate(FileListEntry *entry, Token *t, int8_t sign,
-                                    uint64_t magnitude);
+Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude);
 Node *keywordTypeNodeCreate(TypeKeyword keyword, Token *keywordToken);
 Node *modifiedTypeNodeCreate(TypeModifier modifier, Node *baseType);
 Node *arrayTypeNodeCreate(Node *baseType, Node *size);

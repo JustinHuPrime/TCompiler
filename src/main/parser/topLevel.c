@@ -389,7 +389,7 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
 
         return NULL;
       }
-      Node *n = sizedIntegerLiteralNodeCreate(entry, &peek, sign, magnitude);
+      Node *n = sizedIntegerLiteralNodeCreate( &peek, sign, magnitude);
       if (n == NULL) errorIntOverflow(entry, &peek);
       return n;
     }
@@ -404,7 +404,7 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
 
         return NULL;
       }
-      Node *n = sizedIntegerLiteralNodeCreate(entry, &peek, sign, magnitude);
+      Node *n = sizedIntegerLiteralNodeCreate( &peek, sign, magnitude);
       if (n == NULL) errorIntOverflow(entry, &peek);
       return n;
     }
@@ -420,7 +420,7 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
 
         return NULL;
       }
-      Node *n = sizedIntegerLiteralNodeCreate(entry, &peek, sign, magnitude);
+      Node *n = sizedIntegerLiteralNodeCreate( &peek, sign, magnitude);
       if (n == NULL) errorIntOverflow(entry, &peek);
       return n;
     }
@@ -435,7 +435,7 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
 
         return NULL;
       }
-      Node *n = sizedIntegerLiteralNodeCreate(entry, &peek, sign, magnitude);
+      Node *n = sizedIntegerLiteralNodeCreate( &peek, sign, magnitude);
       if (n == NULL) errorIntOverflow(entry, &peek);
       return n;
     }
