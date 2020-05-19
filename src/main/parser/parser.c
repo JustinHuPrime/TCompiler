@@ -52,23 +52,37 @@ int parse(void) {
   // pass two - populate symbol tables (but don't fill in entries)
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
-      parserBuildTopLevelStab(&fileList.entries[idx]);
+      buildTopLevelStab(&fileList.entries[idx]);
       errored = errored || fileList.entries[idx].errored;
     }
   }
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (fileList.entries[idx].isCode) {
-      parserBuildTopLevelStab(&fileList.entries[idx]);
+      buildTopLevelStab(&fileList.entries[idx]);
       errored = errored || fileList.entries[idx].errored;
     }
   }
-
   if (errored) return -1;
 
-  // pass three - parse unparsed nodes, populating the symbol table as we go
-  // (entries still not filled in)
+  // pass three - fill in entries
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+    if (!fileList.entries[idx].isCode) {
+      completeTopLevelStab(&fileList.entries[idx]);
+      errored = errored || fileList.entries[idx].errored;
+    }
+  }
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+    if (fileList.entries[idx].isCode) {
+      completeTopLevelStab(&fileList.entries[idx]);
+      errored = errored || fileList.entries[idx].errored;
+    }
+  }
+  if (errored) return -1;
 
-  // pass four - check additional constraints and warnings
+  // pass four - parse unparsed nodes, writing the symbol table as we go -
+  // entries are filled in
+
+  // pass five - check additional constraints and warnings
 
   return 0;
 }

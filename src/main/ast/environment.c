@@ -17,40 +17,19 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/**
- * @file
- * build top-level parser-use symbol table in parser
- */
+#include "ast/environment.h"
 
-#ifndef TLC_PARSER_BUILDSTAB_H_
-#define TLC_PARSER_BUILDSTAB_H_
+#include "util/functional.h"
 
-#include "fileList.h"
+void environmentInit(Environment *env, HashMap *currentModule) {
+  vectorInit(&env->importNames);
+  vectorInit(&env->importTables);
+  env->currentModule = currentModule;
+  vectorInit(&env->scopes);
+}
 
-/**
- * builds the module map, checking for any errors
- *
- * @returns 0 if OK, -1 if a fatal error happened
- */
-int buildModuleMap(void);
-
-/**
- * builds symbol table for the top level of the file
- *
- * Does not fill in entries, sets entry->errored if an error happened.
- *
- * @param entry entry to process
- */
-void buildTopLevelStab(FileListEntry *entry);
-
-/**
- * completes the symbol table for the top level of the file
- *
- * fills in the entries, makes references, and sets entry->errored if an error
- * happened
- * 
- * @param entry entry to process
- */
-void completeTopLevelStab(FileListEntry *entry);
-
-#endif  // TLC_PARSER_BUILDSTAB_H_
+void environmentUninit(Environment *env) {
+  vectorUninit(&env->importNames, nullDtor);
+  vectorUninit(&env->importTables, nullDtor);
+  vectorUninit(&env->scopes, nullDtor);
+}

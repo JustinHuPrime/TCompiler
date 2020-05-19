@@ -20,6 +20,7 @@
 #include "parser/buildStab.h"
 
 #include "ast/ast.h"
+#include "ast/environment.h"
 #include "internalError.h"
 #include "util/container/hashMap.h"
 #include "util/container/hashSet.h"
@@ -102,7 +103,7 @@ static void errorRedeclaration(char const *file, size_t line, size_t character,
           collidingLine, collidingChar);
 }
 
-void parserBuildTopLevelStab(FileListEntry *entry) {
+void buildTopLevelStab(FileListEntry *entry) {
   Node *ast = entry->ast;
   HashMap *stab = &ast->data.file.stab;
 
@@ -331,4 +332,10 @@ void parserBuildTopLevelStab(FileListEntry *entry) {
       default: { error(__FILE__, __LINE__, "non-top level form encountered"); }
     }
   }
+}
+
+void completeTopLevelStab(FileListEntry *entry) {
+  Node *ast = entry->ast;
+  Environment env;
+  environmentInit(&env, &ast->data.file.stab);
 }
