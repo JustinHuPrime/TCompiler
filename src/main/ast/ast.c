@@ -581,7 +581,6 @@ Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude) {
       return n;
     } else {
       // user-side size error
-      // FIXME: complain to the user here
       tokenUninit(t);
       return NULL;
     }
