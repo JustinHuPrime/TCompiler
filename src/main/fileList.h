@@ -56,7 +56,7 @@ void fileListEntryInit(FileListEntry *entry, char const *inputName,
 typedef struct {
   size_t size;
   FileListEntry *entries;
-  HashMap moduleMap; /**< map between module name and ModuleTreeNode */
+  HashMap moduleMap; /**< map between module name and FileListEntry */
 } FileList;
 
 /**

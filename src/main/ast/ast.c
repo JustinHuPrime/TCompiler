@@ -35,7 +35,7 @@
  * @param e entry to free, not null
  */
 static void stabEntryFree(SymbolTableEntry *e) {
-  stabEntryDestroy(e);
+  stabEntryUninit(e);
   free(e);
 }
 

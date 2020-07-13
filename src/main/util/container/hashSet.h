@@ -51,8 +51,8 @@ void hashSetInit(HashSet *set);
 bool hashSetContains(HashSet const *set, char const *s);
 
 /**
- * Tries to insert a key into the table. Note that key is not owned by the
- * table, but the node is. Amortized constant time operation
+ * Tries to insert a key into the set. The set does not own the key. Amortized
+ * constant time operation
  *
  * @param set set to insert into
  * @param s string to insert

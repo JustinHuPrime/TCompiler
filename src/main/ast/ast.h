@@ -169,12 +169,7 @@ typedef enum {
   LT_AGGREGATEINIT,
 } LiteralType;
 
-/** the type of a simple type modifier */
-typedef enum {
-  TM_CONST,
-  TM_VOLATILE,
-  TM_POINTER,
-} TypeModifier;
+// type modifier list is shared from symbolTable.h
 // type keyword list is shared from symbolTable.h
 
 /** an AST node */
