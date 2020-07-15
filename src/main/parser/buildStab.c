@@ -103,6 +103,89 @@ static void errorRedeclaration(char const *file, size_t line, size_t character,
           collidingLine, collidingChar);
 }
 
-void buildTopLevelStab(FileListEntry *entry) {}
+void buildTopLevelStab(FileListEntry *entry) {
+  Node *ast = entry->ast;
+  HashMap *implicitStab = hashMapGet(&fileList.moduleMap, entry->moduleName);
+  HashMap *stab = &ast->data.file.stab;
 
-void completeTopLevelStab(FileListEntry *entry) {}
+  // for each file scope entity, generate an uninitialized symbol table entry
+  for (size_t idx = 0; idx < ast->data.file.bodies->size; idx++) {
+    Node *body = ast->data.file.bodies->elements[idx];
+    switch (body->type) {
+      case NT_FUNDEFN: {
+        char const *name = body->data.funDefn.name->data.id.id;
+        SymbolTableEntry *existing = hashMapGet(stab, name);
+        if (existing == NULL && implicitStab != NULL)
+          existing = hashMapGet(implicitStab, name);
+
+        if (existing == NULL) {
+          // if no entry exists, construct one
+          SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+          functionStabEntryInit(e, entry->inputFilename, body->line,
+                                body->character);
+          hashMapPut(stab, name, e);
+        } else {
+          // if an entry exists, expect it to be a function
+          if (existing->kind != SK_FUNCTION) {
+            errorRedeclaration(entry->inputFilename, body->line,
+                               body->character, name, existing->file,
+                               existing->line, existing->character);
+            entry->errored = true;
+          }
+        }
+        break;
+      }
+      case NT_VARDEFN: {
+        // for each name
+        Vector *names = body->data.varDefn.names;
+        for (size_t namesIdx = 0; namesIdx < names->size; namesIdx++) {
+          Node *nameNode = names->elements[namesIdx];
+          char const *name = nameNode->data.id.id;
+          SymbolTableEntry *existing = hashMapGet(stab, name);
+          if (existing == NULL && implicitStab != NULL)
+            existing = hashMapGet(implicitStab, name);
+
+          if (existing == NULL) {
+            // no entry exists, construct one
+            SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+            variableStabEntryInit(e, entry->inputFilename, nameNode->line,
+                                  nameNode->character);
+          } else {
+            // if an entry exists, expect it to be a variable
+            errorRedeclaration(entry->inputFilename, nameNode->line,
+                               nameNode->character, name, existing->file,
+                               existing->line, existing->character);
+            entry->errored = true;
+          }
+        }
+        break;
+      }
+      case NT_VARDECL: {
+        break;
+      }
+      case NT_OPAQUEDECL: {
+        break;
+      }
+      case NT_STRUCTDECL: {
+        break;
+      }
+      case NT_UNIONDECL: {
+        break;
+      }
+      case NT_ENUMDECL: {
+        break;
+      }
+      case NT_TYPEDEFDECL: {
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__,
+              "non-top-level form encountered in buildTopLevelStab");
+      }
+    }
+  }
+}
+
+void completeTopLevelStab(FileListEntry *entry) {
+  // TODO: write this
+}

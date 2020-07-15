@@ -23,4 +23,12 @@
 
 #include <stdlib.h>
 
-void stabEntryUninit(SymbolTableEntry *e) {}
+void functionStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                           size_t character) {}
+
+void variableStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                           size_t character) {}
+
+void stabEntryUninit(SymbolTableEntry *e) {
+  // TODO: write this
+}

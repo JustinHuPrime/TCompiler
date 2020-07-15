@@ -89,9 +89,35 @@ typedef struct {
     struct {
       Type type;
     } variable;
+    struct {
+      Vector overloadSet;
+    } function;
   } data;
+  char const *file;
+  size_t line;
+  size_t character;
 } SymbolTableEntry;
 
+/**
+ * initialize a function symbol table entry
+ *
+ * @param e entry to initialize
+ * @param file entry location info
+ * @param line entry location info
+ * @param character entry location info
+ */
+void functionStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                           size_t character);
+/**
+ * initialize a variable symbol table entry
+ *
+ * @param e entry to initialize
+ * @param file entry location info
+ * @param line entry location info
+ * @param character entry location info
+ */
+void variableStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                           size_t character);
 /**
  * deinitializes a symbol table entry
  *

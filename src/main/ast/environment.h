@@ -32,6 +32,8 @@ typedef struct {
   Vector importTables;    /**< Vector of symbol tables, non-owning */
   HashMap *currentModule; /**< symbol table for the current module - this is the
                              file scope, non-owning */
+  HashMap *implicitImport; /**< symbol table for the implicit import in code
+                              modules */
   Vector scopes; /**< vector of non-owning references to the current scope */
 } Environment;
 
@@ -40,8 +42,10 @@ typedef struct {
  *
  * @param env environment to initialize
  * @param currentModule module to root the environment in
+ * @param implicitImport implicit import module (null when not in a code file)
  */
-void environmentInit(Environment *env, HashMap *currentModule);
+void environmentInit(Environment *env, HashMap *currentModule,
+                     HashMap *implicitImport);
 
 /**
  * deinitialize an environment

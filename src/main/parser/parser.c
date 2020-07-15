@@ -49,6 +49,8 @@ int parse(void) {
 
   if (buildModuleMap() != 0) return -1;
 
+  // FIXME: pass two - populate stab for types
+
   // pass two - populate symbol tables (but don't fill in entries)
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
@@ -63,6 +65,8 @@ int parse(void) {
     }
   }
   if (errored) return -1;
+
+  // FIXME: pass three - fill in stab for types
 
   // pass three - fill in entries
   for (size_t idx = 0; idx < fileList.size; idx++) {
@@ -79,10 +83,12 @@ int parse(void) {
   }
   if (errored) return -1;
 
-  // pass four - parse unparsed nodes, writing the symbol table as we go -
+  // FIXME: pass four - build and fill in stab for non-types
+
+  // pass five - parse unparsed nodes, writing the symbol table as we go -
   // entries are filled in
 
-  // pass five - check additional constraints and warnings
+  // pass six - check additional constraints and warnings
 
   return 0;
 }

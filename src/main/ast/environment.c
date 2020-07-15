@@ -21,10 +21,12 @@
 
 #include "util/functional.h"
 
-void environmentInit(Environment *env, HashMap *currentModule) {
+void environmentInit(Environment *env, HashMap *currentModule,
+                     HashMap *implicitImport) {
   vectorInit(&env->importNames);
   vectorInit(&env->importTables);
   env->currentModule = currentModule;
+  env->implicitImport = implicitImport;
   vectorInit(&env->scopes);
 }
 
