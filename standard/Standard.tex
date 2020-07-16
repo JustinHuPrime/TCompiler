@@ -130,11 +130,15 @@ It is possible to have a module with one declaration file or a module with no de
 
 \section{Scopes}
 
-Scopes are a mechanism to control the visibility of identifiers. A scope is a container for identifiers, and may nest. All identifier names within a scope must be unique, but identifier names from outer scopes are shadowed by identifier names in the current scope, and identifiers from inner scopes are not visible. A file defines two scopes: the import scope, and the file scope. The file scope resides within the import scope, and in code files, automatically contains the identifiers declared in its corresponding declaration file (if any), only as a plain identifier. Other ways of starting a scope are discussed alongside the relevant syntactic constructs. Normally, identifiers in a scope are only visible after they are declared, but within a file scope, identifiers are visible throughout the whole scope.\footnote{The ordering and extent within the scope is irrelevant for import scopes, since there is no possibility of using anything imported in the middle of the import list.}
+Scopes are a mechanism to control the visibility of identifiers. A scope is a container for identifiers, and may nest. All identifier names within a scope must be unique, but identifier names from outer scopes are shadowed by identifier names in the current scope, and identifiers from inner scopes are not visible. A file defines two scopes: the import scope, and the file scope. The file scope resides within the import scope, and in code files, automatically contains the identifiers declared in its corresponding declaration file (if any), only as a plain identifier. Other ways of starting a scope are discussed alongside the relevant syntactic constructs. Normally, identifiers in a scope are only visible after they are declared, but within a file scope, identifiers are visible throughout the whole scope.\footnote{The ordering and extent of identifiers within the scope is irrelevant for import scopes, since there is no possibility of using anything imported in the middle of the import list.}
 
 \subsection{Imports}
 
 Modules may import other modules. This means the identifiers from the module are made visible in the importing module's import scope, both as a scoped identifier consisting of the imported module name combined with the imported identifier in a scope resolution operator, and as the plain identifier. If two identifiers collide in the import scope as plain identifiers, neither is imported as a plain identifier. If there is still a collision between the scoped identifiers, then a diagnostic is to be issued\footnote{This is to make the imported identifiers visible in at least one way, but there still exists the possibility of a collision - if module \texttt{foo} has an enumeration called \texttt{bar} with an element \texttt{baz}, then the module \texttt{foo::bar} with an identifier \texttt{bar} would collide. Since the modules sharing a prefix are, to humans, part of the same library, the potential for such a collision is considered as bad code style on the part of the library authors.}.
+
+\subsection{Opaque Type Declarations}
+
+The only exception to the requirement that no identifiers in the same scope have the same name is when dealing with opaque type declarations (see \ref{section:Opaque Type Declarations}), which may be redefined only if the opaque type was introduced to the scope from the implicit import.
 
 \section{Module Header}
 
@@ -257,25 +261,25 @@ Any function named 'main' is considered a main function. The main function does 
 
 A variable declaration declares the existence of a global variable. Variable declarations may use an incomplete type (the corresponding definition must not use an incomplete type). The comma separated list of identifiers lists out the names declared as a variable.
 
-\section{Opaque Type Declarations}
+\section{Opaque Type Declarations}\label{section:Opaque Type Declarations}
 
 \lstinputlisting[breaklines=true, firstline=23, lastline=23]{"Appendix B - Syntax.ebnf"}
 
 An opaque type declaration declares the existence of a user-defined type (structure, union, enumeration, or alias). Other than the existence of that type as a user-defined type, and the name, nothing else is specified.
 
-\section{Struct Declarations}
+\section{Struct Type Declarations}
 
 \lstinputlisting[breaklines=true, firstline=24, lastline=24]{"Appendix B - Syntax.ebnf"}
 
-A structure declaration defines a structure type. Each variable declaration has a set of identifiers that it declares, and each of those identifiers is a field, with the type corresponding to the type of the variable declaration.
+A structure type declaration defines a structure type. Each variable declaration has a set of identifiers that it declares, and each of those identifiers is a field, with the type corresponding to the type of the variable declaration.
 
-\section{Union Declarations}
+\section{Union Type Declarations}
 
 \lstinputlisting[breaklines=true, firstline=25, lastline=25]{"Appendix B - Syntax.ebnf"}
 
-A union declaration defines a union type. Each variable declaration has a set of identifiers that it declares, and each of those identifiers is an option for the union, with the type corresponding to the type of the variable declaration.
+A union type declaration defines a union type. Each variable declaration has a set of identifiers that it declares, and each of those identifiers is an option for the union, with the type corresponding to the type of the variable declaration.
 
-\section{Enum Declaration}
+\section{Enum Type Declaration}
 
 \lstinputlisting[breaklines=true, firstline=26, lastline=26]{"Appendix B - Syntax.ebnf"}
 
