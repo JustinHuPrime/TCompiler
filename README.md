@@ -20,7 +20,7 @@ Note that if a later option conflicts with an earlier option, the later option w
 
 * `--version`: overrides all other options, except for `--help` and its abbreviations, displays version and copyright information, and causes the compiler to immediately exit normally.
 
-#### Architecture
+<!-- #### Architecture
 
 * `--arch=x86_64-linux`: sets the target architecture to x86_64 on Linux (ELF w/ System V ABI). Default.
 
@@ -30,7 +30,7 @@ Note that if a later option conflicts with an earlier option, the later option w
 
 * `-fPIE`: generate position independent code suitable for relocatable executable use.
 
-* `-fPIC`: generate position independent code suitable for shared library or relocatable executable use.
+* `-fPIC`: generate position independent code suitable for shared library or relocatable executable use. -->
 
 #### Warnings
 
@@ -38,9 +38,7 @@ All warning options have three forms, a `-W...=error` form, a `-W...=warn` form,
 
 <!-- * `const-return`: a function's declared return type is explicitly declared as constant. Defaults to warn. -->
 
-<!-- * `duplicate-decl-specifier`: a data type has const applied to the same thing more than once. Defaults to warn. -->
-
-<!-- * `duplicate-declaration`: a data type or function is declared more than once, even if multiple declarations have no effects. Multiple declarations of variables is always an error. This does not warn about multiple declarations involving the same function name that create an overload set. Defaults to ignore. -->
+<!-- * `duplicate-decl-specifier`: a data type has const or volatile applied to the same thing more than once. Defaults to warn. -->
 
 * `duplciate-file`: duplciated files given. Defaults to error. If not an error, later files have no effect.
 

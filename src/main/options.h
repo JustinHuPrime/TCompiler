@@ -27,16 +27,6 @@
 
 #include <stddef.h>
 
-/** Possible architectures to target */
-typedef enum {
-  OPTION_A_X86_64_LINUX,
-} ArchOption;
-/** Position dependence options */
-typedef enum {
-  OPTION_PD_PDC,
-  OPTION_PD_PIE,
-  OPTION_PD_PIC,
-} PositionDependenceOption;
 /** Warning levels */
 typedef enum {
   OPTION_W_IGNORE,
@@ -50,8 +40,6 @@ typedef enum {
 } DebugDumpOption;
 /** Holds options */
 typedef struct {
-  ArchOption arch;
-  PositionDependenceOption positionDependence;
   WarningOption duplicateFile;
   WarningOption unrecognizedFile;
   DebugDumpOption dump;

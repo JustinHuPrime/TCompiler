@@ -140,22 +140,22 @@ int main(int argc, char **argv) {
   // TODO: write this
 
   // back-end
-  switch (options.arch) {
-    case OPTION_A_X86_64_LINUX: {
-      // assembly generation
+  // switch (options.arch) {
+  //   case OPTION_A_X86_64_LINUX: {
+  //     // assembly generation
 
-      // assembly optimization part 1
-      // TODO: write this
+  //     // assembly optimization part 1
+  //     // TODO: write this
 
-      // register allocation
+  //     // register allocation
 
-      // assembly optimization part 2
-      // TODO: write this
+  //     // assembly optimization part 2
+  //     // TODO: write this
 
-      // write out
-      break;
-    }
-  }
+  //     // write out
+  //     break;
+  //   }
+  // }
 
   return CODE_SUCCESS;
 }

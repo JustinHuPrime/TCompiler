@@ -23,8 +23,9 @@
 #include <string.h>
 
 Options options = {
-    OPTION_A_X86_64_LINUX, OPTION_PD_PDC,  OPTION_W_ERROR,
-    OPTION_W_ERROR,        OPTION_DD_NONE,
+    OPTION_W_ERROR,
+    OPTION_W_ERROR,
+    OPTION_DD_NONE,
 };
 
 int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
@@ -38,14 +39,6 @@ int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
       // remaining options are all files
       numFiles += argc - idx - 1;
       break;
-    } else if (strcmp(argv[idx], "--arch=x86_64-linux") == 0) {
-      options.arch = OPTION_A_X86_64_LINUX;
-    } else if (strcmp(argv[idx], "-fPDC") == 0) {
-      options.positionDependence = OPTION_PD_PDC;
-    } else if (strcmp(argv[idx], "-fPIE") == 0) {
-      options.positionDependence = OPTION_PD_PIE;
-    } else if (strcmp(argv[idx], "-fPIC") == 0) {
-      options.positionDependence = OPTION_PD_PIC;
     } else if (strcmp(argv[idx], "-Wduplicate-file=error") == 0) {
       options.duplicateFile = OPTION_W_ERROR;
     } else if (strcmp(argv[idx], "-Wduplicate-file=warn") == 0) {

@@ -51,9 +51,8 @@ static void testNumFilesCounting(void) {
 
   // files with options
   argc = 5;
-  char const *const argv2[] = {
-      "./tlc", "foo.tc", "foo.td", "--arch=x86_64-linux", "folder/bar.tc",
-  };
+  char const *const argv2[] = {"./tlc", "foo.tc", "foo.td", "folder/bar.tc",
+                               "-Wduplicate-file=error"};
   retval = parseArgs(argc, argv2, &numFiles);
 
   test("command line with files and options passes", retval == 0);
@@ -62,7 +61,7 @@ static void testNumFilesCounting(void) {
   // files with dash and options
   argc = 7;
   char const *const argv3[] = {
-      "./tlc",         "foo.tc", "foo.td",    "--arch=x86_64-linux",
+      "./tlc",         "foo.tc", "foo.td",    "-Wduplicate-file=error",
       "folder/bar.tc", "--",     "-other.td",
   };
   retval = parseArgs(argc, argv3, &numFiles);
@@ -97,57 +96,57 @@ static void testOptions(void) {
   dropLine();
   test("command line with bad option fails", retval != 0);
 
-  // --arch=x86_64-linux
-  argc = 3;
-  char const *const argv1[] = {
-      "./tlc",
-      "--arch=x86_64-linux",
-      "foo.tc",
-  };
-  retval = parseArgs(argc, argv1, &numFiles);
+  // // --arch=x86_64-linux
+  // argc = 3;
+  // char const *const argv1[] = {
+  //     "./tlc",
+  //     "--arch=x86_64-linux",
+  //     "foo.tc",
+  // };
+  // retval = parseArgs(argc, argv1, &numFiles);
 
-  test("command line with arch=x86_64-linux passes", retval == 0);
-  test("arch=x86_64-linux option is correctly set",
-       options.arch == OPTION_A_X86_64_LINUX);
+  // test("command line with arch=x86_64-linux passes", retval == 0);
+  // test("arch=x86_64-linux option is correctly set",
+  //      options.arch == OPTION_A_X86_64_LINUX);
 
-  // -fPDC
-  argc = 3;
-  char const *const argv2[] = {
-      "./tlc",
-      "-fPDC",
-      "foo.tc",
-  };
-  retval = parseArgs(argc, argv2, &numFiles);
+  // // -fPDC
+  // argc = 3;
+  // char const *const argv2[] = {
+  //     "./tlc",
+  //     "-fPDC",
+  //     "foo.tc",
+  // };
+  // retval = parseArgs(argc, argv2, &numFiles);
 
-  test("command line with PDC passes", retval == 0);
-  test("PDC option is correctly set",
-       options.positionDependence == OPTION_PD_PDC);
+  // test("command line with PDC passes", retval == 0);
+  // test("PDC option is correctly set",
+  //      options.positionDependence == OPTION_PD_PDC);
 
-  // -fPIE
-  argc = 3;
-  char const *const argv3[] = {
-      "./tlc",
-      "-fPIE",
-      "foo.tc",
-  };
-  retval = parseArgs(argc, argv3, &numFiles);
+  // // -fPIE
+  // argc = 3;
+  // char const *const argv3[] = {
+  //     "./tlc",
+  //     "-fPIE",
+  //     "foo.tc",
+  // };
+  // retval = parseArgs(argc, argv3, &numFiles);
 
-  test("command line with PIE passes", retval == 0);
-  test("PIE option is correctly set",
-       options.positionDependence == OPTION_PD_PIE);
+  // test("command line with PIE passes", retval == 0);
+  // test("PIE option is correctly set",
+  //      options.positionDependence == OPTION_PD_PIE);
 
-  // -fPIC
-  argc = 3;
-  char const *const argv4[] = {
-      "./tlc",
-      "-fPIC",
-      "foo.tc",
-  };
-  retval = parseArgs(argc, argv4, &numFiles);
+  // // -fPIC
+  // argc = 3;
+  // char const *const argv4[] = {
+  //     "./tlc",
+  //     "-fPIC",
+  //     "foo.tc",
+  // };
+  // retval = parseArgs(argc, argv4, &numFiles);
 
-  test("command line with PIC passes", retval == 0);
-  test("PIE option is correctly set",
-       options.positionDependence == OPTION_PD_PIC);
+  // test("command line with PIC passes", retval == 0);
+  // test("PIE option is correctly set",
+  //      options.positionDependence == OPTION_PD_PIC);
 
   // -Wduplicate-file=error
   argc = 3;
