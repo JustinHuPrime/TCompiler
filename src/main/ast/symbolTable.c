@@ -23,11 +23,44 @@
 
 #include <stdlib.h>
 
-void functionStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                           size_t character) {}
+/**
+ * initializes a symbol table entry
+ */
+static void stabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                          size_t character, SymbolKind kind) {
+  e->kind = kind;
+  e->file = file;
+  e->line = line;
+  e->character = character;
+}
 
-void variableStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                           size_t character) {}
+void opaqueStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                         size_t character) {
+  stabEntryInit(e, file, line, character, SK_OPAQUE);
+  e->data.opaqueType.definition = NULL;
+}
+void structStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                         size_t character) {
+  stabEntryInit(e, file, line, character, SK_STRUCT);
+  vectorInit(&e->data.structType.fieldNames);
+  vectorInit(&e->data.structType.fieldTypes);
+}
+void unionStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                        size_t character) {
+  stabEntryInit(e, file, line, character, SK_UNION);
+  vectorInit(&e->data.unionType.optionNames);
+  vectorInit(&e->data.unionType.optionTypes);
+}
+void enumStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                       size_t character) {
+  stabEntryInit(e, file, line, character, SK_ENUM);
+  vectorInit(&e->data.enumType.constantNames);
+  vectorInit(&e->data.enumType.constantValues);
+}
+void typedefStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                          size_t character) {
+  stabEntryInit(e, file, line, character, SK_TYPEDEF);
+}
 
 void stabEntryUninit(SymbolTableEntry *e) {
   // TODO: write this

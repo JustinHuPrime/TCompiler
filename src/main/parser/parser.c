@@ -49,41 +49,50 @@ int parse(void) {
 
   if (buildModuleMap() != 0) return -1;
 
-  // FIXME: pass two - populate stab for types
-
-  // pass two - populate symbol tables (but don't fill in entries)
+  // pass two - populate stab for types
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
-      buildTopLevelStab(&fileList.entries[idx]);
+      startTopLevelTypeStab(&fileList.entries[idx]);
       errored = errored || fileList.entries[idx].errored;
     }
   }
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (fileList.entries[idx].isCode) {
-      buildTopLevelStab(&fileList.entries[idx]);
+      startTopLevelTypeStab(&fileList.entries[idx]);
       errored = errored || fileList.entries[idx].errored;
     }
   }
   if (errored) return -1;
 
-  // FIXME: pass three - fill in stab for types
-
-  // pass three - fill in entries
+  // pass three - fill in stab for types
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
-      completeTopLevelStab(&fileList.entries[idx]);
+      finishTopLevelTypeStab(&fileList.entries[idx]);
       errored = errored || fileList.entries[idx].errored;
     }
   }
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (fileList.entries[idx].isCode) {
-      completeTopLevelStab(&fileList.entries[idx]);
+      finishTopLevelTypeStab(&fileList.entries[idx]);
       errored = errored || fileList.entries[idx].errored;
     }
   }
   if (errored) return -1;
 
-  // FIXME: pass four - build and fill in stab for non-types
+  // pass four - build and fill in stab for non-types
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+    if (!fileList.entries[idx].isCode) {
+      buildTopLevelNonTypeStab(&fileList.entries[idx]);
+      errored = errored || fileList.entries[idx].errored;
+    }
+  }
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+    if (fileList.entries[idx].isCode) {
+      buildTopLevelNonTypeStab(&fileList.entries[idx]);
+      errored = errored || fileList.entries[idx].errored;
+    }
+  }
+  if (errored) return -1;
 
   // pass five - parse unparsed nodes, writing the symbol table as we go -
   // entries are filled in

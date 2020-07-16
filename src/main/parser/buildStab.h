@@ -35,22 +35,34 @@
 int buildModuleMap(void);
 
 /**
- * builds symbol table for the top level of the file
+ * starts symbol table for types at the top level of the file
  *
  * Does not fill in entries, sets entry->errored if an error happened.
+ * Expects to be called on code files after corresponding decl file
  *
  * @param entry entry to process
  */
-void buildTopLevelStab(FileListEntry *entry);
+void startTopLevelTypeStab(FileListEntry *entry);
 
 /**
- * completes the symbol table for the top level of the file
+ * completes the symbol table for types at the level of the file
  *
  * fills in the entries, makes references, and sets entry->errored if an error
  * happened
- * 
+ * Expects to be called on code files after corresponding decl file
+ *
  * @param entry entry to process
  */
-void completeTopLevelStab(FileListEntry *entry);
+void finishTopLevelTypeStab(FileListEntry *entry);
+
+/**
+ * builds the stab for non-types at the top level of the file
+ *
+ * sets entry->errored if an error happened
+ * Expects to be called on code files after corresponding decl file
+ *
+ * @param entry entry to process
+ */
+void buildTopLevelNonTypeStab(FileListEntry *entry);
 
 #endif  // TLC_PARSER_BUILDSTAB_H_

@@ -95,97 +95,181 @@ int buildModuleMap(void) {
 static void errorRedeclaration(char const *file, size_t line, size_t character,
                                char const *name, char const *collidingFile,
                                size_t collidingLine, size_t collidingChar) {
-  fprintf(stderr,
-          "%s:%zu:%zu: error: redeclaration of %s as a different "
-          "kind of identifier\n",
-          file, line, character, name);
+  fprintf(stderr, "%s:%zu:%zu: error: redeclaration of %s\n", file, line,
+          character, name);
   fprintf(stderr, "%s:%zu:%zu: note: previously declared here\n", collidingFile,
           collidingLine, collidingChar);
 }
 
-void buildTopLevelStab(FileListEntry *entry) {
-  Node *ast = entry->ast;
-  HashMap *implicitStab = hashMapGet(&fileList.moduleMap, entry->moduleName);
-  HashMap *stab = &ast->data.file.stab;
+void startTopLevelTypeStab(FileListEntry *entry) {
+  Vector *bodies = entry->ast->data.file.bodies;
+  HashMap *stab = &entry->ast->data.file.stab;
+  HashMap *implicitStab = NULL;
+  if (entry->isCode) {
+    FileListEntry *declEntry =
+        hashMapGet(&fileList.moduleMap, entry->moduleName);
+    if (declEntry != NULL) implicitStab = &declEntry->ast->data.file.stab;
+  }
 
-  // for each file scope entity, generate an uninitialized symbol table entry
-  for (size_t idx = 0; idx < ast->data.file.bodies->size; idx++) {
-    Node *body = ast->data.file.bodies->elements[idx];
+  for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
+    Node *body = bodies->elements[bodyIdx];
     switch (body->type) {
-      case NT_FUNDEFN: {
-        char const *name = body->data.funDefn.name->data.id.id;
+      case NT_OPAQUEDECL: {
+        char const *name = body->data.opaqueDecl.name->data.id.id;
         SymbolTableEntry *existing = hashMapGet(stab, name);
         if (existing == NULL && implicitStab != NULL)
           existing = hashMapGet(implicitStab, name);
 
-        if (existing == NULL) {
-          // if no entry exists, construct one
-          SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
-          functionStabEntryInit(e, entry->inputFilename, body->line,
-                                body->character);
-          hashMapPut(stab, name, e);
+        if (existing != NULL) {
+          // must not exist
+          errorRedeclaration(entry->inputFilename, body->line, body->character,
+                             name, existing->file, existing->line,
+                             existing->character);
+          entry->errored = true;
         } else {
-          // if an entry exists, expect it to be a function
-          if (existing->kind != SK_FUNCTION) {
+          // create an entry if it doesn't exist
+          SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+          opaqueStabEntryInit(e, entry->inputFilename, body->line,
+                              body->character);
+          hashMapPut(stab, name, e);
+        }
+        break;
+      }
+      case NT_STRUCTDECL: {
+        char const *name = body->data.structDecl.name->data.id.id;
+        SymbolTableEntry *existing = hashMapGet(stab, name);
+        bool fromImplicit = false;
+        if (existing == NULL && implicitStab != NULL) {
+          existing = hashMapGet(implicitStab, name);
+          fromImplicit = true;
+        }
+
+        if (existing != NULL) {
+          // may exist only as an opaque from the implicit import
+          if (existing->kind == SK_OPAQUE && fromImplicit) {
+            SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+            structStabEntryInit(e, entry->inputFilename, body->line,
+                                body->character);
+            hashMapPut(stab, name, e);
+            existing->data.opaqueType.definition = e;
+          } else {
             errorRedeclaration(entry->inputFilename, body->line,
                                body->character, name, existing->file,
                                existing->line, existing->character);
             entry->errored = true;
           }
+        } else {
+          SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+          structStabEntryInit(e, entry->inputFilename, body->line,
+                              body->character);
+          hashMapPut(stab, name, e);
         }
-        break;
-      }
-      case NT_VARDEFN: {
-        // for each name
-        Vector *names = body->data.varDefn.names;
-        for (size_t namesIdx = 0; namesIdx < names->size; namesIdx++) {
-          Node *nameNode = names->elements[namesIdx];
-          char const *name = nameNode->data.id.id;
-          SymbolTableEntry *existing = hashMapGet(stab, name);
-          if (existing == NULL && implicitStab != NULL)
-            existing = hashMapGet(implicitStab, name);
-
-          if (existing == NULL) {
-            // no entry exists, construct one
-            SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
-            variableStabEntryInit(e, entry->inputFilename, nameNode->line,
-                                  nameNode->character);
-          } else {
-            // if an entry exists, expect it to be a variable
-            errorRedeclaration(entry->inputFilename, nameNode->line,
-                               nameNode->character, name, existing->file,
-                               existing->line, existing->character);
-            entry->errored = true;
-          }
-        }
-        break;
-      }
-      case NT_VARDECL: {
-        break;
-      }
-      case NT_OPAQUEDECL: {
-        break;
-      }
-      case NT_STRUCTDECL: {
         break;
       }
       case NT_UNIONDECL: {
+        char const *name = body->data.unionDecl.name->data.id.id;
+        SymbolTableEntry *existing = hashMapGet(stab, name);
+        bool fromImplicit = false;
+        if (existing == NULL && implicitStab != NULL) {
+          existing = hashMapGet(implicitStab, name);
+          fromImplicit = true;
+        }
+
+        if (existing != NULL) {
+          // may exist only as an opaque from the implicit import
+          if (existing->kind == SK_OPAQUE && fromImplicit) {
+            SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+            unionStabEntryInit(e, entry->inputFilename, body->line,
+                               body->character);
+            hashMapPut(stab, name, e);
+            existing->data.opaqueType.definition = e;
+          } else {
+            errorRedeclaration(entry->inputFilename, body->line,
+                               body->character, name, existing->file,
+                               existing->line, existing->character);
+            entry->errored = true;
+          }
+        } else {
+          SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+          unionStabEntryInit(e, entry->inputFilename, body->line,
+                             body->character);
+          hashMapPut(stab, name, e);
+        }
         break;
       }
       case NT_ENUMDECL: {
+        char const *name = body->data.enumDecl.name->data.id.id;
+        SymbolTableEntry *existing = hashMapGet(stab, name);
+        bool fromImplicit = false;
+        if (existing == NULL && implicitStab != NULL) {
+          existing = hashMapGet(implicitStab, name);
+          fromImplicit = true;
+        }
+
+        if (existing != NULL) {
+          // may exist only as an opaque from the implicit import
+          if (existing->kind == SK_OPAQUE && fromImplicit) {
+            SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+            enumStabEntryInit(e, entry->inputFilename, body->line,
+                              body->character);
+            hashMapPut(stab, name, e);
+            existing->data.opaqueType.definition = e;
+          } else {
+            errorRedeclaration(entry->inputFilename, body->line,
+                               body->character, name, existing->file,
+                               existing->line, existing->character);
+            entry->errored = true;
+          }
+        } else {
+          SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+          enumStabEntryInit(e, entry->inputFilename, body->line,
+                            body->character);
+          hashMapPut(stab, name, e);
+        }
         break;
       }
       case NT_TYPEDEFDECL: {
+        char const *name = body->data.typedefDecl.name->data.id.id;
+        SymbolTableEntry *existing = hashMapGet(stab, name);
+        bool fromImplicit = false;
+        if (existing == NULL && implicitStab != NULL) {
+          existing = hashMapGet(implicitStab, name);
+          fromImplicit = true;
+        }
+
+        if (existing != NULL) {
+          // may exist only as an opaque from the implicit import
+          if (existing->kind == SK_OPAQUE && fromImplicit) {
+            SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+            typedefStabEntryInit(e, entry->inputFilename, body->line,
+                                 body->character);
+            hashMapPut(stab, name, e);
+            existing->data.opaqueType.definition = e;
+          } else {
+            errorRedeclaration(entry->inputFilename, body->line,
+                               body->character, name, existing->file,
+                               existing->line, existing->character);
+            entry->errored = true;
+          }
+        } else {
+          SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+          typedefStabEntryInit(e, entry->inputFilename, body->line,
+                               body->character);
+          hashMapPut(stab, name, e);
+        }
         break;
       }
       default: {
-        error(__FILE__, __LINE__,
-              "non-top-level form encountered in buildTopLevelStab");
+        break;  // do nothing - not a type
       }
     }
   }
 }
 
-void completeTopLevelStab(FileListEntry *entry) {
+void finishTopLevelTypeStab(FileListEntry *entry) {
+  // TODO: write this
+}
+
+void buildTopLevelNonTypeStab(FileListEntry *entry) {
   // TODO: write this
 }

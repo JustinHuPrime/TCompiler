@@ -62,36 +62,96 @@ typedef enum {
   TK_ARRAY,
   TK_FNPTR,
   TK_AGGREGATE,
+  TK_REFERENCE,
 } TypeKind;
 
+struct SymbolTableEntry;
 /** the type of a variable or value */
-typedef struct {
+typedef struct Type {
   TypeKind kind;
   union {
     struct {
       TypeKeyword keyword;
     } keyword;
+    struct {
+      TypeModifier modifier;
+      struct Type *modified;
+    } modified; /**< canonical form for CV qualification is constness first,
+                   volatility second */
+    struct {
+      uint64_t length;
+      struct Type *type;
+    } array;
+    struct {
+      Vector argTypes; /**< vector of Type */
+      struct Type *returnType;
+    } fnPtr;
+    struct {
+      Vector types; /**< vector of Type */
+    } aggregate;
+    struct {
+      struct SymbolTableEntry *entry;
+    } reference;
   } data;
 } Type;
+
+/** an entry in a function overload set */
+typedef struct {
+  Type returnType;
+  Vector argumentTypes; /**< vector of Type */
+  size_t numOptional;
+  bool defined;
+} OverloadSetEntry;
 
 /** the kind of a symbol */
 typedef enum {
   SK_VARIABLE,
   SK_FUNCTION,
-  SK_TYPE,
+  SK_OPAQUE,
+  SK_STRUCT,
+  SK_UNION,
+  SK_ENUM,
+  SK_TYPEDEF,
   SK_ENUMCONST,
 } SymbolKind;
 
 /** a symbol */
-typedef struct {
+typedef struct SymbolTableEntry {
   SymbolKind kind;
   union {
     struct {
       Type type;
+      bool defined;
     } variable;
     struct {
-      Vector overloadSet;
+      Vector overloadSet; /** vector of OverloadSetEntry */
     } function;
+    struct {
+      struct SymbolTableEntry
+          *definition; /**< actual definition of this opaque, nullable */
+    } opaqueType;
+    struct {
+      Vector fieldNames; /**< vector of char * (owning) */
+      Vector fieldTypes; /**< vector of types */
+    } structType;
+    struct {
+      Vector optionNames; /**< vector of char * (owning) */
+      Vector optionTypes; /**< vector of types */
+    } unionType;
+    struct {
+      Vector constantNames;  /**< vector of char * (owning) */
+      Vector constantValues; /**< vector of SymbolTableEntry (enum consts) */
+    } enumType;
+    struct {
+      bool signedness;
+      union {
+        uint64_t unsignedValue;
+        int64_t signedValue;
+      } data;
+    } enumConst;
+    struct {
+      Type actual;
+    } typedefType;
   } data;
   char const *file;
   size_t line;
@@ -99,25 +159,19 @@ typedef struct {
 } SymbolTableEntry;
 
 /**
- * initialize a function symbol table entry
- *
- * @param e entry to initialize
- * @param file entry location info
- * @param line entry location info
- * @param character entry location info
+ * initialize symbol table entries
  */
-void functionStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                           size_t character);
-/**
- * initialize a variable symbol table entry
- *
- * @param e entry to initialize
- * @param file entry location info
- * @param line entry location info
- * @param character entry location info
- */
-void variableStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                           size_t character);
+void opaqueStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                         size_t character);
+void structStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                         size_t character);
+void unionStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                        size_t character);
+void enumStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                       size_t character);
+void typedefStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                          size_t character);
+
 /**
  * deinitializes a symbol table entry
  *
