@@ -23,6 +23,57 @@
 
 #include <stdlib.h>
 
+void stabUninit(HashMap *stab) {
+  hashMapUninit(stab, (void (*)(void *))stabEntryFree);
+}
+
+static Type *typeCreate(TypeKind kind) {
+  Type *t = malloc(sizeof(Type));
+  t->kind = kind;
+  return t;
+}
+Type *keywordTypeCreate(TypeKeyword keyword) {
+  Type *t = typeCreate(TK_KEYWORD);
+  t->data.keyword.keyword = keyword;
+  return t;
+}
+Type *modifiedTypeCreate(TypeModifier modifier, Type *modified) {
+  Type *t = typeCreate(TK_MODIFIED);
+  t->data.modified.modifier = modifier;
+  t->data.modified.modified = modified;
+  return t;
+}
+void typeFree(Type *t) {
+  switch (t->kind) {
+    case TK_MODIFIED: {
+      typeFree(t->data.modified.modified);
+      break;
+    }
+    case TK_ARRAY: {
+      typeFree(t->data.array.type);
+      break;
+    }
+    case TK_FUNPTR: {
+      vectorUninit(&t->data.funPtr.argTypes, (void (*)(void *))typeFree);
+      typeFree(t->data.funPtr.returnType);
+      break;
+    }
+    case TK_AGGREGATE: {
+      vectorUninit(&t->data.aggregate.types, (void (*)(void *))typeFree);
+    }
+    default: {
+      break;  // nothing to do
+    }
+  }
+  free(t);
+}
+
+void overloadSetFree(OverloadSetEntry *e) {
+  typeFree(e->returnType);
+  vectorUninit(&e->argumentTypes, (void (*)(void *))typeFree);
+  free(e);
+}
+
 /**
  * initializes a symbol table entry
  */
@@ -62,6 +113,38 @@ void typedefStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
   stabEntryInit(e, file, line, character, SK_TYPEDEF);
 }
 
-void stabEntryUninit(SymbolTableEntry *e) {
-  // TODO: write this
+void stabEntryFree(SymbolTableEntry *e) {
+  switch (e->kind) {
+    case SK_VARIABLE: {
+      typeFree(e->data.variable.type);
+      break;
+    }
+    case SK_FUNCTION: {
+      vectorUninit(&e->data.function.overloadSet,
+                   (void (*)(void *))overloadSetFree);
+      break;
+    }
+    case SK_STRUCT: {
+      vectorUninit(&e->data.structType.fieldNames, free);
+      vectorUninit(&e->data.structType.fieldTypes, (void (*)(void *))typeFree);
+      break;
+    }
+    case SK_UNION: {
+      vectorUninit(&e->data.unionType.optionNames, free);
+      vectorUninit(&e->data.unionType.optionTypes, (void (*)(void *))typeFree);
+      break;
+    }
+    case SK_ENUM: {
+      vectorUninit(&e->data.enumType.constantNames, free);
+      vectorUninit(&e->data.enumType.constantValues,
+                   (void (*)(void *))stabEntryFree);
+      break;
+    }
+    case SK_TYPEDEF: {
+      typeFree(e->data.typedefType.actual);
+      break;
+    }
+    default: { break; }
+  }
+  free(e);
 }

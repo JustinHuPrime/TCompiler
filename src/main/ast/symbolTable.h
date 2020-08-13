@@ -30,6 +30,13 @@
 
 #include <stdbool.h>
 
+/**
+ * deinits a symbol table
+ *
+ * @param t table to deinit
+ */
+void stabUninit(HashMap *t);
+
 /** A keyword type */
 typedef enum {
   TK_VOID,
@@ -60,7 +67,7 @@ typedef enum {
   TK_KEYWORD,
   TK_MODIFIED,
   TK_ARRAY,
-  TK_FNPTR,
+  TK_FUNPTR,
   TK_AGGREGATE,
   TK_REFERENCE,
 } TypeKind;
@@ -85,7 +92,7 @@ typedef struct Type {
     struct {
       Vector argTypes; /**< vector of Type */
       struct Type *returnType;
-    } fnPtr;
+    } funPtr;
     struct {
       Vector types; /**< vector of Type */
     } aggregate;
@@ -95,13 +102,39 @@ typedef struct Type {
   } data;
 } Type;
 
+/**
+ * create a keyword type
+ */
+Type *keywordTypeCreate(TypeKeyword keyword);
+/**
+ * create a modified type
+ */
+Type *modifiedTypeCreate(TypeModifier modifier, Type *modified);
+/**
+ * create an array type
+ */
+
+/**
+ * deinitializes a type
+ *
+ * @param t type to uninit
+ */
+void typeFree(Type *t);
+
 /** an entry in a function overload set */
 typedef struct {
-  Type returnType;
+  Type *returnType;
   Vector argumentTypes; /**< vector of Type */
   size_t numOptional;
   bool defined;
 } OverloadSetEntry;
+
+/**
+ * frees an overload set entry
+ *
+ * @param e entry to free
+ */
+void overloadSetFree(OverloadSetEntry *e);
 
 /** the kind of a symbol */
 typedef enum {
@@ -120,7 +153,7 @@ typedef struct SymbolTableEntry {
   SymbolKind kind;
   union {
     struct {
-      Type type;
+      Type *type;
       bool defined;
     } variable;
     struct {
@@ -150,7 +183,7 @@ typedef struct SymbolTableEntry {
       } data;
     } enumConst;
     struct {
-      Type actual;
+      Type *actual;
     } typedefType;
   } data;
   char const *file;
@@ -177,6 +210,6 @@ void typedefStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
  *
  * @param e entry to deinitialize
  */
-void stabEntryUninit(SymbolTableEntry *e);
+void stabEntryFree(SymbolTableEntry *e);
 
 #endif  // TLC_AST_SYMBOLTABLE_H_
