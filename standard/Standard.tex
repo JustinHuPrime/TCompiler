@@ -33,15 +33,13 @@ A T program is translated into an executable in several phases. Since the T gram
 \begin{enumerate}
 	\item \textbf{Lexing}: each declaration and code file is split into a sequence of tokens.
 
-	\item \textbf{Parsing}: the sequence of tokens is parsed into an abstract syntax tree. The parse tree produced depends on the interface of the imported modules, as well as the name of declarations contained in the current module, including those declared after the current point in time in the import or file scope, this phase is split into two parts.
+	\item \textbf{Parsing}: the sequence of tokens is parsed into an abstract syntax tree. The parse tree produced depends on the interface of the imported modules, as well as the name of declarations contained in the current module, including those declared after the current point in time in the import or file scope, this phase is split into three parts.
 	\begin{enumerate}
 		\item Every import or file scope declaration is parsed, but function bodies remain unparsed.
 		
-		\item Each imported scope declaration is recorded in the current scope.
+		\item Each file scope declaration and import is inspected, and the details for the identifiers introduced are recorded. What an identifier at top level references is resolved at this point.
 		
-		\item Each file scope declaration is inspected, and the details for the declaration are recorded. What an identifier references is resolved at this point.
-		
-		\item Each unparsed body is then parsed using the information from the first pass, while simultaneously, details about any declarations are recorded. What an identifier references is resolved at this point.
+		\item Each unparsed function body is then parsed using the information from the first and second pass, while simultaneously, details about any declarations are recorded. What an identifier references is resolved at this point.
 	\end{enumerate}
 
 	\item \textbf{Typechecking}: the program is checked for static type consistency and correctness.
@@ -130,7 +128,7 @@ It is possible to have a module with one declaration file or a module with no de
 
 \section{Scopes}
 
-Scopes are a mechanism to control the visibility of identifiers. A scope is a container for identifiers, and may nest. All identifier names within a scope must be unique, but identifier names from outer scopes are shadowed by identifier names in the current scope, and identifiers from inner scopes are not visible. A file defines two scopes: the import scope, and the file scope. The file scope resides within the import scope, and in code files, automatically contains the identifiers declared in its corresponding declaration file (if any), only as a plain identifier. Other ways of starting a scope are discussed alongside the relevant syntactic constructs. Normally, identifiers in a scope are only visible after they are declared, but within a file scope, identifiers are visible throughout the whole scope.\footnote{The ordering and extent of identifiers within the scope is irrelevant for import scopes, since there is no possibility of using anything imported in the middle of the import list.}
+Scopes are a mechanism to control the visibility of identifiers. A scope is a container for identifiers and other scopes. All identifiers immediately within a scope must be unique. Identifiers from containing scopes are shadowed by identifiers in the current scope, and identifiers from contained scopes are not visible. A file defines two scopes: the import scope, and the file scope. The file scope resides within the import scope, and in code files, automatically contains the identifiers declared in its corresponding declaration file (if any), only as a plain identifier. Other ways of starting a scope are discussed alongside the relevant syntactic constructs. Normally, identifiers in a scope are only visible after they are declared, but within a file scope, identifiers are visible throughout the whole scope.\footnote{The ordering and extent of identifiers within the scope is irrelevant for import scopes, since there is no possibility of using anything imported in the middle of the import list.}
 
 \subsection{Imports}
 
