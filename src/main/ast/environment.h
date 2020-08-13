@@ -27,25 +27,39 @@
 
 #include "ast/symbolTable.h"
 
+typedef struct Node Node;
+
 typedef struct {
-  Vector importNames;     /**< Vector of NT_ID or NT_SCOPED_ID, non-owning */
-  Vector importTables;    /**< Vector of symbol tables, non-owning */
+  Vector importNames;      /**< Vector of NT_ID or NT_SCOPED_ID, non-owning */
+  Vector importTables;     /**< Vector of symbol tables, non-owning */
+  Node *currentModuleName; /**< NT_ID or NT_SCOPED_ID of the current module,
+                              non-owning */
   HashMap *currentModule; /**< symbol table for the current module - this is the
                              file scope, non-owning */
   HashMap *implicitImport; /**< symbol table for the implicit import in code
                               modules */
-  Vector scopes; /**< vector of non-owning references to the current scope */
+  Vector scopes; /**< vector of temporarily owning references to the current
+                    scope */
 } Environment;
 
 /**
  * initialize an environment
  *
  * @param env environment to initialize
+ * @param currentModuleName id or scoped id of the current module
  * @param currentModule module to root the environment in
  * @param implicitImport implicit import module (null when not in a code file)
  */
-void environmentInit(Environment *env, HashMap *currentModule,
-                     HashMap *implicitImport);
+void environmentInit(Environment *env, Node *currentModuleName,
+                     HashMap *currentModule, HashMap *implicitImport);
+
+/**
+ * looks up a symbol
+ *
+ * @param env environment to look in
+ * @param name id or scoped id node to look up
+ */
+SymbolTableEntry *environmentLookup(Environment *env, Node *name);
 
 /**
  * deinitialize an environment

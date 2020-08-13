@@ -19,19 +19,32 @@
 
 #include "ast/environment.h"
 
+#include "ast/ast.h"
 #include "util/functional.h"
 
-void environmentInit(Environment *env, HashMap *currentModule,
-                     HashMap *implicitImport) {
+#include <stdlib.h>
+#include <string.h>
+
+void environmentInit(Environment *env, Node *currentModuleName,
+                     HashMap *currentModule, HashMap *implicitImport) {
   vectorInit(&env->importNames);
   vectorInit(&env->importTables);
+  env->currentModuleName = currentModuleName;
   env->currentModule = currentModule;
   env->implicitImport = implicitImport;
   vectorInit(&env->scopes);
 }
 
+SymbolTableEntry *environmentLookup(Environment *env, Node *name) {
+  // TODO: write this
+}
+
+static void stabFree(HashMap *stab) {
+  stabUninit(stab);
+  free(stab);
+}
 void environmentUninit(Environment *env) {
   vectorUninit(&env->importNames, nullDtor);
   vectorUninit(&env->importTables, nullDtor);
-  vectorUninit(&env->scopes, nullDtor);
+  vectorUninit(&env->scopes, (void (*)(void *))stabFree);
 }
