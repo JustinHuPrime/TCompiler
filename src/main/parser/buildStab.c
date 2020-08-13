@@ -424,10 +424,10 @@ int buildTopLevelEnumStab(void) {
               // depends on nothing
               dependencies.elements[constantEntryIdx] = NULL;
             } else {
-              // depends on another enum
+              // depends on another enum - constantValue is a SCOPED_ID
               // find the enum
-              SymbolTableEntry *stabEntry =
-                  environmentLookupEnum(&env, constantValue);
+              SymbolTableEntry
+                  *stabEntry;  // TODO: how do we get and validate this?
               char const *name =
                   constantValue->data.scopedId.components
                       ->elements[constantValue->data.scopedId.components->size -
@@ -449,13 +449,13 @@ int buildTopLevelEnumStab(void) {
     environmentUninit(&env);
   }
 
-  // TODO: traverse enum dependency graph and build enum constant values,
-  // checking for loops
-
   if (errored)
     return -1;
   else
     return 0;
+
+  // TODO: traverse enum dependency graph and build enum constant values,
+  // checking for loops
 }
 
 void finishTopLevelTypeStab(FileListEntry *entry) {

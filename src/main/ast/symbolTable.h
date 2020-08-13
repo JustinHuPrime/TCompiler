@@ -204,14 +204,8 @@ void unionStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
                         size_t character);
 void enumStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
                        size_t character);
-void enumConstStabEntryInitUnsigned(SymbolTableEntry *e, char const *file,
-                                    size_t line, size_t character,
-                                    SymbolTableEntry *parent,
-                                    uint64_t unsignedValue);
-void enumConstStabEntryInitSigned(SymbolTableEntry *e, char const *file,
-                                  size_t line, size_t character,
-                                  SymbolTableEntry *parent,
-                                  int64_t signedValue);
+void enumConstStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
+                            size_t character, SymbolTableEntry *parent);
 void typedefStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
                           size_t character);
 

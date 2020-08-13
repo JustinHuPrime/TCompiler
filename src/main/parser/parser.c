@@ -29,7 +29,7 @@ int parse(void) {
 
   lexerInitMaps();
 
-  // pass one - parse top level stuff, without populating symbol tables
+  // pass 1 - parse top level stuff, without populating symbol tables
   for (size_t idx = 0; idx < fileList.size; idx++) {
     retval = lexerStateInit(&fileList.entries[idx]);
     if (retval != 0) {
@@ -49,7 +49,7 @@ int parse(void) {
 
   if (buildModuleMap() != 0) return -1;
 
-  // pass two - populate stab for types
+  // pass 2 - populate stab for types and enums
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
       startTopLevelTypeStab(&fileList.entries[idx]);
@@ -64,11 +64,13 @@ int parse(void) {
   }
   if (errored) return -1;
 
-  // pass three - build and fill in stab for enums - watch out for
+  // pass 3 - check for inter-import collisions even when using scoped ids
+
+  // pass 4 - build and fill in stab for enums - watch out for
   // dependency loops
   if (buildTopLevelEnumStab() != 0) return -1;
 
-  // pass four - fill in stab for types
+  // pass 5 - fill in stab for types
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
       finishTopLevelTypeStab(&fileList.entries[idx]);
@@ -83,7 +85,7 @@ int parse(void) {
   }
   if (errored) return -1;
 
-  // pass five - build and fill in stab for non-types
+  // pass 6 - build and fill in stab for non-types
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
       buildTopLevelNonTypeStab(&fileList.entries[idx]);
@@ -98,10 +100,14 @@ int parse(void) {
   }
   if (errored) return -1;
 
-  // pass six - parse unparsed nodes, writing the symbol table as we go -
+  // pass 7 - parse unparsed nodes, writing the symbol table as we go -
   // entries are filled in
 
-  // pass seven - check additional constraints and warnings
+  // TODO: write this
+
+  // pass 8 - check additional constraints and warnings
+
+  // TODO: write this
 
   return 0;
 }
