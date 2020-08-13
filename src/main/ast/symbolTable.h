@@ -172,7 +172,7 @@ typedef struct SymbolTableEntry {
       Vector optionTypes; /**< vector of types */
     } unionType;
     struct {
-      Vector constantNames;  /**< vector of char * (owning) */
+      Vector constantNames;  /**< vector of char * (non-owning) */
       Vector constantValues; /**< vector of SymbolTableEntry (enum consts) */
     } enumType;
     struct {

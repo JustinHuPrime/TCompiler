@@ -21,6 +21,8 @@
 
 #include "ast/symbolTable.h"
 
+#include "util/functional.h"
+
 #include <stdlib.h>
 
 void stabUninit(HashMap *stab) {
@@ -140,7 +142,7 @@ void stabEntryFree(SymbolTableEntry *e) {
       break;
     }
     case SK_ENUM: {
-      vectorUninit(&e->data.enumType.constantNames, free);
+      vectorUninit(&e->data.enumType.constantNames, nullDtor);
       vectorUninit(&e->data.enumType.constantValues,
                    (void (*)(void *))stabEntryFree);
       break;

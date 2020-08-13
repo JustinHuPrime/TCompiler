@@ -265,10 +265,23 @@ void startTopLevelTypeStab(FileListEntry *entry) {
             entry->errored = true;
           }
         } else {
-          SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
-          enumStabEntryInit(e, entry->inputFilename, body->line,
+          SymbolTableEntry *parentEnum = malloc(sizeof(SymbolTableEntry));
+          enumStabEntryInit(parentEnum, entry->inputFilename, body->line,
                             body->character);
-          hashMapPut(stab, name, e);
+          hashMapPut(stab, name, parentEnum);
+
+          Vector *constantNames = body->data.enumDecl.constantNames;
+
+          // for each of the constants
+          for (size_t idx = 0; idx < constantNames->size; idx++) {
+            Node *constantName = constantNames->elements[idx];
+            vectorInsert(&parentEnum->data.enumType.constantNames,
+                         constantName->data.id.id);
+            SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
+            enumConstStabEntryInit(e, entry->inputFilename, constantName->line,
+                                   constantName->character, parentEnum);
+            vectorInsert(&parentEnum->data.enumType.constantValues, e);
+          }
         }
         break;
       }
@@ -456,12 +469,4 @@ int buildTopLevelEnumStab(void) {
 
   // TODO: traverse enum dependency graph and build enum constant values,
   // checking for loops
-}
-
-void finishTopLevelTypeStab(FileListEntry *entry) {
-  // TODO: write this
-}
-
-void buildTopLevelNonTypeStab(FileListEntry *entry) {
-  // TODO: write this
 }

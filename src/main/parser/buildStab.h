@@ -53,25 +53,4 @@ void startTopLevelTypeStab(FileListEntry *entry);
  */
 int buildTopLevelEnumStab(void);
 
-/**
- * completes the symbol table for types at the top level of the file
- *
- * fills in the entries, makes references, and sets entry->errored if an
- * error happened Expects to be called on code files after corresponding
- * decl file
- *
- * @param entry entry to process
- */
-void finishTopLevelTypeStab(FileListEntry *entry);
-
-/**
- * builds the stab for non-types at the top level of the file
- *
- * sets entry->errored if an error happened
- * Expects to be called on code files after corresponding decl file
- *
- * @param entry entry to process
- */
-void buildTopLevelNonTypeStab(FileListEntry *entry);
-
 #endif  // TLC_PARSER_BUILDSTAB_H_
