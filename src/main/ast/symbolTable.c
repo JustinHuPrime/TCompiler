@@ -108,6 +108,24 @@ void enumStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
   vectorInit(&e->data.enumType.constantNames);
   vectorInit(&e->data.enumType.constantValues);
 }
+void enumConstStabEntryInitUnsigned(SymbolTableEntry *e, char const *file,
+                                    size_t line, size_t character,
+                                    SymbolTableEntry *parent,
+                                    uint64_t unsignedValue) {
+  stabEntryInit(e, file, line, character, SK_ENUMCONST);
+  e->data.enumConst.parent = parent;
+  e->data.enumConst.signedness = false;
+  e->data.enumConst.data.unsignedValue = unsignedValue;
+}
+void enumConstStabEntryInitSigned(SymbolTableEntry *e, char const *file,
+                                  size_t line, size_t character,
+                                  SymbolTableEntry *parent,
+                                  int64_t signedValue) {
+  stabEntryInit(e, file, line, character, SK_ENUMCONST);
+  e->data.enumConst.parent = parent;
+  e->data.enumConst.signedness = true;
+  e->data.enumConst.data.signedValue = signedValue;
+}
 void typedefStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
                           size_t character) {
   stabEntryInit(e, file, line, character, SK_TYPEDEF);

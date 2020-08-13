@@ -176,6 +176,8 @@ typedef struct SymbolTableEntry {
       Vector constantValues; /**< vector of SymbolTableEntry (enum consts) */
     } enumType;
     struct {
+      struct SymbolTableEntry
+          *parent; /**< non-owning reference to parent stab entry */
       bool signedness;
       union {
         uint64_t unsignedValue;
@@ -202,6 +204,14 @@ void unionStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
                         size_t character);
 void enumStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
                        size_t character);
+void enumConstStabEntryInitUnsigned(SymbolTableEntry *e, char const *file,
+                                    size_t line, size_t character,
+                                    SymbolTableEntry *parent,
+                                    uint64_t unsignedValue);
+void enumConstStabEntryInitSigned(SymbolTableEntry *e, char const *file,
+                                  size_t line, size_t character,
+                                  SymbolTableEntry *parent,
+                                  int64_t signedValue);
 void typedefStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
                           size_t character);
 
