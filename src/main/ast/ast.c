@@ -30,25 +30,6 @@
 #include <string.h>
 
 /**
- * deinits and frees a symbol table entry
- *
- * @param e entry to free, not null
- */
-static void stabEntryFree(SymbolTableEntry *e) {
-  stabEntryUninit(e);
-  free(e);
-}
-
-/**
- * deinits a symbol table
- *
- * @param t table to deinit
- */
-static void stabUninit(HashMap *t) {
-  hashMapUninit(t, (void (*)(void *))stabEntryFree);
-}
-
-/**
  * create a partially initialized node
  *
  * @param type type of node to indicate
@@ -655,6 +636,47 @@ char *stringifyId(Node *id) {
       return strdup(id->data.id.id);
     }
     default: { error(__FILE__, __LINE__, "attempted to stringify non-id"); }
+  }
+}
+
+Type *nodeToType(Node *n, Environment *env) {
+  switch (n->type) {
+    case NT_KEYWORDTYPE: {
+      return keywordTypeCreate(n->data.keywordType.keyword);
+    }
+    case NT_MODIFIEDTYPE: {
+      // if it's a volatile type and next thing is a const, produce const
+      // volatile instead
+      if (n->data.modifiedType.modifier == TM_VOLATILE &&
+          n->data.modifiedType.baseType->type == NT_MODIFIEDTYPE &&
+          n->data.modifiedType.baseType->data.modifiedType.modifier ==
+              TM_CONST) {
+        return modifiedTypeCreate(
+            TM_CONST,
+            modifiedTypeCreate(
+                TM_VOLATILE,
+                nodeToType(
+                    n->data.modifiedType.baseType->data.modifiedType.baseType,
+                    env)));
+      } else {
+        return modifiedTypeCreate(
+            n->data.modifiedType.modifier,
+            nodeToType(n->data.modifiedType.baseType, env));
+      }
+    }
+    case NT_ARRAYTYPE: {
+      // TODO: write this
+    }
+    case NT_FUNPTRTYPE: {
+      // TODO: write this
+    }
+    case NT_SCOPEDID: {
+      // TODO: write this
+    }
+    case NT_ID: {
+      // TODO: write this
+    }
+    default: { error(__FILE__, __LINE__, "non-type node encountered"); }
   }
 }
 

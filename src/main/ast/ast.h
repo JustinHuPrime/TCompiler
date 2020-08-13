@@ -27,6 +27,7 @@
 
 #include <stddef.h>
 
+#include "ast/environment.h"
 #include "ast/symbolTable.h"
 #include "lexer/lexer.h"
 #include "util/container/vector.h"
@@ -440,6 +441,15 @@ Node *unparsedNodeCreate(Vector *tokens);
  * @returns stringified version of id
  */
 char *stringifyId(Node *id);
+
+/**
+ * generates a Type * from a Node *, resolving references using the given
+ * environment
+ *
+ * @param n node to use
+ * @param env environment to use
+ */
+Type *nodeToType(Node *n, Environment *env);
 
 /**
  * deinitializes a node
