@@ -64,7 +64,11 @@ int parse(void) {
   }
   if (errored) return -1;
 
-  // pass three - fill in stab for types
+  // pass three - build and fill in stab for enums - watch out for
+  // dependency loops
+  if (buildTopLevelEnumStab() != 0) return -1;
+
+  // pass four - fill in stab for types
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
       finishTopLevelTypeStab(&fileList.entries[idx]);
@@ -79,7 +83,7 @@ int parse(void) {
   }
   if (errored) return -1;
 
-  // pass four - build and fill in stab for non-types
+  // pass five - build and fill in stab for non-types
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
       buildTopLevelNonTypeStab(&fileList.entries[idx]);
@@ -94,10 +98,10 @@ int parse(void) {
   }
   if (errored) return -1;
 
-  // pass five - parse unparsed nodes, writing the symbol table as we go -
+  // pass six - parse unparsed nodes, writing the symbol table as we go -
   // entries are filled in
 
-  // pass six - check additional constraints and warnings
+  // pass seven - check additional constraints and warnings
 
   return 0;
 }

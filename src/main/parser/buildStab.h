@@ -28,7 +28,8 @@
 #include "fileList.h"
 
 /**
- * builds the module map, checking for any errors
+ * builds the module map, checking for any errors, and links the import
+ * statements
  *
  * @returns 0 if OK, -1 if a fatal error happened
  */
@@ -37,19 +38,27 @@ int buildModuleMap(void);
 /**
  * starts symbol table for types at the top level of the file
  *
- * Does not fill in entries, sets entry->errored if an error happened.
- * Expects to be called on code files after corresponding decl file
+ * Does not fill in entries (except for opaques, where it provides the link to
+ * the definition), sets entry->errored if an error happened. Expects to be
+ * called on code files after corresponding decl file
  *
  * @param entry entry to process
  */
 void startTopLevelTypeStab(FileListEntry *entry);
 
 /**
- * completes the symbol table for types at the level of the file
+ * completes the symbol table for enums at the top level
  *
- * fills in the entries, makes references, and sets entry->errored if an error
- * happened
- * Expects to be called on code files after corresponding decl file
+ * @returns 0 if everything is OK, -1 otherwise
+ */
+int buildTopLevelEnumStab(void);
+
+/**
+ * completes the symbol table for types at the top level of the file
+ *
+ * fills in the entries, makes references, and sets entry->errored if an
+ * error happened Expects to be called on code files after corresponding
+ * decl file
  *
  * @param entry entry to process
  */
