@@ -104,13 +104,13 @@ int parse(void) {
   // pass 2 - populate stab for types and enums
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
-      startTopLevelTypeStab(&fileList.entries[idx]);
+      startTopLevelStab(&fileList.entries[idx]);
       errored = errored || fileList.entries[idx].errored;
     }
   }
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (fileList.entries[idx].isCode) {
-      startTopLevelTypeStab(&fileList.entries[idx]);
+      startTopLevelStab(&fileList.entries[idx]);
       errored = errored || fileList.entries[idx].errored;
     }
   }

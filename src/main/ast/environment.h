@@ -39,7 +39,7 @@ typedef struct {
   HashMap *implicitImport; /**< symbol table for the implicit import in code
                               modules */
   Vector scopes; /**< vector of temporarily owning references to the current
-                    scope */
+                    scope (vector of symbol tables) */
 } Environment;
 
 /**

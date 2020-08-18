@@ -365,11 +365,15 @@ typedef struct Node {
     } funPtrType;
 
     struct {
-      Vector *
-          components; /**< vector of Nodes, each is an NT_ID. At least 2 long */
+      Vector *components; /**< vector of Nodes, each is an NT_ID. At least 2
+                             long. these nodes have null stab entry variables */
+      SymbolTableEntry *entry; /**< non-owning reference to the stab entry, if
+                                  any, this references. Nullable */
     } scopedId;
     struct {
       char *id;
+      SymbolTableEntry *entry; /**< non-owning reference to the stab entry, if
+                                  any, this references. Nullable */
     } id;
 
     struct {

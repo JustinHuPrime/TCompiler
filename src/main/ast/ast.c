@@ -602,11 +602,13 @@ Node *scopedIdNodeCreate(Vector *components) {
   Node *first = components->elements[0];
   Node *n = createNode(NT_SCOPEDID, first->line, first->character);
   n->data.scopedId.components = components;
+  n->data.scopedId.entry = NULL;
   return n;
 }
 Node *idNodeCreate(Token *id) {
   Node *n = createNode(NT_ID, id->line, id->character);
   n->data.id.id = id->string;
+  n->data.id.entry = NULL;
   return n;
 }
 

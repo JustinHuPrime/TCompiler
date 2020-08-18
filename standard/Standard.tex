@@ -136,7 +136,11 @@ Modules may import other modules. This means the identifiers from the module are
 
 \subsection{Opaque Type Declarations}
 
-The only exception to the requirement that no identifiers in the same scope have the same name is when dealing with opaque type declarations (see \ref{section:Opaque Type Declarations}), which may be redefined only if the opaque type was introduced to the scope from the implicit import.
+The first exception to the requirement that no identifiers in the same scope have the same name is when dealing with opaque type declarations (see \ref{section:Opaque Type Declarations}), which may be redefined only if the opaque type was introduced to the scope from the implicit import.
+
+\subsection{Variable and Function Definitions}
+
+The second exception to the requirement that no identifiers in the same scope have the same name is when dealing with already-declared variables and functions. An already-existing variable may have its identifier reintroduced in a definition if and only if the previously existing binding was a declaration and the types of the variables are the same. An already-existing function may have its identifier reintroduced in a definition if and only if the previously existing binding was a declaration and the function signature is the same.
 
 \section{Module Header}
 
@@ -293,7 +297,7 @@ A typedef declaration introduces a type alias. This type alias is treated as if 
 
 \lstinputlisting[breaklines=true, firstline=6, lastline=8]{"Appendix B - Syntax.ebnf"}
 
-Definitions provide the value of a declared variable or function. Only code files may contain definitions, and in a code file, no variable declarations are allowed. Within a code file, it is permissible to have a definition without an attached declaration. If there is no corresponding declaration, or if the declaration is in the same code file, then the 
+Definitions provide the value of a declared variable or function. Only code files may contain definitions, and in a code file, no variable declarations are allowed. Within a code file, it is permissible to have a definition without an attached declaration. If there is no corresponding declaration, or if the declaration is in the same code file, then the declared entity is not visible to other modules.
 
 \section{Function Definitions}
 

@@ -44,7 +44,7 @@ int buildModuleMap(void);
  *
  * @param entry entry to process
  */
-void startTopLevelTypeStab(FileListEntry *entry);
+void startTopLevelStab(FileListEntry *entry);
 
 /**
  * completes the symbol table for enums at the top level

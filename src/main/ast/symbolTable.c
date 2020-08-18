@@ -21,6 +21,7 @@
 
 #include "ast/symbolTable.h"
 
+#include "fileList.h"
 #include "util/functional.h"
 
 #include <stdlib.h>
@@ -79,58 +80,67 @@ void overloadSetFree(OverloadSetEntry *e) {
 /**
  * initializes a symbol table entry
  */
-static void stabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                          size_t character, SymbolKind kind) {
+static SymbolTableEntry *stabEntryCreate(FileListEntry *file, size_t line,
+                                         size_t character, SymbolKind kind) {
+  SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
   e->kind = kind;
   e->file = file;
   e->line = line;
   e->character = character;
+  return e;
 }
 
-void opaqueStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                         size_t character) {
-  stabEntryInit(e, file, line, character, SK_OPAQUE);
+SymbolTableEntry *opaqueStabEntryCreate(FileListEntry *file, size_t line,
+                                        size_t character) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_OPAQUE);
   e->data.opaqueType.definition = NULL;
+  return e;
 }
-void structStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                         size_t character) {
-  stabEntryInit(e, file, line, character, SK_STRUCT);
+SymbolTableEntry *structStabEntryCreate(FileListEntry *file, size_t line,
+                                        size_t character) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_STRUCT);
   vectorInit(&e->data.structType.fieldNames);
   vectorInit(&e->data.structType.fieldTypes);
+  return e;
 }
-void unionStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                        size_t character) {
-  stabEntryInit(e, file, line, character, SK_UNION);
+SymbolTableEntry *unionStabEntryCreate(FileListEntry *file, size_t line,
+                                       size_t character) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_UNION);
   vectorInit(&e->data.unionType.optionNames);
   vectorInit(&e->data.unionType.optionTypes);
+  return e;
 }
-void enumStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                       size_t character) {
-  stabEntryInit(e, file, line, character, SK_ENUM);
+SymbolTableEntry *enumStabEntryCreate(FileListEntry *file, size_t line,
+                                      size_t character) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_ENUM);
   vectorInit(&e->data.enumType.constantNames);
   vectorInit(&e->data.enumType.constantValues);
+  return e;
 }
-void enumConstStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                            size_t character, SymbolTableEntry *parent) {
-  stabEntryInit(e, file, line, character, SK_ENUMCONST);
+SymbolTableEntry *enumConstStabEntryCreate(FileListEntry *file, size_t line,
+                                           size_t character,
+                                           SymbolTableEntry *parent) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_ENUMCONST);
   e->data.enumConst.parent = parent;
+  return e;
 }
-void typedefStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                          size_t character) {
-  stabEntryInit(e, file, line, character, SK_TYPEDEF);
+SymbolTableEntry *typedefStabEntryCreate(FileListEntry *file, size_t line,
+                                         size_t character) {
+  return stabEntryCreate(file, line, character, SK_TYPEDEF);
+}
+SymbolTableEntry *variableStabEntryCreate(FileListEntry *file, size_t line,
+                                          size_t character) {
+  return stabEntryCreate(file, line, character, SK_VARIABLE);
+}
+SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
+                                          size_t character) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_FUNCTION);
+  vectorInit(&e->data.function.overloadSet);
+  return e;
 }
 
 void stabEntryFree(SymbolTableEntry *e) {
   switch (e->kind) {
-    case SK_VARIABLE: {
-      typeFree(e->data.variable.type);
-      break;
-    }
-    case SK_FUNCTION: {
-      vectorUninit(&e->data.function.overloadSet,
-                   (void (*)(void *))overloadSetFree);
-      break;
-    }
     case SK_STRUCT: {
       vectorUninit(&e->data.structType.fieldNames, free);
       vectorUninit(&e->data.structType.fieldTypes, (void (*)(void *))typeFree);
@@ -149,6 +159,15 @@ void stabEntryFree(SymbolTableEntry *e) {
     }
     case SK_TYPEDEF: {
       typeFree(e->data.typedefType.actual);
+      break;
+    }
+    case SK_VARIABLE: {
+      typeFree(e->data.variable.type);
+      break;
+    }
+    case SK_FUNCTION: {
+      vectorUninit(&e->data.function.overloadSet,
+                   (void (*)(void *))overloadSetFree);
       break;
     }
     default: { break; }

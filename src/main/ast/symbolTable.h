@@ -30,6 +30,8 @@
 
 #include <stdbool.h>
 
+typedef struct FileListEntry FileListEntry;
+
 /**
  * deinits a symbol table
  *
@@ -152,13 +154,7 @@ typedef enum {
 typedef struct SymbolTableEntry {
   SymbolKind kind;
   union {
-    struct {
-      Type *type;
-      bool defined;
-    } variable;
-    struct {
-      Vector overloadSet; /** vector of OverloadSetEntry */
-    } function;
+    // types
     struct {
       struct SymbolTableEntry
           *definition; /**< actual definition of this opaque, nullable */
@@ -187,8 +183,16 @@ typedef struct SymbolTableEntry {
     struct {
       Type *actual;
     } typedefType;
+
+    // non-types
+    struct {
+      Type *type;
+    } variable;
+    struct {
+      Vector overloadSet; /**< vector of overload set entries */
+    } function;
   } data;
-  char const *file;
+  FileListEntry *file;
   size_t line;
   size_t character;
 } SymbolTableEntry;
@@ -196,18 +200,23 @@ typedef struct SymbolTableEntry {
 /**
  * initialize symbol table entries
  */
-void opaqueStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                         size_t character);
-void structStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                         size_t character);
-void unionStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                        size_t character);
-void enumStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                       size_t character);
-void enumConstStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                            size_t character, SymbolTableEntry *parent);
-void typedefStabEntryInit(SymbolTableEntry *e, char const *file, size_t line,
-                          size_t character);
+SymbolTableEntry *opaqueStabEntryCreate(FileListEntry *file, size_t line,
+                                        size_t character);
+SymbolTableEntry *structStabEntryCreate(FileListEntry *file, size_t line,
+                                        size_t character);
+SymbolTableEntry *unionStabEntryCreate(FileListEntry *file, size_t line,
+                                       size_t character);
+SymbolTableEntry *enumStabEntryCreate(FileListEntry *file, size_t line,
+                                      size_t character);
+SymbolTableEntry *enumConstStabEntryCreate(FileListEntry *file, size_t line,
+                                           size_t character,
+                                           SymbolTableEntry *parent);
+SymbolTableEntry *typedefStabEntryCreate(FileListEntry *file, size_t line,
+                                         size_t character);
+SymbolTableEntry *variableStabEntryCreate(FileListEntry *file, size_t line,
+                                          size_t character);
+SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
+                                          size_t character);
 
 /**
  * deinitializes a symbol table entry
