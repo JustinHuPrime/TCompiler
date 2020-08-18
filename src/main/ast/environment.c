@@ -34,8 +34,8 @@ void environmentInit(Environment *env, FileListEntry *currentModuleFile) {
   env->currentModule = &currentModuleFile->ast->data.file.stab;
   env->implicitImport = NULL;
   if (currentModuleFile->isCode) {
-    FileListEntry *declEntry =
-        hashMapGet(&fileList.moduleMap, currentModuleFile->moduleName);
+    FileListEntry *declEntry = fileListFindDeclName(
+        currentModuleFile->ast->data.file.module->data.module.id);
     if (declEntry != NULL)
       env->implicitImport = &declEntry->ast->data.file.stab;
   }
@@ -83,13 +83,11 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
   Vector *imports = &env->importTables;
   SymbolTableEntry **matches =
       malloc(sizeof(SymbolTableEntry *) * imports->size);
-  size_t *matchIndices = malloc(sizeof(size_t) * imports->size);
   size_t numMatches = 0;
   for (size_t idx = 0; idx < imports->size; idx++) {
     matched = hashMapGet(imports->elements[idx], name);
     if (matched != NULL) {
       matches[numMatches] = matched;
-      matchIndices[numMatches] = idx;
       numMatches++;
     }
   }
@@ -97,7 +95,6 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
   if (numMatches == 0) {
     errorNoDecl(env->currentModuleFile, nameNode);
     free(matches);
-    free(matchIndices);
     return NULL;
   } else if (numMatches > 1) {
     fprintf(stderr,
@@ -109,16 +106,29 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
               matches[idx]->file->inputFilename, matches[idx]->line,
               matches[idx]->character);
     free(matches);
-    free(matchIndices);
     return NULL;
   } else {
     matched = matches[0];
     free(matches);
-    free(matchIndices);
     return matched;
   }
 }
+static int environmentFindModule(Environment *env, Node *name, size_t dropCount,
+                                 size_t *result) {
+  for (size_t idx = 0; idx < env->importFiles.size; idx++) {
+    FileListEntry *file = env->importFiles.elements[idx];
+    Node *moduleName = file->ast->data.file.module->data.module.id;
+    if (moduleName->type == NT_ID) {
+      if (name->data.scopedId.components->size - dropCount == 1) {
+      }
+    } else {
+    }
+  }
+}
 static SymbolTableEntry *environmentLookupScoped(Environment *env, Node *name) {
+  SymbolTableEntry *matched;
+  // try to match an enum constant
+  // try to match a non-enum constant
 }
 SymbolTableEntry *environmentLookup(Environment *env, Node *name) {
   // IMPLEMENTATION NOTES: the lookup algorithm

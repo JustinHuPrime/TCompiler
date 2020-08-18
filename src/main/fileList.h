@@ -39,7 +39,6 @@ typedef struct FileListEntry {
   bool isCode;           /**< does the input file path point to a code file */
   LexerState lexerState; /**< state of the lexer */
   Node *ast;             /**< AST for this file */
-  char *moduleName;      /**< name of the module this file is for */
 } FileListEntry;
 
 /**
@@ -56,8 +55,6 @@ void fileListEntryInit(FileListEntry *entry, char const *inputName,
 typedef struct {
   size_t size;
   FileListEntry *entries;
-  HashMap moduleMap; /**< map between module name and FileListEntry of the decl
-                        file */
 } FileList;
 
 /**
@@ -69,6 +66,13 @@ typedef struct {
  * @returns status code (0 = OK)
  */
 int parseFiles(size_t argc, char const *const *argv, size_t numFiles);
+
+/**
+ * finds the declaration file FileListEntry that matches the specified name node
+ *
+ * if no name was found, return NULL
+ */
+FileListEntry *fileListFindDeclName(Node *name);
 
 /** global file list object */
 extern FileList fileList;

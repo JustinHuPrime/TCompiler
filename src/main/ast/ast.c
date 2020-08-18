@@ -682,6 +682,24 @@ Type *nodeToType(Node *n, Environment *env) {
   }
 }
 
+bool nameNodeEqual(Node *a, Node *b) {
+  if (a->type != b->type) return false;
+
+  if (a->type == NT_ID) {
+    return strcmp(a->data.id.id, b->data.id.id) == 0;
+  } else {
+    if (a->data.scopedId.components->size != b->data.scopedId.components->size)
+      return false;
+
+    for (size_t idx = 0; idx < a->data.scopedId.components->size; idx++) {
+      char const *aComponent = a->data.scopedId.components->elements[idx];
+      char const *bComponent = b->data.scopedId.components->elements[idx];
+      if (strcmp(aComponent, bComponent) != 0) return false;
+    }
+    return true;
+  }
+}
+
 void nodeUninit(Node *n) {
   if (n == NULL) return;
   switch (n->type) {

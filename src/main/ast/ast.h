@@ -439,7 +439,7 @@ Node *idNodeCreate(Token *id);
 Node *unparsedNodeCreate(Vector *tokens);
 
 /**
- * creates a stringified version of a scopedId
+ * creates a stringified version of a scoped id or plain id
  *
  * @param id id to stringify
  * @returns stringified version of id
@@ -454,6 +454,12 @@ char *stringifyId(Node *id);
  * @param env environment to use
  */
 Type *nodeToType(Node *n, Environment *env);
+
+/**
+ * equality predicate for scoped ids and plain ids (may compare scoped with
+ * plain as well)
+ */
+bool nameNodeEqual(Node *a, Node *b);
 
 /**
  * deinitializes a node

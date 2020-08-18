@@ -32,40 +32,48 @@
 #include <stdlib.h>
 #include <string.h>
 
+static bool processedContains(FileListEntry **processed, size_t numProcessed,
+                              FileListEntry *f) {
+  for (size_t idx = 0; idx < numProcessed; idx++)
+    if (processed[idx] == f) return true;
+  return false;
+}
 int buildModuleMap(void) {
   bool errored = false;
 
-  // populate fileListEntries with moduleNames
-  for (size_t idx = 0; idx < fileList.size; idx++)
-    fileList.entries[idx].moduleName = stringifyId(
-        fileList.entries[idx].ast->data.file.module->data.module.id);
-
   // check for duplciate decl modules
-  HashSet processed;  // set of all processed modules
-  hashSetInit(&processed);
-  for (size_t idx = 0; idx < fileList.size; idx++) {
-    char const *name = fileList.entries[idx].moduleName;
-    if (!fileList.entries[idx].isCode && !hashSetContains(&processed, name)) {
+  FileListEntry **processed = malloc(sizeof(FileListEntry *) * fileList.size);
+  size_t numProcessed = 0;
+  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
+    if (!fileList.entries[fileIdx].isCode &&
+        !processedContains(processed, numProcessed,
+                           &fileList.entries[fileIdx])) {
       // for each declaration file, if its name hasn't been processed yet,
       // process it
       FileListEntry **duplicateEntries =
           malloc(sizeof(FileListEntry *) * fileList.size);
       size_t numDuplicates = 0;
-      for (size_t compareIdx = idx + 1; compareIdx < fileList.size;
+      for (size_t compareIdx = fileIdx + 1; compareIdx < fileList.size;
            compareIdx++) {
         // check it against each other file
-        if (strcmp(name, fileList.entries[idx].moduleName) == 0) {
-          duplicateEntries[numDuplicates] = &fileList.entries[idx];
+        if (nameNodeEqual(
+                fileList.entries[fileIdx].ast->data.file.module->data.module.id,
+                fileList.entries[compareIdx]
+                    .ast->data.file.module->data.module.id)) {
+          duplicateEntries[numDuplicates] = &fileList.entries[compareIdx];
           numDuplicates++;
         }
       }
       if (numDuplicates != 0) {
+        char *nameString = stringifyId(
+            fileList.entries[fileIdx].ast->data.file.module->data.module.id);
         fprintf(stderr,
                 "%s:%zu:%zu: error: module '%s' declated in multiple "
                 "declaration modules\n",
-                fileList.entries[idx].inputFilename,
-                fileList.entries[idx].ast->line,
-                fileList.entries[idx].ast->character, name);
+                fileList.entries[fileIdx].inputFilename,
+                fileList.entries[fileIdx].ast->line,
+                fileList.entries[fileIdx].ast->character, nameString);
+        free(nameString);
         for (size_t printIdx = 0; printIdx < numDuplicates; printIdx++)
           fprintf(stderr, "%s:%zu:%zu: note: declared here",
                   duplicateEntries[printIdx]->inputFilename,
@@ -74,42 +82,33 @@ int buildModuleMap(void) {
         errored = true;
       }
       free(duplicateEntries);
-
-      hashSetPut(&processed, name);
     }
   }
-  hashSetUninit(&processed);
+  free(processed);
 
   if (errored) return -1;
 
-  // build module map
-  hashMapInit(&fileList.moduleMap);
-  for (size_t idx = 0; idx < fileList.size; idx++) {
-    if (!fileList.entries[idx].isCode)
-      hashMapPut(&fileList.moduleMap, fileList.entries[idx].moduleName,
-                 &fileList.entries[idx]);
-  }
-
-  // TODO: check for duplicate imports
   // link imports
   for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
     Node *ast = fileList.entries[fileIdx].ast;
     Vector *imports = ast->data.file.imports;
     for (size_t importIdx = 0; importIdx < imports->size; importIdx++) {
       Node *import = imports->elements[importIdx];
-      char *name = stringifyId(import->data.import.id);
-      HashMap *importStab = hashMapGet(&fileList.moduleMap, name);
+      import->data.import.referenced =
+          &fileListFindDeclName(import->data.import.id)->ast->data.file.stab;
 
-      if (importStab != NULL) {
-        import->data.import.referenced = importStab;
-      } else {
+      if (import->data.import.referenced == NULL) {
+        char *name = stringifyId(import->data.import.id);
         fprintf(stderr, "%s:%zu:%zu error: cannot find module '%s':\n",
                 fileList.entries[fileIdx].inputFilename, import->line,
                 import->character, name);
+        free(name);
         errored = true;
       }
+    }
 
-      free(name);
+    // check for duplicate imports
+    for (size_t importIdx = 0; importIdx < imports->size; importIdx++) {
     }
   }
 
@@ -138,7 +137,7 @@ void startTopLevelStab(FileListEntry *entry) {
   HashMap *implicitStab = NULL;
   if (entry->isCode) {
     FileListEntry *declEntry =
-        hashMapGet(&fileList.moduleMap, entry->moduleName);
+        fileListFindDeclName(entry->ast->data.file.module->data.module.id);
     if (declEntry != NULL) implicitStab = &declEntry->ast->data.file.stab;
   }
 
