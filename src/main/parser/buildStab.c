@@ -48,29 +48,32 @@ int buildModuleMap(void) {
     if (!fileList.entries[idx].isCode && !hashSetContains(&processed, name)) {
       // for each declaration file, if its name hasn't been processed yet,
       // process it
-      Vector duplicates;
-      vectorInit(&duplicates);
+      FileListEntry **duplicateEntries =
+          malloc(sizeof(FileListEntry *) * fileList.size);
+      size_t numDuplicates = 0;
       for (size_t compareIdx = idx + 1; compareIdx < fileList.size;
            compareIdx++) {
         // check it against each other file
         if (strcmp(name, fileList.entries[idx].moduleName) == 0) {
-          // duplicate!
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-          vectorInsert(&duplicates,
-                       (char *)fileList.entries[idx].inputFilename);
-#pragma GCC diagnostic pop
+          duplicateEntries[numDuplicates] = &fileList.entries[idx];
+          numDuplicates++;
         }
       }
-      if (duplicates.size != 0) {
+      if (numDuplicates != 0) {
         fprintf(stderr,
-                "%s: error: module %s redeclared in the following files:\n",
-                fileList.entries[idx].inputFilename, name);
-        for (size_t printIdx = 0; printIdx < duplicates.size; printIdx++)
-          fprintf(stderr, "\t%s\n", (char const *)duplicates.elements[idx]);
+                "%s:%zu:%zu: error: module '%s' declated in multiple "
+                "declaration modules\n",
+                fileList.entries[idx].inputFilename,
+                fileList.entries[idx].ast->line,
+                fileList.entries[idx].ast->character, name);
+        for (size_t printIdx = 0; printIdx < numDuplicates; printIdx++)
+          fprintf(stderr, "%s:%zu:%zu: note: declared here",
+                  duplicateEntries[printIdx]->inputFilename,
+                  duplicateEntries[printIdx]->ast->line,
+                  duplicateEntries[printIdx]->ast->character);
         errored = true;
       }
-      vectorUninit(&duplicates, nullDtor);
+      free(duplicateEntries);
 
       hashSetPut(&processed, name);
     }
@@ -372,6 +375,10 @@ void startTopLevelStab(FileListEntry *entry) {
   }
 }
 
+int buildTopLevelEnumStab(void) {
+  // TODO: write this
+}
+
 // typedef struct {
 //   SymbolTableEntry *parentEnum;
 //   char const *name;
@@ -384,7 +391,7 @@ void startTopLevelStab(FileListEntry *entry) {
 //     EnumConstant *c = enumConstants->elements[idx];
 //     if (c->parentEnum == parentEnum && c->name == name) return idx;
 //   }
-
+//
 //   error(__FILE__, __LINE__, "attempted to look up non-existent enum
 //   constant");
 // }
@@ -393,7 +400,7 @@ void startTopLevelStab(FileListEntry *entry) {
 //                             HashMap *stab, HashMap *implicitStab) {
 //   environmentInit(env, entry->ast->data.file.module->data.module.id, stab,
 //                   implicitStab);
-
+//
 //   Vector *imports = entry->ast->data.file.imports;
 //   for (size_t idx = 0; idx < imports->size; idx++) {
 //     Node *import = imports->elements[idx];
@@ -405,10 +412,7 @@ void startTopLevelStab(FileListEntry *entry) {
 // #pragma GCC diagnostic push
 //   }
 // }
-
-int buildTopLevelEnumStab(void) {
-  // TODO: write this
-}
+//
 // int buildTopLevelEnumStab(void) {
 //   Vector enumConstants;  // vector of EnumConstant
 //   Vector dependencies;   // vector of EnumConstant, non-owning
