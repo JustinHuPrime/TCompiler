@@ -142,22 +142,6 @@ static char const *const TOKEN_NAMES[] = {
 };
 
 /**
- * prints an error complaining about a wrong token, specifying what token it
- * should have been
- *
- * @param entry entry to attribute the error to
- * @param expected TokenType expected
- * @param actual actual token
- */
-static void errorExpectedToken(FileListEntry *entry, TokenType expected,
-                               Token *actual) {
-  fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
-          entry->inputFilename, actual->line, actual->character,
-          TOKEN_NAMES[expected], TOKEN_NAMES[actual->type]);
-  entry->errored = true;
-}
-
-/**
  * prints an error complaining about a wrong token, specifying what it should
  * have been, as a string
  *
@@ -171,6 +155,18 @@ static void errorExpectedString(FileListEntry *entry, char const *expected,
           entry->inputFilename, actual->line, actual->character, expected,
           TOKEN_NAMES[actual->type]);
   entry->errored = true;
+}
+/**
+ * prints an error complaining about a wrong token, specifying what token it
+ * should have been
+ *
+ * @param entry entry to attribute the error to
+ * @param expected TokenType expected
+ * @param actual actual token
+ */
+static void errorExpectedToken(FileListEntry *entry, TokenType expected,
+                               Token *actual) {
+  errorExpectedString(entry, TOKEN_NAMES[expected], actual);
 }
 
 /**
