@@ -79,9 +79,8 @@ int parse(void) {
   int retval = 0;
   bool errored = false; /**< has any part of the whole thing errored */
 
-  lexerInitMaps();
-
   // pass 1 - parse top level stuff, without populating symbol tables
+  lexerInitMaps();
   for (size_t idx = 0; idx < fileList.size; idx++) {
     retval = lexerStateInit(&fileList.entries[idx]);
     if (retval != 0) {
@@ -94,14 +93,13 @@ int parse(void) {
 
     lexerStateUninit(&fileList.entries[idx]);
   }
-
   lexerUninitMaps();
-
   if (errored) return -1;
 
-  if (buildModuleMap() != 0) return -1;
+  // pass 2 - resolve imports and check for scoped id collision between imports
+  if (resolveImports() != 0) return -1;
 
-  // pass 2 - populate stab for types and enums
+  // pass 3 - populate stab for types and enums
   for (size_t idx = 0; idx < fileList.size; idx++) {
     if (!fileList.entries[idx].isCode) {
       startTopLevelStab(&fileList.entries[idx]);
@@ -115,8 +113,6 @@ int parse(void) {
     }
   }
   if (errored) return -1;
-
-  // pass 3 - check for inter-import collisions even when using scoped ids
 
   // pass 4 - build and fill in stab for enums - watch out for
   // dependency loops

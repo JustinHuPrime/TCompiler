@@ -33,7 +33,7 @@
  *
  * @returns 0 if OK, -1 if a fatal error happened
  */
-int buildModuleMap(void);
+int resolveImports(void);
 
 /**
  * starts symbol table for types at the top level of the file

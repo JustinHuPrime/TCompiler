@@ -25,6 +25,7 @@
 Options options = {
     OPTION_W_ERROR,
     OPTION_W_ERROR,
+    OPTION_W_ERROR,
     OPTION_DD_NONE,
 };
 

@@ -44,7 +44,7 @@ static bool nameArrayContains(Node **arry, size_t size, Node *n) {
     if (nameNodeEqual(arry[idx], n)) return true;
   return false;
 }
-int buildModuleMap(void) {
+int resolveImports(void) {
   bool errored = false;
 
   // check for duplciate decl modules
@@ -101,7 +101,7 @@ int buildModuleMap(void) {
     Vector *imports = ast->data.file.imports;
 
     Node **processed = malloc(sizeof(Node *) * imports->size);
-    size_t numProcessed;
+    size_t numProcessed = 0;
     for (size_t importIdx = 0; importIdx < imports->size; importIdx++) {
       Node *import = imports->elements[importIdx];
 
