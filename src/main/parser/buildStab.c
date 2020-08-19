@@ -23,6 +23,7 @@
 #include "ast/environment.h"
 #include "fileList.h"
 #include "internalError.h"
+#include "options.h"
 #include "util/container/hashMap.h"
 #include "util/container/hashSet.h"
 #include "util/container/vector.h"
@@ -32,10 +33,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-static bool processedContains(FileListEntry **processed, size_t numProcessed,
-                              FileListEntry *f) {
-  for (size_t idx = 0; idx < numProcessed; idx++)
-    if (processed[idx] == f) return true;
+static bool fileListEntryArrayContains(FileListEntry **arry, size_t size,
+                                       FileListEntry *f) {
+  for (size_t idx = 0; idx < size; idx++)
+    if (arry[idx] == f) return true;
+  return false;
+}
+static bool nameArrayContains(Node **arry, size_t size, Node *n) {
+  for (size_t idx = 0; idx < size; idx++)
+    if (nameNodeEqual(arry[idx], n)) return true;
   return false;
 }
 int buildModuleMap(void) {
@@ -46,8 +52,8 @@ int buildModuleMap(void) {
   size_t numProcessed = 0;
   for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
     if (!fileList.entries[fileIdx].isCode &&
-        !processedContains(processed, numProcessed,
-                           &fileList.entries[fileIdx])) {
+        !fileListEntryArrayContains(processed, numProcessed,
+                                    &fileList.entries[fileIdx])) {
       // for each declaration file, if its name hasn't been processed yet,
       // process it
       FileListEntry **duplicateEntries =
@@ -60,28 +66,29 @@ int buildModuleMap(void) {
                 fileList.entries[fileIdx].ast->data.file.module->data.module.id,
                 fileList.entries[compareIdx]
                     .ast->data.file.module->data.module.id)) {
-          duplicateEntries[numDuplicates] = &fileList.entries[compareIdx];
-          numDuplicates++;
+          duplicateEntries[numDuplicates++] = &fileList.entries[compareIdx];
         }
       }
       if (numDuplicates != 0) {
         char *nameString = stringifyId(
             fileList.entries[fileIdx].ast->data.file.module->data.module.id);
         fprintf(stderr,
-                "%s:%zu:%zu: error: module '%s' declated in multiple "
+                "%s:%zu:%zu: error: module '%s' declared in multiple "
                 "declaration modules\n",
                 fileList.entries[fileIdx].inputFilename,
                 fileList.entries[fileIdx].ast->line,
                 fileList.entries[fileIdx].ast->character, nameString);
         free(nameString);
         for (size_t printIdx = 0; printIdx < numDuplicates; printIdx++)
-          fprintf(stderr, "%s:%zu:%zu: note: declared here",
+          fprintf(stderr, "%s:%zu:%zu: note: declared here\n",
                   duplicateEntries[printIdx]->inputFilename,
                   duplicateEntries[printIdx]->ast->line,
                   duplicateEntries[printIdx]->ast->character);
         errored = true;
       }
       free(duplicateEntries);
+
+      processed[numProcessed++] = &fileList.entries[fileIdx];
     }
   }
   free(processed);
@@ -92,24 +99,76 @@ int buildModuleMap(void) {
   for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
     Node *ast = fileList.entries[fileIdx].ast;
     Vector *imports = ast->data.file.imports;
+
+    Node **processed = malloc(sizeof(Node *) * imports->size);
+    size_t numProcessed;
     for (size_t importIdx = 0; importIdx < imports->size; importIdx++) {
       Node *import = imports->elements[importIdx];
-      import->data.import.referenced =
-          &fileListFindDeclName(import->data.import.id)->ast->data.file.stab;
 
-      if (import->data.import.referenced == NULL) {
-        char *name = stringifyId(import->data.import.id);
-        fprintf(stderr, "%s:%zu:%zu error: cannot find module '%s':\n",
-                fileList.entries[fileIdx].inputFilename, import->line,
-                import->character, name);
-        free(name);
-        errored = true;
+      if (!nameArrayContains(processed, numProcessed, import->data.import.id)) {
+        // check for upcoming duplicates
+        Node **colliding =
+            malloc(sizeof(Node *) * (imports->size - importIdx - 1));
+        size_t numColliding = 0;
+        for (size_t checkIdx = importIdx + 1; checkIdx < imports->size;
+             checkIdx++) {
+          Node *toCheck = imports->elements[checkIdx];
+          if (nameNodeEqual(import->data.import.id, toCheck->data.import.id))
+            colliding[numColliding++] = toCheck;
+        }
+        if (numColliding != 0) {
+          switch (options.duplicateImport) {
+            case OPTION_W_ERROR: {
+              char *nameString = stringifyId(import->data.import.id);
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: '%s' imported multiple times\n",
+                      fileList.entries[fileIdx].inputFilename, import->line,
+                      import->character, nameString);
+              free(nameString);
+              for (size_t idx = 0; idx < numColliding; idx++)
+                fprintf(stderr, "%s:%zu:%zu: note: imported here\n",
+                        fileList.entries[fileIdx].inputFilename,
+                        colliding[idx]->line, colliding[idx]->character);
+              fileList.entries[fileIdx].errored = true;
+              break;
+            }
+            case OPTION_W_WARN: {
+              char *nameString = stringifyId(import->data.import.id);
+              fprintf(stderr,
+                      "%s:%zu:%zu: warning: '%s' imported multiple times\n",
+                      fileList.entries[fileIdx].inputFilename, import->line,
+                      import->character, nameString);
+              free(nameString);
+              for (size_t idx = 0; idx < numColliding; idx++)
+                fprintf(stderr, "%s:%zu:%zu: note: imported here\n",
+                        fileList.entries[fileIdx].inputFilename,
+                        colliding[idx]->line, colliding[idx]->character);
+              break;
+            }
+            case OPTION_W_IGNORE: {
+              break;
+            }
+          }
+        }
+        free(colliding);
+
+        import->data.import.referenced =
+            &fileListFindDeclName(import->data.import.id)->ast->data.file.stab;
+
+        if (import->data.import.referenced == NULL) {
+          char *name = stringifyId(import->data.import.id);
+          fprintf(stderr, "%s:%zu:%zu error: cannot find module '%s'\n",
+                  fileList.entries[fileIdx].inputFilename, import->line,
+                  import->character, name);
+          free(name);
+          errored = true;
+        }
+
+        processed[numProcessed] = import->data.import.id;
+        numProcessed++;
       }
     }
-
-    // check for duplicate imports
-    for (size_t importIdx = 0; importIdx < imports->size; importIdx++) {
-    }
+    free(processed);
   }
 
   if (errored)

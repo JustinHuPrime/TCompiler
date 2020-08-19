@@ -41,6 +41,7 @@ typedef enum {
 /** Holds options */
 typedef struct {
   WarningOption duplicateFile;
+  WarningOption duplicateImport;
   WarningOption unrecognizedFile;
   DebugDumpOption dump;
 } Options;

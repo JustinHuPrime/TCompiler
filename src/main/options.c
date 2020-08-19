@@ -45,6 +45,12 @@ int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
       options.duplicateFile = OPTION_W_WARN;
     } else if (strcmp(argv[idx], "-Wduplicate-file=ignore") == 0) {
       options.duplicateFile = OPTION_W_IGNORE;
+    } else if (strcmp(argv[idx], "-Wduplicate-import=error") == 0) {
+      options.duplicateImport = OPTION_W_ERROR;
+    } else if (strcmp(argv[idx], "-Wduplicate-import=warn") == 0) {
+      options.duplicateImport = OPTION_W_WARN;
+    } else if (strcmp(argv[idx], "-Wduplicate-import=ignore") == 0) {
+      options.duplicateImport = OPTION_W_IGNORE;
     } else if (strcmp(argv[idx], "-Wunrecognized-file=error") == 0) {
       options.unrecognizedFile = OPTION_W_ERROR;
     } else if (strcmp(argv[idx], "-Wunrecognized-file=warn") == 0) {
