@@ -2,7 +2,7 @@
 
 \usepackage{indentfirst}
 \usepackage[margin=1in]{geometry}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \usepackage{listings}
 \usepackage{verbatim}
 \usepackage{longtable}
@@ -132,7 +132,7 @@ Scopes are a mechanism to control the visibility of identifiers. A scope is a co
 
 \subsection{Imports}
 
-Modules may import other modules. This means the identifiers from the module are made visible in the importing module's import scope, both as a scoped identifier consisting of the imported module name combined with the imported identifier in a scope resolution operator, and as the plain identifier. If two identifiers collide in the import scope as plain identifiers, neither is imported as a plain identifier. If there is still a collision between the scoped identifiers, then a diagnostic is to be issued\footnote{This is to make the imported identifiers visible in at least one way, but there still exists the possibility of a collision - if module \texttt{foo} has an enumeration called \texttt{bar} with an element \texttt{baz}, then the module \texttt{foo::bar} with an identifier \texttt{bar} would collide. Since the modules sharing a prefix are, to humans, part of the same library, the potential for such a collision is considered as bad code style on the part of the library authors.}.
+Modules may import other modules. This means the identifiers from the module are made visible in the importing module's import scope, both as a scoped identifier consisting of the imported module name combined with the imported identifier in a scope resolution operator, and as the plain identifier. If two identifiers collide in the import scope as plain identifiers, neither is imported as a plain identifier. If there is a collision between the scoped identifiers, then a diagnostic is to be issued\footnote{This is to make the imported identifiers visible in at least one way, but there exists the possibility of a collision between scoped identifiers - if module \texttt{foo} has an enumeration called \texttt{bar} with an element \texttt{baz}, then the module \texttt{foo::bar} with an identifier \texttt{bar} would collide. Since the modules sharing a prefix are, to humans, part of the same library, the potential for such a collision is considered as bad code style on the part of the library authors.}.
 
 \subsection{Opaque Type Declarations}
 
