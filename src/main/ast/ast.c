@@ -692,9 +692,33 @@ bool nameNodeEqual(Node *a, Node *b) {
       return false;
 
     for (size_t idx = 0; idx < a->data.scopedId.components->size; idx++) {
-      char const *aComponent = a->data.scopedId.components->elements[idx];
-      char const *bComponent = b->data.scopedId.components->elements[idx];
-      if (strcmp(aComponent, bComponent) != 0) return false;
+      Node *aComponent = a->data.scopedId.components->elements[idx];
+      Node *bComponent = b->data.scopedId.components->elements[idx];
+      if (strcmp(aComponent->data.id.id, bComponent->data.id.id) != 0)
+        return false;
+    }
+    return true;
+  }
+}
+
+bool nameNodeEqualWithDrop(Node *a, Node *b, size_t dropCount) {
+  size_t compareLength = b->data.scopedId.components->size - dropCount;
+
+  if (a->type == NT_ID) {
+    if (compareLength == 1) {
+      Node *first = b->data.scopedId.components->elements[0];
+      return strcmp(a->data.id.id, first->data.id.id) == 0;
+    } else {
+      return false;
+    }
+  } else {
+    if (a->data.scopedId.components->size != compareLength) return false;
+
+    for (size_t idx = 0; idx < compareLength; idx++) {
+      Node *aComponent = a->data.scopedId.components->elements[idx];
+      Node *bComponent = b->data.scopedId.components->elements[idx];
+      if (strcmp(aComponent->data.id.id, bComponent->data.id.id) != 0)
+        return false;
     }
     return true;
   }

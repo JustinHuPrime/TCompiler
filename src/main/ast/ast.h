@@ -462,6 +462,18 @@ Type *nodeToType(Node *n, Environment *env);
 bool nameNodeEqual(Node *a, Node *b);
 
 /**
+ * equality predicate for plain or scoped id and scoped id (second must be
+ * scoped)
+ *
+ * compare a with all but last dropCount elements in b
+ *
+ * @param a base to compare with
+ * @param b name to compare after dropping dropCount
+ * @param dropCount number of elements to drop from b
+ */
+bool nameNodeEqualWithDrop(Node *a, Node *b, size_t dropCount);
+
+/**
  * deinitializes a node
  *
  * @param n Node to deinitialize
