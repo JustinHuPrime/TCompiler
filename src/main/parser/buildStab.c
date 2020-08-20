@@ -433,6 +433,10 @@ void startTopLevelStab(FileListEntry *entry) {
   }
 }
 
+int checkScopedIdCollisions(FileListEntry *entry) {
+  // TODO: write this
+}
+
 int buildTopLevelEnumStab(void) {
   // TODO: write this
 }

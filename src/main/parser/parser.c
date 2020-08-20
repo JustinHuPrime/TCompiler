@@ -115,6 +115,11 @@ int parse(void) {
   if (errored) return -1;
 
   // pass 4 - check for scoped id collisions between imports
+  for (size_t idx = 0; idx < fileList.size; idx++) {
+    checkScopedIdCollisions(&fileList.entries[idx]);
+    errored = errored || fileList.entries[idx].errored;
+  }
+  if (errored) return -1;
 
   // pass 5 - build and fill in stab for enums - watch out for
   // dependency loops
