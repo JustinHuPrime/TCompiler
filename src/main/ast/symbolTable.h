@@ -219,6 +219,12 @@ SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
                                           size_t character);
 
 /**
+ * find the enum const associated with a name, or return NULL
+ */
+SymbolTableEntry *enumLookupEnumConst(SymbolTableEntry *enumEntry,
+                                      char const *name);
+
+/**
  * deinitializes a symbol table entry
  *
  * @param e entry to deinitialize

@@ -114,18 +114,20 @@ int parse(void) {
   }
   if (errored) return -1;
 
-  // pass 4 - build and fill in stab for enums - watch out for
+  // pass 4 - check for scoped id collisions between imports
+
+  // pass 5 - build and fill in stab for enums - watch out for
   // dependency loops
   if (buildTopLevelEnumStab() != 0) return -1;
 
-  // pass 5 - fill in stab for types
+  // pass 6 - fill in stab for types
 
-  // pass 6 - parse unparsed nodes, writing the symbol table as we go -
+  // pass 7 - parse unparsed nodes, writing the symbol table as we go -
   // entries are filled in
 
   // TODO: write this
 
-  // pass 7 - check additional constraints and warnings
+  // pass 8 - check additional constraints and warnings
 
   // TODO: write this
 

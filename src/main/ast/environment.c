@@ -61,7 +61,7 @@ static void errorNoDecl(FileListEntry *file, Node *node) {
 }
 
 static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
-                                                   Node *nameNode) {
+                                                   Node *nameNode, bool quiet) {
   char const *name = nameNode->data.id.id;
   SymbolTableEntry *matched;
   Vector *scopes = &env->scopes;
@@ -86,23 +86,20 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
   size_t numMatches = 0;
   for (size_t idx = 0; idx < imports->size; idx++) {
     matched = hashMapGet(imports->elements[idx], name);
-    if (matched != NULL) {
-      matches[numMatches] = matched;
-      numMatches++;
-    }
+    if (matched != NULL) matches[numMatches++] = matched;
   }
 
-  if (numMatches == 0) {
+  if (numMatches == 0 && !quiet) {
     errorNoDecl(env->currentModuleFile, nameNode);
     free(matches);
     return NULL;
-  } else if (numMatches > 1) {
+  } else if (numMatches > 1 && !quiet) {
     fprintf(stderr,
             "%s:%zu:%zu: error: '%s' declared in mutliple imported modules\n",
             env->currentModuleFile->inputFilename, nameNode->line,
             nameNode->character, name);
     for (size_t idx = 0; idx < numMatches; idx++)
-      fprintf(stderr, "%s:%zu:%zu: note: declared here",
+      fprintf(stderr, "%s:%zu:%zu: note: declared here\n",
               matches[idx]->file->inputFilename, matches[idx]->line,
               matches[idx]->character);
     free(matches);
@@ -113,24 +110,60 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
     return matched;
   }
 }
-static int environmentFindModule(Environment *env, Node *name, size_t dropCount,
-                                 size_t *result) {
+static FileListEntry *environmentFindModule(Environment *env, Node *name,
+                                            size_t dropCount) {
   for (size_t idx = 0; idx < env->importFiles.size; idx++) {
     FileListEntry *file = env->importFiles.elements[idx];
     Node *moduleName = file->ast->data.file.module->data.module.id;
-    if (moduleName->type == NT_ID) {
-      if (name->data.scopedId.components->size - dropCount == 1) {
+    if (nameNodeEqualWithDrop(moduleName, name, dropCount)) return file;
+  }
+  return NULL;
+}
+static SymbolTableEntry *environmentLookupScoped(Environment *env, Node *name,
+                                                 bool quiet) {
+  // try to match as an enum constant
+  if (name->data.scopedId.components->size == 2) {
+    SymbolTableEntry *parentEnum = environmentLookupUnscoped(
+        env, name->data.scopedId.components->elements[0], true);
+    if (parentEnum != NULL && parentEnum->kind == SK_ENUM) {
+      // parent was found as an enum - look for the current thing
+      Node *last = name->data.scopedId.components->elements[1];
+      SymbolTableEntry *enumConst =
+          enumLookupEnumConst(parentEnum, last->data.id.id);
+      if (enumConst != NULL) return enumConst;
+    }
+  } else {
+    FileListEntry *import = environmentFindModule(env, name, 2);
+    if (import != NULL) {
+      Node *secondLast =
+          name->data.scopedId.components
+              ->elements[name->data.scopedId.components->size - 2];
+      SymbolTableEntry *parentEnum =
+          hashMapGet(&import->ast->data.file.stab, secondLast->data.id.id);
+      if (parentEnum != NULL && parentEnum->kind == SK_ENUM) {
+        Node *last = name->data.scopedId.components
+                         ->elements[name->data.scopedId.components->size - 1];
+        SymbolTableEntry *enumConst =
+            enumLookupEnumConst(parentEnum, last->data.id.id);
+        if (enumConst != NULL) return enumConst;
       }
-    } else {
     }
   }
+
+  // try to match as a non-enum-constant
+  FileListEntry *import = environmentFindModule(env, name, 1);
+  if (import != NULL) {
+    Node *last = name->data.scopedId.components
+                     ->elements[name->data.scopedId.components->size - 1];
+    SymbolTableEntry *entry =
+        hashMapGet(&import->ast->data.file.stab, last->data.id.id);
+    if (entry != NULL) return entry;
+  }
+
+  if (!quiet) errorNoDecl(env->currentModuleFile, name);
+  return NULL;
 }
-static SymbolTableEntry *environmentLookupScoped(Environment *env, Node *name) {
-  SymbolTableEntry *matched;
-  // try to match an enum constant
-  // try to match a non-enum constant
-}
-SymbolTableEntry *environmentLookup(Environment *env, Node *name) {
+SymbolTableEntry *environmentLookup(Environment *env, Node *name, bool quiet) {
   // IMPLEMENTATION NOTES: the lookup algorithm
   // If the name is unscoped:
   // The name is looked up in the local scopes from first to
@@ -158,10 +191,10 @@ SymbolTableEntry *environmentLookup(Environment *env, Node *name) {
 
   if (name->type == NT_ID) {
     // is unscoped
-    return environmentLookupUnscoped(env, name);
+    return environmentLookupUnscoped(env, name, quiet);
   } else {
     // is scoped
-    return environmentLookupScoped(env, name);
+    return environmentLookupScoped(env, name, quiet);
   }
 }
 

@@ -56,12 +56,13 @@ void environmentInit(Environment *env, FileListEntry *currentModuleFile);
 /**
  * looks up a symbol
  *
- * complains and returns NULL if an error condition was hit
+ * returns NULL if an error condition was hit
  *
  * @param env environment to look in
  * @param name id or scoped id node to look up
+ * @param quiet boolean flag - if true, do not complain on error conditions
  */
-SymbolTableEntry *environmentLookup(Environment *env, Node *name);
+SymbolTableEntry *environmentLookup(Environment *env, Node *name, bool quiet);
 
 /**
  * deinitialize an environment

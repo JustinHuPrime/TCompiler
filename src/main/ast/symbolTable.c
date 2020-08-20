@@ -25,6 +25,7 @@
 #include "util/functional.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 void stabUninit(HashMap *stab) {
   hashMapUninit(stab, (void (*)(void *))stabEntryFree);
@@ -137,6 +138,15 @@ SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
   SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_FUNCTION);
   vectorInit(&e->data.function.overloadSet);
   return e;
+}
+SymbolTableEntry *enumLookupEnumConst(SymbolTableEntry *enumEntry,
+                                      char const *name) {
+  for (size_t idx = 0; idx < enumEntry->data.enumType.constantNames.size;
+       idx++) {
+    if (strcmp(enumEntry->data.enumType.constantNames.elements[idx], name) == 0)
+      return enumEntry->data.enumType.constantValues.elements[idx];
+  }
+  return NULL;
 }
 
 void stabEntryFree(SymbolTableEntry *e) {
