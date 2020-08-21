@@ -27,6 +27,7 @@
 #include "util/container/hashMap.h"
 #include "util/container/hashSet.h"
 #include "util/container/vector.h"
+#include "util/format.h"
 #include "util/functional.h"
 
 #include <stdio.h>
@@ -153,7 +154,7 @@ int resolveImports(void) {
         free(colliding);
 
         import->data.import.referenced =
-            &fileListFindDeclName(import->data.import.id)->ast->data.file.stab;
+            fileListFindDeclName(import->data.import.id);
 
         if (import->data.import.referenced == NULL) {
           char *name = stringifyId(import->data.import.id);
@@ -433,8 +434,142 @@ void startTopLevelStab(FileListEntry *entry) {
   }
 }
 
-int checkScopedIdCollisions(FileListEntry *entry) {
-  // TODO: write this
+static bool checkScopedIdCollisionsBetween(Node *longImport, Node *shortImport,
+                                           char const *currentFilename) {
+  Node *longName = longImport->data.import.id;
+  Node *shortName = shortImport->data.import.id;
+  FileListEntry const *longFile = longImport->data.import.referenced;
+  FileListEntry const *shortFile = shortImport->data.import.referenced;
+  if (longName->type == NT_SCOPEDID &&
+      nameNodeEqualWithDrop(shortName, longName, 1)) {
+    // possible collision if shortFile has an enum matching the last
+    // element of the longName
+    Node *lastNameNode =
+        longName->data.scopedId.components
+            ->elements[longName->data.scopedId.components->size - 1];
+    SymbolTableEntry *nameMatch =
+        hashMapGet(&shortFile->ast->data.file.stab, lastNameNode->data.id.id);
+    if (nameMatch != NULL && nameMatch->kind == SK_ENUM) {
+      // FIRSTELM is an enum within the shorter
+      for (size_t enumIdx = 0;
+           enumIdx < nameMatch->data.enumType.constantNames.size; enumIdx++) {
+        // for each enum constant, is it in the longFile?
+        SymbolTableEntry *colliding = hashMapGet(
+            &longFile->ast->data.file.stab,
+            nameMatch->data.enumType.constantNames.elements[enumIdx]);
+        if (colliding != NULL) {
+          char *longNameString = stringifyId(longName);
+          char *collidingName = format(
+              "%s::%s", longNameString,
+              (char *)nameMatch->data.enumType.constantNames.elements[enumIdx]);
+          fprintf(stderr, "%s:%zu:%zu: error: '%s' introduced multiple times\n",
+                  currentFilename, longImport->line, longImport->character,
+                  collidingName);
+          fprintf(stderr, "%s:%zu:%zu: note: also introduced here\n",
+                  currentFilename, shortImport->line, shortImport->character);
+          free(longNameString);
+          free(collidingName);
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+static bool checkScopedIdCollisionsWithCurrent(Node *import,
+                                               FileListEntry *entry) {
+  Node *importName = import->data.import.id;
+  FileListEntry const *importFile = import->data.import.referenced;
+  Node *fileName = entry->ast->data.file.module->data.module.id;
+  if (fileName->type == NT_SCOPEDID &&
+      nameNodeEqualWithDrop(importName, fileName, 1)) {
+    // import is shorter than current module
+    Node *lastNameNode =
+        fileName->data.scopedId.components
+            ->elements[fileName->data.scopedId.components->size - 1];
+    SymbolTableEntry *nameMatch =
+        hashMapGet(&importFile->ast->data.file.stab, lastNameNode->data.id.id);
+    if (nameMatch != NULL && nameMatch->kind == SK_ENUM) {
+      // FIRSTELM is an enum within the import
+      for (size_t enumIdx = 0;
+           enumIdx < nameMatch->data.enumType.constantNames.size; enumIdx++) {
+        // for each enum constant, is it in the current module?
+        SymbolTableEntry *colliding = hashMapGet(
+            &entry->ast->data.file.stab,
+            nameMatch->data.enumType.constantNames.elements[enumIdx]);
+        if (colliding != NULL) {
+          fprintf(
+              stderr,
+              "%s:%zu:%zu: error: '%s' collides with imported scoped "
+              "identifier\n",
+              entry->inputFilename, colliding->line, colliding->character,
+              (char *)nameMatch->data.enumType.constantNames.elements[enumIdx]);
+          fprintf(stderr, "%s:%zu:%zu: note: also introduced here\n",
+                  entry->inputFilename, import->line, import->character);
+          return true;
+        }
+      }
+    }
+  } else if (importName->type == NT_SCOPEDID &&
+             nameNodeEqualWithDrop(fileName, importName, 1)) {
+    // current module is shorter than import
+    Node *lastNameNode =
+        importName->data.scopedId.components
+            ->elements[importName->data.scopedId.components->size - 1];
+    SymbolTableEntry *nameMatch =
+        hashMapGet(&entry->ast->data.file.stab, lastNameNode->data.id.id);
+    if (nameMatch != NULL && nameMatch->kind == SK_ENUM) {
+      // FIRSTELM is an enum within the current module
+      for (size_t enumIdx = 0;
+           enumIdx < nameMatch->data.enumType.constantNames.size; enumIdx++) {
+        // for each enum constant, is it in the import?
+        SymbolTableEntry *colliding = hashMapGet(
+            &importFile->ast->data.file.stab,
+            nameMatch->data.enumType.constantNames.elements[enumIdx]);
+        if (colliding != NULL) {
+          SymbolTableEntry *collidingEntry =
+              nameMatch->data.enumType.constantValues.elements[enumIdx];
+          fprintf(
+              stderr,
+              "%s:%zu:%zu: error: '%s' collides with imported scoped "
+              "identifier\n",
+              entry->inputFilename, collidingEntry->line,
+              collidingEntry->character,
+              (char *)nameMatch->data.enumType.constantNames.elements[enumIdx]);
+          fprintf(stderr, "%s:%zu:%zu: note: also introduced here\n",
+                  entry->inputFilename, import->line, import->character);
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+void checkScopedIdCollisions(FileListEntry *entry) {
+  // is a scoped ID collision when two identifiers look like
+  // PREFIX::FIRSTELM::SECONDELM
+  // where PREFIX::FIRSTELM describes a module, and SECONDELM is an element of
+  // that module
+  // and PREFIX describes a module, and FIRSTELM describes an enum within that
+  // module and SECONDELM is an element of that module
+
+  // for each import
+  Vector *imports = entry->ast->data.file.imports;
+  for (size_t longIdx = 0; longIdx < imports->size; longIdx++) {
+    Node *longImport = imports->elements[longIdx];
+    // search the rest of the list for imports that have all but the last
+    // element matching
+    for (size_t shortIdx = 0; shortIdx < imports->size; shortIdx++) {
+      Node *shortImport = imports->elements[shortIdx];
+      entry->errored =
+          entry->errored || checkScopedIdCollisionsBetween(
+                                longImport, shortImport, entry->inputFilename);
+    }
+
+    // check for problems with current module
+    entry->errored =
+        entry->errored || checkScopedIdCollisionsWithCurrent(longImport, entry);
+  }
 }
 
 int buildTopLevelEnumStab(void) {

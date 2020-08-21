@@ -56,6 +56,6 @@ int buildTopLevelEnumStab(void);
 /**
  * checks the imports for scoped id collisions among imports
  */
-int checkScopedIdCollisions(FileListEntry *entry);
+void checkScopedIdCollisions(FileListEntry *entry);
 
 #endif  // TLC_PARSER_BUILDSTAB_H_

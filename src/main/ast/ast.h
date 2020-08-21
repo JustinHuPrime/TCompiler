@@ -191,9 +191,8 @@ typedef struct Node {
       struct Node *id; /**< NT_SCOPEDID or NT_ID */
     } module;
     struct {
-      struct Node *id;           /**< NT_SCOPEDID or NT_ID */
-      HashMap const *referenced; /**< symbol table that's referenced (pointer to
-                                    Node#data#file#stab) */
+      struct Node *id;                 /**< NT_SCOPEDID or NT_ID */
+      FileListEntry const *referenced; /**< File that's referenced */
     } import;
 
     struct {
