@@ -31,11 +31,8 @@ typedef struct Node Node;
 
 typedef struct {
   FileListEntry
-      *currentModuleFile; /**< FileListEntry reference to current module */
-  Vector importFiles;     /**< Vector of FileListEntry, non-owning */
-  Vector importTables;    /**< Vector of symbol tables, non-owning */
-  HashMap *currentModule; /**< symbol table for the current module - this is the
-                             file scope, non-owning */
+      *currentModuleFile;  /**< FileListEntry reference to current module */
+  Vector importFiles;      /**< Vector of FileListEntry, non-owning */
   HashMap *implicitImport; /**< symbol table for the implicit import in code
                               modules */
   Vector scopes; /**< vector of temporarily owning references to the current

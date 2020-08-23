@@ -131,13 +131,6 @@ typedef struct {
   bool defined;
 } OverloadSetEntry;
 
-/**
- * frees an overload set entry
- *
- * @param e entry to free
- */
-void overloadSetFree(OverloadSetEntry *e);
-
 /** the kind of a symbol */
 typedef enum {
   SK_VARIABLE,
@@ -149,6 +142,11 @@ typedef enum {
   SK_TYPEDEF,
   SK_ENUMCONST,
 } SymbolKind;
+
+/**
+ * produce stringified form (like "a variable") suitable for error messages
+ */
+char const *symbolKindToString(SymbolKind kind);
 
 /** a symbol */
 typedef struct SymbolTableEntry {

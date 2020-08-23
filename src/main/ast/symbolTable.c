@@ -72,10 +72,14 @@ void typeFree(Type *t) {
   free(t);
 }
 
-void overloadSetFree(OverloadSetEntry *e) {
-  typeFree(e->returnType);
-  vectorUninit(&e->argumentTypes, (void (*)(void *))typeFree);
-  free(e);
+static char const *const SYMBOL_KIND_NAMES[] = {
+    "a variable",     "a function",
+    "an opaque type", "a structure type",
+    "a union type",   "an enumeration type",
+    "a type alias",   "an enumeration constant",
+};
+char const *symbolKindToString(SymbolKind kind) {
+  return SYMBOL_KIND_NAMES[kind];
 }
 
 /**
@@ -149,6 +153,11 @@ SymbolTableEntry *enumLookupEnumConst(SymbolTableEntry *enumEntry,
   return NULL;
 }
 
+static void overloadSetEntryFree(OverloadSetEntry *e) {
+  typeFree(e->returnType);
+  vectorUninit(&e->argumentTypes, (void (*)(void *))typeFree);
+  free(e);
+}
 void stabEntryFree(SymbolTableEntry *e) {
   switch (e->kind) {
     case SK_STRUCT: {
@@ -177,7 +186,7 @@ void stabEntryFree(SymbolTableEntry *e) {
     }
     case SK_FUNCTION: {
       vectorUninit(&e->data.function.overloadSet,
-                   (void (*)(void *))overloadSetFree);
+                   (void (*)(void *))overloadSetEntryFree);
       break;
     }
     default: { break; }

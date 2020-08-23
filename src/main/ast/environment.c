@@ -29,9 +29,15 @@
 
 void environmentInit(Environment *env, FileListEntry *currentModuleFile) {
   vectorInit(&env->importFiles);
-  vectorInit(&env->importTables);
+  for (size_t idx = 0; idx < currentModuleFile->ast->data.file.imports->size;
+       idx++) {
+    Node *import = currentModuleFile->ast->data.file.imports->elements[idx];
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+    vectorInsert(&env->importFiles, import->data.import.referenced);
+#pragma GCC diagnostic pop
+  }
   env->currentModuleFile = currentModuleFile;
-  env->currentModule = &currentModuleFile->ast->data.file.stab;
   env->implicitImport = NULL;
   if (currentModuleFile->isCode) {
     FileListEntry *declEntry = fileListFindDeclName(
@@ -72,7 +78,7 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
     if (matched != NULL) return matched;
   }
   // check the current module then implicit import
-  matched = hashMapGet(env->currentModule, name);
+  matched = hashMapGet(&env->currentModuleFile->ast->data.file.stab, name);
   if (matched != NULL) return matched;
   if (env->implicitImport != NULL) {
     matched = hashMapGet(env->implicitImport, name);
@@ -80,12 +86,13 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
   }
 
   // search in the imports
-  Vector *imports = &env->importTables;
+  Vector *imports = &env->importFiles;
   SymbolTableEntry **matches =
       malloc(sizeof(SymbolTableEntry *) * imports->size);
   size_t numMatches = 0;
   for (size_t idx = 0; idx < imports->size; idx++) {
-    matched = hashMapGet(imports->elements[idx], name);
+    FileListEntry *import = imports->elements[idx];
+    matched = hashMapGet(&import->ast->data.file.stab, name);
     if (matched != NULL) matches[numMatches++] = matched;
   }
 
@@ -204,6 +211,5 @@ static void stabFree(HashMap *stab) {
 }
 void environmentUninit(Environment *env) {
   vectorUninit(&env->importFiles, nullDtor);
-  vectorUninit(&env->importTables, nullDtor);
   vectorUninit(&env->scopes, (void (*)(void *))stabFree);
 }

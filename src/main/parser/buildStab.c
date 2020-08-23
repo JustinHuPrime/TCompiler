@@ -572,158 +572,118 @@ void checkScopedIdCollisions(FileListEntry *entry) {
   }
 }
 
-int buildTopLevelEnumStab(void) {
-  // TODO: write this
+/**
+ * find the index of e in enumConstants
+ *
+ * e must be in enumConstants
+ */
+static size_t constantEntryFind(Vector *enumConstants, SymbolTableEntry *e) {
+  for (size_t idx = 0; idx < enumConstants->size; idx++) {
+    if (enumConstants->elements[idx] == e) return idx;
+  }
+  error(__FILE__, __LINE__,
+        "constantEntryFind called with an e not in enumConstants");
 }
+int buildTopLevelEnumStab(void) {
+  Vector enumConstants;  // vector of SymbolTableEntry, non-owning
+  Vector dependencies;   // vector of SymbolTableEntry, non-owning, nullable
+  bool errored = false;
 
-// typedef struct {
-//   SymbolTableEntry *parentEnum;
-//   char const *name;
-// } EnumConstant;
-//
-// static size_t constantEntryFind(Vector *enumConstants,
-//                                 SymbolTableEntry *parentEnum,
-//                                 char const *name) {
-//   for (size_t idx = 0; idx < enumConstants->size; idx++) {
-//     EnumConstant *c = enumConstants->elements[idx];
-//     if (c->parentEnum == parentEnum && c->name == name) return idx;
-//   }
-//
-//   error(__FILE__, __LINE__, "attempted to look up non-existent enum
-//   constant");
-// }
-//
-// static void initEnvForEntry(Environment *env, FileListEntry *entry,
-//                             HashMap *stab, HashMap *implicitStab) {
-//   environmentInit(env, entry->ast->data.file.module->data.module.id, stab,
-//                   implicitStab);
-//
-//   Vector *imports = entry->ast->data.file.imports;
-//   for (size_t idx = 0; idx < imports->size; idx++) {
-//     Node *import = imports->elements[idx];
-//     vectorInsert(&env->importNames, import->data.import.id);
-// #pragma GCC diagnostic push
-// #pragma GCC diagnostic ignored "-Wcast-qual"
-//     vectorInsert(&env->importTables, (HashMap
-//     *)import->data.import.referenced);
-// #pragma GCC diagnostic push
-//   }
-// }
-//
-// int buildTopLevelEnumStab(void) {
-//   Vector enumConstants;  // vector of EnumConstant
-//   Vector dependencies;   // vector of EnumConstant, non-owning
-//   bool errored = false;
+  // for each enum in each file, create the enumConstant entries
+  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
+    FileListEntry *entry = &fileList.entries[fileIdx];
+    Vector *bodies = entry->ast->data.file.bodies;
 
-//   // for each enum in each file, create the enumConstant entries
-//   for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
-//     FileListEntry *entry = &fileList.entries[fileIdx];
-//     Vector *bodies = entry->ast->data.file.bodies;
-//     HashMap *stab = &entry->ast->data.file.stab;
+    // for each top level
+    for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
+      Node *body = bodies->elements[bodyIdx];
+      // if it's an enum
+      if (body->type == NT_ENUMDECL) {
+        SymbolTableEntry *thisEnum = body->data.enumDecl.name->data.id.entry;
+        Vector *constantValues = &thisEnum->data.enumType.constantValues;
+        // for each constant, record it in the graph
+        for (size_t constantIdx = 0; constantIdx < constantValues->size;
+             constantIdx++) {
+          SymbolTableEntry *constantValue =
+              constantValues->elements[constantIdx];
+          vectorInsert(&enumConstants, constantValue);
+          vectorInsert(&dependencies, NULL);
+        }
+      }
+    }
+  }
 
-//     // for each top level
-//     for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
-//       Node *body = bodies->elements[bodyIdx];
-//       // if it's an enum
-//       if (body->type == NT_ENUMDECL) {
-//         Vector *constantNames = body->data.enumDecl.constantNames;
-//         SymbolTableEntry *thisEnum =
-//             hashMapGet(stab, body->data.enumDecl.name->data.id.id);
-//         // for each constant, construct the enumConstant entry
-//         for (size_t constantIdx = 0; constantIdx < constantNames->size;
-//              constantIdx++) {
-//           Node *constantName = constantNames->elements[constantIdx];
+  // for each enum in each file
+  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
+    FileListEntry *entry = &fileList.entries[fileIdx];
+    Vector *bodies = entry->ast->data.file.bodies;
+    Environment env;
+    environmentInit(&env, entry);
 
-//           EnumConstant *constant = malloc(sizeof(EnumConstant));
-//           constant->parentEnum = thisEnum;
-//           constant->name = constantName->data.id.id;
-//           vectorInsert(&enumConstants, constant);
-//           vectorInsert(&dependencies, NULL);
-//         }
-//       }
-//     }
-//   }
+    // for each enum in the file
+    for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
+      Node *body = bodies->elements[bodyIdx];
+      if (body->type == NT_ENUMDECL) {
+        SymbolTableEntry *thisEnum = body->data.enumDecl.name->data.id.entry;
+        Vector *constantValues = &thisEnum->data.enumType.constantValues;
 
-//   // for each file
-//   for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
-//     FileListEntry *entry = &fileList.entries[fileIdx];
-//     Vector *bodies = entry->ast->data.file.bodies;
-//     HashMap *stab = &entry->ast->data.file.stab;
-//     HashMap *implicitStab = NULL;
-//     if (entry->isCode) {
-//       FileListEntry *declEntry =
-//           hashMapGet(&fileList.moduleMap, entry->moduleName);
-//       if (declEntry != NULL) implicitStab = &declEntry->ast->data.file.stab;
-//     }
-//     Environment env;
-//     initEnvForEntry(&env, entry, stab, implicitStab);
+        // for each constant
+        for (size_t constantIdx = 0; constantIdx < constantValues->size;
+             constantIdx++) {
+          Node *constantValueNode =
+              body->data.enumDecl.constantValues->elements[constantIdx];
+          size_t constantEntryIdx = constantEntryFind(
+              &enumConstants, constantValues->elements[constantIdx]);
+          if (constantValueNode == NULL) {
+            // depends on previous
+            if (constantIdx == 0) {
+              // no previous entry in this enum - depends on nothing
+              dependencies.elements[constantEntryIdx] = NULL;
+            } else {
+              // depends on previous entry (is always at current - 1)
+              dependencies.elements[constantEntryIdx] =
+                  enumConstants.elements[constantEntryIdx - 1];
+            }
+          } else {
+            // entry = ...
+            if (constantValueNode->type == NT_LITERAL) {
+              // must be int, char, wchar literal
+              // depends on nothing
+              dependencies.elements[constantEntryIdx] = NULL;
+            } else {
+              // depends on another enum - constantValue is a SCOPED_ID
+              // find the enum
+              SymbolTableEntry *stabEntry =
+                  environmentLookup(&env, constantValueNode, false);
+              if (stabEntry == NULL) {
+                // error - no such enum
+                errored = true;
+              } else if (stabEntry->kind != SK_ENUMCONST) {
+                fprintf(stderr,
+                        "%s:%zu:%zu: error: expected an extended integer "
+                        "literal, found %s\n",
+                        entry->inputFilename, constantValueNode->line,
+                        constantValueNode->character,
+                        symbolKindToString(stabEntry->kind));
+                errored = true;
+              } else {
+                dependencies.elements[constantEntryIdx] = stabEntry;
+              }
+            }
+          }
+        }
+      }
+    }
 
-//     // for each enum in the file
-//     for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
-//       Node *body = bodies->elements[bodyIdx];
-//       if (body->type == NT_ENUMDECL) {
-//         Vector *constantNames = body->data.enumDecl.constantNames;
-//         Vector *constantValues = body->data.enumDecl.constantValues;
-//         SymbolTableEntry *thisEnum =
-//             hashMapGet(stab, body->data.enumDecl.name->data.id.id);
+    environmentUninit(&env);
+  }
 
-//         // for each constant
-//         for (size_t constantIdx = 0; constantIdx < constantNames->size;
-//              constantIdx++) {
-//           Node *constantName = constantNames->elements[constantIdx];
-//           Node *constantValue = constantValues->elements[constantIdx];
+  if (errored) {
+    vectorUninit(&enumConstants, nullDtor);
+    vectorUninit(&dependencies, nullDtor);
+    return -1;
+  }
 
-//           size_t constantEntryIdx = constantEntryFind(&enumConstants,
-//           thisEnum,
-//                                                       constantName->data.id.id);
-//           if (constantValue == NULL) {
-//             // depends on previous
-//             if (constantIdx == 0) {
-//               // no previous entry - depends on nothing
-//               dependencies.elements[constantEntryIdx] = NULL;
-//             } else {
-//               // depends on previous entry (is always at current - 1)
-//               dependencies.elements[constantEntryIdx] =
-//                   &dependencies.elements[constantEntryIdx - 1];
-//             }
-//           } else {
-//             // entry = ...
-//             if (constantValue->type == NT_LITERAL) {
-//               // must be int, char, wchar literal
-//               // depends on nothing
-//               dependencies.elements[constantEntryIdx] = NULL;
-//             } else {
-//               // depends on another enum - constantValue is a SCOPED_ID
-//               // find the enum
-//               SymbolTableEntry
-//                   *stabEntry;  // TODO: how do we get and validate this?
-//               char const *name =
-//                   constantValue->data.scopedId.components
-//                       ->elements[constantValue->data.scopedId.components->size
-//                       -
-//                                  1];
-//               if (stabEntry == NULL || stabEntry->kind != SK_ENUM) {
-//                 // error - no such enum
-//               } else {
-//                 dependencies.elements[constantEntryIdx] =
-//                     &dependencies.elements[constantEntryFind(&enumConstants,
-//                                                              stabEntry,
-//                                                              name)];
-//               }
-//             }
-//           }
-//         }
-//       }
-//     }
-
-//     environmentUninit(&env);
-//   }
-
-//   if (errored)
-//     return -1;
-//   else
-//     return 0;
-
-//   // TODO: traverse enum dependency graph and build enum constant values,
-//   // checking for loops
-// }
+  // TODO: traverse enum dependency graph and build enum constant values,
+  // checking for loops
+}
