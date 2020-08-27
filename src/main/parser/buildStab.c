@@ -604,9 +604,7 @@ int buildTopLevelEnumStab(void) {
         // for each constant, record it in the graph
         for (size_t constantIdx = 0; constantIdx < constantValues->size;
              constantIdx++) {
-          SymbolTableEntry *constantValue =
-              constantValues->elements[constantIdx];
-          vectorInsert(&enumConstants, constantValue);
+          vectorInsert(&enumConstants, constantValues->elements[constantIdx]);
           vectorInsert(&dependencies, NULL);
         }
       }
@@ -684,6 +682,79 @@ int buildTopLevelEnumStab(void) {
     return -1;
   }
 
-  // TODO: traverse enum dependency graph and build enum constant values,
-  // checking for loops
+  bool *processed = calloc(enumConstants.size, sizeof(bool));
+  size_t numProcessed = 0;
+  for (size_t startIdx = 0; startIdx < enumConstants.size; startIdx++) {
+    if (!processed[startIdx]) {
+      typedef struct PathNode {
+        size_t curr;
+        struct PathNode *prev;
+      } PathNode;
+
+      PathNode *path = malloc(sizeof(PathNode));
+      path->curr = startIdx;
+      path->prev = NULL;
+
+      processed[startIdx] = true;
+      size_t curr =
+          constantEntryFind(&enumConstants, dependencies.elements[startIdx]);
+      while (true) {
+        // loop that's my problem detected - complain
+        if (curr == startIdx) {
+          errored = true;
+          SymbolTableEntry *start = enumConstants.elements[startIdx];
+          fprintf(stderr,
+                  "%s:%zu:%zu: error: circular reference in enumeration "
+                  "constants\n",
+                  start->file->inputFilename, start->line, start->character);
+          PathNode *currPathNode = path;
+          while (currPathNode != NULL) {
+            currPathNode = currPathNode->prev;
+            SymbolTableEntry *currEntry =
+                enumConstants.elements[currPathNode->curr];
+            fprintf(stderr, "%s:%zu:%zu: note: references above\n",
+                    currEntry->file->inputFilename, currEntry->line,
+                    currEntry->character);
+          }
+          break;
+        }
+
+        // loop that's not my problem detected - stop early
+        PathNode *currPathNode = path;
+        bool willBreak = false;
+        while (currPathNode != NULL) {
+          if (currPathNode->curr == curr) {
+            // is in a loop - break
+            willBreak = true;
+            break;
+          }
+          currPathNode = path->prev;
+        }
+        if (willBreak) break;
+
+        PathNode *newPath = malloc(sizeof(PathNode));
+        newPath->curr = curr;
+        newPath->prev = path;
+        path = newPath;
+
+        SymbolTableEntry *dependency = dependencies.elements[startIdx];
+        if (dependency == NULL) break;
+        curr = constantEntryFind(&enumConstants, dependency);
+      }
+
+      while (path != NULL) {
+        PathNode *prev = path->prev;
+        free(path);
+        path = prev;
+      }
+    }
+  }
+  sizeVectorUninit(&processed);
+
+  vectorUninit(&enumConstants, nullDtor);
+  vectorUninit(&dependencies, nullDtor);
+
+  if (errored) return -1;
+
+  return 0;
 }
