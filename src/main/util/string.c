@@ -111,7 +111,7 @@ char *escapeString(char const *input) {
     }
   }
 
-  char *retVal = stringBuilderData(&sb);
+  char *retval = stringBuilderData(&sb);
   stringBuilderUninit(&sb);
-  return retVal;
+  return retval;
 }

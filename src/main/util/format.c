@@ -32,10 +32,10 @@ char *format(char const *format, ...) {
   va_start(args1, format);
   va_copy(args2, args1);
 
-  int retVal = vsnprintf(NULL, 0, format, args1);
-  if (retVal < 0) error(__FILE__, __LINE__, "could not format string");
+  int retval = vsnprintf(NULL, 0, format, args1);
+  if (retval < 0) error(__FILE__, __LINE__, "could not format string");
 
-  size_t bufferSize = 1 + (size_t)retVal;
+  size_t bufferSize = 1 + (size_t)retval;
   va_end(args1);
 
   char *buffer = malloc(bufferSize);
