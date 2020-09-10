@@ -19,6 +19,7 @@
 
 #include "ast/ast.h"
 
+#include "fileList.h"
 #include "internalError.h"
 #include "lexer/lexer.h"
 #include "numericSizing.h"
@@ -641,6 +642,101 @@ char *stringifyId(Node *id) {
   }
 }
 
+static void errorNotPositive(Node *n, Environment *env) {
+  fprintf(stderr, "%s:%zu:%zu: error: array length must be positive",
+          env->currentModuleFile->inputFilename, n->line, n->character);
+}
+/**
+ * gets the uint64_t value of the extended int literal
+ *
+ * complains to the user if any error occurrs
+ *
+ * @returns 0 if an error occurred
+ */
+static uint64_t extendedIntLiteralToValue(Node *n, Environment *env) {
+  switch (n->type) {
+    case NT_LITERAL: {
+      switch (n->data.literal.type) {
+        case LT_UBYTE: {
+          return n->data.literal.value.ubyteVal;
+        }
+        case LT_BYTE: {
+          if (n->data.literal.value.byteVal <= 0) {
+            errorNotPositive(n, env);
+            return 0;
+          } else {
+            return (uint64_t)n->data.literal.value.byteVal;
+          }
+        }
+        case LT_USHORT: {
+          return n->data.literal.value.ushortVal;
+        }
+        case LT_SHORT: {
+          if (n->data.literal.value.shortVal <= 0) {
+            errorNotPositive(n, env);
+            return 0;
+          } else {
+            return (uint64_t)n->data.literal.value.shortVal;
+          }
+        }
+        case LT_UINT: {
+          return n->data.literal.value.uintVal;
+        }
+        case LT_INT: {
+          if (n->data.literal.value.intVal <= 0) {
+            errorNotPositive(n, env);
+            return 0;
+          } else {
+            return (uint64_t)n->data.literal.value.intVal;
+          }
+        }
+        case LT_ULONG: {
+          return n->data.literal.value.ulongVal;
+        }
+        case LT_LONG: {
+          if (n->data.literal.value.longVal <= 0) {
+            errorNotPositive(n, env);
+            return 0;
+          } else {
+            return (uint64_t)n->data.literal.value.longVal;
+          }
+        }
+        case LT_CHAR: {
+          return n->data.literal.value.charVal;
+        }
+        case LT_WCHAR: {
+          return n->data.literal.value.wcharVal;
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "bad extended int literal node given to "
+                "extendedIntLiteralToValue");
+        }
+      }
+    }
+    case NT_SCOPEDID: {
+      SymbolTableEntry *enumConst = environmentLookup(env, n, false);
+      if (enumConst == NULL) return 0;
+
+      if (enumConst->data.enumConst.signedness) {
+        // signed - allow only negatives
+        if (enumConst->data.enumConst.data.signedValue <= 0) {
+          errorNotPositive(n, env);
+          return 0;
+        } else {
+          return (uint64_t)enumConst->data.enumConst.data.signedValue;
+        }
+      } else {
+        return enumConst->data.enumConst.data.unsignedValue;
+      }
+    }
+    default: {
+      error(__FILE__, __LINE__,
+            "bad extended int literal node given to "
+            "extendedIntLiteralToValue");
+    }
+  }
+}
 Type *nodeToType(Node *n, Environment *env) {
   switch (n->type) {
     case NT_KEYWORDTYPE: {
@@ -653,30 +749,87 @@ Type *nodeToType(Node *n, Environment *env) {
           n->data.modifiedType.baseType->type == NT_MODIFIEDTYPE &&
           n->data.modifiedType.baseType->data.modifiedType.modifier ==
               TM_CONST) {
-        return modifiedTypeCreate(
-            TM_CONST,
-            modifiedTypeCreate(
-                TM_VOLATILE,
-                nodeToType(
-                    n->data.modifiedType.baseType->data.modifiedType.baseType,
-                    env)));
+        Type *inner = nodeToType(
+            n->data.modifiedType.baseType->data.modifiedType.baseType, env);
+        if (inner != NULL)
+          return modifiedTypeCreate(TM_CONST,
+                                    modifiedTypeCreate(TM_VOLATILE, inner));
+        else
+          return NULL;
       } else {
-        return modifiedTypeCreate(
-            n->data.modifiedType.modifier,
-            nodeToType(n->data.modifiedType.baseType, env));
+        Type *inner = nodeToType(n->data.modifiedType.baseType, env);
+        if (inner != NULL)
+          return modifiedTypeCreate(n->data.modifiedType.modifier, inner);
+        else
+          return NULL;
       }
     }
     case NT_ARRAYTYPE: {
-      // TODO: write this
+      Type *base = nodeToType(n->data.arrayType.baseType, env);
+      if (base == NULL) return NULL;
+      uint64_t length = extendedIntLiteralToValue(n->data.arrayType.size, env);
+      if (length == 0) {
+        typeFree(base);
+        return NULL;
+      }
+      return arrayTypeCreate(length, base);
     }
     case NT_FUNPTRTYPE: {
-      // TODO: write this
+      Type *inner = nodeToType(n->data.funPtrType.returnType, env);
+      if (inner == NULL) return NULL;
+
+      Type *retval = funPtrTypeCreate(inner);
+
+      for (size_t idx = 0; idx < n->data.funPtrType.argTypes->size; idx++) {
+        Type *argType =
+            nodeToType(n->data.funPtrType.argTypes->elements[idx], env);
+        if (argType == NULL) {
+          typeFree(retval);
+          return NULL;
+        }
+
+        vectorInsert(&retval->data.funPtr.argTypes, argType);
+      }
+
+      return retval;
     }
     case NT_SCOPEDID: {
-      // TODO: write this
+      SymbolTableEntry *entry = environmentLookup(env, n, false);
+      switch (entry->kind) {
+        case SK_OPAQUE:
+        case SK_STRUCT:
+        case SK_UNION:
+        case SK_ENUM:
+        case SK_TYPEDEF: {
+          return referenceTypeCreate(entry);
+        }
+        default: {
+          char *idString = stringifyId(n);
+          fprintf(stderr, "%s:%zu:%zu: error: '%s' is not a type\n",
+                  env->currentModuleFile->inputFilename, n->line, n->character,
+                  idString);
+          free(idString);
+          return NULL;
+        }
+      }
     }
     case NT_ID: {
-      // TODO: write this
+      SymbolTableEntry *entry = environmentLookup(env, n, false);
+      switch (entry->kind) {
+        case SK_OPAQUE:
+        case SK_STRUCT:
+        case SK_UNION:
+        case SK_ENUM:
+        case SK_TYPEDEF: {
+          return referenceTypeCreate(entry);
+        }
+        default: {
+          fprintf(stderr, "%s:%zu:%zu: error: '%s' is not a type\n",
+                  env->currentModuleFile->inputFilename, n->line, n->character,
+                  n->data.id.id);
+          return NULL;
+        }
+      }
     }
     default: { error(__FILE__, __LINE__, "non-type node encountered"); }
   }

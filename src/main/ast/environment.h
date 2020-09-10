@@ -42,8 +42,8 @@ typedef struct {
 /**
  * initialize an environment
  *
- * automatically fills in the currentModule and implicitImport pointers,
- * leaves importFiles, importTables, and scopes as empty vectors
+ * automatically fills in the currentModule, implicitImport, and importFiles
+ * leaves scopes as the empty vector
  *
  * @param env environment to initialize
  * @param currentModuleFile FileListEntry of the current module

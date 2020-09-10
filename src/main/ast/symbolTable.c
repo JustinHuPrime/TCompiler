@@ -22,6 +22,7 @@
 #include "ast/symbolTable.h"
 
 #include "fileList.h"
+#include "internalError.h"
 #include "util/functional.h"
 
 #include <stdlib.h>
@@ -46,6 +47,61 @@ Type *modifiedTypeCreate(TypeModifier modifier, Type *modified) {
   t->data.modified.modifier = modifier;
   t->data.modified.modified = modified;
   return t;
+}
+Type *arrayTypeCreate(uint64_t length, Type *type) {
+  Type *t = typeCreate(TK_ARRAY);
+  t->data.array.length = length;
+  t->data.array.type = type;
+  return t;
+}
+Type *funPtrTypeCreate(Type *returnType) {
+  Type *t = typeCreate(TK_FUNPTR);
+  t->data.funPtr.returnType = returnType;
+  vectorInit(&t->data.funPtr.argTypes);
+  return t;
+}
+Type *aggregateTypeCreate(void) {
+  Type *t = typeCreate(TK_AGGREGATE);
+  vectorInit(&t->data.aggregate.types);
+  return t;
+}
+Type *referenceTypeCreate(SymbolTableEntry *entry) {
+  Type *t = typeCreate(TK_REFERENCE);
+  t->data.reference.entry = entry;
+  return t;
+}
+Type *typeCopy(Type *t) {
+  switch (t->kind) {
+    case TK_KEYWORD: {
+      return keywordTypeCreate(t->data.keyword.keyword);
+    }
+    case TK_MODIFIED: {
+      return modifiedTypeCreate(t->data.modified.modifier,
+                                typeCopy(t->data.modified.modified));
+    }
+    case TK_ARRAY: {
+      return arrayTypeCreate(t->data.array.length,
+                             typeCopy(t->data.array.type));
+    }
+    case TK_FUNPTR: {
+      Type *copy = funPtrTypeCreate(typeCopy(t->data.funPtr.returnType));
+      for (size_t idx = 0; idx < t->data.funPtr.argTypes.size; idx++)
+        vectorInsert(&copy->data.funPtr.argTypes,
+                     typeCopy(t->data.funPtr.argTypes.elements[idx]));
+      return copy;
+    }
+    case TK_AGGREGATE: {
+      Type *copy = aggregateTypeCreate();
+      for (size_t idx = 0; idx < t->data.aggregate.types.size; idx++)
+        vectorInsert(&copy->data.funPtr.argTypes,
+                     typeCopy(t->data.aggregate.types.elements[idx]));
+      return copy;
+    }
+    case TK_REFERENCE: {
+      return referenceTypeCreate(t->data.reference.entry);
+    }
+    default: { error(__FILE__, __LINE__, "bad type given to typeCopy"); }
+  }
 }
 void typeFree(Type *t) {
   switch (t->kind) {

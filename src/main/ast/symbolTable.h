@@ -115,6 +115,27 @@ Type *modifiedTypeCreate(TypeModifier modifier, Type *modified);
 /**
  * create an array type
  */
+Type *arrayTypeCreate(uint64_t length, Type *type);
+/**
+ * create a function pointer type
+ *
+ * argTypes is initialized as the empty vector
+ */
+Type *funPtrTypeCreate(Type *returnType);
+/**
+ * create a aggregate init type
+ *
+ * types is initialized as the empty vector
+ */
+Type *aggregateTypeCreate(void);
+/**
+ * create a reference type
+ */
+Type *referenceTypeCreate(struct SymbolTableEntry *entry);
+/**
+ * deep copies a type
+ */
+Type *typeCopy(Type *);
 
 /**
  * deinitializes a type
