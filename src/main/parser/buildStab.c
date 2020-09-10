@@ -434,6 +434,198 @@ void startTopLevelStab(FileListEntry *entry) {
   }
 }
 
+/**
+ * find the index of e in enumConstants
+ *
+ * e must be in enumConstants
+ */
+static size_t constantEntryFind(Vector *enumConstants, SymbolTableEntry *e) {
+  for (size_t idx = 0; idx < enumConstants->size; idx++) {
+    if (enumConstants->elements[idx] == e) return idx;
+  }
+  error(__FILE__, __LINE__,
+        "constantEntryFind called with an e not in enumConstants");
+}
+int buildTopLevelEnumStab(void) {
+  Vector enumConstants;  // vector of SymbolTableEntry, non-owning
+  Vector dependencies;   // vector of SymbolTableEntry, non-owning, nullable
+  bool errored = false;
+
+  // for each enum in each file, create the enumConstant entries
+  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
+    FileListEntry *entry = &fileList.entries[fileIdx];
+    Vector *bodies = entry->ast->data.file.bodies;
+
+    // for each top level
+    for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
+      Node *body = bodies->elements[bodyIdx];
+      // if it's an enum
+      if (body->type == NT_ENUMDECL) {
+        SymbolTableEntry *thisEnum = body->data.enumDecl.name->data.id.entry;
+        Vector *constantValues = &thisEnum->data.enumType.constantValues;
+        // for each constant, record it in the graph
+        for (size_t constantIdx = 0; constantIdx < constantValues->size;
+             constantIdx++) {
+          vectorInsert(&enumConstants, constantValues->elements[constantIdx]);
+          vectorInsert(&dependencies, NULL);
+        }
+      }
+    }
+  }
+
+  // for each enum in each file
+  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
+    FileListEntry *entry = &fileList.entries[fileIdx];
+    Vector *bodies = entry->ast->data.file.bodies;
+    Environment env;
+    environmentInit(&env, entry);
+
+    // for each enum in the file
+    for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
+      Node *body = bodies->elements[bodyIdx];
+      if (body->type == NT_ENUMDECL) {
+        SymbolTableEntry *thisEnum = body->data.enumDecl.name->data.id.entry;
+        Vector *constantValues = &thisEnum->data.enumType.constantValues;
+
+        // for each constant
+        for (size_t constantIdx = 0; constantIdx < constantValues->size;
+             constantIdx++) {
+          Node *constantValueNode =
+              body->data.enumDecl.constantValues->elements[constantIdx];
+          size_t constantEntryIdx = constantEntryFind(
+              &enumConstants, constantValues->elements[constantIdx]);
+          if (constantValueNode == NULL) {
+            // depends on previous
+            if (constantIdx == 0) {
+              // no previous entry in this enum - depends on nothing
+              dependencies.elements[constantEntryIdx] = NULL;
+            } else {
+              // depends on previous entry (is always at current - 1)
+              dependencies.elements[constantEntryIdx] =
+                  enumConstants.elements[constantEntryIdx - 1];
+            }
+          } else {
+            // entry = ...
+            if (constantValueNode->type == NT_LITERAL) {
+              // must be int, char, wchar literal
+              // depends on nothing
+              dependencies.elements[constantEntryIdx] = NULL;
+            } else {
+              // depends on another enum - constantValue is a SCOPED_ID
+              // find the enum
+              SymbolTableEntry *stabEntry =
+                  environmentLookup(&env, constantValueNode, false);
+              if (stabEntry == NULL) {
+                // error - no such enum
+                errored = true;
+              } else if (stabEntry->kind != SK_ENUMCONST) {
+                fprintf(stderr,
+                        "%s:%zu:%zu: error: expected an extended integer "
+                        "literal, found %s\n",
+                        entry->inputFilename, constantValueNode->line,
+                        constantValueNode->character,
+                        symbolKindToString(stabEntry->kind));
+                errored = true;
+              } else {
+                dependencies.elements[constantEntryIdx] = stabEntry;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    environmentUninit(&env);
+  }
+
+  if (errored) {
+    vectorUninit(&enumConstants, nullDtor);
+    vectorUninit(&dependencies, nullDtor);
+    return -1;
+  }
+
+  bool *processed = calloc(enumConstants.size, sizeof(bool));
+  for (size_t startIdx = 0; startIdx < enumConstants.size; startIdx++) {
+    if (!processed[startIdx]) {
+      typedef struct PathNode {
+        size_t curr;
+        struct PathNode *prev;
+      } PathNode;
+
+      PathNode *path = malloc(sizeof(PathNode));
+      path->curr = startIdx;
+      path->prev = NULL;
+
+      processed[startIdx] = true;
+      size_t curr =
+          constantEntryFind(&enumConstants, dependencies.elements[startIdx]);
+      while (true) {
+        // loop that's my problem detected - complain
+        if (curr == startIdx) {
+          errored = true;
+          SymbolTableEntry *start = enumConstants.elements[startIdx];
+          fprintf(stderr,
+                  "%s:%zu:%zu: error: circular reference in enumeration "
+                  "constants\n",
+                  start->file->inputFilename, start->line, start->character);
+          PathNode *currPathNode = path;
+          while (currPathNode != NULL) {
+            currPathNode = currPathNode->prev;
+            SymbolTableEntry *currEntry =
+                enumConstants.elements[currPathNode->curr];
+            fprintf(stderr, "%s:%zu:%zu: note: references above\n",
+                    currEntry->file->inputFilename, currEntry->line,
+                    currEntry->character);
+          }
+          break;
+        }
+
+        // loop that's not my problem detected - stop early
+        PathNode *currPathNode = path;
+        bool willBreak = false;
+        while (currPathNode != NULL) {
+          if (currPathNode->curr == curr) {
+            // is in a loop - break
+            willBreak = true;
+            break;
+          }
+          currPathNode = path->prev;
+        }
+        if (willBreak) break;
+
+        PathNode *newPath = malloc(sizeof(PathNode));
+        newPath->curr = curr;
+        newPath->prev = path;
+        path = newPath;
+
+        SymbolTableEntry *dependency = dependencies.elements[startIdx];
+        if (dependency == NULL) break;
+        curr = constantEntryFind(&enumConstants, dependency);
+      }
+
+      while (path != NULL) {
+        PathNode *prev = path->prev;
+        free(path);
+        path = prev;
+      }
+    }
+  }
+  free(processed);
+
+  if (errored) {
+    vectorUninit(&enumConstants, nullDtor);
+    vectorUninit(&dependencies, nullDtor);
+    return -1;
+  }
+
+  // TODO: build the enum values
+
+  vectorUninit(&enumConstants, nullDtor);
+  vectorUninit(&dependencies, nullDtor);
+
+  return 0;
+}
+
 static bool checkScopedIdCollisionsBetween(Node *longImport, Node *shortImport,
                                            char const *currentFilename) {
   Node *longName = longImport->data.import.id;
@@ -572,189 +764,35 @@ void checkScopedIdCollisions(FileListEntry *entry) {
   }
 }
 
-/**
- * find the index of e in enumConstants
- *
- * e must be in enumConstants
- */
-static size_t constantEntryFind(Vector *enumConstants, SymbolTableEntry *e) {
-  for (size_t idx = 0; idx < enumConstants->size; idx++) {
-    if (enumConstants->elements[idx] == e) return idx;
-  }
-  error(__FILE__, __LINE__,
-        "constantEntryFind called with an e not in enumConstants");
-}
-int buildTopLevelEnumStab(void) {
-  Vector enumConstants;  // vector of SymbolTableEntry, non-owning
-  Vector dependencies;   // vector of SymbolTableEntry, non-owning, nullable
-  bool errored = false;
+void finishTopLevelStab(FileListEntry *entry) {
+  Environment env;
+  environmentInit(&env, entry);
 
-  // for each enum in each file, create the enumConstant entries
-  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
-    FileListEntry *entry = &fileList.entries[fileIdx];
-    Vector *bodies = entry->ast->data.file.bodies;
-
-    // for each top level
-    for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
-      Node *body = bodies->elements[bodyIdx];
-      // if it's an enum
-      if (body->type == NT_ENUMDECL) {
-        SymbolTableEntry *thisEnum = body->data.enumDecl.name->data.id.entry;
-        Vector *constantValues = &thisEnum->data.enumType.constantValues;
-        // for each constant, record it in the graph
-        for (size_t constantIdx = 0; constantIdx < constantValues->size;
-             constantIdx++) {
-          vectorInsert(&enumConstants, constantValues->elements[constantIdx]);
-          vectorInsert(&dependencies, NULL);
+  for (size_t bodyIdx = 0; bodyIdx < entry->ast->data.file.bodies->size;
+       bodyIdx++) {
+    Node *body = entry->ast->data.file.bodies->elements[bodyIdx];
+    switch (body->type) {
+      case NT_STRUCTDECL: {
+        SymbolTableEntry *ste = body->data.structDecl.name->data.id.entry;
+        Vector *fields = body->data.structDecl.fields;
+        for (size_t fieldIdx = 0; fieldIdx < fields->size; fieldIdx++) {
+          Node *field = fields->elements[fieldIdx];
+          field->data.varDecl.type;
+          Vector *names = field->data.varDecl.names;
+          for (size_t idx = 0; idx < names->size; idx++) {
+            // TODO: write this
+          }
         }
+        ste->data.structType.fieldTypes;
+        ste->data.structType.fieldNames;
+        break;
+      }
+      default: {
+        // nothing more to add
+        break;
       }
     }
   }
 
-  // for each enum in each file
-  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
-    FileListEntry *entry = &fileList.entries[fileIdx];
-    Vector *bodies = entry->ast->data.file.bodies;
-    Environment env;
-    environmentInit(&env, entry);
-
-    // for each enum in the file
-    for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
-      Node *body = bodies->elements[bodyIdx];
-      if (body->type == NT_ENUMDECL) {
-        SymbolTableEntry *thisEnum = body->data.enumDecl.name->data.id.entry;
-        Vector *constantValues = &thisEnum->data.enumType.constantValues;
-
-        // for each constant
-        for (size_t constantIdx = 0; constantIdx < constantValues->size;
-             constantIdx++) {
-          Node *constantValueNode =
-              body->data.enumDecl.constantValues->elements[constantIdx];
-          size_t constantEntryIdx = constantEntryFind(
-              &enumConstants, constantValues->elements[constantIdx]);
-          if (constantValueNode == NULL) {
-            // depends on previous
-            if (constantIdx == 0) {
-              // no previous entry in this enum - depends on nothing
-              dependencies.elements[constantEntryIdx] = NULL;
-            } else {
-              // depends on previous entry (is always at current - 1)
-              dependencies.elements[constantEntryIdx] =
-                  enumConstants.elements[constantEntryIdx - 1];
-            }
-          } else {
-            // entry = ...
-            if (constantValueNode->type == NT_LITERAL) {
-              // must be int, char, wchar literal
-              // depends on nothing
-              dependencies.elements[constantEntryIdx] = NULL;
-            } else {
-              // depends on another enum - constantValue is a SCOPED_ID
-              // find the enum
-              SymbolTableEntry *stabEntry =
-                  environmentLookup(&env, constantValueNode, false);
-              if (stabEntry == NULL) {
-                // error - no such enum
-                errored = true;
-              } else if (stabEntry->kind != SK_ENUMCONST) {
-                fprintf(stderr,
-                        "%s:%zu:%zu: error: expected an extended integer "
-                        "literal, found %s\n",
-                        entry->inputFilename, constantValueNode->line,
-                        constantValueNode->character,
-                        symbolKindToString(stabEntry->kind));
-                errored = true;
-              } else {
-                dependencies.elements[constantEntryIdx] = stabEntry;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    environmentUninit(&env);
-  }
-
-  if (errored) {
-    vectorUninit(&enumConstants, nullDtor);
-    vectorUninit(&dependencies, nullDtor);
-    return -1;
-  }
-
-  bool *processed = calloc(enumConstants.size, sizeof(bool));
-  size_t numProcessed = 0;
-  for (size_t startIdx = 0; startIdx < enumConstants.size; startIdx++) {
-    if (!processed[startIdx]) {
-      typedef struct PathNode {
-        size_t curr;
-        struct PathNode *prev;
-      } PathNode;
-
-      PathNode *path = malloc(sizeof(PathNode));
-      path->curr = startIdx;
-      path->prev = NULL;
-
-      processed[startIdx] = true;
-      size_t curr =
-          constantEntryFind(&enumConstants, dependencies.elements[startIdx]);
-      while (true) {
-        // loop that's my problem detected - complain
-        if (curr == startIdx) {
-          errored = true;
-          SymbolTableEntry *start = enumConstants.elements[startIdx];
-          fprintf(stderr,
-                  "%s:%zu:%zu: error: circular reference in enumeration "
-                  "constants\n",
-                  start->file->inputFilename, start->line, start->character);
-          PathNode *currPathNode = path;
-          while (currPathNode != NULL) {
-            currPathNode = currPathNode->prev;
-            SymbolTableEntry *currEntry =
-                enumConstants.elements[currPathNode->curr];
-            fprintf(stderr, "%s:%zu:%zu: note: references above\n",
-                    currEntry->file->inputFilename, currEntry->line,
-                    currEntry->character);
-          }
-          break;
-        }
-
-        // loop that's not my problem detected - stop early
-        PathNode *currPathNode = path;
-        bool willBreak = false;
-        while (currPathNode != NULL) {
-          if (currPathNode->curr == curr) {
-            // is in a loop - break
-            willBreak = true;
-            break;
-          }
-          currPathNode = path->prev;
-        }
-        if (willBreak) break;
-
-        PathNode *newPath = malloc(sizeof(PathNode));
-        newPath->curr = curr;
-        newPath->prev = path;
-        path = newPath;
-
-        SymbolTableEntry *dependency = dependencies.elements[startIdx];
-        if (dependency == NULL) break;
-        curr = constantEntryFind(&enumConstants, dependency);
-      }
-
-      while (path != NULL) {
-        PathNode *prev = path->prev;
-        free(path);
-        path = prev;
-      }
-    }
-  }
-  sizeVectorUninit(&processed);
-
-  vectorUninit(&enumConstants, nullDtor);
-  vectorUninit(&dependencies, nullDtor);
-
-  if (errored) return -1;
-
-  return 0;
+  environmentUninit(&env);
 }

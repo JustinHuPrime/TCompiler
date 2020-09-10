@@ -58,4 +58,11 @@ int buildTopLevelEnumStab(void);
  */
 void checkScopedIdCollisions(FileListEntry *entry);
 
+/**
+ * completes the symbol table for entries at the top level
+ * 
+ * @param entry entry to prcess 
+ */
+void finishTopLevelStab(FileListEntry *entry);
+
 #endif  // TLC_PARSER_BUILDSTAB_H_
