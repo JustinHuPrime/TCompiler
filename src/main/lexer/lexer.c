@@ -104,7 +104,7 @@ MagicTokenType const MAGIC_TOKENS[] = {
 void lexerInitMaps(void) {
   hashMapInit(&keywordMap);
   for (size_t idx = 0; idx < sizeof(KEYWORD_STRINGS) / sizeof(char const *);
-       idx++) {
+       ++idx) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
     hashMapSet(&keywordMap, KEYWORD_STRINGS[idx], (void *)&KEYWORD_TOKENS[idx]);
@@ -112,7 +112,7 @@ void lexerInitMaps(void) {
   }
   hashMapInit(&magicMap);
   for (size_t idx = 0; idx < sizeof(MAGIC_STRINGS) / sizeof(char const *);
-       idx++) {
+       ++idx) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
     hashMapSet(&magicMap, MAGIC_STRINGS[idx], (void *)&MAGIC_TOKENS[idx]);
@@ -164,7 +164,7 @@ int lexerStateInit(FileListEntry *entry) {
  */
 static char get(LexerState *state) {
   if (state->current >= state->map + state->length) {
-    state->current++;
+    ++state->current;
     return '\x04';
   } else {
     return *state->current++;
@@ -196,12 +196,12 @@ static void lexWhitespace(FileListEntry *entry) {
       }
       case '\n': {
         state->character = 1;
-        state->line++;
+        ++state->line;
         break;
       }
       case '\r': {
         state->character = 1;
-        state->line++;
+        ++state->line;
         // handle cr-lf
         char lf = get(state);
         if (lf != '\n') put(state, 1);
@@ -570,7 +570,7 @@ static void panicString(LexerState *state) {
         switch (next) {
           case 'x': {
             // \x
-            for (size_t idx = 0; idx < 2; idx++) {
+            for (size_t idx = 0; idx < 2; ++idx) {
               char hex = get(state);
               if (!isNybble(hex)) {
                 put(state, 1);
@@ -583,7 +583,7 @@ static void panicString(LexerState *state) {
           }
           case 'u': {
             // \u
-            for (size_t idx = 0; idx < 8; idx++) {
+            for (size_t idx = 0; idx < 8; ++idx) {
               char hex = get(state);
               if (!isNybble(hex)) {
                 put(state, 1);
@@ -667,7 +667,7 @@ static void lexString(FileListEntry *entry, Token *token) {
         switch (next) {
           case 'x': {
             // \x
-            for (size_t idx = 0; idx < 2; idx++) {
+            for (size_t idx = 0; idx < 2; ++idx) {
               char hex = get(state);
               if (!isNybble(hex)) {
                 fprintf(
@@ -687,7 +687,7 @@ static void lexString(FileListEntry *entry, Token *token) {
           }
           case 'u': {
             // \u
-            for (size_t idx = 0; idx < 8; idx++) {
+            for (size_t idx = 0; idx < 8; ++idx) {
               char hex = get(state);
               if (!isNybble(hex)) {
                 fprintf(
@@ -772,7 +772,7 @@ static void panicChar(LexerState *state) {
         switch (next) {
           case 'x': {
             // \x
-            for (size_t idx = 0; idx < 2; idx++) {
+            for (size_t idx = 0; idx < 2; ++idx) {
               char hex = get(state);
               if (!isNybble(hex)) {
                 put(state, 1);
@@ -785,7 +785,7 @@ static void panicChar(LexerState *state) {
           }
           case 'u': {
             // \u
-            for (size_t idx = 0; idx < 8; idx++) {
+            for (size_t idx = 0; idx < 8; ++idx) {
               char hex = get(state);
               if (!isNybble(hex)) {
                 put(state, 1);
@@ -849,7 +849,7 @@ static void lexChar(FileListEntry *entry, Token *token) {
       switch (next) {
         case 'x': {
           // \x
-          for (size_t idx = 0; idx < 2; idx++) {
+          for (size_t idx = 0; idx < 2; ++idx) {
             char hex = get(state);
             if (!isNybble(hex)) {
               fprintf(
@@ -870,7 +870,7 @@ static void lexChar(FileListEntry *entry, Token *token) {
         }
         case 'u': {
           // \u
-          for (size_t idx = 0; idx < 8; idx++) {
+          for (size_t idx = 0; idx < 8; ++idx) {
             char hex = get(state);
             if (!isNybble(hex)) {
               fprintf(

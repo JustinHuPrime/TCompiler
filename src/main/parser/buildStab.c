@@ -36,12 +36,12 @@
 
 static bool fileListEntryArrayContains(FileListEntry **arry, size_t size,
                                        FileListEntry *f) {
-  for (size_t idx = 0; idx < size; idx++)
+  for (size_t idx = 0; idx < size; ++idx)
     if (arry[idx] == f) return true;
   return false;
 }
 static bool nameArrayContains(Node **arry, size_t size, Node *n) {
-  for (size_t idx = 0; idx < size; idx++)
+  for (size_t idx = 0; idx < size; ++idx)
     if (nameNodeEqual(arry[idx], n)) return true;
   return false;
 }
@@ -51,7 +51,7 @@ int resolveImports(void) {
   // check for duplciate decl modules
   FileListEntry **processed = malloc(sizeof(FileListEntry *) * fileList.size);
   size_t numProcessed = 0;
-  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     if (!fileList.entries[fileIdx].isCode &&
         !fileListEntryArrayContains(processed, numProcessed,
                                     &fileList.entries[fileIdx])) {
@@ -61,7 +61,7 @@ int resolveImports(void) {
           malloc(sizeof(FileListEntry *) * fileList.size);
       size_t numDuplicates = 0;
       for (size_t compareIdx = fileIdx + 1; compareIdx < fileList.size;
-           compareIdx++) {
+           ++compareIdx) {
         // check it against each other file
         if (nameNodeEqual(
                 fileList.entries[fileIdx].ast->data.file.module->data.module.id,
@@ -80,7 +80,7 @@ int resolveImports(void) {
                 fileList.entries[fileIdx].ast->line,
                 fileList.entries[fileIdx].ast->character, nameString);
         free(nameString);
-        for (size_t printIdx = 0; printIdx < numDuplicates; printIdx++)
+        for (size_t printIdx = 0; printIdx < numDuplicates; ++printIdx)
           fprintf(stderr, "%s:%zu:%zu: note: declared here\n",
                   duplicateEntries[printIdx]->inputFilename,
                   duplicateEntries[printIdx]->ast->line,
@@ -97,13 +97,13 @@ int resolveImports(void) {
   if (errored) return -1;
 
   // link imports
-  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     Node *ast = fileList.entries[fileIdx].ast;
     Vector *imports = ast->data.file.imports;
 
     Node **processed = malloc(sizeof(Node *) * imports->size);
     size_t numProcessed = 0;
-    for (size_t importIdx = 0; importIdx < imports->size; importIdx++) {
+    for (size_t importIdx = 0; importIdx < imports->size; ++importIdx) {
       Node *import = imports->elements[importIdx];
 
       if (!nameArrayContains(processed, numProcessed, import->data.import.id)) {
@@ -112,7 +112,7 @@ int resolveImports(void) {
             malloc(sizeof(Node *) * (imports->size - importIdx - 1));
         size_t numColliding = 0;
         for (size_t checkIdx = importIdx + 1; checkIdx < imports->size;
-             checkIdx++) {
+             ++checkIdx) {
           Node *toCheck = imports->elements[checkIdx];
           if (nameNodeEqual(import->data.import.id, toCheck->data.import.id))
             colliding[numColliding++] = toCheck;
@@ -126,7 +126,7 @@ int resolveImports(void) {
                       fileList.entries[fileIdx].inputFilename, import->line,
                       import->character, nameString);
               free(nameString);
-              for (size_t idx = 0; idx < numColliding; idx++)
+              for (size_t idx = 0; idx < numColliding; ++idx)
                 fprintf(stderr, "%s:%zu:%zu: note: imported here\n",
                         fileList.entries[fileIdx].inputFilename,
                         colliding[idx]->line, colliding[idx]->character);
@@ -140,7 +140,7 @@ int resolveImports(void) {
                       fileList.entries[fileIdx].inputFilename, import->line,
                       import->character, nameString);
               free(nameString);
-              for (size_t idx = 0; idx < numColliding; idx++)
+              for (size_t idx = 0; idx < numColliding; ++idx)
                 fprintf(stderr, "%s:%zu:%zu: note: imported here\n",
                         fileList.entries[fileIdx].inputFilename,
                         colliding[idx]->line, colliding[idx]->character);
@@ -166,7 +166,7 @@ int resolveImports(void) {
         }
 
         processed[numProcessed] = import->data.import.id;
-        numProcessed++;
+        ++numProcessed;
       }
     }
     free(processed);
@@ -202,7 +202,7 @@ void startTopLevelStab(FileListEntry *entry) {
   }
 
   // for each top level thing
-  for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
+  for (size_t bodyIdx = 0; bodyIdx < bodies->size; ++bodyIdx) {
     Node *body = bodies->elements[bodyIdx];
     switch (body->type) {
       case NT_OPAQUEDECL: {
@@ -316,7 +316,7 @@ void startTopLevelStab(FileListEntry *entry) {
           Vector *constantNames = body->data.enumDecl.constantNames;
 
           // for each of the constants
-          for (size_t idx = 0; idx < constantNames->size; idx++) {
+          for (size_t idx = 0; idx < constantNames->size; ++idx) {
             Node *constantName = constantNames->elements[idx];
             vectorInsert(&parentEnum->data.enumType.constantNames,
                          constantName->data.id.id);
@@ -360,7 +360,7 @@ void startTopLevelStab(FileListEntry *entry) {
       }
       case NT_VARDECL: {
         Vector *names = body->data.varDecl.names;
-        for (size_t idx = 0; idx < names->size; idx++) {
+        for (size_t idx = 0; idx < names->size; ++idx) {
           Node *name = names->elements[idx];
           char const *nameString = name->data.id.id;
           SymbolTableEntry *existing = hashMapGet(stab, nameString);
@@ -380,7 +380,7 @@ void startTopLevelStab(FileListEntry *entry) {
       }
       case NT_VARDEFN: {
         Vector *names = body->data.varDefn.names;
-        for (size_t idx = 0; idx < names->size; idx++) {
+        for (size_t idx = 0; idx < names->size; ++idx) {
           Node *name = names->elements[idx];
           char const *nameString = name->data.id.id;
           SymbolTableEntry *existing = hashMapGet(stab, nameString);
@@ -440,7 +440,7 @@ void startTopLevelStab(FileListEntry *entry) {
  * e must be in enumConstants
  */
 static size_t constantEntryFind(Vector *enumConstants, SymbolTableEntry *e) {
-  for (size_t idx = 0; idx < enumConstants->size; idx++) {
+  for (size_t idx = 0; idx < enumConstants->size; ++idx) {
     if (enumConstants->elements[idx] == e) return idx;
   }
   error(__FILE__, __LINE__,
@@ -452,12 +452,12 @@ int buildTopLevelEnumStab(void) {
   bool errored = false;
 
   // for each enum in each file, create the enumConstant entries
-  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     FileListEntry *entry = &fileList.entries[fileIdx];
     Vector *bodies = entry->ast->data.file.bodies;
 
     // for each top level
-    for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
+    for (size_t bodyIdx = 0; bodyIdx < bodies->size; ++bodyIdx) {
       Node *body = bodies->elements[bodyIdx];
       // if it's an enum
       if (body->type == NT_ENUMDECL) {
@@ -465,7 +465,7 @@ int buildTopLevelEnumStab(void) {
         Vector *constantValues = &thisEnum->data.enumType.constantValues;
         // for each constant, record it in the graph
         for (size_t constantIdx = 0; constantIdx < constantValues->size;
-             constantIdx++) {
+             ++constantIdx) {
           vectorInsert(&enumConstants, constantValues->elements[constantIdx]);
           vectorInsert(&dependencies, NULL);
         }
@@ -474,14 +474,14 @@ int buildTopLevelEnumStab(void) {
   }
 
   // for each enum in each file
-  for (size_t fileIdx = 0; fileIdx < fileList.size; fileIdx++) {
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     FileListEntry *entry = &fileList.entries[fileIdx];
     Vector *bodies = entry->ast->data.file.bodies;
     Environment env;
     environmentInit(&env, entry);
 
     // for each enum in the file
-    for (size_t bodyIdx = 0; bodyIdx < bodies->size; bodyIdx++) {
+    for (size_t bodyIdx = 0; bodyIdx < bodies->size; ++bodyIdx) {
       Node *body = bodies->elements[bodyIdx];
       if (body->type == NT_ENUMDECL) {
         SymbolTableEntry *thisEnum = body->data.enumDecl.name->data.id.entry;
@@ -489,7 +489,7 @@ int buildTopLevelEnumStab(void) {
 
         // for each constant
         for (size_t constantIdx = 0; constantIdx < constantValues->size;
-             constantIdx++) {
+             ++constantIdx) {
           Node *constantValueNode =
               body->data.enumDecl.constantValues->elements[constantIdx];
           size_t constantEntryIdx = constantEntryFind(
@@ -545,7 +545,7 @@ int buildTopLevelEnumStab(void) {
   }
 
   bool *processed = calloc(enumConstants.size, sizeof(bool));
-  for (size_t startIdx = 0; startIdx < enumConstants.size; startIdx++) {
+  for (size_t startIdx = 0; startIdx < enumConstants.size; ++startIdx) {
     if (!processed[startIdx]) {
       typedef struct PathNode {
         size_t curr;
@@ -644,7 +644,7 @@ static bool checkScopedIdCollisionsBetween(Node *longImport, Node *shortImport,
     if (nameMatch != NULL && nameMatch->kind == SK_ENUM) {
       // FIRSTELM is an enum within the shorter
       for (size_t enumIdx = 0;
-           enumIdx < nameMatch->data.enumType.constantNames.size; enumIdx++) {
+           enumIdx < nameMatch->data.enumType.constantNames.size; ++enumIdx) {
         // for each enum constant, is it in the longFile?
         SymbolTableEntry *colliding = hashMapGet(
             &longFile->ast->data.file.stab,
@@ -684,7 +684,7 @@ static bool checkScopedIdCollisionsWithCurrent(Node *import,
     if (nameMatch != NULL && nameMatch->kind == SK_ENUM) {
       // FIRSTELM is an enum within the import
       for (size_t enumIdx = 0;
-           enumIdx < nameMatch->data.enumType.constantNames.size; enumIdx++) {
+           enumIdx < nameMatch->data.enumType.constantNames.size; ++enumIdx) {
         // for each enum constant, is it in the current module?
         SymbolTableEntry *colliding = hashMapGet(
             &entry->ast->data.file.stab,
@@ -713,7 +713,7 @@ static bool checkScopedIdCollisionsWithCurrent(Node *import,
     if (nameMatch != NULL && nameMatch->kind == SK_ENUM) {
       // FIRSTELM is an enum within the current module
       for (size_t enumIdx = 0;
-           enumIdx < nameMatch->data.enumType.constantNames.size; enumIdx++) {
+           enumIdx < nameMatch->data.enumType.constantNames.size; ++enumIdx) {
         // for each enum constant, is it in the import?
         SymbolTableEntry *colliding = hashMapGet(
             &importFile->ast->data.file.stab,
@@ -747,11 +747,11 @@ void checkScopedIdCollisions(FileListEntry *entry) {
 
   // for each import
   Vector *imports = entry->ast->data.file.imports;
-  for (size_t longIdx = 0; longIdx < imports->size; longIdx++) {
+  for (size_t longIdx = 0; longIdx < imports->size; ++longIdx) {
     Node *longImport = imports->elements[longIdx];
     // search the rest of the list for imports that have all but the last
     // element matching
-    for (size_t shortIdx = 0; shortIdx < imports->size; shortIdx++) {
+    for (size_t shortIdx = 0; shortIdx < imports->size; ++shortIdx) {
       Node *shortImport = imports->elements[shortIdx];
       entry->errored =
           entry->errored || checkScopedIdCollisionsBetween(
@@ -769,17 +769,17 @@ void finishTopLevelStab(FileListEntry *entry) {
   environmentInit(&env, entry);
 
   for (size_t bodyIdx = 0; bodyIdx < entry->ast->data.file.bodies->size;
-       bodyIdx++) {
+       ++bodyIdx) {
     Node *body = entry->ast->data.file.bodies->elements[bodyIdx];
     switch (body->type) {
       case NT_STRUCTDECL: {
         SymbolTableEntry *ste = body->data.structDecl.name->data.id.entry;
         Vector *fields = body->data.structDecl.fields;
-        for (size_t fieldIdx = 0; fieldIdx < fields->size; fieldIdx++) {
+        for (size_t fieldIdx = 0; fieldIdx < fields->size; ++fieldIdx) {
           Node *field = fields->elements[fieldIdx];
           field->data.varDecl.type;
           Vector *names = field->data.varDecl.names;
-          for (size_t idx = 0; idx < names->size; idx++) {
+          for (size_t idx = 0; idx < names->size; ++idx) {
             // TODO: write this
           }
         }

@@ -27,13 +27,13 @@
 void digitChainInit(DigitChain *chain, char const *digits) {
   chain->size = strlen(digits);
   chain->digits = malloc(chain->size * sizeof(uint8_t));
-  for (size_t offset = 1; offset <= chain->size; offset++)
+  for (size_t offset = 1; offset <= chain->size; ++offset)
     chain->digits[offset - 1] =
         (uint8_t)(charToU8(digits[chain->size - offset]) - charToU8('0'));
 }
 uint8_t digitChainMul2(DigitChain *chain) {
   uint8_t carry = 0;
-  for (size_t idx = 0; idx < chain->size; idx++) {
+  for (size_t idx = 0; idx < chain->size; ++idx) {
     uint8_t result = (uint8_t)(chain->digits[idx] * 2 + carry);
     carry = result / 10;
     chain->digits[idx] = result % 10;
@@ -51,8 +51,8 @@ uint8_t digitChainRound(DigitChain *chain, uint8_t evenResult) {
     return 1;
   } else {
     // may be round to even
-    offset++;
-    for (; offset <= chain->size; offset++) {
+    ++offset;
+    for (; offset <= chain->size; ++offset) {
       if (chain->digits[chain->size - offset] != 0) {
         // 0.5...x... - round up
         return 1;
@@ -62,7 +62,7 @@ uint8_t digitChainRound(DigitChain *chain, uint8_t evenResult) {
   }
 }
 bool digitChainIsZero(DigitChain *chain) {
-  for (size_t idx = 0; idx < chain->size; idx++) {
+  for (size_t idx = 0; idx < chain->size; ++idx) {
     if (chain->digits[idx] != 0) return false;
   }
   return true;

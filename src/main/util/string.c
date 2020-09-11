@@ -61,7 +61,7 @@ char *escapeString(char const *input) {
   StringBuilder sb;
   stringBuilderInit(&sb);
 
-  for (char const *curr = input; *curr != '\0'; curr++) {
+  for (char const *curr = input; *curr != '\0'; ++curr) {
     char c = *curr;
     switch (*curr) {
       case '\n': {

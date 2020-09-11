@@ -243,7 +243,7 @@ static void testAllTokens(void) {
   };
   size_t const numTokens = sizeof(types) / sizeof(TokenType);
 
-  for (size_t idx = 0; idx < numTokens; idx++) {
+  for (size_t idx = 0; idx < numTokens; ++idx) {
     Token token;
     lex(&entry, &token);
     if (entry.errored) dropLine();
@@ -304,7 +304,7 @@ static void testErrors(void) {
   };
   size_t const numTokens = sizeof(types) / sizeof(TokenType);
 
-  for (size_t idx = 0; idx < numTokens; idx++) {
+  for (size_t idx = 0; idx < numTokens; ++idx) {
     lex(&entry, &token);
     if (entry.errored) dropLine();
     test("token has expected error flag", entry.errored == errors[idx]);

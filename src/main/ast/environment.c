@@ -30,7 +30,7 @@
 void environmentInit(Environment *env, FileListEntry *currentModuleFile) {
   vectorInit(&env->importFiles);
   for (size_t idx = 0; idx < currentModuleFile->ast->data.file.imports->size;
-       idx++) {
+       ++idx) {
     Node *import = currentModuleFile->ast->data.file.imports->elements[idx];
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
@@ -71,7 +71,7 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
   char const *name = nameNode->data.id.id;
   SymbolTableEntry *matched;
   Vector *scopes = &env->scopes;
-  for (size_t idx = 0; idx < scopes->size; idx++) {
+  for (size_t idx = 0; idx < scopes->size; ++idx) {
     // look at local scopes from last to first
     HashMap *scope = scopes->elements[scopes->size - idx - 1];
     matched = hashMapGet(scope, name);
@@ -90,7 +90,7 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
   SymbolTableEntry **matches =
       malloc(sizeof(SymbolTableEntry *) * imports->size);
   size_t numMatches = 0;
-  for (size_t idx = 0; idx < imports->size; idx++) {
+  for (size_t idx = 0; idx < imports->size; ++idx) {
     FileListEntry *import = imports->elements[idx];
     matched = hashMapGet(&import->ast->data.file.stab, name);
     if (matched != NULL) matches[numMatches++] = matched;
@@ -105,7 +105,7 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
             "%s:%zu:%zu: error: '%s' declared in mutliple imported modules\n",
             env->currentModuleFile->inputFilename, nameNode->line,
             nameNode->character, name);
-    for (size_t idx = 0; idx < numMatches; idx++)
+    for (size_t idx = 0; idx < numMatches; ++idx)
       fprintf(stderr, "%s:%zu:%zu: note: declared here\n",
               matches[idx]->file->inputFilename, matches[idx]->line,
               matches[idx]->character);
@@ -119,7 +119,7 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
 }
 static FileListEntry *environmentFindModule(Environment *env, Node *name,
                                             size_t dropCount) {
-  for (size_t idx = 0; idx < env->importFiles.size; idx++) {
+  for (size_t idx = 0; idx < env->importFiles.size; ++idx) {
     FileListEntry *file = env->importFiles.elements[idx];
     Node *moduleName = file->ast->data.file.module->data.module.id;
     if (nameNodeEqualWithDrop(moduleName, name, dropCount)) return file;

@@ -40,7 +40,7 @@ static void testNormalFloatConversions(void) {
   srand(0);  // keep tests repeatable
 
   bool floatOK = true;
-  for (size_t count = 0; count < 1000; count++) {
+  for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = (uint16_t)(intRand() % 0x100);
     uint64_t mantissa = (uint64_t)(intRand() % 0x1000000);
@@ -49,7 +49,7 @@ static void testNormalFloatConversions(void) {
                          (uint32_t)mantissa;
     float originalValue = bitsToFloat(floatBits);
     if (!isnormal(originalValue)) {  // check for nan and infinities
-      count--;
+      --count;
       continue;
     }
     char *stringValue = format("%.46f", (double)originalValue);
@@ -67,7 +67,7 @@ static void testNormalDoubleConversions(void) {
   srand(0);  // keep tests repeatable
 
   bool doubleOK = true;
-  for (size_t count = 0; count < 1000; count++) {
+  for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = (uint16_t)(intRand() % 0x800);
     uint64_t mantissa = (uint64_t)(longRand() % 0x10000000000000);
@@ -76,7 +76,7 @@ static void testNormalDoubleConversions(void) {
                           (uint64_t)mantissa;
     double originalValue = bitsToDouble(doubleBits);
     if (!isnormal(originalValue)) {  // check for nan and infinities
-      count--;
+      --count;
       continue;
     }
     char *stringValue = format("%.325f", originalValue);
@@ -94,7 +94,7 @@ static void testSubnormalFloatConversions(void) {
   srand(0);
 
   bool floatOK = true;
-  for (size_t count = 0; count < 1000; count++) {
+  for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = 0;
     uint64_t mantissa = (uint64_t)(intRand() % 0x1000000);
@@ -117,7 +117,7 @@ static void testSubnormalFloatConversions(void) {
 static void testSubnormalDoubleConversions(void) {
   srand(0);
   bool doubleOK = true;
-  for (size_t count = 0; count < 1000; count++) {
+  for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = 0;
     uint64_t mantissa = (uint64_t)(longRand() % 0x10000000000000);
@@ -141,13 +141,13 @@ static void testOverflowFloatConversions(void) {
   srand(0);
 
   bool floatOK = true;
-  for (size_t count = 0; count < 1000; count++) {
+  for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
     size_t stringLength = 39 + (unsigned)intRand() % 20;
     char *digits = calloc(stringLength + 1, sizeof(char));
     digits[0] = u8ToChar((uint8_t)(charToU8('1') + intRand() % 9));
-    for (size_t idx = 1; idx < stringLength; idx++)
+    for (size_t idx = 1; idx < stringLength; ++idx)
       digits[idx] = u8ToChar((uint8_t)(charToU8('0') + intRand() % 10));
 
     char *stringValue = format("%c%s.0", sign == 0 ? '+' : '-', digits);
@@ -167,13 +167,13 @@ static void testOverflowDoubleConversions(void) {
   srand(0);
 
   bool floatOK = true;
-  for (size_t count = 0; count < 1000; count++) {
+  for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
     size_t stringLength = 309 + (unsigned)intRand() % 20;
     char *digits = calloc(stringLength + 1, sizeof(char));
     digits[0] = u8ToChar((uint8_t)(charToU8('1') + intRand() % 9));
-    for (size_t idx = 1; idx < stringLength; idx++)
+    for (size_t idx = 1; idx < stringLength; ++idx)
       digits[idx] = u8ToChar((uint8_t)(charToU8('0') + intRand() % 10));
 
     char *stringValue = format("%c%s.0", sign == 0 ? '+' : '-', digits);
@@ -193,7 +193,7 @@ static void testUnderflowFloatConversions(void) {
   srand(0);
 
   bool floatOK = true;
-  for (size_t count = 0; count < 1000; count++) {
+  for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
     size_t zeroLength = 36 + (unsigned)intRand() % 10;
@@ -203,7 +203,7 @@ static void testUnderflowFloatConversions(void) {
     size_t digitLength = 1 + (unsigned)intRand() % 10;
     char *digits = calloc(digitLength + 1, sizeof(char));
     digits[0] = u8ToChar((uint8_t)(charToU8('1') + intRand() % 9));
-    for (size_t idx = 1; idx < digitLength; idx++)
+    for (size_t idx = 1; idx < digitLength; ++idx)
       digits[idx] = u8ToChar((uint8_t)(charToU8('0') + intRand() % 10));
 
     char *stringValue =
@@ -225,7 +225,7 @@ static void testUnderflowDoubleConversions(void) {
   srand(0);
 
   bool doubleOK = true;
-  for (size_t count = 0; count < 1000; count++) {
+  for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
     size_t zeroLength = 306 + (unsigned)intRand() % 20;
@@ -235,7 +235,7 @@ static void testUnderflowDoubleConversions(void) {
     size_t digitLength = 1 + (unsigned)intRand() % 20;
     char *digits = calloc(digitLength + 1, sizeof(char));
     digits[0] = u8ToChar((uint8_t)(charToU8('1') + intRand() % 9));
-    for (size_t idx = 1; idx < digitLength; idx++)
+    for (size_t idx = 1; idx < digitLength; ++idx)
       digits[idx] = u8ToChar((uint8_t)(charToU8('0') + intRand() % 10));
 
     char *stringValue =

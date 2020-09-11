@@ -347,7 +347,7 @@ Node *wcharLiteralNodeCreate(Token *t) {
       }
       case 'u': {
         n->data.literal.value.wcharVal = 0;
-        for (size_t idx = 0; idx < 8; idx++) {
+        for (size_t idx = 0; idx < 8; ++idx) {
           n->data.literal.value.wcharVal <<= 4;
           n->data.literal.value.wcharVal += nybbleToU8(string[idx + 2]);
         }
@@ -376,9 +376,9 @@ Node *stringLiteralNodeCreate(Token *t) {
 
   TStringBuilder sb;
   tstringBuilderInit(&sb);
-  for (char *string = t->string; *string != '\0'; string++) {
+  for (char *string = t->string; *string != '\0'; ++string) {
     if (*string == '\\') {
-      string++;
+      ++string;
       // escape sequence
       switch (*string) {
         case 'n': {
@@ -434,9 +434,9 @@ Node *wstringLiteralNodeCreate(Token *t) {
 
   TWStringBuilder sb;
   twstringBuilderInit(&sb);
-  for (char *string = t->string; *string != '\0'; string++) {
+  for (char *string = t->string; *string != '\0'; ++string) {
     if (*string == '\\') {
-      string++;
+      ++string;
       // escape sequence
       switch (*string) {
         case 'n': {
@@ -468,7 +468,7 @@ Node *wstringLiteralNodeCreate(Token *t) {
         }
         case 'u': {
           uint32_t value = 0;
-          for (size_t idx = 0; idx < 8; idx++, string++) {
+          for (size_t idx = 0; idx < 8; ++idx, ++string) {
             value <<= 4;
             value += nybbleToU8(*string);
           }
@@ -626,7 +626,7 @@ char *stringifyId(Node *id) {
       Vector const *components = id->data.scopedId.components;
       Node const *first = components->elements[0];
       char *stringified = strdup(first->data.id.id);
-      for (size_t idx = 1; idx < components->size; idx++) {
+      for (size_t idx = 1; idx < components->size; ++idx) {
         char *old = stringified;
         Node const *component = components->elements[idx];
         stringified = format("%s::%s", old, component->data.id.id);
@@ -782,7 +782,7 @@ Type *nodeToType(Node *n, Environment *env) {
 
       Type *retval = funPtrTypeCreate(inner);
 
-      for (size_t idx = 0; idx < n->data.funPtrType.argTypes->size; idx++) {
+      for (size_t idx = 0; idx < n->data.funPtrType.argTypes->size; ++idx) {
         Type *argType =
             nodeToType(n->data.funPtrType.argTypes->elements[idx], env);
         if (argType == NULL) {
@@ -848,7 +848,7 @@ bool nameNodeEqual(Node *a, Node *b) {
     if (a->data.scopedId.components->size != b->data.scopedId.components->size)
       return false;
 
-    for (size_t idx = 0; idx < a->data.scopedId.components->size; idx++) {
+    for (size_t idx = 0; idx < a->data.scopedId.components->size; ++idx) {
       Node *aComponent = a->data.scopedId.components->elements[idx];
       Node *bComponent = b->data.scopedId.components->elements[idx];
       if (strcmp(aComponent->data.id.id, bComponent->data.id.id) != 0)
@@ -871,7 +871,7 @@ bool nameNodeEqualWithDrop(Node *a, Node *b, size_t dropCount) {
   } else {
     if (a->data.scopedId.components->size != compareLength) return false;
 
-    for (size_t idx = 0; idx < compareLength; idx++) {
+    for (size_t idx = 0; idx < compareLength; ++idx) {
       Node *aComponent = a->data.scopedId.components->elements[idx];
       Node *bComponent = b->data.scopedId.components->elements[idx];
       if (strcmp(aComponent->data.id.id, bComponent->data.id.id) != 0)

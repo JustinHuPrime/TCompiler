@@ -40,7 +40,7 @@
  * @returns whether any argument in argv is "--version"
  */
 static bool versionRequested(size_t argc, char **argv) {
-  for (size_t idx = 1; idx < argc; idx++) {
+  for (size_t idx = 1; idx < argc; ++idx) {
     if (strcmp(argv[idx], "--version") == 0) {
       return true;
     }
@@ -55,7 +55,7 @@ static bool versionRequested(size_t argc, char **argv) {
  * @returns whether any argument in argv is asking for help
  */
 static bool helpRequested(size_t argc, char **argv) {
-  for (size_t idx = 1; idx < argc; idx++) {
+  for (size_t idx = 1; idx < argc; ++idx) {
     if (strcmp(argv[idx], "--help") == 0 || strcmp(argv[idx], "-h") == 0 ||
         strcmp(argv[idx], "-?") == 0) {
       return true;
@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
   // debug-dump stop for lexing
   if (options.dump == OPTION_DD_LEX) {
     lexerInitMaps();
-    for (size_t idx = 0; idx < fileList.size; idx++)
+    for (size_t idx = 0; idx < fileList.size; ++idx)
       lexDump(&fileList.entries[idx]);
     lexerUninitMaps();
   }

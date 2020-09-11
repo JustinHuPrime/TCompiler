@@ -44,6 +44,6 @@ void vectorInsert(Vector *vector, void *element) {
   vector->elements[vector->size++] = element;
 }
 void vectorUninit(Vector *vector, void (*dtor)(void *)) {
-  for (size_t idx = 0; idx < vector->size; idx++) dtor(vector->elements[idx]);
+  for (size_t idx = 0; idx < vector->size; ++idx) dtor(vector->elements[idx]);
   free(vector->elements);
 }

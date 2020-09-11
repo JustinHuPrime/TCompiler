@@ -45,21 +45,21 @@ static void testBigIntegerInit(void) {
 static void testBigIntegerArithmetic(void) {
   srand(0);  // make test deterministic
 
-  for (size_t count = 0; count < 1000; count++) {
+  for (size_t count = 0; count < 1000; ++count) {
     BigInteger integer;
     bigIntInit(&integer);
 
     uint64_t number = longRand();
     char *numberString = format("%lu", number);
 
-    for (char *curr = numberString; *curr != '\0'; curr++) {
+    for (char *curr = numberString; *curr != '\0'; ++curr) {
       bigIntMul(&integer, 10);
       bigIntAdd(&integer, (uint8_t)(charToU8(*curr) - charToU8('0')));
     }
     free(numberString);
 
     size_t nbits = 0;
-    for (uint64_t copy = number; copy != 0; copy >>= 1) nbits++;
+    for (uint64_t copy = number; copy != 0; copy >>= 1) ++nbits;
 
     uint64_t fromBigInt = bigIntGetNBits(&integer, nbits);
     test("bigInteger has the right calculated bits", number == fromBigInt);
@@ -72,7 +72,7 @@ static size_t countBits(uint64_t n) {
   size_t count = 0;
   while (n != 0) {
     n >>= 1;
-    count++;
+    ++count;
   }
   return count;
 }
@@ -80,7 +80,7 @@ static size_t countBits(uint64_t n) {
 static void testBigIntegerRounding(void) {
   srand(0);  // deterministic tests
 
-  for (size_t count = 0; count < 1000; count++) {
+  for (size_t count = 0; count < 1000; ++count) {
     BigInteger integer;
     bigIntInit(&integer);
 

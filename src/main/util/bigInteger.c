@@ -57,7 +57,7 @@ static void bigIntClearBitAtIndex(BigInteger *integer, size_t idx) {
  */
 static void bigIntAddOneToBit(BigInteger *integer, size_t n) {
   uint64_t carry = 1UL << (n % 32);
-  for (size_t idx = n / 32; idx < integer->size; idx++) {
+  for (size_t idx = n / 32; idx < integer->size; ++idx) {
     uint64_t digitResult = (uint64_t)integer->digits[idx] + carry;
     integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
     carry = digitResult / 0x100000000;
@@ -77,7 +77,7 @@ void bigIntInit(BigInteger *integer) {
 
 void bigIntMul(BigInteger *integer, uint64_t n) {
   uint64_t carry = 0;
-  for (size_t idx = 0; idx < integer->size; idx++) {
+  for (size_t idx = 0; idx < integer->size; ++idx) {
     uint64_t digitResult = (uint64_t)integer->digits[idx] * n + carry;
     integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
     carry = digitResult / 0x100000000;
@@ -89,7 +89,7 @@ void bigIntMul(BigInteger *integer, uint64_t n) {
 
 void bigIntAdd(BigInteger *integer, uint64_t n) {
   uint64_t carry = n;
-  for (size_t idx = 0; idx < integer->size; idx++) {
+  for (size_t idx = 0; idx < integer->size; ++idx) {
     uint64_t digitResult = (uint64_t)integer->digits[idx] + carry;
     integer->digits[idx] = (uint32_t)(digitResult % 0x100000000);
     carry = digitResult / 0x100000000;
@@ -103,7 +103,7 @@ size_t bigIntCountSigBits(BigInteger *integer) {
   if (integer->size == 0) return 0;
   size_t count = 32 * (integer->size - 1);
   for (uint32_t msd = integer->digits[integer->size - 1]; msd != 0; msd >>= 1)
-    count++;
+    ++count;
   return count;
 }
 
@@ -122,7 +122,7 @@ void bigIntRoundToN(BigInteger *integer, size_t n) {
   if (firstBit == 0) {
     // if following digits are all zeroes, then no rounding, otherwise round
     // down
-    for (size_t offset = 1; offset <= cutoffIndex; offset++) {
+    for (size_t offset = 1; offset <= cutoffIndex; ++offset) {
       if (bigIntGetBitAtIndex(integer, cutoffIndex - offset) == 1) {
         // round down
         integer->roundingErrorSign = -1;
@@ -131,7 +131,7 @@ void bigIntRoundToN(BigInteger *integer, size_t n) {
   } else {
     // may be a round to even
     bool rounded = false;
-    for (size_t offset = 1; offset <= cutoffIndex; offset++) {
+    for (size_t offset = 1; offset <= cutoffIndex; ++offset) {
       if (bigIntGetBitAtIndex(integer, cutoffIndex - offset) != 0) {
         // 0b...1...1... - round up
         integer->roundingErrorSign = 1;
@@ -164,14 +164,14 @@ void bigIntRoundToN(BigInteger *integer, size_t n) {
   }
 
   // zero out the bits
-  for (size_t idx = 0; idx <= cutoffIndex; idx++)
+  for (size_t idx = 0; idx <= cutoffIndex; ++idx)
     bigIntClearBitAtIndex(integer, idx);
 }
 
 uint64_t bigIntGetNBits(BigInteger *integer, size_t n) {
   uint64_t retval = 0x0;
   size_t start = bigIntCountSigBits(integer) - 1;
-  for (size_t offset = 0; offset < n; offset++) {
+  for (size_t offset = 0; offset < n; ++offset) {
     retval <<= 1;
     retval |= bigIntGetBitAtIndex(integer, start - offset);
   }

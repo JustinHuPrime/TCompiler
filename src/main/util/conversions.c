@@ -132,7 +132,7 @@ int binaryToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut) {
 
   // get value
   uint64_t magnitude = 0;
-  for (; *string != '\0'; string++) {
+  for (; *string != '\0'; ++string) {
     uint64_t oldMagnitude = magnitude;
     magnitude *= 2;
     magnitude += (uint8_t)(charToU8(*string) - charToU8('0'));
@@ -174,7 +174,7 @@ int octalToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut) {
 
   // get value
   uint64_t magnitude = 0;
-  for (; *string != '\0'; string++) {
+  for (; *string != '\0'; ++string) {
     uint64_t oldMagnitude = magnitude;
     magnitude *= 8;
     magnitude += (uint8_t)(charToU8(*string) - charToU8('0'));
@@ -213,7 +213,7 @@ int decimalToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut) {
 
   // get value
   uint64_t magnitude = 0;
-  for (; *string != '\0'; string++) {
+  for (; *string != '\0'; ++string) {
     uint64_t oldMagnitude = magnitude;
     magnitude *= 10;
     magnitude += (uint8_t)(charToU8(*string) - charToU8('0'));
@@ -255,7 +255,7 @@ int hexadecimalToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut) {
 
   // get value
   uint64_t magnitude = 0;
-  for (; *string != '\0'; string++) {
+  for (; *string != '\0'; ++string) {
     uint64_t oldMagnitude = magnitude;
     magnitude *= 16;
     magnitude += nybbleToU8(*string);
@@ -279,7 +279,7 @@ static uint64_t floatOrDoubleStringToBits(
     case '-': {
       // negative
       sign = -1;
-      string++;
+      ++string;
       break;
     }
     default: {
@@ -288,7 +288,7 @@ static uint64_t floatOrDoubleStringToBits(
         sign = 1;
       } else if (string[0] == '+') {
         sign = 1;
-        string++;
+        ++string;
       } else {
         error(__FILE__, __LINE__,
               "invalid float literal passed to floatStringToBits");
@@ -298,7 +298,7 @@ static uint64_t floatOrDoubleStringToBits(
   }
   // may be a zero - stop here if it is
   bool isZero = true;
-  for (char const *scan = string; *scan != '\0'; scan++) {
+  for (char const *scan = string; *scan != '\0'; ++scan) {
     if (*scan != '0' && *scan != '.') {
       isZero = false;
       break;
@@ -315,11 +315,11 @@ static uint64_t floatOrDoubleStringToBits(
   BigInteger mantissa;
   bigIntInit(&mantissa);
 
-  for (; *string != '.'; string++) {
+  for (; *string != '.'; ++string) {
     bigIntMul(&mantissa, 10);
     bigIntAdd(&mantissa, (uint8_t)(charToU8(*string) - charToU8('0')));
   }
-  string++;  // skip the dot
+  ++string;  // skip the dot
 
   if (bigIntCountSigBits(&mantissa) > mantissaBits) {
     // has mantissaBits or more significant (non-leading-zero) bits set
@@ -329,8 +329,8 @@ static uint64_t floatOrDoubleStringToBits(
     if (firstDigit == 0) {
       // if following digits are all zeroes, then no rounding, otherwise round
       // down
-      string++;
-      for (; *string != '\0'; string++) {
+      ++string;
+      for (; *string != '\0'; ++string) {
         uint8_t digit = (uint8_t)(charToU8(*string) - charToU8('0'));
         if (digit != 0) {
           // round down
@@ -347,8 +347,8 @@ static uint64_t floatOrDoubleStringToBits(
       mantissa.roundingErrorSign = 1;
     } else {
       // may be a round to even
-      string++;
-      for (; *string != '\0'; string++) {
+      ++string;
+      for (; *string != '\0'; ++string) {
         uint8_t digit = (uint8_t)(charToU8(*string) - charToU8('0'));
         if (digit != 0) {
           // 0.5...x... - round up
@@ -387,7 +387,7 @@ static uint64_t floatOrDoubleStringToBits(
       bigIntMul(&mantissa, 2);
       uint8_t digit = digitChainMul2(&chain);
       bigIntAdd(&mantissa, digit);
-      if (bigIntIsZero(&mantissa)) exponent--;
+      if (bigIntIsZero(&mantissa)) --exponent;
     }
 
     // round off the rest of the fractional part

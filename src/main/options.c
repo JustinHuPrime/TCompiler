@@ -32,10 +32,10 @@ Options options = {
 int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
   size_t numFiles = 0;
 
-  for (size_t idx = 1; idx < argc; idx++) {
+  for (size_t idx = 1; idx < argc; ++idx) {
     if (argv[idx][0] != '-') {
       // not an option
-      numFiles++;
+      ++numFiles;
     } else if (strcmp(argv[idx], "--") == 0) {
       // remaining options are all files
       numFiles += argc - idx - 1;

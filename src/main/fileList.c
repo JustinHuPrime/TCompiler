@@ -44,7 +44,7 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
 
   // read the args
   bool allFiles = false;
-  for (size_t idx = 1; idx < argc; idx++) {
+  for (size_t idx = 1; idx < argc; ++idx) {
     if (argv[idx][0] != '-' || allFiles) {
       // not an option, deal with the file
       size_t length = strlen(argv[idx]);
@@ -78,7 +78,7 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
       if (recognized) {
         // search for duplicates
         bool duplicate = false;
-        for (size_t searchIdx = 0; searchIdx < fileList.size; searchIdx++) {
+        for (size_t searchIdx = 0; searchIdx < fileList.size; ++searchIdx) {
           if (strcmp(argv[idx], fileList.entries[searchIdx].inputFilename) ==
               0) {
             duplicate = true;
@@ -103,7 +103,7 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
         } else {
           fileListEntryInit(fileList.entries + fileList.size, argv[idx],
                             isCode);
-          fileList.size++;
+          ++fileList.size;
         }
       }
     } else if (strcmp(argv[idx], "--") == 0) {
@@ -117,7 +117,7 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
 
   // need at least one code file
   bool noCodes = true;
-  for (size_t idx = 0; idx < fileList.size; idx++) {
+  for (size_t idx = 0; idx < fileList.size; ++idx) {
     if (fileList.entries[idx].isCode) {
       noCodes = false;
       break;
@@ -132,7 +132,7 @@ int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {
 }
 
 FileListEntry *fileListFindDeclName(Node *name) {
-  for (size_t idx = 0; idx < fileList.size; idx++) {
+  for (size_t idx = 0; idx < fileList.size; ++idx) {
     if (!fileList.entries[idx].isCode &&
         nameNodeEqual(
             name,

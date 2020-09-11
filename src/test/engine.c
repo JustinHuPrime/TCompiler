@@ -34,11 +34,11 @@ int testStatusStatus(void) {
 }
 void test(char const *name, bool condition) {
   if (condition) {
-    status.numTests++;
-    status.numPassed++;
+    ++status.numTests;
+    ++status.numPassed;
   } else {
     printf("\x1B[1;91mFAILED: %s\x1B[m\n", name);
-    status.numTests++;
+    ++status.numTests;
   }
 }
 void dropLine(void) { fprintf(stderr, "\x1B[1A\x1B[2K"); }

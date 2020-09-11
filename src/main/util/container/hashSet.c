@@ -58,7 +58,7 @@ int hashSetPut(HashSet *set, char const *s) {
 
   if (set->elements[hash] == NULL) {
     set->elements[hash] = s;
-    set->size++;
+    ++set->size;
     return 0;                                        // empty spot
   } else if (strcmp(set->elements[hash], s) != 0) {  // collision
     uint64_t hash2 = djb2add(s) + 1;
@@ -66,7 +66,7 @@ int hashSetPut(HashSet *set, char const *s) {
          idx = (idx + hash2) % set->capacity) {
       if (set->elements[idx] == NULL) {  // empty spot
         set->elements[idx] = s;
-        set->size++;
+        ++set->size;
         return 0;
       } else if (strcmp(set->elements[idx], s) == 0) {  // already in there
         return -1;
@@ -78,7 +78,7 @@ int hashSetPut(HashSet *set, char const *s) {
     set->elements = calloc(set->capacity, sizeof(char const *));
     set->elements = malloc(set->capacity * sizeof(void *));  // resize the set
     set->size = 0;
-    for (size_t idx = 0; idx < oldSize; idx++) {
+    for (size_t idx = 0; idx < oldSize; ++idx) {
       if (oldElements[idx] != NULL) hashSetPut(set, oldElements[idx]);
     }
     free(oldElements);

@@ -85,14 +85,14 @@ Type *typeCopy(Type *t) {
     }
     case TK_FUNPTR: {
       Type *copy = funPtrTypeCreate(typeCopy(t->data.funPtr.returnType));
-      for (size_t idx = 0; idx < t->data.funPtr.argTypes.size; idx++)
+      for (size_t idx = 0; idx < t->data.funPtr.argTypes.size; ++idx)
         vectorInsert(&copy->data.funPtr.argTypes,
                      typeCopy(t->data.funPtr.argTypes.elements[idx]));
       return copy;
     }
     case TK_AGGREGATE: {
       Type *copy = aggregateTypeCreate();
-      for (size_t idx = 0; idx < t->data.aggregate.types.size; idx++)
+      for (size_t idx = 0; idx < t->data.aggregate.types.size; ++idx)
         vectorInsert(&copy->data.funPtr.argTypes,
                      typeCopy(t->data.aggregate.types.elements[idx]));
       return copy;
@@ -204,7 +204,7 @@ SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
 SymbolTableEntry *enumLookupEnumConst(SymbolTableEntry *enumEntry,
                                       char const *name) {
   for (size_t idx = 0; idx < enumEntry->data.enumType.constantNames.size;
-       idx++) {
+       ++idx) {
     if (strcmp(enumEntry->data.enumType.constantNames.elements[idx], name) == 0)
       return enumEntry->data.enumType.constantValues.elements[idx];
   }

@@ -1325,11 +1325,11 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
     lex(entry, token);
     switch (token->type) {
       case TT_LBRACE: {
-        levels++;
+        ++levels;
         break;
       }
       case TT_RBRACE: {
-        levels--;
+        --levels;
         break;
       }
       default: {

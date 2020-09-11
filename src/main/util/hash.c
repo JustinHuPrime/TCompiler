@@ -21,20 +21,18 @@
 
 uint64_t djb2xor(char const *s) {
   uint64_t hash = 5381;
-  while (*s != '\0') {
+  for (; *s != '\0'; ++s) {
     hash *= 33;
     hash ^= (uint64_t)*s;
-    s++;
   }
   return hash;
 }
 
 uint64_t djb2add(char const *s) {
   uint64_t hash = 5381;
-  while (*s != '\0') {
+  for (; *s != '\0'; ++s) {
     hash *= 33;
     hash += (uint64_t)*s;
-    s++;
   }
   return hash;
 }

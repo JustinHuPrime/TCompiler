@@ -81,7 +81,7 @@ int parse(void) {
 
   // pass 1 - parse top level stuff, without populating symbol tables
   lexerInitMaps();
-  for (size_t idx = 0; idx < fileList.size; idx++) {
+  for (size_t idx = 0; idx < fileList.size; ++idx) {
     retval = lexerStateInit(&fileList.entries[idx]);
     if (retval != 0) {
       errored = true;
@@ -100,13 +100,13 @@ int parse(void) {
   if (resolveImports() != 0) return -1;
 
   // pass 3 - populate stab for types and enums
-  for (size_t idx = 0; idx < fileList.size; idx++) {
+  for (size_t idx = 0; idx < fileList.size; ++idx) {
     if (!fileList.entries[idx].isCode) {
       startTopLevelStab(&fileList.entries[idx]);
       errored = errored || fileList.entries[idx].errored;
     }
   }
-  for (size_t idx = 0; idx < fileList.size; idx++) {
+  for (size_t idx = 0; idx < fileList.size; ++idx) {
     if (fileList.entries[idx].isCode) {
       startTopLevelStab(&fileList.entries[idx]);
       errored = errored || fileList.entries[idx].errored;
@@ -115,7 +115,7 @@ int parse(void) {
   if (errored) return -1;
 
   // pass 4 - check for scoped id collisions between imports
-  for (size_t idx = 0; idx < fileList.size; idx++) {
+  for (size_t idx = 0; idx < fileList.size; ++idx) {
     checkScopedIdCollisions(&fileList.entries[idx]);
     errored = errored || fileList.entries[idx].errored;
   }
