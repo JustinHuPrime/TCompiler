@@ -19,14 +19,14 @@
 
 #include "util/conversions.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "internalError.h"
 #include "numericSizing.h"
 #include "optimization.h"
 #include "util/bigInteger.h"
 #include "util/digitChain.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 uint8_t charToU8(char c) {
   union {

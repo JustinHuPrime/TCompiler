@@ -19,13 +19,13 @@
 
 #include "ast/environment.h"
 
-#include "ast/ast.h"
-#include "fileList.h"
-#include "util/functional.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "ast/ast.h"
+#include "fileList.h"
+#include "util/functional.h"
 
 void environmentInit(Environment *env, FileListEntry *currentModuleFile) {
   vectorInit(&env->importFiles);

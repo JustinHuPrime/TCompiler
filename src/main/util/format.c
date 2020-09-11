@@ -20,12 +20,13 @@
 // Implementation of formatted string building
 
 #include "util/format.h"
-#include "internalError.h"
 
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "internalError.h"
 
 char *format(char const *format, ...) {
   va_list args1, args2;

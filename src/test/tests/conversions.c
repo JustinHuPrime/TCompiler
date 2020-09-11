@@ -24,15 +24,15 @@
 
 #include "util/conversions.h"
 
-#include "engine.h"
-#include "tests.h"
-#include "util/format.h"
-#include "util/random.h"
-
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include "engine.h"
+#include "tests.h"
+#include "util/format.h"
+#include "util/random.h"
 
 char *ignored;
 

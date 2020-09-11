@@ -19,10 +19,10 @@
 
 #include "util/digitChain.h"
 
-#include "util/conversions.h"
-
 #include <stdlib.h>
 #include <string.h>
+
+#include "util/conversions.h"
 
 void digitChainInit(DigitChain *chain, char const *digits) {
   chain->size = strlen(digits);

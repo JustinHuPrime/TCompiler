@@ -21,10 +21,10 @@
 
 #include "util/container/stringBuilder.h"
 
-#include "optimization.h"
-
 #include <stdlib.h>
 #include <string.h>
+
+#include "optimization.h"
 
 void stringBuilderInit(StringBuilder *sb) {
   sb->size = 0;

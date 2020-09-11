@@ -21,12 +21,12 @@
 
 #include "ast/symbolTable.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "fileList.h"
 #include "internalError.h"
 #include "util/functional.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 void stabUninit(HashMap *stab) {
   hashMapUninit(stab, (void (*)(void *))stabEntryFree);
@@ -100,7 +100,9 @@ Type *typeCopy(Type *t) {
     case TK_REFERENCE: {
       return referenceTypeCreate(t->data.reference.entry);
     }
-    default: { error(__FILE__, __LINE__, "bad type given to typeCopy"); }
+    default: {
+      error(__FILE__, __LINE__, "bad type given to typeCopy");
+    }
   }
 }
 void typeFree(Type *t) {
@@ -245,7 +247,9 @@ void stabEntryFree(SymbolTableEntry *e) {
                    (void (*)(void *))overloadSetEntryFree);
       break;
     }
-    default: { break; }
+    default: {
+      break;
+    }
   }
   free(e);
 }

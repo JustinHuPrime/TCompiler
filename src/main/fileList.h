@@ -25,12 +25,12 @@
 #ifndef TLC_FILE_LIST_H_
 #define TLC_FILE_LIST_H_
 
+#include <stdbool.h>
+#include <stddef.h>
+
 #include "ast/ast.h"
 #include "lexer/lexer.h"
 #include "util/container/hashMap.h"
-
-#include <stdbool.h>
-#include <stddef.h>
 
 /** an entry in the filelist */
 typedef struct FileListEntry {

@@ -21,11 +21,11 @@
 
 #include "util/container/hashMap.h"
 
-#include "optimization.h"
-#include "util/hash.h"
-
 #include <stdlib.h>
 #include <string.h>
+
+#include "optimization.h"
+#include "util/hash.h"
 
 void hashMapInit(HashMap *map) {
   map->size = 0;

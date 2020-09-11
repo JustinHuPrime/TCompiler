@@ -60,8 +60,8 @@ void checkScopedIdCollisions(FileListEntry *entry);
 
 /**
  * completes the symbol table for entries at the top level
- * 
- * @param entry entry to prcess 
+ *
+ * @param entry entry to prcess
  */
 void finishTopLevelStab(FileListEntry *entry);
 

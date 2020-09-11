@@ -19,11 +19,11 @@
 
 #include "util/container/hashSet.h"
 
-#include "optimization.h"
-#include "util/hash.h"
-
 #include <stdlib.h>
 #include <string.h>
+
+#include "optimization.h"
+#include "util/hash.h"
 
 void hashSetInit(HashSet *set) {
   set->size = 0;

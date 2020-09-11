@@ -22,14 +22,13 @@
  * tests for command line arguments
  */
 
-#include "fileList.h"
-
-#include "engine.h"
-#include "options.h"
-#include "tests.h"
-
 #include <stdlib.h>
 #include <string.h>
+
+#include "engine.h"
+#include "fileList.h"
+#include "options.h"
+#include "tests.h"
 
 static void testNumFilesCounting(void) {
   size_t argc;

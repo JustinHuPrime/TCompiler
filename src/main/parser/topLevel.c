@@ -19,10 +19,10 @@
 
 #include "parser/topLevel.h"
 
-#include "util/conversions.h"
-
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "util/conversions.h"
 
 // utility functions and data
 
@@ -1332,7 +1332,9 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
         levels--;
         break;
       }
-      default: { break; }
+      default: {
+        break;
+      }
     }
     vectorInsert(tokens, token);
   }

@@ -19,11 +19,11 @@
 
 #include "fileList.h"
 
-#include "options.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "options.h"
 
 FileList fileList;
 

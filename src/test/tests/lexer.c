@@ -24,12 +24,12 @@
 
 #include "lexer/lexer.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "engine.h"
 #include "fileList.h"
 #include "tests.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 static void testAllTokens(void) {
   FileListEntry entry;  // forge the entry

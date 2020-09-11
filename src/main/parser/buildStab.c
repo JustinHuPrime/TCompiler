@@ -19,6 +19,10 @@
 
 #include "parser/buildStab.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "ast/ast.h"
 #include "ast/environment.h"
 #include "fileList.h"
@@ -29,10 +33,6 @@
 #include "util/container/vector.h"
 #include "util/format.h"
 #include "util/functional.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 static bool fileListEntryArrayContains(FileListEntry **arry, size_t size,
                                        FileListEntry *f) {

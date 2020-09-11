@@ -19,6 +19,9 @@
 
 #include "ast/ast.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "fileList.h"
 #include "internalError.h"
 #include "lexer/lexer.h"
@@ -26,9 +29,6 @@
 #include "util/container/stringBuilder.h"
 #include "util/conversions.h"
 #include "util/format.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 /**
  * create a partially initialized node
@@ -638,7 +638,9 @@ char *stringifyId(Node *id) {
     case NT_ID: {
       return strdup(id->data.id.id);
     }
-    default: { error(__FILE__, __LINE__, "attempted to stringify non-id"); }
+    default: {
+      error(__FILE__, __LINE__, "attempted to stringify non-id");
+    }
   }
 }
 
@@ -831,7 +833,9 @@ Type *nodeToType(Node *n, Environment *env) {
         }
       }
     }
-    default: { error(__FILE__, __LINE__, "non-type node encountered"); }
+    default: {
+      error(__FILE__, __LINE__, "non-type node encountered");
+    }
   }
 }
 
@@ -1053,7 +1057,9 @@ void nodeUninit(Node *n) {
           nodeVectorFree(n->data.literal.value.aggregateInitVal);
           break;
         }
-        default: { break; }
+        default: {
+          break;
+        }
       }
       break;
     }

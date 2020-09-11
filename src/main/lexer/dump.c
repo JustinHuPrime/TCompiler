@@ -21,10 +21,10 @@
 
 #include "lexer/dump.h"
 
+#include <stdio.h>
+
 #include "fileList.h"
 #include "lexer/lexer.h"
-
-#include <stdio.h>
 
 static char const *const TOKEN_NAMES[] = {
     "EOF",

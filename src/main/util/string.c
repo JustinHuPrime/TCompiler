@@ -19,11 +19,11 @@
 
 #include "util/string.h"
 
+#include <string.h>
+
 #include "util/container/stringBuilder.h"
 #include "util/conversions.h"
 #include "util/format.h"
-
-#include <string.h>
 
 char *escapeChar(char c) {
   switch (c) {

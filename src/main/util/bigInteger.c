@@ -19,9 +19,9 @@
 
 #include "util/bigInteger.h"
 
-#include "optimization.h"
-
 #include <stdlib.h>
+
+#include "optimization.h"
 
 /**
  * adds a digit to the BigInteger initialized to zero

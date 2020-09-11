@@ -21,9 +21,9 @@
 
 #include "util/container/vector.h"
 
-#include "optimization.h"
-
 #include <stdlib.h>
+
+#include "optimization.h"
 
 void vectorInit(Vector *vector) {
   vector->size = 0;

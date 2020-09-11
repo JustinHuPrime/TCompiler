@@ -1,5 +1,5 @@
 /tlc
 /tlc-test
-/bin/
-/dependencies/
-/docs/
+/bin
+/dependencies
+/docs

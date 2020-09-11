@@ -25,10 +25,10 @@
 #ifndef TLC_LEXER_LEXER_H_
 #define TLC_LEXER_LEXER_H_
 
-#include "util/container/hashMap.h"
-
 #include <stdbool.h>
 #include <stddef.h>
+
+#include "util/container/hashMap.h"
 
 typedef struct FileListEntry FileListEntry;
 

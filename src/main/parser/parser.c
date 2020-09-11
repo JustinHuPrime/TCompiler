@@ -127,6 +127,8 @@ int parse(void) {
 
   // pass 6 - fill in stab for types
 
+  // TODO: write this
+
   // pass 7 - parse unparsed nodes, writing the symbol table as we go -
   // entries are filled in
 

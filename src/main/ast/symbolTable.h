@@ -25,10 +25,10 @@
 #ifndef TLC_AST_SYMBOLTABLE_H_
 #define TLC_AST_SYMBOLTABLE_H_
 
+#include <stdbool.h>
+
 #include "util/container/hashMap.h"
 #include "util/container/vector.h"
-
-#include <stdbool.h>
 
 typedef struct FileListEntry FileListEntry;
 

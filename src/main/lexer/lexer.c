@@ -19,15 +19,6 @@
 
 #include "lexer/lexer.h"
 
-#include "fileList.h"
-#include "internalError.h"
-#include "util/container/stringBuilder.h"
-#include "util/conversions.h"
-#include "util/format.h"
-#include "util/functional.h"
-#include "util/string.h"
-#include "version.h"
-
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -37,6 +28,15 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include "fileList.h"
+#include "internalError.h"
+#include "util/container/stringBuilder.h"
+#include "util/conversions.h"
+#include "util/format.h"
+#include "util/functional.h"
+#include "util/string.h"
+#include "version.h"
 
 /**
  * initializes a token

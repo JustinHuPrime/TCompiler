@@ -19,6 +19,11 @@
 
 // Compiles code modules into assembly files, guided by decl modules
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "fileList.h"
 #include "internalError.h"
 #include "lexer/dump.h"
@@ -26,11 +31,6 @@
 #include "options.h"
 #include "parser/parser.h"
 #include "version.h"
-
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 /**
  * determines if any argument in argv is "--version"

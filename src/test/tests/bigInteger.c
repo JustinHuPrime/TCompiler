@@ -24,13 +24,13 @@
 
 #include "util/bigInteger.h"
 
+#include <stdlib.h>
+
 #include "engine.h"
 #include "tests.h"
 #include "util/conversions.h"
 #include "util/format.h"
 #include "util/random.h"
-
-#include <stdlib.h>
 
 static void testBigIntegerInit(void) {
   BigInteger integer;
