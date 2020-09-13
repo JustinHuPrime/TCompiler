@@ -271,32 +271,32 @@ Node *charLiteralNodeCreate(Token *t) {
     // escape sequence
     switch (string[1]) {
       case 'n': {
-        n->data.literal.value.charVal = charToU8('\n');
+        n->data.literal.data.charVal = charToU8('\n');
         break;
       }
       case 'r': {
-        n->data.literal.value.charVal = charToU8('\r');
+        n->data.literal.data.charVal = charToU8('\r');
         break;
       }
       case 't': {
-        n->data.literal.value.charVal = charToU8('\t');
+        n->data.literal.data.charVal = charToU8('\t');
         break;
       }
       case '0': {
-        n->data.literal.value.charVal = charToU8('\0');
+        n->data.literal.data.charVal = charToU8('\0');
         break;
       }
       case '\\': {
-        n->data.literal.value.charVal = charToU8('\\');
+        n->data.literal.data.charVal = charToU8('\\');
         break;
       }
       case 'x': {
-        n->data.literal.value.charVal = (uint8_t)((nybbleToU8(string[2]) << 4) +
-                                                  (nybbleToU8(string[3]) << 0));
+        n->data.literal.data.charVal = (uint8_t)((nybbleToU8(string[2]) << 4) +
+                                                 (nybbleToU8(string[3]) << 0));
         break;
       }
       case '\'': {
-        n->data.literal.value.charVal = charToU8('\'');
+        n->data.literal.data.charVal = charToU8('\'');
         break;
       }
       default: {
@@ -306,7 +306,7 @@ Node *charLiteralNodeCreate(Token *t) {
     }
   } else {
     // not an escape statement
-    n->data.literal.value.charVal = charToU8(string[0]);
+    n->data.literal.data.charVal = charToU8(string[0]);
   }
 
   tokenUninit(t);
@@ -321,40 +321,40 @@ Node *wcharLiteralNodeCreate(Token *t) {
     // escape sequence
     switch (string[1]) {
       case 'n': {
-        n->data.literal.value.wcharVal = charToU8('\n');
+        n->data.literal.data.wcharVal = charToU8('\n');
         break;
       }
       case 'r': {
-        n->data.literal.value.wcharVal = charToU8('\r');
+        n->data.literal.data.wcharVal = charToU8('\r');
         break;
       }
       case 't': {
-        n->data.literal.value.wcharVal = charToU8('\t');
+        n->data.literal.data.wcharVal = charToU8('\t');
         break;
       }
       case '0': {
-        n->data.literal.value.wcharVal = charToU8('\0');
+        n->data.literal.data.wcharVal = charToU8('\0');
         break;
       }
       case '\\': {
-        n->data.literal.value.wcharVal = charToU8('\\');
+        n->data.literal.data.wcharVal = charToU8('\\');
         break;
       }
       case 'x': {
-        n->data.literal.value.wcharVal = (uint8_t)(
-            (nybbleToU8(string[2]) << 4) + (nybbleToU8(string[3]) << 0));
+        n->data.literal.data.wcharVal = (uint8_t)((nybbleToU8(string[2]) << 4) +
+                                                  (nybbleToU8(string[3]) << 0));
         break;
       }
       case 'u': {
-        n->data.literal.value.wcharVal = 0;
+        n->data.literal.data.wcharVal = 0;
         for (size_t idx = 0; idx < 8; ++idx) {
-          n->data.literal.value.wcharVal <<= 4;
-          n->data.literal.value.wcharVal += nybbleToU8(string[idx + 2]);
+          n->data.literal.data.wcharVal <<= 4;
+          n->data.literal.data.wcharVal += nybbleToU8(string[idx + 2]);
         }
         break;
       }
       case '\'': {
-        n->data.literal.value.wcharVal = charToU8('\'');
+        n->data.literal.data.wcharVal = charToU8('\'');
         break;
       }
       default: {
@@ -364,7 +364,7 @@ Node *wcharLiteralNodeCreate(Token *t) {
     }
   } else {
     // not an escape statement
-    n->data.literal.value.wcharVal = charToU8(string[0]);
+    n->data.literal.data.wcharVal = charToU8(string[0]);
   }
 
   tokenUninit(t);
@@ -423,7 +423,7 @@ Node *stringLiteralNodeCreate(Token *t) {
     }
   }
 
-  n->data.literal.value.stringVal = tstringBuilderData(&sb);
+  n->data.literal.data.stringVal = tstringBuilderData(&sb);
   tstringBuilderUninit(&sb);
   tokenUninit(t);
   return n;
@@ -491,7 +491,7 @@ Node *wstringLiteralNodeCreate(Token *t) {
     }
   }
 
-  n->data.literal.value.wstringVal = twstringBuilderData(&sb);
+  n->data.literal.data.wstringVal = twstringBuilderData(&sb);
   twstringBuilderUninit(&sb);
   tokenUninit(t);
   return n;
@@ -501,19 +501,19 @@ Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude) {
     // is unsigned
     if (magnitude <= UBYTE_MAX) {
       Node *n = literalNodeCreate(LT_UBYTE, t);
-      n->data.literal.value.ubyteVal = (uint8_t)magnitude;
+      n->data.literal.data.ubyteVal = (uint8_t)magnitude;
       return n;
     } else if (magnitude <= USHORT_MAX) {
       Node *n = literalNodeCreate(LT_USHORT, t);
-      n->data.literal.value.ushortVal = (uint16_t)magnitude;
+      n->data.literal.data.ushortVal = (uint16_t)magnitude;
       return n;
     } else if (magnitude <= UINT_MAX) {
       Node *n = literalNodeCreate(LT_UINT, t);
-      n->data.literal.value.uintVal = (uint32_t)magnitude;
+      n->data.literal.data.uintVal = (uint32_t)magnitude;
       return n;
     } else if (magnitude <= ULONG_MAX) {
       Node *n = literalNodeCreate(LT_ULONG, t);
-      n->data.literal.value.ulongVal = (uint64_t)magnitude;
+      n->data.literal.data.ulongVal = (uint64_t)magnitude;
       return n;
     } else {
       error(__FILE__, __LINE__,
@@ -524,19 +524,19 @@ Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude) {
     // negative
     if (magnitude <= BYTE_MIN) {
       Node *n = literalNodeCreate(LT_BYTE, t);
-      n->data.literal.value.byteVal = (int8_t)-magnitude;
+      n->data.literal.data.byteVal = (int8_t)-magnitude;
       return n;
     } else if (magnitude <= SHORT_MIN) {
       Node *n = literalNodeCreate(LT_SHORT, t);
-      n->data.literal.value.shortVal = (int16_t)-magnitude;
+      n->data.literal.data.shortVal = (int16_t)-magnitude;
       return n;
     } else if (magnitude <= INT_MIN) {
       Node *n = literalNodeCreate(LT_INT, t);
-      n->data.literal.value.intVal = (int32_t)-magnitude;
+      n->data.literal.data.intVal = (int32_t)-magnitude;
       return n;
     } else if (magnitude <= LONG_MIN) {
       Node *n = literalNodeCreate(LT_LONG, t);
-      n->data.literal.value.longVal = (int64_t)-magnitude;
+      n->data.literal.data.longVal = (int64_t)-magnitude;
       return n;
     } else {
       // user-side size error
@@ -547,19 +547,19 @@ Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude) {
     // positive
     if (magnitude <= BYTE_MAX) {
       Node *n = literalNodeCreate(LT_BYTE, t);
-      n->data.literal.value.byteVal = (int8_t)magnitude;
+      n->data.literal.data.byteVal = (int8_t)magnitude;
       return n;
     } else if (magnitude <= SHORT_MAX) {
       Node *n = literalNodeCreate(LT_SHORT, t);
-      n->data.literal.value.shortVal = (int16_t)magnitude;
+      n->data.literal.data.shortVal = (int16_t)magnitude;
       return n;
     } else if (magnitude <= INT_MAX) {
       Node *n = literalNodeCreate(LT_INT, t);
-      n->data.literal.value.intVal = (int32_t)magnitude;
+      n->data.literal.data.intVal = (int32_t)magnitude;
       return n;
     } else if (magnitude <= LONG_MAX) {
       Node *n = literalNodeCreate(LT_LONG, t);
-      n->data.literal.value.longVal = (int64_t)magnitude;
+      n->data.literal.data.longVal = (int64_t)magnitude;
       return n;
     } else {
       // user-side size error
@@ -660,54 +660,54 @@ static uint64_t extendedIntLiteralToValue(Node *n, Environment *env) {
     case NT_LITERAL: {
       switch (n->data.literal.type) {
         case LT_UBYTE: {
-          return n->data.literal.value.ubyteVal;
+          return n->data.literal.data.ubyteVal;
         }
         case LT_BYTE: {
-          if (n->data.literal.value.byteVal <= 0) {
+          if (n->data.literal.data.byteVal <= 0) {
             errorNotPositive(n, env);
             return 0;
           } else {
-            return (uint64_t)n->data.literal.value.byteVal;
+            return (uint64_t)n->data.literal.data.byteVal;
           }
         }
         case LT_USHORT: {
-          return n->data.literal.value.ushortVal;
+          return n->data.literal.data.ushortVal;
         }
         case LT_SHORT: {
-          if (n->data.literal.value.shortVal <= 0) {
+          if (n->data.literal.data.shortVal <= 0) {
             errorNotPositive(n, env);
             return 0;
           } else {
-            return (uint64_t)n->data.literal.value.shortVal;
+            return (uint64_t)n->data.literal.data.shortVal;
           }
         }
         case LT_UINT: {
-          return n->data.literal.value.uintVal;
+          return n->data.literal.data.uintVal;
         }
         case LT_INT: {
-          if (n->data.literal.value.intVal <= 0) {
+          if (n->data.literal.data.intVal <= 0) {
             errorNotPositive(n, env);
             return 0;
           } else {
-            return (uint64_t)n->data.literal.value.intVal;
+            return (uint64_t)n->data.literal.data.intVal;
           }
         }
         case LT_ULONG: {
-          return n->data.literal.value.ulongVal;
+          return n->data.literal.data.ulongVal;
         }
         case LT_LONG: {
-          if (n->data.literal.value.longVal <= 0) {
+          if (n->data.literal.data.longVal <= 0) {
             errorNotPositive(n, env);
             return 0;
           } else {
-            return (uint64_t)n->data.literal.value.longVal;
+            return (uint64_t)n->data.literal.data.longVal;
           }
         }
         case LT_CHAR: {
-          return n->data.literal.value.charVal;
+          return n->data.literal.data.charVal;
         }
         case LT_WCHAR: {
-          return n->data.literal.value.wcharVal;
+          return n->data.literal.data.wcharVal;
         }
         default: {
           error(__FILE__, __LINE__,
@@ -1046,15 +1046,15 @@ void nodeUninit(Node *n) {
     case NT_LITERAL: {
       switch (n->data.literal.type) {
         case LT_STRING: {
-          free(n->data.literal.value.stringVal);
+          free(n->data.literal.data.stringVal);
           break;
         }
         case LT_WSTRING: {
-          free(n->data.literal.value.wstringVal);
+          free(n->data.literal.data.wstringVal);
           break;
         }
         case LT_AGGREGATEINIT: {
-          nodeVectorFree(n->data.literal.value.aggregateInitVal);
+          nodeVectorFree(n->data.literal.data.aggregateInitVal);
           break;
         }
         default: {

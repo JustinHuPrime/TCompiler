@@ -498,7 +498,7 @@ static Node *parseAggregateInitializer(FileListEntry *entry, Token *start) {
       case TT_RSQUARE: {
         // end of the init
         Node *n = literalNodeCreate(LT_AGGREGATEINIT, start);
-        n->data.literal.value.aggregateInitVal = literals;
+        n->data.literal.data.aggregateInitVal = literals;
         return n;
       }
       default: {
@@ -547,13 +547,13 @@ static Node *parseLiteral(FileListEntry *entry) {
     case TT_LIT_DOUBLE: {
       uint64_t bits = doubleStringToBits(peek.string);
       Node *n = literalNodeCreate(LT_DOUBLE, &peek);
-      n->data.literal.value.doubleBits = bits;
+      n->data.literal.data.doubleBits = bits;
       return n;
     }
     case TT_LIT_FLOAT: {
       uint32_t bits = floatStringToBits(peek.string);
       Node *n = literalNodeCreate(LT_FLOAT, &peek);
-      n->data.literal.value.floatBits = bits;
+      n->data.literal.data.floatBits = bits;
       return n;
     }
     case TT_BAD_STRING: {

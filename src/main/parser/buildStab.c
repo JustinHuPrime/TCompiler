@@ -27,6 +27,7 @@
 #include "ast/environment.h"
 #include "fileList.h"
 #include "internalError.h"
+#include "numericSizing.h"
 #include "options.h"
 #include "util/container/hashMap.h"
 #include "util/container/hashSet.h"
@@ -449,7 +450,11 @@ static size_t constantEntryFind(Vector *enumConstants, SymbolTableEntry *e) {
 int buildTopLevelEnumStab(void) {
   Vector enumConstants;  // vector of SymbolTableEntry, non-owning
   Vector dependencies;   // vector of SymbolTableEntry, non-owning, nullable
+  Vector enumValues;  // vector of extended int literals, non-owning, nullable
   bool errored = false;
+  vectorInit(&enumConstants);
+  vectorInit(&dependencies);
+  vectorInit(&enumValues);
 
   // for each enum in each file, create the enumConstant entries
   for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
@@ -462,12 +467,15 @@ int buildTopLevelEnumStab(void) {
       // if it's an enum
       if (body->type == NT_ENUMDECL) {
         SymbolTableEntry *thisEnum = body->data.enumDecl.name->data.id.entry;
-        Vector *constantValues = &thisEnum->data.enumType.constantValues;
+        Vector *constantSymbols = &thisEnum->data.enumType.constantValues;
         // for each constant, record it in the graph
-        for (size_t constantIdx = 0; constantIdx < constantValues->size;
+        for (size_t constantIdx = 0; constantIdx < constantSymbols->size;
              ++constantIdx) {
-          vectorInsert(&enumConstants, constantValues->elements[constantIdx]);
+          vectorInsert(&enumConstants, constantSymbols->elements[constantIdx]);
           vectorInsert(&dependencies, NULL);
+          vectorInsert(
+              &enumValues,
+              body->data.enumDecl.constantValues->elements[constantIdx]);
         }
       }
     }
@@ -541,6 +549,7 @@ int buildTopLevelEnumStab(void) {
   if (errored) {
     vectorUninit(&enumConstants, nullDtor);
     vectorUninit(&dependencies, nullDtor);
+    vectorUninit(&enumValues, nullDtor);
     return -1;
   }
 
@@ -610,18 +619,242 @@ int buildTopLevelEnumStab(void) {
       }
     }
   }
-  free(processed);
 
   if (errored) {
+    free(processed);
     vectorUninit(&enumConstants, nullDtor);
     vectorUninit(&dependencies, nullDtor);
+    vectorUninit(&enumValues, nullDtor);
     return -1;
   }
 
-  // TODO: build the enum values
+  // build the enum values
+  size_t numProcessed = 0;
+  memset(processed, 0, sizeof(bool) * enumConstants.size);
+  while (numProcessed < enumConstants.size && !errored) {
+    for (size_t idx = 0; idx < enumConstants.size; ++idx) {
+      // for each unprocessed enum
+      if (!processed[idx]) {
+        SymbolTableEntry *current = enumConstants.elements[idx];
+        SymbolTableEntry *dependency = dependencies.elements[idx];
+        if (dependency == NULL) {
+          // no dependency
+          Node *literal = enumValues.elements[idx];
+          if (literal == NULL) {
+            // has no literal value - must be equal to zero at the start of an
+            // enum
+            current->data.enumConst.signedness = false;
+            current->data.enumConst.data.unsignedValue = 0;
+          } else {
+            // must be a plain (int, char, etc.) literal
+            switch (literal->data.literal.type) {
+              case LT_UBYTE: {
+                current->data.enumConst.signedness = false;
+                current->data.enumConst.data.unsignedValue =
+                    literal->data.literal.data.ubyteVal;
+                break;
+              }
+              case LT_BYTE: {
+                current->data.enumConst.signedness =
+                    literal->data.literal.data.byteVal < 0;
+                current->data.enumConst.data.signedValue =
+                    literal->data.literal.data.byteVal;
+                break;
+              }
+              case LT_USHORT: {
+                current->data.enumConst.signedness = false;
+                current->data.enumConst.data.unsignedValue =
+                    literal->data.literal.data.ushortVal;
+                break;
+              }
+              case LT_SHORT: {
+                current->data.enumConst.signedness =
+                    literal->data.literal.data.shortVal < 0;
+                current->data.enumConst.data.signedValue =
+                    literal->data.literal.data.shortVal;
+                break;
+              }
+              case LT_UINT: {
+                current->data.enumConst.signedness = false;
+                current->data.enumConst.data.unsignedValue =
+                    literal->data.literal.data.uintVal;
+                break;
+              }
+              case LT_INT: {
+                current->data.enumConst.signedness =
+                    literal->data.literal.data.intVal < 0;
+                current->data.enumConst.data.signedValue =
+                    literal->data.literal.data.intVal;
+                break;
+              }
+              case LT_ULONG: {
+                current->data.enumConst.signedness = false;
+                current->data.enumConst.data.unsignedValue =
+                    literal->data.literal.data.ulongVal;
+                break;
+              }
+              case LT_LONG: {
+                current->data.enumConst.signedness =
+                    literal->data.literal.data.longVal < 0;
+                current->data.enumConst.data.signedValue =
+                    literal->data.literal.data.longVal;
+                break;
+              }
+              case LT_CHAR: {
+                current->data.enumConst.signedness = false;
+                current->data.enumConst.data.unsignedValue =
+                    literal->data.literal.data.charVal;
+                break;
+              }
+              case LT_WCHAR: {
+                current->data.enumConst.signedness = false;
+                current->data.enumConst.data.unsignedValue =
+                    literal->data.literal.data.wcharVal;
+                break;
+              }
+              default: {
+                error(__FILE__, __LINE__,
+                      "invalid extended int literal used to initialize enum "
+                      "constant");
+              }
+            }
+          }
+          processed[idx] = true;
+          ++numProcessed;
+        } else {
+          // depends on something
+          size_t dependencyIdx = constantEntryFind(&enumConstants, dependency);
+          if (processed[dependencyIdx]) {
+            // and dependency is satisfied
+            Node *literal = enumValues.elements[idx];
+            if (literal == NULL) {
+              // is previous plus one
+              if (dependency->data.enumConst.signedness) {
+                if (dependency->data.enumConst.data.signedValue == -1) {
+                  // next becomes unsigned
+                  current->data.enumConst.signedness = false;
+                  current->data.enumConst.data.unsignedValue = 0;
+                } else {
+                  current->data.enumConst.signedness = true;
+                  current->data.enumConst.data.signedValue =
+                      dependency->data.enumConst.data.signedValue + 1;
+                }
+              } else {
+                if (current->data.enumConst.data.unsignedValue == ULONG_MAX) {
+                  errored = true;
+                  fprintf(stderr,
+                          "%s:%zu:%zu: error: unrepresentable enumeration "
+                          "constant value - value would overflow a ulong",
+                          current->file->inputFilename, current->line,
+                          current->character);
+                  break;
+                }
+
+                current->data.enumConst.signedness = false;
+                current->data.enumConst.data.unsignedValue =
+                    dependency->data.enumConst.data.unsignedValue + 1;
+              }
+            } else {
+              // is equal to the literal
+              current->data.enumConst.signedness =
+                  dependency->data.enumConst.signedness;
+              if (current->data.enumConst.signedness)
+                current->data.enumConst.data.signedValue =
+                    dependency->data.enumConst.data.signedValue;
+              else
+                current->data.enumConst.data.unsignedValue =
+                    dependency->data.enumConst.data.unsignedValue;
+            }
+            processed[idx] = true;
+            ++numProcessed;
+          }
+        }
+      }
+    }
+  }
+  free(processed);
 
   vectorUninit(&enumConstants, nullDtor);
   vectorUninit(&dependencies, nullDtor);
+  vectorUninit(&enumValues, nullDtor);
+
+  if (errored) return -1;
+
+  // make all enums be all signed or all unsigned, checking for unrepresentable
+  // enums
+  // for each enum in each file
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
+    FileListEntry *fileEntry = &fileList.entries[fileIdx];
+    Vector *bodies = fileEntry->ast->data.file.bodies;
+
+    // for each top level
+    for (size_t bodyIdx = 0; bodyIdx < bodies->size; ++bodyIdx) {
+      Node *body = bodies->elements[bodyIdx];
+      // if it's an enum
+      if (body->type == NT_ENUMDECL) {
+        SymbolTableEntry *thisEnum = body->data.enumDecl.name->data.id.entry;
+        Vector *constantValues = &thisEnum->data.enumType.constantValues;
+
+        // 0 = no particular signedness required
+        // 1 = must be unsigned (there's something larger than LONG_MAX)
+        // -1 = must be signed (there's a negative)
+        // -2 = conflicting requirements
+        int requiredSign = 0;
+        for (size_t constIdx = 0; constIdx < constantValues->size; ++constIdx) {
+          SymbolTableEntry *constEntry = constantValues->elements[constIdx];
+          if (constEntry->data.enumConst.signedness) {
+            // must be signed - this is a negative
+            if (requiredSign == 1) {
+              // unrepresentable enum
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: unrepresentable enumeration - "
+                      "enumeration values must be signed, but are large enough "
+                      "to overflow a long",
+                      thisEnum->file->inputFilename, thisEnum->line,
+                      thisEnum->character);
+              errored = true;
+              requiredSign = -2;
+              break;
+            }
+
+            requiredSign = -1;
+          } else {
+            if (constEntry->data.enumConst.data.unsignedValue > LONG_MAX) {
+              // must be unsigned - this is greater than LONG_MAX
+              if (requiredSign == -1) {
+                // unrepresentable enum
+                fprintf(
+                    stderr,
+                    "%s:%zu:%zu: error: unrepresentable enumeration - "
+                    "enumeration values must be signed, but are large enough "
+                    "to overflow a long",
+                    thisEnum->file->inputFilename, thisEnum->line,
+                    thisEnum->character);
+                errored = true;
+                requiredSign = -2;
+                break;
+              }
+
+              requiredSign = 1;
+            }
+          }
+        }
+
+        // nothing to be done if sign is unsigned - already enforced above
+        if (requiredSign == -1) {
+          for (size_t constIdx = 0; constIdx < constantValues->size;
+               ++constIdx) {
+            SymbolTableEntry *constEntry = constantValues->elements[constIdx];
+            if (!constEntry->data.enumConst.signedness) {
+              constEntry->data.enumConst.signedness = true;
+              constEntry->data.enumConst.data.signedValue =
+                  (int64_t)constEntry->data.enumConst.data.unsignedValue;
+            }
+          }
+        }
+      }
+    }
+  }
 
   return 0;
 }

@@ -343,7 +343,7 @@ typedef struct Node {
         bool boolVal;
         Vector *aggregateInitVal; /**< vector of Nodes, each is an NT_LITERAL or
                                     an NT_SCOPEDID (enumeration constant) */
-      } value;
+      } data;
     } literal;
 
     struct {
