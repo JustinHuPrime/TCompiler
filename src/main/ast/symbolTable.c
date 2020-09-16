@@ -105,6 +105,60 @@ Type *typeCopy(Type *t) {
     }
   }
 }
+bool typeEqual(Type *a, Type *b) {
+  if (a->kind != b->kind) return false;
+
+  switch (a->kind) {
+    case TK_KEYWORD: {
+      return a->data.keyword.keyword == b->data.keyword.keyword;
+    }
+    case TK_MODIFIED: {
+      return a->data.modified.modifier == b->data.modified.modifier &&
+             typeEqual(a->data.modified.modified, b->data.modified.modified);
+    }
+    case TK_ARRAY: {
+      return a->data.array.length == b->data.array.length &&
+             typeEqual(a->data.array.type, b->data.array.type);
+    }
+    case TK_FUNPTR: {
+      if (!typeEqual(a->data.funPtr.returnType, b->data.funPtr.returnType))
+        return false;
+      if (a->data.funPtr.argTypes.size != b->data.funPtr.argTypes.size)
+        return false;
+      for (size_t idx = 0; idx < a->data.funPtr.argTypes.size; ++idx) {
+        if (!typeEqual(a->data.funPtr.argTypes.elements[idx],
+                       b->data.funPtr.argTypes.elements[idx]))
+          return false;
+      }
+      return true;
+    }
+    case TK_AGGREGATE: {
+      if (a->data.aggregate.types.size != b->data.aggregate.types.size)
+        return false;
+      for (size_t idx = 0; idx < a->data.aggregate.types.size; ++idx) {
+        if (!typeEqual(a->data.aggregate.types.elements[idx],
+                       b->data.aggregate.types.elements[idx]))
+          return false;
+      }
+      return true;
+    }
+    case TK_REFERENCE: {
+      SymbolTableEntry *aEntry = a->data.reference.entry;
+      SymbolTableEntry *bEntry = b->data.reference.entry;
+      return aEntry == bEntry ||
+             (aEntry->kind == SK_OPAQUE &&
+              aEntry->data.opaqueType.definition == bEntry) ||
+             (bEntry->kind == SK_OPAQUE &&
+              aEntry == bEntry->data.opaqueType.definition) ||
+             (aEntry->kind == SK_OPAQUE && bEntry->kind == SK_OPAQUE &&
+              aEntry->data.opaqueType.definition ==
+                  bEntry->data.opaqueType.definition);
+    }
+    default: {
+      error(__FILE__, __LINE__, "bad type given to typeEqual");
+    }
+  }
+}
 void typeFree(Type *t) {
   switch (t->kind) {
     case TK_MODIFIED: {
@@ -189,11 +243,15 @@ SymbolTableEntry *enumConstStabEntryCreate(FileListEntry *file, size_t line,
 }
 SymbolTableEntry *typedefStabEntryCreate(FileListEntry *file, size_t line,
                                          size_t character) {
-  return stabEntryCreate(file, line, character, SK_TYPEDEF);
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_TYPEDEF);
+  e->data.typedefType.actual = NULL;
+  return e;
 }
 SymbolTableEntry *variableStabEntryCreate(FileListEntry *file, size_t line,
                                           size_t character) {
-  return stabEntryCreate(file, line, character, SK_VARIABLE);
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_VARIABLE);
+  e->data.variable.type = NULL;
+  return e;
 }
 SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
                                           size_t character) {
@@ -219,12 +277,12 @@ static void overloadSetEntryFree(OverloadSetEntry *e) {
 void stabEntryFree(SymbolTableEntry *e) {
   switch (e->kind) {
     case SK_STRUCT: {
-      vectorUninit(&e->data.structType.fieldNames, free);
+      vectorUninit(&e->data.structType.fieldNames, nullDtor);
       vectorUninit(&e->data.structType.fieldTypes, (void (*)(void *))typeFree);
       break;
     }
     case SK_UNION: {
-      vectorUninit(&e->data.unionType.optionNames, free);
+      vectorUninit(&e->data.unionType.optionNames, nullDtor);
       vectorUninit(&e->data.unionType.optionTypes, (void (*)(void *))typeFree);
       break;
     }
@@ -235,11 +293,12 @@ void stabEntryFree(SymbolTableEntry *e) {
       break;
     }
     case SK_TYPEDEF: {
-      typeFree(e->data.typedefType.actual);
+      if (e->data.typedefType.actual != NULL)
+        typeFree(e->data.typedefType.actual);
       break;
     }
     case SK_VARIABLE: {
-      typeFree(e->data.variable.type);
+      if (e->data.variable.type != NULL) typeFree(e->data.variable.type);
       break;
     }
     case SK_FUNCTION: {

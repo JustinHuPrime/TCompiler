@@ -136,6 +136,10 @@ Type *referenceTypeCreate(struct SymbolTableEntry *entry);
  * deep copies a type
  */
 Type *typeCopy(Type *);
+/**
+ * is a equal to b
+ */
+bool typeEqual(Type *a, Type *b);
 
 /**
  * deinitializes a type
@@ -179,11 +183,11 @@ typedef struct SymbolTableEntry {
           *definition; /**< actual definition of this opaque, nullable */
     } opaqueType;
     struct {
-      Vector fieldNames; /**< vector of char * (owning) */
+      Vector fieldNames; /**< vector of char * (non-owning) */
       Vector fieldTypes; /**< vector of types */
     } structType;
     struct {
-      Vector optionNames; /**< vector of char * (owning) */
+      Vector optionNames; /**< vector of char * (non-owning) */
       Vector optionTypes; /**< vector of types */
     } unionType;
     struct {
