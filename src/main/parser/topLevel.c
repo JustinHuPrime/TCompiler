@@ -1349,8 +1349,7 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
  * @param name name of the function
  * @returns definition, declaration, or NULL if fatal error
  */
-static Node *finishFunDeclOrDefn(FileListEntry *entry, Node *returnType,
-                                 Node *name) {
+static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
   Vector *argTypes = vectorCreate();
   Vector *argNames = vectorCreate();
   Vector *argDefaults = vectorCreate();
@@ -1520,41 +1519,36 @@ static Node *finishFunDeclOrDefn(FileListEntry *entry, Node *returnType,
     }
   }
 
-  lex(entry, &peek);
-  switch (peek.type) {
-    case TT_SEMI: {
-      return funDeclNodeCreate(returnType, name, argTypes, argNames,
-                               argDefaults);
-    }
-    case TT_LBRACE: {
-      Node *body = parseFuncBody(entry, &peek);
-      if (body == NULL) {
-        panicTopLevel(entry);
+  Token lbrace;
+  lex(entry, &lbrace);
+  if (lbrace.type != TT_LBRACE) {
+    errorExpectedString(entry, "a left brace", &peek);
 
-        nodeFree(returnType);
-        nodeFree(name);
-        nodeVectorFree(argTypes);
-        nodeVectorFree(argNames);
-        nodeVectorFree(argDefaults);
-        return NULL;
-      }
-      return funDefnNodeCreate(returnType, name, argTypes, argNames,
-                               argDefaults, body);
-    }
-    default: {
-      errorExpectedString(entry, "a semicolon or a left brace", &peek);
+    unLex(entry, &peek);
+    panicTopLevel(entry);
 
-      unLex(entry, &peek);
-      panicTopLevel(entry);
-
-      nodeFree(returnType);
-      nodeFree(name);
-      nodeVectorFree(argTypes);
-      nodeVectorFree(argNames);
-      nodeVectorFree(argDefaults);
-      return NULL;
-    }
+    nodeFree(returnType);
+    nodeFree(name);
+    nodeVectorFree(argTypes);
+    nodeVectorFree(argNames);
+    nodeVectorFree(argDefaults);
+    return NULL;
   }
+
+  Node *body = parseFuncBody(entry, &peek);
+  if (body == NULL) {
+    panicTopLevel(entry);
+
+    nodeFree(returnType);
+    nodeFree(name);
+    nodeVectorFree(argTypes);
+    nodeVectorFree(argNames);
+    nodeVectorFree(argDefaults);
+    return NULL;
+  }
+
+  return funDefnNodeCreate(returnType, name, argTypes, argNames, argDefaults,
+                           body);
 }
 
 /**
@@ -1564,7 +1558,7 @@ static Node *finishFunDeclOrDefn(FileListEntry *entry, Node *returnType,
  * @param start first token
  * @returns declaration, definition, or null if fatal error
  */
-static Node *parseFunOrVarDeclOrDefn(FileListEntry *entry, Token *start) {
+static Node *parseFunOrVarDefn(FileListEntry *entry, Token *start) {
   unLex(entry, start);
   Node *type = parseType(entry);
   if (type == NULL) {
@@ -1609,7 +1603,7 @@ static Node *parseFunOrVarDeclOrDefn(FileListEntry *entry, Token *start) {
     }
     case TT_LPAREN: {
       // func decl or defn, continued
-      return finishFunDeclOrDefn(entry, type, id);
+      return finishFunDefn(entry, type, id);
     }
     default: {
       errorExpectedString(entry, "a semicolon, comma, or a left paren", &next);
@@ -2148,7 +2142,7 @@ static Vector *parseBodies(FileListEntry *entry) {
       case TT_ID: {
         Node *decl;
         if (entry->isCode)
-          decl = parseFunOrVarDeclOrDefn(entry, &start);
+          decl = parseFunOrVarDefn(entry, &start);
         else
           decl = parseFunOrVarDecl(entry, &start);
         if (decl != NULL) vectorInsert(bodies, decl);
