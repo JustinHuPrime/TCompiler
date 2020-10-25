@@ -153,7 +153,9 @@ typedef struct {
   Type *returnType;
   Vector argumentTypes; /**< vector of Type */
   size_t numOptional;
-  bool defined;
+  bool defined; /**< true when the funDefn is processed */
+  size_t line;
+  size_t character;
 } OverloadSetEntry;
 
 /** the kind of a symbol */
@@ -216,7 +218,7 @@ typedef struct SymbolTableEntry {
     } function;
   } data;
   FileListEntry *file;
-  size_t line;
+  size_t line; /**< line and character of first declaration */
   size_t character;
 } SymbolTableEntry;
 

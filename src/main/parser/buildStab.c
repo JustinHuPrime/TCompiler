@@ -366,6 +366,7 @@ void startTopLevelStab(FileListEntry *entry) {
           char const *nameString = name->data.id.id;
           SymbolTableEntry *existing = hashMapGet(stab, nameString);
           // can't possibly be from an implicit - this is in a decl module
+          // must not exist
           if (existing != NULL) {
             errorRedeclaration(entry, name->line, name->character, nameString,
                                existing->file, existing->line,
@@ -385,14 +386,25 @@ void startTopLevelStab(FileListEntry *entry) {
           Node *name = names->elements[idx];
           char const *nameString = name->data.id.id;
           SymbolTableEntry *existing = hashMapGet(stab, nameString);
-          // TODO: must be a varDecl in the implicit
-          // don't care about implcit - this either declares itself or doesn't
-          // yet collide - check for collision when building the stab
+          bool fromImplicit = false;
+          if (existing == NULL && implicitStab != NULL) {
+            existing = hashMapGet(implicitStab, nameString);
+            fromImplicit = true;
+          }
+
           if (existing != NULL) {
-            errorRedeclaration(entry, name->line, name->character, nameString,
-                               existing->file, existing->line,
-                               existing->character);
-            entry->errored = true;
+            // may only exist as a varDecl (which means it must be from the
+            // implicit)
+            if (existing->kind == SK_VARIABLE && fromImplicit) {
+              name->data.id.entry =
+                  variableStabEntryCreate(entry, name->line, name->character);
+              hashMapPut(stab, nameString, name->data.id.entry);
+            } else {
+              errorRedeclaration(entry, name->line, name->character, nameString,
+                                 existing->file, existing->line,
+                                 existing->character);
+              entry->errored = true;
+            }
           } else {
             name->data.id.entry =
                 variableStabEntryCreate(entry, name->line, name->character);
@@ -404,10 +416,28 @@ void startTopLevelStab(FileListEntry *entry) {
       case NT_FUNDECL: {
         char const *name = body->data.funDecl.name->data.id.id;
         SymbolTableEntry *existing = hashMapGet(stab, name);
-        // don't care about other declarations - overload sets resolved later
-        // TODO: must be a function
+        bool fromImplicit = false;
+        if (existing == NULL && implicitStab != NULL) {
+          existing = hashMapGet(implicitStab, name);
+          fromImplicit = true;
+        }
+
         if (existing != NULL) {
-          body->data.funDecl.name->data.id.entry = existing;
+          // may only exist as a function
+          if (existing->kind == SK_FUNCTION) {
+            if (fromImplicit) {
+              body->data.funDecl.name->data.id.entry =
+                  functionStabEntryCreate(entry, body->line, body->character);
+              hashMapPut(stab, name, body->data.funDecl.name->data.id.entry);
+            } else {
+              body->data.funDecl.name->data.id.entry = existing;
+            }
+          } else {
+            errorRedeclaration(entry, body->line, body->character, name,
+                               existing->file, existing->line,
+                               existing->character);
+            entry->errored = true;
+          }
         } else {
           body->data.funDecl.name->data.id.entry =
               functionStabEntryCreate(entry, body->line, body->character);
@@ -418,10 +448,28 @@ void startTopLevelStab(FileListEntry *entry) {
       case NT_FUNDEFN: {
         char const *name = body->data.funDefn.name->data.id.id;
         SymbolTableEntry *existing = hashMapGet(stab, name);
-        // don't care about other declarations - overload sets resolved later
-        // TODO: must be a function
+        bool fromImplicit = false;
+        if (existing == NULL && implicitStab != NULL) {
+          existing = hashMapGet(implicitStab, name);
+          fromImplicit = true;
+        }
+
         if (existing != NULL) {
-          body->data.funDefn.name->data.id.entry = existing;
+          // may only exist as a function
+          if (existing->kind == SK_FUNCTION) {
+            if (fromImplicit) {
+              body->data.funDecl.name->data.id.entry =
+                  functionStabEntryCreate(entry, body->line, body->character);
+              hashMapPut(stab, name, body->data.funDecl.name->data.id.entry);
+            } else {
+              body->data.funDecl.name->data.id.entry = existing;
+            }
+          } else {
+            errorRedeclaration(entry, body->line, body->character, name,
+                               existing->file, existing->line,
+                               existing->character);
+            entry->errored = true;
+          }
         } else {
           body->data.funDefn.name->data.id.entry =
               functionStabEntryCreate(entry, body->line, body->character);
