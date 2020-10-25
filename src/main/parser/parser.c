@@ -24,6 +24,7 @@
 #include "parser/topLevel.h"
 
 int parse(void) {
+  // TODO: update this comment - it's out of date
   // IMPLEMENTATION NOTES:
   // Parsing and symbol table building is mixed up as a result of the syntax of
   // the language and the circular dependencies allowed. Parsing and symbol

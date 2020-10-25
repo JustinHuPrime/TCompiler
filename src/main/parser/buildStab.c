@@ -385,6 +385,7 @@ void startTopLevelStab(FileListEntry *entry) {
           Node *name = names->elements[idx];
           char const *nameString = name->data.id.id;
           SymbolTableEntry *existing = hashMapGet(stab, nameString);
+          // TODO: must be a varDecl in the implicit
           // don't care about implcit - this either declares itself or doesn't
           // yet collide - check for collision when building the stab
           if (existing != NULL) {
@@ -404,6 +405,7 @@ void startTopLevelStab(FileListEntry *entry) {
         char const *name = body->data.funDecl.name->data.id.id;
         SymbolTableEntry *existing = hashMapGet(stab, name);
         // don't care about other declarations - overload sets resolved later
+        // TODO: must be a function
         if (existing != NULL) {
           body->data.funDecl.name->data.id.entry = existing;
         } else {
@@ -417,6 +419,7 @@ void startTopLevelStab(FileListEntry *entry) {
         char const *name = body->data.funDefn.name->data.id.id;
         SymbolTableEntry *existing = hashMapGet(stab, name);
         // don't care about other declarations - overload sets resolved later
+        // TODO: must be a function
         if (existing != NULL) {
           body->data.funDefn.name->data.id.entry = existing;
         } else {
@@ -1006,18 +1009,109 @@ void finishTopLevelStab(FileListEntry *entry) {
     Node *body = entry->ast->data.file.bodies->elements[bodyIdx];
     switch (body->type) {
       case NT_STRUCTDECL: {
-        SymbolTableEntry *ste = body->data.structDecl.name->data.id.entry;
+        SymbolTableEntry *stabEntry = body->data.structDecl.name->data.id.entry;
         Vector *fields = body->data.structDecl.fields;
         for (size_t fieldIdx = 0; fieldIdx < fields->size; ++fieldIdx) {
           Node *field = fields->elements[fieldIdx];
-          field->data.varDecl.type;
-          Vector *names = field->data.varDecl.names;
-          for (size_t idx = 0; idx < names->size; ++idx) {
-            // TODO: write this
+          Type *type = nodeToType(field->data.varDecl.type, &env);
+          if (type == NULL) {
+            entry->errored = true;
+            // process next field
+            continue;
           }
+          Vector *names = field->data.varDecl.names;
+          for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
+            Node *name = names->elements[nameIdx];
+            vectorInsert(&stabEntry->data.structType.fieldNames,
+                         name->data.id.id);
+            vectorInsert(&stabEntry->data.structType.fieldTypes,
+                         typeCopy(type));
+          }
+          typeFree(type);
         }
-        ste->data.structType.fieldTypes;
-        ste->data.structType.fieldNames;
+        break;
+      }
+      case NT_UNIONDECL: {
+        SymbolTableEntry *stabEntry = body->data.unionDecl.name->data.id.entry;
+        Vector *options = body->data.unionDecl.options;
+        for (size_t optionIdx = 0; optionIdx < options->size; ++optionIdx) {
+          Node *option = options->elements[optionIdx];
+          Type *type = nodeToType(option->data.varDecl.type, &env);
+          if (type == NULL) {
+            entry->errored = true;
+            // process next option
+            continue;
+          }
+          Vector *names = option->data.varDecl.names;
+          for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
+            Node *name = names->elements[nameIdx];
+            vectorInsert(&stabEntry->data.unionType.optionNames,
+                         name->data.id.id);
+            vectorInsert(&stabEntry->data.unionType.optionTypes,
+                         typeCopy(type));
+          }
+          typeFree(type);
+        }
+        break;
+      }
+      case NT_TYPEDEFDECL: {
+        SymbolTableEntry *stabEntry =
+            body->data.typedefDecl.name->data.id.entry;
+        stabEntry->data.typedefType.actual =
+            nodeToType(body->data.typedefDecl.originalType, &env);
+        if (stabEntry->data.typedefType.actual == NULL) entry->errored = true;
+        break;
+      }
+      case NT_VARDECL: {
+        Vector *names = body->data.varDecl.names;
+        Type *type = nodeToType(body->data.varDecl.type, &env);
+        if (type == NULL) {
+          entry->errored = true;
+          break;
+        }
+
+        for (size_t nameIdx = 0; nameIdx < names->size; nameIdx++) {
+          Node *name = names->elements[nameIdx];
+          name->data.id.entry->data.variable.type = typeCopy(type);
+        }
+        typeFree(type);
+
+        break;
+      }
+      case NT_VARDEFN: {
+        Vector *names = body->data.varDefn.names;
+        Type *type = nodeToType(body->data.varDefn.type, &env);
+        if (type == NULL) {
+          entry->errored = true;
+          break;
+        }
+
+        // TODO: if exists in implicit, types must be typeEqual
+
+        for (size_t nameIdx = 0; nameIdx < names->size; nameIdx++) {
+          Node *name = names->elements[nameIdx];
+          name->data.id.entry->data.variable.type = typeCopy(type);
+        }
+        typeFree(type);
+
+        break;
+      }
+      case NT_FUNDECL: {
+        SymbolTableEntry *stabEntry = body->data.funDecl.name->data.id.entry;
+
+        // construct OverloadSetEntry
+        // see if it collides with an existing entry in self
+
+        // TODO: write this
+        break;
+      }
+      case NT_FUNDEFN: {
+        SymbolTableEntry *stabEntry = body->data.funDefn.name->data.id.entry;
+
+        // construct OverloadSetEntry
+        // see if it collides with an existing entry in implicit or in self
+
+        // TODO: write this
         break;
       }
       default: {
