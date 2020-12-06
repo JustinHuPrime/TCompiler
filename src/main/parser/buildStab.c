@@ -1051,6 +1051,8 @@ void checkScopedIdCollisions(FileListEntry *entry) {
 void finishTopLevelStab(FileListEntry *entry) {
   Environment env;
   environmentInit(&env, entry);
+  HashMap *stab = &entry->ast->data.file.stab;
+  HashMap *implicitStab = env.implicitImport;
 
   for (size_t bodyIdx = 0; bodyIdx < entry->ast->data.file.bodies->size;
        ++bodyIdx) {
@@ -1134,12 +1136,33 @@ void finishTopLevelStab(FileListEntry *entry) {
           break;
         }
 
-        // TODO: if exists in implicit, types must be typeEqual
-
         for (size_t nameIdx = 0; nameIdx < names->size; nameIdx++) {
           Node *name = names->elements[nameIdx];
+          char const *nameString = name->data.id.id;
+          SymbolTableEntry *existing = hashMapGet(stab, nameString);
+          bool fromImplicit = false;
+          if (existing == NULL && implicitStab != NULL) {
+            existing = hashMapGet(implicitStab, nameString);
+            fromImplicit = true;
+          }
+
           name->data.id.entry->data.variable.type = typeCopy(type);
+
+          if (existing != NULL &&
+              !typeEqual(existing->data.variable.type, type)) {
+            // redeclaration of variable with different type
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: redeclaration of %s as a variable of a "
+                    "different type\n",
+                    entry->inputFilename, name->line, name->character,
+                    nameString);
+            fprintf(stderr, "%s:%zu:%zu: note: previously declared here\n",
+                    existing->file->inputFilename, existing->line,
+                    existing->character);
+            entry->errored = true;
+          }
         }
+
         typeFree(type);
 
         break;
@@ -1148,7 +1171,7 @@ void finishTopLevelStab(FileListEntry *entry) {
         SymbolTableEntry *stabEntry = body->data.funDecl.name->data.id.entry;
 
         // construct OverloadSetEntry
-        // see if it collides with an existing entry in self
+        // must not collide with anything existing (in self or implicit)
 
         // TODO: write this
         break;
@@ -1157,7 +1180,7 @@ void finishTopLevelStab(FileListEntry *entry) {
         SymbolTableEntry *stabEntry = body->data.funDefn.name->data.id.entry;
 
         // construct OverloadSetEntry
-        // see if it collides with an existing entry in implicit or in self
+        // must not collide with anything defined (in self or implicit)
 
         // TODO: write this
         break;
