@@ -24,59 +24,35 @@
 #include "parser/topLevel.h"
 
 int parse(void) {
-  // TODO: update this comment - it's out of date
-  // IMPLEMENTATION NOTES:
-  // Parsing and symbol table building is mixed up as a result of the syntax of
-  // the language and the circular dependencies allowed. Parsing and symbol
-  // table building are split into multiple passes.
+  // IMPLEMENTATION NOTES
   //
-  // After pass 1, it is expected that everything besides function bodies is
-  // parsed. Since no expressions are allowed at top level, there is no
-  // ambiguity when trying to parse the top level. Function bodies are skipped
-  // by matching curly braces.
+  // Since type information is needed to disambiguate variable declarations, the
+  // parse and symbol table builder are merged together.
   //
-  // Pass 2 creates symbol table entries for every entity (variable, type, enum
-  // constant), and also fills in the parent (for enum constants) and
-  // (definition) for opaques. After pass 2, it should be possible to look up
-  // any entity using environmentLookup for a suitablly initialized Environment.
+  // Pass one parses everything but function bodies - so the AST exists, but may
+  // contain unparsed nodes.
   //
-  // Per the standard (section 4.1.2) opaques from the implicit import may be
-  // redefined. As such, if declaration files are processed before code files,
-  // the opaque to point to a parent must already have been created, so we can
-  // know exactly who should know the newly-defined type is its underlying type
+  // Pass two resolves imports, by first making sure each decl file uniquely
+  // names an import, then linking each import with it's referenced
+  // FileListEntry
   //
-  // For enum constants, the parent of the enum constant contains the symbol
-  // table of the enum constants, so there is no way an enum constant can ever
-  // be declared outside of its parent, whose symbol table entry must already
-  // have been created.
+  // Pass three allocates symbol table entries (but doesn't fill them out
+  // (mostly)) for types, and fills out the references for opaque type entries
   //
-  // Pass 3 prevents collisions among the scoped names imported into a module
+  // Pass four looks through the identifiers imported to make sure that each
+  // imported identifier is always accessible (see function for detailed
+  // criteria for when an identifier is inaccessible)
   //
-  // Pass 4 calculates the numeric value of an enumeration constant, complaining
-  // if there are any circular dependencies among enumeration constants -
-  // example for that case is given below:
-  // enum FirstEnum {
-  //   A = SecondEnum::A
-  // }
-  // enum SecondEnum {
-  //   A = FirstEnum::A
-  // }
-  // Pass 4 is needed because enumeration constants are considered extended
-  // integer literals, making them eligible to be the size of an array. The next
-  // pass fills in the symbol table for types, which means that the size of an
-  // array must be determined. If this size involves an enumeration constant,
-  // the value of the enumeration constant must be known.
+  // Pass five fills in the symbol table entry for enum types, checking for
+  // circular dependencies among enum entries (a separate pass is required
+  // because enum constants may be used as compile time constants for things
+  // like array lengths)
   //
-  // Pass 5 fills in the symbol table entries for the remaining entities, using
-  // the results from pass 4. At this point it's possible to check for circular
-  // dependencies in types (e.g. A contains a B, B contains an A), but this can
-  // be done elsewhere - the parser is complicated enough without unnecessary
-  // checks!
+  // Pass six fills in the symbol table entry for everything else, checking for
+  // collisions among the entries
   //
-  // Pass 6 finishes parsing and building the symbol table, while pass 7
-  // enforces additional requirements on the code - pass 7 could be split into a
-  // separate function, but it's very naturally part of parse.
-
+  // TODO: better describe pass six once written
+  // TODO: finish writing descriptions for other passes
   int retval = 0;
   bool errored = false; /**< has any part of the whole thing errored */
 
@@ -100,7 +76,7 @@ int parse(void) {
   // pass 2 - resolve imports and check for scoped id collision between imports
   if (resolveImports() != 0) return -1;
 
-  // pass 3 - populate stab for types and enums
+  // pass 3 - populate stab
   for (size_t idx = 0; idx < fileList.size; ++idx) {
     if (!fileList.entries[idx].isCode) {
       startTopLevelStab(&fileList.entries[idx]);
@@ -126,9 +102,20 @@ int parse(void) {
   // dependency loops
   if (buildTopLevelEnumStab() != 0) return -1;
 
-  // pass 6 - fill in stab for types
-
-  // TODO: write this
+  // pass 6 - fill in stab for everything else
+  for (size_t idx = 0; idx < fileList.size; ++idx) {
+    if (!fileList.entries[idx].isCode) {
+      finishTopLevelStab(&fileList.entries[idx]);
+      errored = errored || fileList.entries[idx].errored;
+    }
+  }
+  for (size_t idx = 0; idx < fileList.size; ++idx) {
+    if (fileList.entries[idx].isCode) {
+      finishTopLevelStab(&fileList.entries[idx]);
+      errored = errored || fileList.entries[idx].errored;
+    }
+  }
+  if (errored) return -1;
 
   // pass 7 - parse unparsed nodes, writing the symbol table as we go -
   // entries are filled in

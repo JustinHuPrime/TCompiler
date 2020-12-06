@@ -107,6 +107,8 @@ int resolveImports(void) {
     for (size_t importIdx = 0; importIdx < imports->size; ++importIdx) {
       Node *import = imports->elements[importIdx];
 
+      // note - we don't always abort after a duplicate, so this prevents
+      // double-importing
       if (!nameArrayContains(processed, numProcessed, import->data.import.id)) {
         // check for upcoming duplicates
         Node **colliding =
@@ -1139,15 +1141,7 @@ void finishTopLevelStab(FileListEntry *entry) {
         for (size_t nameIdx = 0; nameIdx < names->size; nameIdx++) {
           Node *name = names->elements[nameIdx];
           char const *nameString = name->data.id.id;
-          SymbolTableEntry *existing = hashMapGet(stab, nameString);
-          bool fromImplicit = false;
-          if (existing == NULL && implicitStab != NULL) {
-            existing = hashMapGet(implicitStab, nameString);
-            fromImplicit = true;
-          }
-
-          name->data.id.entry->data.variable.type = typeCopy(type);
-
+          SymbolTableEntry *existing = hashMapGet(implicitStab, nameString);
           if (existing != NULL &&
               !typeEqual(existing->data.variable.type, type)) {
             // redeclaration of variable with different type
@@ -1161,6 +1155,8 @@ void finishTopLevelStab(FileListEntry *entry) {
                     existing->character);
             entry->errored = true;
           }
+
+          name->data.id.entry->data.variable.type = typeCopy(type);
         }
 
         typeFree(type);
