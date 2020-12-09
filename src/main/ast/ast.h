@@ -200,9 +200,8 @@ typedef struct Node {
       struct Node *returnType; /**< type */
       struct Node *name;       /**< NT_ID */
       Vector *argTypes;        /**< vector of Nodes, each is a type */
-      Vector *argNames;    /**< vector of nullable Nodes, each is an NT_ID */
-      Vector *argDefaults; /**< vector of nullable Nodes, each is a literal */
-      struct Node *body;   /**< NT_COMPOUNDSTMT */
+      Vector *argNames;  /**< vector of nullable Nodes, each is an NT_ID */
+      struct Node *body; /**< NT_COMPOUNDSTMT or NT_UNPARSED */
     } funDefn;
     struct {
       struct Node *type;    /**< type */
@@ -214,8 +213,7 @@ typedef struct Node {
       struct Node *returnType; /**< type */
       struct Node *name;       /**< NT_ID */
       Vector *argTypes;        /**< vector of Nodes, each is a type */
-      Vector *argNames;    /**< vector of nullable Nodes, each is an NT_ID */
-      Vector *argDefaults; /**< vector of nullable Nodes, each is a literal */
+      Vector *argNames; /**< vector of nullable Nodes, each is an NT_ID */
     } funDecl;
     struct {
       struct Node *type; /**< type */
@@ -388,10 +386,10 @@ Node *fileNodeCreate(Node *module, Vector *imports, Vector *bodies);
 Node *moduleNodeCreate(Token *keyword, Node *id);
 Node *importNodeCreate(Token *keyword, Node *id);
 Node *funDefnNodeCreate(Node *returnType, Node *name, Vector *argTypes,
-                        Vector *argNames, Vector *argDefaults, Node *body);
+                        Vector *argNames, Node *body);
 Node *varDefnNodeCreate(Node *type, Vector *names, Vector *initializers);
 Node *funDeclNodeCreate(Node *returnType, Node *name, Vector *argTypes,
-                        Vector *argNames, Vector *argDefaults);
+                        Vector *argNames);
 Node *varDeclNodeCreate(Node *type, Vector *names);
 Node *opaqueDeclNodeCreate(Token *keyword, Node *name);
 Node *structDeclNodeCreate(Token *keyword, Node *name, Vector *fields);

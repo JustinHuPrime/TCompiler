@@ -786,7 +786,71 @@ static Node *parseType(FileListEntry *entry) {
   }
 }
 
-// expressions
+/**
+ * parses a field or option declaration
+ *
+ * does not do error recovery, unLexes and returns null on an error
+ *
+ * @param entry entry to lex from
+ * @param start first token
+ * @returns declaration or null if fatal error
+ */
+static Node *parseFieldOrOptionDecl(FileListEntry *entry, Token *start) {
+  unLex(entry, start);
+  Node *type = parseType(entry);
+  if (type == NULL) {
+    return NULL;
+  }
+
+  Vector *names = vectorCreate();
+  bool done = false;
+  while (!done) {
+    Token id;
+    lex(entry, &id);
+    if (id.type != TT_ID) {
+      errorExpectedToken(entry, TT_ID, &id);
+
+      unLex(entry, &id);
+
+      nodeFree(type);
+      nodeVectorFree(names);
+      return NULL;
+    }
+
+    vectorInsert(names, idNodeCreate(&id));
+
+    Token peek;
+    lex(entry, &peek);
+    switch (peek.type) {
+      case TT_SEMI: {
+        // end of the names
+        done = true;
+        break;
+      }
+      case TT_COMMA: {
+        // comma between names - do nothing
+        break;
+      }
+      default: {
+        errorExpectedString(entry, "a semicolon or a comma", &peek);
+
+        unLex(entry, &peek);
+
+        nodeFree(type);
+        nodeVectorFree(names);
+        return NULL;
+      }
+    }
+  }
+
+  if (names->size == 0) {
+    nodeFree(type);
+    nodeVectorFree(names);
+    return NULL;
+  }
+
+  return varDeclNodeCreate(type, names);
+}
 
 // context-aware parsers
 // these do error recovery
@@ -941,7 +1005,6 @@ static Node *finishVarDecl(FileListEntry *entry, Node *type, Vector *names) {
 static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
   Vector *argTypes = vectorCreate();
   Vector *argNames = vectorCreate();
-  Vector *argDefaults = vectorCreate();
 
   bool doneArgs = false;
   Token peek;
@@ -976,7 +1039,6 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
           nodeFree(name);
           nodeVectorFree(argTypes);
           nodeVectorFree(argNames);
-          nodeVectorFree(argDefaults);
           return NULL;
         }
         vectorInsert(argTypes, type);
@@ -989,65 +1051,18 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
 
             lex(entry, &peek);
             switch (peek.type) {
-              case TT_EQ: {
-                // has a literal - arg decl continues
-                Node *literal = parseLiteral(entry);
-                if (literal == NULL) {
-                  unLex(entry, &peek);
-                  panicTopLevel(entry);
-
-                  nodeFree(returnType);
-                  nodeFree(name);
-                  nodeVectorFree(argTypes);
-                  nodeVectorFree(argNames);
-                  nodeVectorFree(argDefaults);
-                  return NULL;
-                }
-                vectorInsert(argDefaults, literal);
-
-                lex(entry, &peek);
-                switch (peek.type) {
-                  case TT_COMMA: {
-                    // done this arg decl;
-                    break;
-                  }
-                  case TT_RPAREN: {
-                    // done all arg decls
-                    doneArgs = true;
-                    break;
-                  }
-                  default: {
-                    errorExpectedString(entry, "a comma or a right parenthesis",
-                                        &peek);
-
-                    unLex(entry, &peek);
-                    panicTopLevel(entry);
-
-                    nodeFree(returnType);
-                    nodeFree(name);
-                    nodeVectorFree(argTypes);
-                    nodeVectorFree(argNames);
-                    nodeVectorFree(argDefaults);
-                    return NULL;
-                  }
-                }
-                break;
-              }
               case TT_COMMA: {
                 // done this arg decl
-                vectorInsert(argDefaults, NULL);
                 break;
               }
               case TT_RPAREN: {
                 // done all arg decls
-                vectorInsert(argDefaults, NULL);
                 doneArgs = true;
                 break;
               }
               default: {
-                errorExpectedString(
-                    entry, "an equals sign, a comma, or a right parenthesis",
-                    &peek);
+                errorExpectedString(entry, "a comma or a right parenthesis",
+                                    &peek);
 
                 unLex(entry, &peek);
                 panicTopLevel(entry);
@@ -1056,7 +1071,6 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
                 nodeFree(name);
                 nodeVectorFree(argTypes);
                 nodeVectorFree(argNames);
-                nodeVectorFree(argDefaults);
                 return NULL;
               }
             }
@@ -1065,13 +1079,11 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
           case TT_COMMA: {
             // done this arg decl
             vectorInsert(argNames, NULL);
-            vectorInsert(argDefaults, NULL);
             break;
           }
           case TT_RPAREN: {
             // done all arg decls
             vectorInsert(argNames, NULL);
-            vectorInsert(argDefaults, NULL);
             doneArgs = true;
             break;
           }
@@ -1086,7 +1098,6 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
             nodeFree(name);
             nodeVectorFree(argTypes);
             nodeVectorFree(argNames);
-            nodeVectorFree(argDefaults);
             return NULL;
           }
         }
@@ -1102,7 +1113,6 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
         nodeFree(name);
         nodeVectorFree(argTypes);
         nodeVectorFree(argNames);
-        nodeVectorFree(argDefaults);
         return NULL;
       }
     }
@@ -1120,11 +1130,10 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
     nodeFree(name);
     nodeVectorFree(argTypes);
     nodeVectorFree(argNames);
-    nodeVectorFree(argDefaults);
     return NULL;
   }
 
-  return funDeclNodeCreate(returnType, name, argTypes, argNames, argDefaults);
+  return funDeclNodeCreate(returnType, name, argTypes, argNames);
 }
 
 /**
@@ -1350,9 +1359,9 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
  * @returns definition, declaration, or NULL if fatal error
  */
 static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
+  // TODO: rewrite this to omit default args
   Vector *argTypes = vectorCreate();
   Vector *argNames = vectorCreate();
-  Vector *argDefaults = vectorCreate();
 
   bool doneArgs = false;
   Token peek;
@@ -1387,7 +1396,6 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
           nodeFree(name);
           nodeVectorFree(argTypes);
           nodeVectorFree(argNames);
-          nodeVectorFree(argDefaults);
           return NULL;
         }
         vectorInsert(argTypes, type);
@@ -1400,58 +1408,12 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
 
             lex(entry, &peek);
             switch (peek.type) {
-              case TT_EQ: {
-                // has a literal - arg decl continues
-                Node *literal = parseLiteral(entry);
-                if (literal == NULL) {
-                  unLex(entry, &peek);
-                  panicTopLevel(entry);
-
-                  nodeFree(returnType);
-                  nodeFree(name);
-                  nodeVectorFree(argTypes);
-                  nodeVectorFree(argNames);
-                  nodeVectorFree(argDefaults);
-                  return NULL;
-                }
-                vectorInsert(argDefaults, literal);
-
-                lex(entry, &peek);
-                switch (peek.type) {
-                  case TT_COMMA: {
-                    // done this arg decl;
-                    break;
-                  }
-                  case TT_RPAREN: {
-                    // done all arg decls
-                    doneArgs = true;
-                    break;
-                  }
-                  default: {
-                    errorExpectedString(entry, "a comma or a right parenthesis",
-                                        &peek);
-
-                    unLex(entry, &peek);
-                    panicTopLevel(entry);
-
-                    nodeFree(returnType);
-                    nodeFree(name);
-                    nodeVectorFree(argTypes);
-                    nodeVectorFree(argNames);
-                    nodeVectorFree(argDefaults);
-                    return NULL;
-                  }
-                }
-                break;
-              }
               case TT_COMMA: {
                 // done this arg decl
-                vectorInsert(argDefaults, NULL);
                 break;
               }
               case TT_RPAREN: {
                 // done all arg decls
-                vectorInsert(argDefaults, NULL);
                 doneArgs = true;
                 break;
               }
@@ -1467,7 +1429,6 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
                 nodeFree(name);
                 nodeVectorFree(argTypes);
                 nodeVectorFree(argNames);
-                nodeVectorFree(argDefaults);
                 return NULL;
               }
             }
@@ -1476,13 +1437,11 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
           case TT_COMMA: {
             // done this arg decl
             vectorInsert(argNames, NULL);
-            vectorInsert(argDefaults, NULL);
             break;
           }
           case TT_RPAREN: {
             // done all arg decls
             vectorInsert(argNames, NULL);
-            vectorInsert(argDefaults, NULL);
             doneArgs = true;
             break;
           }
@@ -1497,7 +1456,6 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
             nodeFree(name);
             nodeVectorFree(argTypes);
             nodeVectorFree(argNames);
-            nodeVectorFree(argDefaults);
             return NULL;
           }
         }
@@ -1513,7 +1471,6 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
         nodeFree(name);
         nodeVectorFree(argTypes);
         nodeVectorFree(argNames);
-        nodeVectorFree(argDefaults);
         return NULL;
       }
     }
@@ -1531,7 +1488,6 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
     nodeFree(name);
     nodeVectorFree(argTypes);
     nodeVectorFree(argNames);
-    nodeVectorFree(argDefaults);
     return NULL;
   }
 
@@ -1543,12 +1499,10 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
     nodeFree(name);
     nodeVectorFree(argTypes);
     nodeVectorFree(argNames);
-    nodeVectorFree(argDefaults);
     return NULL;
   }
 
-  return funDefnNodeCreate(returnType, name, argTypes, argNames, argDefaults,
-                           body);
+  return funDefnNodeCreate(returnType, name, argTypes, argNames, body);
 }
 
 /**
@@ -1645,72 +1599,6 @@ static Node *parseOpaqueDecl(FileListEntry *entry, Token *start) {
   }
 
   return opaqueDeclNodeCreate(start, name);
-}
-
-/**
- * parses a field or option declaration
- *
- * does not do error recovery, unLexes and returns null on an error
- *
- * @param entry entry to lex from
- * @param start first token
- * @returns declaration or null if fatal error
- */
-static Node *parseFieldOrOptionDecl(FileListEntry *entry, Token *start) {
-  unLex(entry, start);
-  Node *type = parseType(entry);
-  if (type == NULL) {
-    return NULL;
-  }
-
-  Vector *names = vectorCreate();
-  bool done = false;
-  while (!done) {
-    Token id;
-    lex(entry, &id);
-    if (id.type != TT_ID) {
-      errorExpectedToken(entry, TT_ID, &id);
-
-      unLex(entry, &id);
-
-      nodeFree(type);
-      nodeVectorFree(names);
-      return NULL;
-    }
-
-    vectorInsert(names, idNodeCreate(&id));
-
-    Token peek;
-    lex(entry, &peek);
-    switch (peek.type) {
-      case TT_SEMI: {
-        // end of the names
-        done = true;
-        break;
-      }
-      case TT_COMMA: {
-        // comma between names - do nothing
-        break;
-      }
-      default: {
-        errorExpectedString(entry, "a semicolon or a comma", &peek);
-
-        unLex(entry, &peek);
-
-        nodeFree(type);
-        nodeVectorFree(names);
-        return NULL;
-      }
-    }
-  }
-
-  if (names->size == 0) {
-    nodeFree(type);
-    nodeVectorFree(names);
-    return NULL;
-  }
-
-  return varDeclNodeCreate(type, names);
 }
 
 /**

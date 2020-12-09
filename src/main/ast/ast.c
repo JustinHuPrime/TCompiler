@@ -66,13 +66,12 @@ Node *importNodeCreate(Token *keyword, Node *id) {
 }
 
 Node *funDefnNodeCreate(Node *returnType, Node *name, Vector *argTypes,
-                        Vector *argNames, Vector *argDefaults, Node *body) {
+                        Vector *argNames, Node *body) {
   Node *n = createNode(NT_FUNDEFN, returnType->line, returnType->character);
   n->data.funDefn.returnType = returnType;
   n->data.funDefn.name = name;
   n->data.funDefn.argTypes = argTypes;
   n->data.funDefn.argNames = argNames;
-  n->data.funDefn.argDefaults = argDefaults;
   n->data.funDefn.body = body;
   hashMapInit(&n->data.funDefn.stab);
   return n;
@@ -86,13 +85,12 @@ Node *varDefnNodeCreate(Node *type, Vector *names, Vector *initializers) {
 }
 
 Node *funDeclNodeCreate(Node *returnType, Node *name, Vector *argTypes,
-                        Vector *argNames, Vector *argDefaults) {
+                        Vector *argNames) {
   Node *n = createNode(NT_FUNDECL, returnType->line, returnType->character);
   n->data.funDecl.returnType = returnType;
   n->data.funDecl.name = name;
   n->data.funDecl.argTypes = argTypes;
   n->data.funDecl.argNames = argNames;
-  n->data.funDecl.argDefaults = argDefaults;
   return n;
 }
 Node *varDeclNodeCreate(Node *type, Vector *names) {
@@ -905,7 +903,6 @@ void nodeUninit(Node *n) {
       nodeFree(n->data.funDefn.name);
       nodeVectorFree(n->data.funDefn.argTypes);
       nodeVectorFree(n->data.funDefn.argNames);
-      nodeVectorFree(n->data.funDefn.argDefaults);
       nodeFree(n->data.funDefn.body);
       break;
     }
@@ -920,7 +917,6 @@ void nodeUninit(Node *n) {
       nodeFree(n->data.funDecl.name);
       nodeVectorFree(n->data.funDecl.argTypes);
       nodeVectorFree(n->data.funDecl.argNames);
-      nodeVectorFree(n->data.funDecl.argDefaults);
       break;
     }
     case NT_VARDECL: {
