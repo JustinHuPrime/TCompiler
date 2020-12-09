@@ -35,6 +35,9 @@
 #include "util/format.h"
 #include "util/functional.h"
 
+// TODO: generally, make sure that we can handle things being in a bad state
+// because we hit an error
+
 static bool fileListEntryArrayContains(FileListEntry **arry, size_t size,
                                        FileListEntry *f) {
   for (size_t idx = 0; idx < size; ++idx)
@@ -368,6 +371,7 @@ void startTopLevelStab(FileListEntry *entry) {
           char const *nameString = name->data.id.id;
           SymbolTableEntry *existing = hashMapGet(stab, nameString);
           // can't possibly be from an implicit - this is in a decl module
+
           // must not exist
           if (existing != NULL) {
             errorRedeclaration(entry, name->line, name->character, nameString,
@@ -418,28 +422,14 @@ void startTopLevelStab(FileListEntry *entry) {
       case NT_FUNDECL: {
         char const *name = body->data.funDecl.name->data.id.id;
         SymbolTableEntry *existing = hashMapGet(stab, name);
-        bool fromImplicit = false;
-        if (existing == NULL && implicitStab != NULL) {
-          existing = hashMapGet(implicitStab, name);
-          fromImplicit = true;
-        }
+        // can't possibly be from an implicit - this is a decl module
 
+        // must not exist
         if (existing != NULL) {
-          // may only exist as a function
-          if (existing->kind == SK_FUNCTION) {
-            if (fromImplicit) {
-              body->data.funDecl.name->data.id.entry =
-                  functionStabEntryCreate(entry, body->line, body->character);
-              hashMapPut(stab, name, body->data.funDecl.name->data.id.entry);
-            } else {
-              body->data.funDecl.name->data.id.entry = existing;
-            }
-          } else {
-            errorRedeclaration(entry, body->line, body->character, name,
-                               existing->file, existing->line,
-                               existing->character);
-            entry->errored = true;
-          }
+          errorRedeclaration(entry, body->line, body->character, name,
+                             existing->file, existing->line,
+                             existing->character);
+          entry->errored = true;
         } else {
           body->data.funDecl.name->data.id.entry =
               functionStabEntryCreate(entry, body->line, body->character);
@@ -457,15 +447,11 @@ void startTopLevelStab(FileListEntry *entry) {
         }
 
         if (existing != NULL) {
-          // may only exist as a function
-          if (existing->kind == SK_FUNCTION) {
-            if (fromImplicit) {
-              body->data.funDecl.name->data.id.entry =
-                  functionStabEntryCreate(entry, body->line, body->character);
-              hashMapPut(stab, name, body->data.funDecl.name->data.id.entry);
-            } else {
-              body->data.funDecl.name->data.id.entry = existing;
-            }
+          // may only exist as a funDecl (must be from the implicit)
+          if (existing->kind == SK_FUNCTION && fromImplicit) {
+            body->data.funDefn.name->data.id.entry =
+                functionStabEntryCreate(entry, body->line, body->character);
+            hashMapPut(stab, name, body->data.funDefn.name->data.id.entry);
           } else {
             errorRedeclaration(entry, body->line, body->character, name,
                                existing->file, existing->line,
@@ -1164,21 +1150,82 @@ void finishTopLevelStab(FileListEntry *entry) {
         break;
       }
       case NT_FUNDECL: {
-        SymbolTableEntry *stabEntry = body->data.funDecl.name->data.id.entry;
+        Type *returnType = nodeToType(body->data.funDecl.returnType, &env);
+        if (returnType == NULL) {
+          entry->errored = true;
+          break;
+        }
+        body->data.funDecl.name->data.id.entry->data.function.returnType =
+            returnType;
 
-        // construct OverloadSetEntry
-        // must not collide with anything existing (in self or implicit)
+        for (size_t argIdx = 0; argIdx < body->data.funDecl.argTypes->size;
+             argIdx++) {
+          Type *argType =
+              nodeToType(body->data.funDecl.argTypes->elements[argIdx], &env);
+          if (argType == NULL) {
+            entry->errored = true;
+            break;
+          }
+          vectorInsert(&body->data.funDecl.name->data.id.entry->data.function
+                            .argumentTypes,
+                       argType);
+        }
 
-        // TODO: write this
         break;
       }
       case NT_FUNDEFN: {
-        SymbolTableEntry *stabEntry = body->data.funDefn.name->data.id.entry;
+        char const *name = body->data.funDefn.name->data.id.id;
+        SymbolTableEntry *existing = hashMapGet(implicitStab, name);
+        bool mismatch = false;
 
-        // construct OverloadSetEntry
-        // must not collide with anything defined (in self or implicit)
+        Type *returnType = nodeToType(body->data.funDefn.returnType, &env);
+        if (returnType == NULL) {
+          entry->errored = true;
+          break;
+        }
+        if (!typeEqual(existing->data.function.returnType, returnType)) {
+          // redeclaration of function with different type
+          fprintf(stderr,
+                  "%s:%zu:%zu: error: redeclaration of %s as a function of a "
+                  "different type\n",
+                  entry->inputFilename, body->line, body->character, name);
+          fprintf(stderr, "%s:%zu:%zu: note: previously declared here\n",
+                  existing->file->inputFilename, existing->line,
+                  existing->character);
+          entry->errored = true;
+          mismatch = true;
+        }
+        body->data.funDefn.name->data.id.entry->data.function.returnType =
+            returnType;
 
-        // TODO: write this
+        for (size_t argIdx = 0; argIdx < body->data.funDefn.argTypes->size;
+             argIdx++) {
+          Type *argType =
+              nodeToType(body->data.funDefn.argTypes->elements[argIdx], &env);
+          if (argType == NULL) {
+            entry->errored = true;
+            break;
+          }
+
+          if (!typeEqual(existing->data.function.argumentTypes.elements[argIdx],
+                         argType) &&
+              !mismatch) {
+            // redeclaration of function with different type
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: redeclaration of %s as a function of a "
+                    "different type\n",
+                    entry->inputFilename, body->line, body->character, name);
+            fprintf(stderr, "%s:%zu:%zu: note: previously declared here\n",
+                    existing->file->inputFilename, existing->line,
+                    existing->character);
+            entry->errored = true;
+            mismatch = true;
+          }
+          vectorInsert(&body->data.funDefn.name->data.id.entry->data.function
+                            .argumentTypes,
+                       argType);
+        }
+
         break;
       }
       default: {

@@ -1359,7 +1359,6 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
  * @returns definition, declaration, or NULL if fatal error
  */
 static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
-  // TODO: rewrite this to omit default args
   Vector *argTypes = vectorCreate();
   Vector *argNames = vectorCreate();
 
@@ -1556,7 +1555,7 @@ static Node *parseFunOrVarDefn(FileListEntry *entry, Token *start) {
       return finishVarDefn(entry, type, names, initializers, true);
     }
     case TT_LPAREN: {
-      // func decl or defn, continued
+      // func defn, continued
       return finishFunDefn(entry, type, id);
     }
     default: {
