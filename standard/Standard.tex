@@ -24,7 +24,7 @@ This document specifies the syntax and semantics of the T programming language, 
 
 \section{Copyright}
 
-This work and all of its appendices are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License. To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/4.0/.
+This work and all of its appendices are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License. To view a copy of this license, visit \url{http://creativecommons.org/licenses/by-sa/4.0/}.
 
 \section{Compiler Structure}
 
@@ -63,7 +63,7 @@ A T program is translated into an executable in several phases. Since the T gram
 		\item \textbf{Assembling}: the generated assembly code is assembled into a linkable form. In the reference compiler, this is handled externally by the system assembler. (In Linux, this is the command \texttt{as}.)
 	\end{enumerate}
 	
-	\item \textbf{Linking (optional)}: the generated and supplied are linked into an executable program, or into a shared library. This step is optional if the user wants to produce several object files. In the reference compiler, this is handled externally by the system linker or object-file archiver. (In Linux, these are the commands \texttt{ld} or \texttt{ar}.)
+	\item \textbf{Linking (optional)}: the generated and supplied are linked into an executable program, or into a library. This step is optional if the user wants to produce several object files. In the reference compiler, this is handled externally by the system linker or object-file archiver. (In Linux, these are the commands \texttt{ld} or \texttt{ar}.)
 \end{enumerate}
 
 \section{Environment}
@@ -94,7 +94,7 @@ As noted in Appendix A, there are three magic tokens. Magic tokens are literal v
 
 A source file, once converted into a sequence of tokens, is then converted into a tree of tokens. The provided grammar is context sensitive, and requires at least two passes to parse, since there are disambiguation rules depending on information about the declaration site of a token. However, other than the disambiguation rules, the grammar is capable of LL(1) parsing. As with the lexing phase, any deviations from the grammar must result in a diagnostic message being issued.
 
-The grammar for a file, without disambiguation rules, is given in Appendix B - Syntax. This grammar uses the definitions for given in the lexicon.
+The grammar for a file, without disambiguation rules, is given in Appendix B - Syntax. This grammar uses the definitions for tokens given in the lexicon.
 
 \section{Disambiguation}
 
@@ -113,7 +113,6 @@ In addition to the restrictions placed by the grammar above:
 \begin{itemize}
 	\item no function definitions may exist within a declaration file,
 	\item no function declaration may exist within a code file,
-	\item no function definition or declaration may have an optional argument (\texttt{"=", literal}) before a non-optional argument,
 	\item no break statement may exist unless in the body of a loop or switch,
 	\item no continue may exist unless in the body of a loop,
 	\item no switch statement may contain more than one default case.
@@ -243,16 +242,7 @@ The identifier in a declaration may not be a reserved identifier. Reserved ident
 
 \lstinputlisting[breaklines=true, firstline=21, lastline=21]{"Appendix B - Syntax.ebnf"}
 
-A function declaration declares the existence of the function, having the name in the first identifier, and provides the interface to call the function and get a return value. The parameter names are not significant, and may be different from the names used in the function definition. The return type and formal parameter types must be complete types, except that a return value of \texttt{void} indicates that the function does not return any value. If a formal parameter is followed by an equals sign and a literal value, then any callers of this function may omit the value in the function call expression, and the default value will be substituted in as the actual argument. However, function pointers are unable to use default parameters, so when converted to a function pointer, it will be as if no default parameters were specified. The corresponding function definition must supply the same default parameters as those specified in the declaration.
-
-Multiple function definitions with the same name form an overload set. When resolving a function name, the overload set to reference is first resolved, then the function within the overload set is resolved. An overload set contains multiple functions with the same name, but different argument types. An overload set must not contain multiple functions such that they cannot be distinguished when called with any valid list of argument types - that is, there must be no more than one function per signature.
-
-When resolving within an overload set, once the overload set is resolved\footnote{This means that two overload sets both named \texttt{foo} will have to be resolved using scope-resolution operators even if the argument types uniquely identify one particular overload.}, the list of argument types is generated. When resolving for use in a function pointer, the argument type list is compared against the list of types in the overload set, and must match exactly. Otherwise, when resolving for use in a direct call:
-\begin{enumerate}
-	\item The list of types is matched exactly against all overload argument types, allowing for optional arguments. If there is more than one exact match, a diagnostic must be issued. If there is one exact match, that overload is used, otherwise, proceed to the next step.
-	
-	\item The list of types is matched with casting against all overload argument types, allowing for optional arguments. The match with the least casting required is preferred. If there is more than one most preferred match, a diagnostic must be issued. If there is one exact match, that overload is used, otherwise, there is no valid overload for the given list of argument types.
-\end{enumerate}
+A function declaration declares the existence of the function, having the name in the first identifier, and provides the interface to call the function and get a return value. The parameter names are not significant, and may be different from the names used in the function definition. The return type and formal parameter types must be complete types, except that a return value of \texttt{void} indicates that the function does not return any value.
 
 \subsection{Main Functions}\label{subsection:Main Functions}
 
@@ -379,7 +369,7 @@ A return statement returns from the current function. If an expression is provid
 
 \lstinputlisting[breaklines=true, firstline=58, lastline=58]{"Appendix B - Syntax.ebnf"}
 
-An assembly statement inserts the assembly code into the generated assembly. The string literal respects escape codes, but is otherwise inserted verbatim. It is the responsibility of the user to write valid assembly code.
+An assembly statement inserts the assembly code into the generated assembly. The string literal respects escape codes, but is otherwise inserted verbatim. It is the responsibility of the user to write valid assembly code and to ensure that said assembly code will interoperate with generated assembly code.
 
 \section{Variable Declaration Statements}
 

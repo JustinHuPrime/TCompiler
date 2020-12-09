@@ -15,10 +15,10 @@ declaration = function_declaration
             | typedef_declaration
 ;
 
-function_definition = type, identifier, "(", [ type, [ identifier, [ "=", literal ] ] ], { ",", type, [ identifier, [ "=", literal ] ] } ], ")", compound_statement ;
+function_definition = type, identifier, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")", compound_statement ;
 variable_definition = type, identifier, [ "=", literal ], { ",", identifier, [ "=", literal ] }, ";" ;
 
-function_declaration = type, identifier, "(", [ type, [ identifier ], [ "=", literal ], { ",", type, [ identifier ], [ "=", literal ] } ], ")", ";" ;
+function_declaration = type, identifier, "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")", ";" ;
 variable_declaration = type, identifier, { ",", identifier }, ";" ;
 opaque_declaration = "opaque", identifier, ";" ;
 struct_declaration = "struct", identifier, "{", variable_declaration, { variable_declaration }, "}", ";" ;
@@ -105,7 +105,7 @@ postfix_expression = primary_expression, { ( ( "." | "->" ), identifier | "(", a
 primary_expression = scoped_identifier
                    | identifier
                    | literal
-                   | "cast", "[", type, "]", "(", expression, ")"
+                   | "cast", "<", type, ">", "(", expression, ")"
                    | "sizeof", "(", ( expression | type ), ")"
                    | "(", expression, ")"
 ;
