@@ -148,16 +148,6 @@ bool typeEqual(Type *a, Type *b);
  */
 void typeFree(Type *t);
 
-/** an entry in a function overload set */
-typedef struct {
-  Type *returnType;
-  Vector argumentTypes; /**< vector of Type */
-  size_t numOptional;
-  bool defined; /**< true when the funDefn is processed */
-  size_t line;
-  size_t character;
-} OverloadSetEntry;
-
 /** the kind of a symbol */
 typedef enum {
   SK_VARIABLE,
@@ -214,7 +204,8 @@ typedef struct SymbolTableEntry {
       Type *type;
     } variable;
     struct {
-      Vector overloadSet; /**< vector of overload set entries */
+      Type *returnType;
+      Vector argumentTypes; /**< vector of Type */
     } function;
   } data;
   FileListEntry *file;

@@ -256,7 +256,8 @@ SymbolTableEntry *variableStabEntryCreate(FileListEntry *file, size_t line,
 SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
                                           size_t character) {
   SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_FUNCTION);
-  vectorInit(&e->data.function.overloadSet);
+  e->data.function.returnType = NULL;
+  vectorInit(&e->data.function.argumentTypes);
   return e;
 }
 SymbolTableEntry *enumLookupEnumConst(SymbolTableEntry *enumEntry,
@@ -269,11 +270,6 @@ SymbolTableEntry *enumLookupEnumConst(SymbolTableEntry *enumEntry,
   return NULL;
 }
 
-static void overloadSetEntryFree(OverloadSetEntry *e) {
-  typeFree(e->returnType);
-  vectorUninit(&e->argumentTypes, (void (*)(void *))typeFree);
-  free(e);
-}
 void stabEntryFree(SymbolTableEntry *e) {
   switch (e->kind) {
     case SK_STRUCT: {
@@ -302,8 +298,9 @@ void stabEntryFree(SymbolTableEntry *e) {
       break;
     }
     case SK_FUNCTION: {
-      vectorUninit(&e->data.function.overloadSet,
-                   (void (*)(void *))overloadSetEntryFree);
+      if (e->data.function.returnType != NULL)
+        typeFree(e->data.function.returnType);
+      vectorUninit(&e->data.function.argumentTypes, (void (*)(void *))typeFree);
       break;
     }
     default: {
