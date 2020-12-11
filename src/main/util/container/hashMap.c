@@ -27,6 +27,12 @@
 #include "optimization.h"
 #include "util/hash.h"
 
+HashMap *hashMapCreate(void) {
+  HashMap *map = malloc(sizeof(HashMap));
+  hashMapInit(map);
+  return map;
+}
+
 void hashMapInit(HashMap *map) {
   map->size = 0;
   map->capacity = PTR_VECTOR_INIT_CAPACITY;

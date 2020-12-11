@@ -42,8 +42,7 @@ void environmentInit(Environment *env, FileListEntry *currentModuleFile) {
   if (currentModuleFile->isCode) {
     FileListEntry *declEntry = fileListFindDeclName(
         currentModuleFile->ast->data.file.module->data.module.id);
-    if (declEntry != NULL)
-      env->implicitImport = &declEntry->ast->data.file.stab;
+    if (declEntry != NULL) env->implicitImport = declEntry->ast->data.file.stab;
   }
   vectorInit(&env->scopes);
 }
@@ -78,7 +77,7 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
     if (matched != NULL) return matched;
   }
   // check the current module then implicit import
-  matched = hashMapGet(&env->currentModuleFile->ast->data.file.stab, name);
+  matched = hashMapGet(env->currentModuleFile->ast->data.file.stab, name);
   if (matched != NULL) return matched;
   if (env->implicitImport != NULL) {
     matched = hashMapGet(env->implicitImport, name);
@@ -92,7 +91,7 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
   size_t numMatches = 0;
   for (size_t idx = 0; idx < imports->size; ++idx) {
     FileListEntry *import = imports->elements[idx];
-    matched = hashMapGet(&import->ast->data.file.stab, name);
+    matched = hashMapGet(import->ast->data.file.stab, name);
     if (matched != NULL) matches[numMatches++] = matched;
   }
 
@@ -146,7 +145,7 @@ static SymbolTableEntry *environmentLookupScoped(Environment *env, Node *name,
           name->data.scopedId.components
               ->elements[name->data.scopedId.components->size - 2];
       SymbolTableEntry *parentEnum =
-          hashMapGet(&import->ast->data.file.stab, secondLast->data.id.id);
+          hashMapGet(import->ast->data.file.stab, secondLast->data.id.id);
       if (parentEnum != NULL && parentEnum->kind == SK_ENUM) {
         Node *last = name->data.scopedId.components
                          ->elements[name->data.scopedId.components->size - 1];
@@ -163,7 +162,7 @@ static SymbolTableEntry *environmentLookupScoped(Environment *env, Node *name,
     Node *last = name->data.scopedId.components
                      ->elements[name->data.scopedId.components->size - 1];
     SymbolTableEntry *entry =
-        hashMapGet(&import->ast->data.file.stab, last->data.id.id);
+        hashMapGet(import->ast->data.file.stab, last->data.id.id);
     if (entry != NULL) return entry;
   }
 
@@ -196,19 +195,20 @@ SymbolTableEntry *environmentLookup(Environment *env, Node *name, bool quiet) {
   // been caught prior to this). If no valid results are produced, the
   // identifier so named is undefined.
 
-  if (name->type == NT_ID) {
-    // is unscoped
-    return environmentLookupUnscoped(env, name, quiet);
-  } else {
-    // is scoped
-    return environmentLookupScoped(env, name, quiet);
-  }
+  if (name->type == NT_ID)
+    return environmentLookupUnscoped(env, name, quiet);  // is unscoped
+  else
+    return environmentLookupScoped(env, name, quiet);  // is scoped
 }
 
-static void stabFree(HashMap *stab) {
-  stabUninit(stab);
-  free(stab);
+void environmentPush(Environment *env, HashMap *map) {
+  vectorInsert(&env->scopes, map);
 }
+
+HashMap *environmentPop(Environment *env) {
+  return env->scopes.elements[--env->scopes.size];
+}
+
 void environmentUninit(Environment *env) {
   vectorUninit(&env->importFiles, nullDtor);
   vectorUninit(&env->scopes, (void (*)(void *))stabFree);

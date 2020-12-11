@@ -21,6 +21,7 @@
 
 #include "fileList.h"
 #include "parser/buildStab.h"
+#include "parser/functionBody.h"
 #include "parser/topLevel.h"
 
 int parse(void) {
@@ -131,10 +132,15 @@ int parse(void) {
 
   // pass 7 - parse unparsed nodes, writing the symbol table as we go -
   // entries are filled in
+  for (size_t idx = 0; idx < fileList.size; ++idx) {
+    if (fileList.entries[idx].isCode) {
+      parseFunctionBody(&fileList.entries[idx]);
+      errored = errored || fileList.entries[idx].errored;
+    }
+  }
+  if (errored) return -1;
 
-  // TODO: write this
-
-  // pass 8 - check additional constraints and warnings
+  // pass 8 - check additional constraints and warnings (continue/break)
 
   // TODO: write this
 

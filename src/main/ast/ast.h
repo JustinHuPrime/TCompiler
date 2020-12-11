@@ -180,7 +180,7 @@ typedef struct Node {
   size_t character;
   union {
     struct {
-      HashMap stab;        /**< symbol table for file */
+      HashMap *stab;       /**< symbol table for file */
       struct Node *module; /**< NT_MODULE */
       Vector *imports;     /**< vector of Nodes, each is an NT_IMPORT */
       Vector
@@ -200,7 +200,7 @@ typedef struct Node {
       struct Node *name;       /**< NT_ID */
       Vector *argTypes;        /**< vector of Nodes, each is a type */
       Vector *argNames;  /**< vector of nullable Nodes, each is an NT_ID */
-      HashMap argStab;   /**< symbol table for arguments */
+      HashMap *argStab;  /**< symbol table for arguments */
       struct Node *body; /**< NT_COMPOUNDSTMT or NT_UNPARSED */
     } funDefn;
     struct {
@@ -242,34 +242,34 @@ typedef struct Node {
     } typedefDecl;
 
     struct {
-      HashMap stab;  /**< symbol table for this scope */
+      HashMap *stab; /**< symbol table for this scope */
       Vector *stmts; /**< vector of Nodes, each is a statement */
     } compoundStmt;
     struct {
       struct Node *predicate;   /**< expression */
       struct Node *consequent;  /**< statement */
-      HashMap consequentStab;   /**< symbol table for the consequent */
+      HashMap *consequentStab;  /**< symbol table for the consequent */
       struct Node *alternative; /**< nullable statement */
-      HashMap alternativeStab;  /**< symbol table for the alternative */
+      HashMap *alternativeStab; /**< symbol table for the alternative */
     } ifStmt;
     struct {
       struct Node *condition; /**< expression */
       struct Node *body;      /**< statement */
-      HashMap bodyStab;       /**< symbol table for the body */
+      HashMap *bodyStab;      /**< symbol table for the body */
     } whileStmt;
     struct {
       struct Node *body;      /**< expression */
-      HashMap bodyStab;       /**< symbol table for the body */
+      HashMap *bodyStab;      /**< symbol table for the body */
       struct Node *condition; /**< statement */
     } doWhileStmt;
     struct {
-      HashMap loopStab; /**< symbol table for loop */
+      HashMap *loopStab; /**< symbol table for loop */
       struct Node *
           initializer; /**< NT_VARDEFNSTMT, NT_EXPRESSIONSTMT, or NT_NULLSTMT */
       struct Node *condition; /**< expression */
       struct Node *increment; /**< nullable */
       struct Node *body;      /**< statement */
-      HashMap bodyStab;       /**< symbol table for the body */
+      HashMap *bodyStab;      /**< symbol table for the body */
     } forStmt;
     struct {
       struct Node *condition; /**< expression */
@@ -301,11 +301,11 @@ typedef struct Node {
     struct {
       Vector *values; /**< vector of Nodes, each is an extended int literal */
       struct Node *body; /**< statement */
-      HashMap bodyStab;  /**< symbol table for the body */
+      HashMap *bodyStab; /**< symbol table for the body */
     } switchCase;
     struct {
       struct Node *body; /**< statement */
-      HashMap bodyStab;  /**< symbol table for the body */
+      HashMap *bodyStab; /**< symbol table for the body */
     } switchDefault;
 
     struct {
@@ -404,13 +404,17 @@ Node *unionDeclNodeCreate(Token *keyword, Node *name, Vector *options);
 Node *enumDeclNodeCreate(Token *keyword, Node *name, Vector *constantNames,
                          Vector *constantValues);
 Node *typedefDeclNodeCreate(Token *keyword, Node *originalType, Node *name);
-Node *compoundStmtNodeCreate(Token *lbrace, Vector *stmts);
+Node *compoundStmtNodeCreate(Token *lbrace, Vector *stmts, HashMap *stab);
 Node *ifStmtNodeCreate(Token *keyword, Node *predicate, Node *consequent,
-                       Node *alternative);
-Node *whileStmtNodeCreate(Token *keyword, Node *condition, Node *body);
-Node *doWhileStmtNodeCreate(Token *keyword, Node *body, Node *condition);
-Node *forStmtNodeCreate(Token *keyword, Node *initializer, Node *condition,
-                        Node *increment, Node *body);
+                       HashMap *consequentStab, Node *alternative,
+                       HashMap *alternativeStab);
+Node *whileStmtNodeCreate(Token *keyword, Node *condition, Node *body,
+                          HashMap *bodyStab);
+Node *doWhileStmtNodeCreate(Token *keyword, Node *body, HashMap *bodyStab,
+                            Node *condition);
+Node *forStmtNodeCreate(Token *keyword, HashMap *loopStab, Node *initializer,
+                        Node *condition, Node *increment, Node *body,
+                        HashMap *bodyStab);
 Node *switchStmtNodeCreate(Token *keyword, Node *condition, Vector *cases);
 Node *breakStmtNodeCreate(Token *keyword);
 Node *continueStmtNodeCreate(Token *keyword);
@@ -419,8 +423,9 @@ Node *asmStmtNodeCreate(Token *keyword, Node *assembly);
 Node *varDefnStmtNodeCreate(Node *type, Vector *names, Vector *initializers);
 Node *expressionStmtNodeCreate(Node *expression);
 Node *nullStmtNodeCreate(Token *semicolon);
-Node *switchCaseNodeCreate(Token *keyword, Vector *values, Node *body);
-Node *switchDefaultNodeCreate(Token *keyword, Node *body);
+Node *switchCaseNodeCreate(Token *keyword, Vector *values, Node *body,
+                           HashMap *bodyStab);
+Node *switchDefaultNodeCreate(Token *keyword, Node *body, HashMap *bodyStab);
 Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs);
 Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,
                            Node *alternative);

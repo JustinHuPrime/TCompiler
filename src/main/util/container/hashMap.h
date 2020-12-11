@@ -36,6 +36,11 @@ typedef struct {
 } HashMap;
 
 /**
+ * create a dynamically allocated map
+ */
+HashMap *hashMapCreate(void);
+
+/**
  * initialize map in-place
  *
  * @param map map to initialize

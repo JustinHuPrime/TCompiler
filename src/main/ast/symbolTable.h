@@ -33,11 +33,11 @@
 typedef struct FileListEntry FileListEntry;
 
 /**
- * deinits a symbol table
+ * deinits and frees a symbol table
  *
- * @param t table to deinit
+ * @param t table to free
  */
-void stabUninit(HashMap *t);
+void stabFree(HashMap *t);
 
 /** A keyword type */
 typedef enum {

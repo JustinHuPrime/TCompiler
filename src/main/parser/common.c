@@ -21,6 +21,9 @@
 
 #include <stdio.h>
 
+#include "fileList.h"
+#include "util/conversions.h"
+
 /** array between token type (as int) and token name */
 static char const *const TOKEN_NAMES[] = {
     "the end of file",
@@ -148,6 +151,18 @@ void errorExpectedString(FileListEntry *entry, char const *expected,
 void errorExpectedToken(FileListEntry *entry, TokenType expected,
                         Token *actual) {
   errorExpectedString(entry, TOKEN_NAMES[expected], actual);
+}
+
+/**
+ * prints an error complaining about a too-large integral value
+ *
+ * @param entry entry to attribute the error to
+ * @param token the bad token
+ */
+static void errorIntOverflow(FileListEntry *entry, Token *token) {
+  fprintf(stderr, "%s:%zu:%zu: error: integer constant is too large\n",
+          entry->inputFilename, token->line, token->character);
+  entry->errored = true;
 }
 
 // panics

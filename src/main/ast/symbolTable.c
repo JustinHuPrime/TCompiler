@@ -28,8 +28,9 @@
 #include "internalError.h"
 #include "util/functional.h"
 
-void stabUninit(HashMap *stab) {
+void stabFree(HashMap *stab) {
   hashMapUninit(stab, (void (*)(void *))stabEntryFree);
+  free(stab);
 }
 
 static Type *typeCreate(TypeKind kind) {

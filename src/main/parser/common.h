@@ -26,7 +26,6 @@
 #define TLC_PARSER_COMMON_H_
 
 #include "ast/ast.h"
-#include "fileList.h"
 
 /**
  * prints an error complaining about a wrong token, specifying what it should

@@ -135,10 +135,8 @@ FileListEntry *fileListFindDeclName(Node *name) {
   for (size_t idx = 0; idx < fileList.size; ++idx) {
     if (!fileList.entries[idx].isCode &&
         nameNodeEqual(
-            name,
-            fileList.entries[idx].ast->data.file.module->data.module.id)) {
+            name, fileList.entries[idx].ast->data.file.module->data.module.id))
       return &fileList.entries[idx];
-    }
   }
   return NULL;
 }

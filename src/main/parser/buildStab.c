@@ -196,12 +196,12 @@ static void errorRedeclaration(FileListEntry *file, size_t line,
 
 void startTopLevelStab(FileListEntry *entry) {
   Vector *bodies = entry->ast->data.file.bodies;
-  HashMap *stab = &entry->ast->data.file.stab;
+  HashMap *stab = entry->ast->data.file.stab;
   HashMap *implicitStab = NULL;
   if (entry->isCode) {
     FileListEntry *declEntry =
         fileListFindDeclName(entry->ast->data.file.module->data.module.id);
-    if (declEntry != NULL) implicitStab = &declEntry->ast->data.file.stab;
+    if (declEntry != NULL) implicitStab = declEntry->ast->data.file.stab;
   }
 
   // for each top level thing
@@ -909,14 +909,14 @@ static bool checkScopedIdCollisionsBetween(Node *longImport, Node *shortImport,
         longName->data.scopedId.components
             ->elements[longName->data.scopedId.components->size - 1];
     SymbolTableEntry *nameMatch =
-        hashMapGet(&shortFile->ast->data.file.stab, lastNameNode->data.id.id);
+        hashMapGet(shortFile->ast->data.file.stab, lastNameNode->data.id.id);
     if (nameMatch != NULL && nameMatch->kind == SK_ENUM) {
       // FIRSTELM is an enum within the shorter
       for (size_t enumIdx = 0;
            enumIdx < nameMatch->data.enumType.constantNames.size; ++enumIdx) {
         // for each enum constant, is it in the longFile?
         SymbolTableEntry *colliding = hashMapGet(
-            &longFile->ast->data.file.stab,
+            longFile->ast->data.file.stab,
             nameMatch->data.enumType.constantNames.elements[enumIdx]);
         if (colliding != NULL) {
           char *longNameString = stringifyId(longName);
@@ -949,14 +949,14 @@ static bool checkScopedIdCollisionsWithCurrent(Node *import,
         fileName->data.scopedId.components
             ->elements[fileName->data.scopedId.components->size - 1];
     SymbolTableEntry *nameMatch =
-        hashMapGet(&importFile->ast->data.file.stab, lastNameNode->data.id.id);
+        hashMapGet(importFile->ast->data.file.stab, lastNameNode->data.id.id);
     if (nameMatch != NULL && nameMatch->kind == SK_ENUM) {
       // FIRSTELM is an enum within the import
       for (size_t enumIdx = 0;
            enumIdx < nameMatch->data.enumType.constantNames.size; ++enumIdx) {
         // for each enum constant, is it in the current module?
         SymbolTableEntry *colliding = hashMapGet(
-            &entry->ast->data.file.stab,
+            entry->ast->data.file.stab,
             nameMatch->data.enumType.constantNames.elements[enumIdx]);
         if (colliding != NULL) {
           fprintf(
@@ -978,14 +978,14 @@ static bool checkScopedIdCollisionsWithCurrent(Node *import,
         importName->data.scopedId.components
             ->elements[importName->data.scopedId.components->size - 1];
     SymbolTableEntry *nameMatch =
-        hashMapGet(&entry->ast->data.file.stab, lastNameNode->data.id.id);
+        hashMapGet(entry->ast->data.file.stab, lastNameNode->data.id.id);
     if (nameMatch != NULL && nameMatch->kind == SK_ENUM) {
       // FIRSTELM is an enum within the current module
       for (size_t enumIdx = 0;
            enumIdx < nameMatch->data.enumType.constantNames.size; ++enumIdx) {
         // for each enum constant, is it in the import?
         SymbolTableEntry *colliding = hashMapGet(
-            &importFile->ast->data.file.stab,
+            importFile->ast->data.file.stab,
             nameMatch->data.enumType.constantNames.elements[enumIdx]);
         if (colliding != NULL) {
           SymbolTableEntry *collidingEntry =
@@ -1104,7 +1104,7 @@ void finishTopLevelStab(FileListEntry *entry) {
           break;
         }
 
-        for (size_t nameIdx = 0; nameIdx < names->size; nameIdx++) {
+        for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
           Node *name = names->elements[nameIdx];
           name->data.id.entry->data.variable.type = typeCopy(type);
         }
@@ -1120,7 +1120,7 @@ void finishTopLevelStab(FileListEntry *entry) {
           break;
         }
 
-        for (size_t nameIdx = 0; nameIdx < names->size; nameIdx++) {
+        for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
           Node *name = names->elements[nameIdx];
           char const *nameString = name->data.id.id;
           SymbolTableEntry *existing = hashMapGet(implicitStab, nameString);
@@ -1154,7 +1154,7 @@ void finishTopLevelStab(FileListEntry *entry) {
             returnType;
 
         for (size_t argIdx = 0; argIdx < body->data.funDecl.argTypes->size;
-             argIdx++) {
+             ++argIdx) {
           Type *argType =
               nodeToType(body->data.funDecl.argTypes->elements[argIdx], &env);
           if (argType == NULL) {
@@ -1195,7 +1195,7 @@ void finishTopLevelStab(FileListEntry *entry) {
             returnType;
 
         for (size_t argIdx = 0; argIdx < body->data.funDefn.argTypes->size;
-             argIdx++) {
+             ++argIdx) {
           Type *argType =
               nodeToType(body->data.funDefn.argTypes->elements[argIdx], &env);
           if (argType == NULL) {

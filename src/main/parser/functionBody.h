@@ -19,20 +19,19 @@
 
 /**
  * @file
- * top-level parsing
+ * function body parsing
  */
 
-#ifndef TLC_PARSER_TOPLEVEL_H_
-#define TLC_PARSER_TOPLEVEL_H_
+#ifndef TLC_PARSER_FUNCTIONBODY_H_
+#define TLC_PARSER_FUNCTIONBODY_H_
 
 #include "ast/ast.h"
 
 /**
- * parses a file's top level, leaving function bodies unparsed
- *
- * @param entry entry to lex from
- * @returns AST node or NULL if error happened, also sets entry->errored
+ * parses all of the function bodies (unparsed nodes)
+ * 
+ * @param entry entry to read
  */
-Node *parseFile(FileListEntry *entry);
+void parseFunctionBody(FileListEntry *entry);
 
-#endif  // TLC_PARSER_TOPLEVEL_H_
+#endif  // TLC_PARSER_FUNCTIONBODY_H_

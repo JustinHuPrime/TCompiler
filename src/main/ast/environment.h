@@ -62,6 +62,19 @@ void environmentInit(Environment *env, FileListEntry *currentModuleFile);
 SymbolTableEntry *environmentLookup(Environment *env, Node *name, bool quiet);
 
 /**
+ * add a stab to the list of scopes
+ * 
+ * @param env environment to look in
+ * @param map 
+ */
+void environmentPush(Environment *env, HashMap *map);
+
+/**
+ * remove a stab from the list of scopes, and return it
+ */
+HashMap *environmentPop(Environment *env);
+
+/**
  * deinitialize an environment
  *
  * @param env environment to deinitialize

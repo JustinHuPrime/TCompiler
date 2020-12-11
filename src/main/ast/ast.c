@@ -47,7 +47,7 @@ static Node *createNode(NodeType type, size_t line, size_t character) {
 
 Node *fileNodeCreate(Node *module, Vector *imports, Vector *bodies) {
   Node *n = createNode(NT_FILE, module->line, module->character);
-  hashMapInit(&n->data.file.stab);
+  n->data.file.stab = hashMapCreate();
   n->data.file.module = module;
   n->data.file.imports = imports;
   n->data.file.bodies = bodies;
@@ -72,7 +72,7 @@ Node *funDefnNodeCreate(Node *returnType, Node *name, Vector *argTypes,
   n->data.funDefn.name = name;
   n->data.funDefn.argTypes = argTypes;
   n->data.funDefn.argNames = argNames;
-  hashMapInit(&n->data.funDefn.argStab);
+  n->data.funDefn.argStab = hashMapCreate();
   n->data.funDefn.body = body;
   return n;
 }
@@ -131,45 +131,49 @@ Node *typedefDeclNodeCreate(Token *keyword, Node *originalType, Node *name) {
   return n;
 }
 
-Node *compoundStmtNodeCreate(Token *lbrace, Vector *stmts) {
+Node *compoundStmtNodeCreate(Token *lbrace, Vector *stmts, HashMap *stab) {
   Node *n = createNode(NT_COMPOUNDSTMT, lbrace->line, lbrace->character);
-  hashMapInit(&n->data.compoundStmt.stab);
+  n->data.compoundStmt.stab = stab;
   n->data.compoundStmt.stmts = stmts;
   return n;
 }
 Node *ifStmtNodeCreate(Token *keyword, Node *predicate, Node *consequent,
-                       Node *alternative) {
+                       HashMap *consequentStab, Node *alternative,
+                       HashMap *alternativeStab) {
   Node *n = createNode(NT_IFSTMT, keyword->line, keyword->character);
   n->data.ifStmt.predicate = predicate;
   n->data.ifStmt.consequent = consequent;
-  hashMapInit(&n->data.ifStmt.consequentStab);
+  n->data.ifStmt.consequentStab = consequentStab;
   n->data.ifStmt.alternative = alternative;
-  hashMapInit(&n->data.ifStmt.alternativeStab);
+  n->data.ifStmt.alternativeStab = alternativeStab;
   return n;
 }
-Node *whileStmtNodeCreate(Token *keyword, Node *condition, Node *body) {
+Node *whileStmtNodeCreate(Token *keyword, Node *condition, Node *body,
+                          HashMap *bodyStab) {
   Node *n = createNode(NT_WHILESTMT, keyword->line, keyword->character);
   n->data.whileStmt.condition = condition;
   n->data.whileStmt.body = body;
-  hashMapInit(&n->data.whileStmt.bodyStab);
+  n->data.whileStmt.bodyStab = bodyStab;
   return n;
 }
-Node *doWhileStmtNodeCreate(Token *keyword, Node *body, Node *condition) {
+Node *doWhileStmtNodeCreate(Token *keyword, Node *body, HashMap *bodyStab,
+                            Node *condition) {
   Node *n = createNode(NT_DOWHILESTMT, keyword->line, keyword->character);
   n->data.doWhileStmt.body = body;
-  hashMapInit(&n->data.doWhileStmt.bodyStab);
+  n->data.doWhileStmt.bodyStab = bodyStab;
   n->data.doWhileStmt.condition = condition;
   return n;
 }
-Node *forStmtNodeCreate(Token *keyword, Node *initializer, Node *condition,
-                        Node *increment, Node *body) {
+Node *forStmtNodeCreate(Token *keyword, HashMap *loopStab, Node *initializer,
+                        Node *condition, Node *increment, Node *body,
+                        HashMap *bodyStab) {
   Node *n = createNode(NT_FORSTMT, keyword->line, keyword->character);
-  hashMapInit(&n->data.forStmt.loopStab);
+  n->data.forStmt.loopStab = loopStab;
   n->data.forStmt.initializer = initializer;
   n->data.forStmt.condition = condition;
   n->data.forStmt.increment = increment;
   n->data.forStmt.body = body;
-  hashMapInit(&n->data.forStmt.bodyStab);
+  n->data.forStmt.bodyStab = bodyStab;
   return n;
 }
 Node *switchStmtNodeCreate(Token *keyword, Node *condition, Vector *cases) {
@@ -214,17 +218,18 @@ Node *nullStmtNodeCreate(Token *semicolon) {
   return n;
 }
 
-Node *switchCaseNodeCreate(Token *keyword, Vector *values, Node *body) {
+Node *switchCaseNodeCreate(Token *keyword, Vector *values, Node *body,
+                           HashMap *bodyStab) {
   Node *n = createNode(NT_SWITCHCASE, keyword->line, keyword->character);
   n->data.switchCase.values = values;
   n->data.switchCase.body = body;
-  hashMapInit(&n->data.switchCase.bodyStab);
+  n->data.switchCase.bodyStab = bodyStab;
   return n;
 }
-Node *switchDefaultNodeCreate(Token *keyword, Node *body) {
+Node *switchDefaultNodeCreate(Token *keyword, Node *body, HashMap *bodyStab) {
   Node *n = createNode(NT_SWITCHDEFAULT, keyword->line, keyword->character);
   n->data.switchDefault.body = body;
-  hashMapInit(&n->data.switchDefault.bodyStab);
+  n->data.switchDefault.bodyStab = bodyStab;
   return n;
 }
 
@@ -890,7 +895,7 @@ void nodeUninit(Node *n) {
   if (n == NULL) return;
   switch (n->type) {
     case NT_FILE: {
-      stabUninit(&n->data.file.stab);
+      stabFree(n->data.file.stab);
       nodeFree(n->data.file.module);
       nodeVectorFree(n->data.file.imports);
       nodeVectorFree(n->data.file.bodies);
@@ -905,11 +910,11 @@ void nodeUninit(Node *n) {
       break;
     }
     case NT_FUNDEFN: {
-      stabUninit(&n->data.funDefn.stab);
       nodeFree(n->data.funDefn.returnType);
       nodeFree(n->data.funDefn.name);
       nodeVectorFree(n->data.funDefn.argTypes);
       nodeVectorFree(n->data.funDefn.argNames);
+      stabFree(n->data.funDefn.argStab);
       nodeFree(n->data.funDefn.body);
       break;
     }
@@ -957,32 +962,37 @@ void nodeUninit(Node *n) {
       break;
     }
     case NT_COMPOUNDSTMT: {
-      stabUninit(&n->data.compoundStmt.stab);
       nodeVectorFree(n->data.compoundStmt.stmts);
+      stabFree(n->data.compoundStmt.stab);
       break;
     }
     case NT_IFSTMT: {
       nodeFree(n->data.ifStmt.predicate);
       nodeFree(n->data.ifStmt.consequent);
+      stabFree(n->data.ifStmt.consequentStab);
       nodeFree(n->data.ifStmt.alternative);
+      stabFree(n->data.ifStmt.alternativeStab);
       break;
     }
     case NT_WHILESTMT: {
       nodeFree(n->data.whileStmt.condition);
       nodeFree(n->data.whileStmt.body);
+      stabFree(n->data.whileStmt.bodyStab);
       break;
     }
     case NT_DOWHILESTMT: {
       nodeFree(n->data.doWhileStmt.body);
       nodeFree(n->data.doWhileStmt.condition);
+      stabFree(n->data.doWhileStmt.bodyStab);
       break;
     }
     case NT_FORSTMT: {
-      stabUninit(&n->data.forStmt.stab);
+      stabFree(n->data.forStmt.loopStab);
       nodeFree(n->data.forStmt.initializer);
       nodeFree(n->data.forStmt.condition);
       nodeFree(n->data.forStmt.increment);
       nodeFree(n->data.forStmt.body);
+      stabFree(n->data.forStmt.bodyStab);
       break;
     }
     case NT_SWITCHSTMT: {
