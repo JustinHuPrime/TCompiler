@@ -150,6 +150,63 @@ void errorExpectedToken(FileListEntry *entry, TokenType expected,
   errorExpectedString(entry, TOKEN_NAMES[expected], actual);
 }
 
+// panics
+
+void panicStructOrUnion(FileListEntry *entry) {
+  while (true) {
+    Token token;
+    lex(entry, &token);
+    switch (token.type) {
+      case TT_SEMI: {
+        return;
+      }
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
+      case TT_ID:
+      case TT_EOF:
+      case TT_RBRACE: {
+        unLex(entry, &token);
+        return;
+      }
+      default: {
+        tokenUninit(&token);
+        break;
+      }
+    }
+  }
+}
+
+void panicEnum(FileListEntry *entry) {
+  while (true) {
+    Token token;
+    lex(entry, &token);
+    switch (token.type) {
+      case TT_COMMA: {
+        return;
+      }
+      case TT_EOF:
+      case TT_RBRACE: {
+        unLex(entry, &token);
+        return;
+      }
+      default: {
+        tokenUninit(&token);
+        break;
+      }
+    }
+  }
+}
+
 // context ignorant parser bits
 
 Node *parseAnyId(FileListEntry *entry) {

@@ -878,12 +878,8 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
         // this is the start of a field
         Node *field = parseFieldOrOptionDecl(entry, &peek);
         if (field == NULL) {
-          panicTopLevel(
-              entry);  // TODO: ought to panic to the end of the struct
-
-          nodeFree(name);
-          nodeVectorFree(fields);
-          return NULL;
+          panicStructOrUnion(entry);
+          continue;
         }
         vectorInsert(fields, field);
         break;
@@ -981,12 +977,8 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
         // this is the start of an option
         Node *option = parseFieldOrOptionDecl(entry, &peek);
         if (option == NULL) {
-          panicTopLevel(
-              entry);  // TODO: ought to panic to the end of the option
-
-          nodeFree(name);
-          nodeVectorFree(options);
-          return NULL;
+          panicStructOrUnion(entry);
+          continue;
         }
         vectorInsert(options, option);
         break;
@@ -1079,12 +1071,10 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
             // has an extended int literal
             Node *literal = parseExtendedIntLiteral(entry);
             if (literal == NULL) {
-              panicTopLevel(entry);
+              panicEnum(entry);
 
-              nodeFree(name);
-              nodeVectorFree(constantNames);
-              nodeVectorFree(constantValues);
-              return NULL;
+              vectorInsert(constantValues, NULL);
+              continue;
             }
             vectorInsert(constantValues, literal);
 
@@ -1103,12 +1093,8 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
                 errorExpectedString(entry, "a comma or a right brace", &peek);
 
                 unLex(entry, &peek);
-                panicTopLevel(entry);
-
-                nodeFree(name);
-                nodeVectorFree(constantNames);
-                nodeVectorFree(constantValues);
-                return NULL;
+                panicEnum(entry);
+                continue;
               }
             }
 
@@ -1130,12 +1116,8 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
                 entry, "a comma, an equals sign, or a right brace", &peek);
 
             unLex(entry, &peek);
-            panicTopLevel(entry);
-
-            nodeFree(name);
-            nodeVectorFree(constantNames);
-            nodeVectorFree(constantValues);
-            return NULL;
+            panicEnum(entry);
+            continue;
           }
         }
         break;

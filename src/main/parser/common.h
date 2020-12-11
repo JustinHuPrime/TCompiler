@@ -50,6 +50,24 @@ void errorExpectedToken(FileListEntry *entry, TokenType expected,
                         Token *actual);
 
 /**
+ * reads tokens until a struct field/union option boundary
+ *
+ * semicolons are consumed, EOFs, right braces, and the start of a type are left
+ *
+ * @param entry entry to lex from
+ */
+void panicStructOrUnion(FileListEntry *entry);
+
+/**
+ * reads tokens until a enum constant boundary
+ *
+ * commas are consumed, EOFs, and right braces are left
+ *
+ * @param entry entry to lex from
+ */
+void panicEnum(FileListEntry *entry);
+
+/**
  * parses an ID or scoped ID
  *
  * @param entry entry to lex from
