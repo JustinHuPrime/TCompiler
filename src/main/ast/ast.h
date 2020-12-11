@@ -248,28 +248,28 @@ typedef struct Node {
     struct {
       struct Node *predicate;   /**< expression */
       struct Node *consequent;  /**< statement */
-      HashMap *consequentStab;  /**< symbol table for the consequent */
+      HashMap *consequentStab;  /**< symbol table */
       struct Node *alternative; /**< nullable statement */
-      HashMap *alternativeStab; /**< symbol table for the alternative */
+      HashMap *alternativeStab; /**< nullable symbol table */
     } ifStmt;
     struct {
       struct Node *condition; /**< expression */
       struct Node *body;      /**< statement */
-      HashMap *bodyStab;      /**< symbol table for the body */
+      HashMap *bodyStab;      /**< symbol table */
     } whileStmt;
     struct {
-      struct Node *body;      /**< expression */
-      HashMap *bodyStab;      /**< symbol table for the body */
-      struct Node *condition; /**< statement */
+      struct Node *body;      /**< statement */
+      HashMap *bodyStab;      /**< symbol table */
+      struct Node *condition; /**< expression */
     } doWhileStmt;
     struct {
-      HashMap *loopStab; /**< symbol table for loop */
+      HashMap *loopStab; /**< symbol table */
       struct Node *
           initializer; /**< NT_VARDEFNSTMT, NT_EXPRESSIONSTMT, or NT_NULLSTMT */
       struct Node *condition; /**< expression */
-      struct Node *increment; /**< nullable */
+      struct Node *increment; /**< NT_EXPRESSIONSTMT or NT_NULLSTMT */
       struct Node *body;      /**< statement */
-      HashMap *bodyStab;      /**< symbol table for the body */
+      HashMap *bodyStab;      /**< symbol table */
     } forStmt;
     struct {
       struct Node *condition; /**< expression */
@@ -382,6 +382,7 @@ typedef struct Node {
 
     struct {
       Vector *tokens; /**< vector of Tokens */
+      size_t curr;    /**< current token (for lexing-ish purposes) */
     } unparsed;
   } data;
 } Node;
@@ -482,12 +483,6 @@ bool nameNodeEqual(Node *a, Node *b);
  */
 bool nameNodeEqualWithDrop(Node *a, Node *b, size_t dropCount);
 
-/**
- * deinitializes a node
- *
- * @param n Node to deinitialize
- */
-void nodeUninit(Node *n);
 /**
  * de-inits and frees a node
  *

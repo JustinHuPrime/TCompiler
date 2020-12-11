@@ -53,16 +53,22 @@ int parse(void) {
   // collisions among the entries (i.e. are all variables and functions defined
   // the same as they are declared?)
   //
+  // Pass seven parsed function bodies, fills in the symbol table entries for
+  // them, checking for collisions, and resolves identifier references
+  //
   // TODO: finish writing descriptions for other passes
 
   // note on parser calling conventions:
-  // a context-ignorant parser shall unLex as much as it can if an error happens
-  // (usually one token)
-  // a context-aware parser shall unLex as much as it can before panicking.
+  // a context-ignorant parser shall unlex as much as it needs to/can if an
+  // error happens (usually one token, maybe no tokens)
+  //
+  // a context-aware parser shall unlex as much as it can/needs to before
+  // panicking
   //
   // when a failure happens, the handler always has the same patterns:
   //  - error message
-  //  - unLex and/or panic
+  //  - unLex (optional)
+  //  - panic (optional)
   //  - cleanup
   //  - return NULL
 

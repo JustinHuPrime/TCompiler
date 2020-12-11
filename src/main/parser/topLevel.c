@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "fileList.h"
 #include "parser/common.h"
@@ -538,7 +539,7 @@ static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
 /**
  * makes a function body unparsed
  *
- * only cares about curly braces
+ * only cares about curly braces, might include error tokens
  *
  * @param entry entry to lex from
  * @param start first open brace
@@ -546,6 +547,9 @@ static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
  */
 static Node *parseFuncBody(FileListEntry *entry, Token *start) {
   Vector *tokens = vectorCreate();
+  Token *startCopy = malloc(sizeof(Token));
+  memcpy(startCopy, start, sizeof(Token));
+  vectorInsert(tokens, startCopy);
 
   size_t levels = 1;
   while (levels > 0) {
@@ -559,6 +563,11 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
       case TT_RBRACE: {
         --levels;
         break;
+      }
+      case TT_EOF: {
+        // unmatched brace! - will let parseFunctionBody complain about it
+        free(token);
+        return unparsedNodeCreate(tokens);
       }
       default: {
         break;
@@ -1270,7 +1279,6 @@ static Vector *parseBodies(FileListEntry *entry) {
       default: {
         // unexpected token
         errorExpectedString(entry, "a declaration", &start);
-        unLex(entry, &start);
         panicTopLevel(entry);
         continue;
       }

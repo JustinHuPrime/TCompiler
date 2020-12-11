@@ -627,6 +627,7 @@ Node *unparsedNodeCreate(Vector *tokens) {
   Token const *first = tokens->elements[0];
   Node *n = createNode(NT_UNPARSED, first->line, first->character);
   n->data.unparsed.tokens = tokens;
+  n->data.unparsed.curr = 0;
   return n;
 }
 
@@ -813,6 +814,7 @@ Type *nodeToType(Node *n, Environment *env) {
         case SK_UNION:
         case SK_ENUM:
         case SK_TYPEDEF: {
+          n->data.scopedId.entry = entry;
           return referenceTypeCreate(entry);
         }
         default: {
@@ -833,6 +835,7 @@ Type *nodeToType(Node *n, Environment *env) {
         case SK_UNION:
         case SK_ENUM:
         case SK_TYPEDEF: {
+          n->data.id.entry = entry;
           return referenceTypeCreate(entry);
         }
         default: {
@@ -891,7 +894,11 @@ bool nameNodeEqualWithDrop(Node *a, Node *b, size_t dropCount) {
   }
 }
 
-void nodeUninit(Node *n) {
+static void tokenFree(Token *token) {
+  tokenUninit(token);
+  free(token);
+}
+void nodeFree(Node *n) {
   if (n == NULL) return;
   switch (n->type) {
     case NT_FILE: {
@@ -1103,15 +1110,11 @@ void nodeUninit(Node *n) {
       break;
     }
     case NT_UNPARSED: {
-      vectorUninit(n->data.unparsed.tokens, (void (*)(void *))tokenUninit);
+      vectorUninit(n->data.unparsed.tokens, (void (*)(void *))tokenFree);
       free(n->data.unparsed.tokens);
       break;
     }
   }
-}
-
-void nodeFree(Node *n) {
-  nodeUninit(n);
   free(n);
 }
 
