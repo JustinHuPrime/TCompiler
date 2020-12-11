@@ -49,9 +49,9 @@ int parse(void) {
   // like array lengths)
   //
   // Pass six fills in the symbol table entry for everything else, checking for
-  // collisions among the entries
+  // collisions among the entries (i.e. are all variables and functions defined
+  // the same as they are declared?)
   //
-  // TODO: better describe pass six once written
   // TODO: finish writing descriptions for other passes
   int retval = 0;
   bool errored = false; /**< has any part of the whole thing errored */

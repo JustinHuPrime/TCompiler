@@ -35,9 +35,6 @@
 #include "util/format.h"
 #include "util/functional.h"
 
-// TODO: generally, make sure that we can handle things being in a bad state
-// because we hit an error
-
 static bool fileListEntryArrayContains(FileListEntry **arry, size_t size,
                                        FileListEntry *f) {
   for (size_t idx = 0; idx < size; ++idx)
@@ -1039,7 +1036,6 @@ void checkScopedIdCollisions(FileListEntry *entry) {
 void finishTopLevelStab(FileListEntry *entry) {
   Environment env;
   environmentInit(&env, entry);
-  HashMap *stab = &entry->ast->data.file.stab;
   HashMap *implicitStab = env.implicitImport;
 
   for (size_t bodyIdx = 0; bodyIdx < entry->ast->data.file.bodies->size;
@@ -1128,9 +1124,8 @@ void finishTopLevelStab(FileListEntry *entry) {
           Node *name = names->elements[nameIdx];
           char const *nameString = name->data.id.id;
           SymbolTableEntry *existing = hashMapGet(implicitStab, nameString);
-          if (existing != NULL &&
+          if (existing != NULL && existing->data.variable.type != NULL &&
               !typeEqual(existing->data.variable.type, type)) {
-            // redeclaration of variable with different type
             fprintf(stderr,
                     "%s:%zu:%zu: error: redeclaration of %s as a variable of a "
                     "different type\n",
@@ -1183,7 +1178,8 @@ void finishTopLevelStab(FileListEntry *entry) {
           entry->errored = true;
           break;
         }
-        if (!typeEqual(existing->data.function.returnType, returnType)) {
+        if (existing != NULL && existing->data.function.returnType != NULL &&
+            !typeEqual(existing->data.function.returnType, returnType)) {
           // redeclaration of function with different type
           fprintf(stderr,
                   "%s:%zu:%zu: error: redeclaration of %s as a function of a "
@@ -1207,7 +1203,9 @@ void finishTopLevelStab(FileListEntry *entry) {
             break;
           }
 
-          if (!typeEqual(existing->data.function.argumentTypes.elements[argIdx],
+          if (existing != NULL &&
+              existing->data.function.argumentTypes.elements[argIdx] != NULL &&
+              !typeEqual(existing->data.function.argumentTypes.elements[argIdx],
                          argType) &&
               !mismatch) {
             // redeclaration of function with different type
