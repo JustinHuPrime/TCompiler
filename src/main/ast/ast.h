@@ -196,11 +196,11 @@ typedef struct Node {
     } import;
 
     struct {
-      HashMap stab;            /**< symbol table for arguments */
       struct Node *returnType; /**< type */
       struct Node *name;       /**< NT_ID */
       Vector *argTypes;        /**< vector of Nodes, each is a type */
       Vector *argNames;  /**< vector of nullable Nodes, each is an NT_ID */
+      HashMap argStab;   /**< symbol table for arguments */
       struct Node *body; /**< NT_COMPOUNDSTMT or NT_UNPARSED */
     } funDefn;
     struct {
@@ -248,23 +248,28 @@ typedef struct Node {
     struct {
       struct Node *predicate;   /**< expression */
       struct Node *consequent;  /**< statement */
+      HashMap consequentStab;   /**< symbol table for the consequent */
       struct Node *alternative; /**< nullable statement */
+      HashMap alternativeStab;  /**< symbol table for the alternative */
     } ifStmt;
     struct {
       struct Node *condition; /**< expression */
       struct Node *body;      /**< statement */
+      HashMap bodyStab;       /**< symbol table for the body */
     } whileStmt;
     struct {
       struct Node *body;      /**< expression */
+      HashMap bodyStab;       /**< symbol table for the body */
       struct Node *condition; /**< statement */
     } doWhileStmt;
     struct {
-      HashMap stab; /**< symbol table for loop */
+      HashMap loopStab; /**< symbol table for loop */
       struct Node *
           initializer; /**< NT_VARDEFNSTMT, NT_EXPRESSIONSTMT, or NT_NULLSTMT */
       struct Node *condition; /**< expression */
       struct Node *increment; /**< nullable */
       struct Node *body;      /**< statement */
+      HashMap bodyStab;       /**< symbol table for the body */
     } forStmt;
     struct {
       struct Node *condition; /**< expression */
@@ -296,9 +301,11 @@ typedef struct Node {
     struct {
       Vector *values; /**< vector of Nodes, each is an extended int literal */
       struct Node *body; /**< statement */
+      HashMap bodyStab;  /**< symbol table for the body */
     } switchCase;
     struct {
       struct Node *body; /**< statement */
+      HashMap bodyStab;  /**< symbol table for the body */
     } switchDefault;
 
     struct {

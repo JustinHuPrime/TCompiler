@@ -47,10 +47,10 @@ static Node *createNode(NodeType type, size_t line, size_t character) {
 
 Node *fileNodeCreate(Node *module, Vector *imports, Vector *bodies) {
   Node *n = createNode(NT_FILE, module->line, module->character);
+  hashMapInit(&n->data.file.stab);
   n->data.file.module = module;
   n->data.file.imports = imports;
   n->data.file.bodies = bodies;
-  hashMapInit(&n->data.file.stab);
   return n;
 }
 Node *moduleNodeCreate(Token *keyword, Node *id) {
@@ -72,8 +72,8 @@ Node *funDefnNodeCreate(Node *returnType, Node *name, Vector *argTypes,
   n->data.funDefn.name = name;
   n->data.funDefn.argTypes = argTypes;
   n->data.funDefn.argNames = argNames;
+  hashMapInit(&n->data.funDefn.argStab);
   n->data.funDefn.body = body;
-  hashMapInit(&n->data.funDefn.stab);
   return n;
 }
 Node *varDefnNodeCreate(Node *type, Vector *names, Vector *initializers) {
@@ -133,8 +133,8 @@ Node *typedefDeclNodeCreate(Token *keyword, Node *originalType, Node *name) {
 
 Node *compoundStmtNodeCreate(Token *lbrace, Vector *stmts) {
   Node *n = createNode(NT_COMPOUNDSTMT, lbrace->line, lbrace->character);
-  n->data.compoundStmt.stmts = stmts;
   hashMapInit(&n->data.compoundStmt.stab);
+  n->data.compoundStmt.stmts = stmts;
   return n;
 }
 Node *ifStmtNodeCreate(Token *keyword, Node *predicate, Node *consequent,
@@ -142,29 +142,34 @@ Node *ifStmtNodeCreate(Token *keyword, Node *predicate, Node *consequent,
   Node *n = createNode(NT_IFSTMT, keyword->line, keyword->character);
   n->data.ifStmt.predicate = predicate;
   n->data.ifStmt.consequent = consequent;
+  hashMapInit(&n->data.ifStmt.consequentStab);
   n->data.ifStmt.alternative = alternative;
+  hashMapInit(&n->data.ifStmt.alternativeStab);
   return n;
 }
 Node *whileStmtNodeCreate(Token *keyword, Node *condition, Node *body) {
   Node *n = createNode(NT_WHILESTMT, keyword->line, keyword->character);
   n->data.whileStmt.condition = condition;
   n->data.whileStmt.body = body;
+  hashMapInit(&n->data.whileStmt.bodyStab);
   return n;
 }
 Node *doWhileStmtNodeCreate(Token *keyword, Node *body, Node *condition) {
   Node *n = createNode(NT_DOWHILESTMT, keyword->line, keyword->character);
   n->data.doWhileStmt.body = body;
+  hashMapInit(&n->data.doWhileStmt.bodyStab);
   n->data.doWhileStmt.condition = condition;
   return n;
 }
 Node *forStmtNodeCreate(Token *keyword, Node *initializer, Node *condition,
                         Node *increment, Node *body) {
   Node *n = createNode(NT_FORSTMT, keyword->line, keyword->character);
+  hashMapInit(&n->data.forStmt.loopStab);
   n->data.forStmt.initializer = initializer;
   n->data.forStmt.condition = condition;
   n->data.forStmt.increment = increment;
   n->data.forStmt.body = body;
-  hashMapInit(&n->data.forStmt.stab);
+  hashMapInit(&n->data.forStmt.bodyStab);
   return n;
 }
 Node *switchStmtNodeCreate(Token *keyword, Node *condition, Vector *cases) {
@@ -213,11 +218,13 @@ Node *switchCaseNodeCreate(Token *keyword, Vector *values, Node *body) {
   Node *n = createNode(NT_SWITCHCASE, keyword->line, keyword->character);
   n->data.switchCase.values = values;
   n->data.switchCase.body = body;
+  hashMapInit(&n->data.switchCase.bodyStab);
   return n;
 }
 Node *switchDefaultNodeCreate(Token *keyword, Node *body) {
   Node *n = createNode(NT_SWITCHDEFAULT, keyword->line, keyword->character);
   n->data.switchDefault.body = body;
+  hashMapInit(&n->data.switchDefault.bodyStab);
   return n;
 }
 
