@@ -53,6 +53,18 @@ int parse(void) {
   // the same as they are declared?)
   //
   // TODO: finish writing descriptions for other passes
+
+  // note on parser calling conventions:
+  // a context-ignorant parser shall unLex as much as it can if an error happens
+  // (usually one token)
+  // a context-aware parser shall unLex as much as it can before panicking.
+  //
+  // when a failure happens, the handler always has the same patterns:
+  //  - error message
+  //  - unLex and/or panic
+  //  - cleanup
+  //  - return NULL
+
   int retval = 0;
   bool errored = false; /**< has any part of the whole thing errored */
 
