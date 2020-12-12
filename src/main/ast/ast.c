@@ -53,12 +53,12 @@ Node *fileNodeCreate(Node *module, Vector *imports, Vector *bodies) {
   n->data.file.bodies = bodies;
   return n;
 }
-Node *moduleNodeCreate(Token *keyword, Node *id) {
+Node *moduleNodeCreate(Token const *keyword, Node *id) {
   Node *n = createNode(NT_MODULE, keyword->line, keyword->character);
   n->data.module.id = id;
   return n;
 }
-Node *importNodeCreate(Token *keyword, Node *id) {
+Node *importNodeCreate(Token const *keyword, Node *id) {
   Node *n = createNode(NT_IMPORT, keyword->line, keyword->character);
   n->data.import.id = id;
   n->data.import.referenced = NULL;
@@ -99,45 +99,47 @@ Node *varDeclNodeCreate(Node *type, Vector *names) {
   n->data.varDecl.names = names;
   return n;
 }
-Node *opaqueDeclNodeCreate(Token *keyword, Node *name) {
+Node *opaqueDeclNodeCreate(Token const *keyword, Node *name) {
   Node *n = createNode(NT_OPAQUEDECL, keyword->line, keyword->character);
   n->data.opaqueDecl.name = name;
   return n;
 }
-Node *structDeclNodeCreate(Token *keyword, Node *name, Vector *fields) {
+Node *structDeclNodeCreate(Token const *keyword, Node *name, Vector *fields) {
   Node *n = createNode(NT_STRUCTDECL, keyword->line, keyword->character);
   n->data.structDecl.name = name;
   n->data.structDecl.fields = fields;
   return n;
 }
-Node *unionDeclNodeCreate(Token *keyword, Node *name, Vector *options) {
+Node *unionDeclNodeCreate(Token const *keyword, Node *name, Vector *options) {
   Node *n = createNode(NT_UNIONDECL, keyword->line, keyword->character);
   n->data.unionDecl.name = name;
   n->data.unionDecl.options = options;
   return n;
 }
-Node *enumDeclNodeCreate(Token *keyword, Node *name, Vector *constantNames,
-                         Vector *constantValues) {
+Node *enumDeclNodeCreate(Token const *keyword, Node *name,
+                         Vector *constantNames, Vector *constantValues) {
   Node *n = createNode(NT_ENUMDECL, keyword->line, keyword->character);
   n->data.enumDecl.name = name;
   n->data.enumDecl.constantNames = constantNames;
   n->data.enumDecl.constantValues = constantValues;
   return n;
 }
-Node *typedefDeclNodeCreate(Token *keyword, Node *originalType, Node *name) {
+Node *typedefDeclNodeCreate(Token const *keyword, Node *originalType,
+                            Node *name) {
   Node *n = createNode(NT_TYPEDEFDECL, keyword->line, keyword->character);
   n->data.typedefDecl.originalType = originalType;
   n->data.typedefDecl.name = name;
   return n;
 }
 
-Node *compoundStmtNodeCreate(Token *lbrace, Vector *stmts, HashMap *stab) {
+Node *compoundStmtNodeCreate(Token const *lbrace, Vector *stmts,
+                             HashMap *stab) {
   Node *n = createNode(NT_COMPOUNDSTMT, lbrace->line, lbrace->character);
   n->data.compoundStmt.stab = stab;
   n->data.compoundStmt.stmts = stmts;
   return n;
 }
-Node *ifStmtNodeCreate(Token *keyword, Node *predicate, Node *consequent,
+Node *ifStmtNodeCreate(Token const *keyword, Node *predicate, Node *consequent,
                        HashMap *consequentStab, Node *alternative,
                        HashMap *alternativeStab) {
   Node *n = createNode(NT_IFSTMT, keyword->line, keyword->character);
@@ -148,7 +150,7 @@ Node *ifStmtNodeCreate(Token *keyword, Node *predicate, Node *consequent,
   n->data.ifStmt.alternativeStab = alternativeStab;
   return n;
 }
-Node *whileStmtNodeCreate(Token *keyword, Node *condition, Node *body,
+Node *whileStmtNodeCreate(Token const *keyword, Node *condition, Node *body,
                           HashMap *bodyStab) {
   Node *n = createNode(NT_WHILESTMT, keyword->line, keyword->character);
   n->data.whileStmt.condition = condition;
@@ -156,7 +158,7 @@ Node *whileStmtNodeCreate(Token *keyword, Node *condition, Node *body,
   n->data.whileStmt.bodyStab = bodyStab;
   return n;
 }
-Node *doWhileStmtNodeCreate(Token *keyword, Node *body, HashMap *bodyStab,
+Node *doWhileStmtNodeCreate(Token const *keyword, Node *body, HashMap *bodyStab,
                             Node *condition) {
   Node *n = createNode(NT_DOWHILESTMT, keyword->line, keyword->character);
   n->data.doWhileStmt.body = body;
@@ -164,9 +166,9 @@ Node *doWhileStmtNodeCreate(Token *keyword, Node *body, HashMap *bodyStab,
   n->data.doWhileStmt.condition = condition;
   return n;
 }
-Node *forStmtNodeCreate(Token *keyword, HashMap *loopStab, Node *initializer,
-                        Node *condition, Node *increment, Node *body,
-                        HashMap *bodyStab) {
+Node *forStmtNodeCreate(Token const *keyword, HashMap *loopStab,
+                        Node *initializer, Node *condition, Node *increment,
+                        Node *body, HashMap *bodyStab) {
   Node *n = createNode(NT_FORSTMT, keyword->line, keyword->character);
   n->data.forStmt.loopStab = loopStab;
   n->data.forStmt.initializer = initializer;
@@ -176,26 +178,27 @@ Node *forStmtNodeCreate(Token *keyword, HashMap *loopStab, Node *initializer,
   n->data.forStmt.bodyStab = bodyStab;
   return n;
 }
-Node *switchStmtNodeCreate(Token *keyword, Node *condition, Vector *cases) {
+Node *switchStmtNodeCreate(Token const *keyword, Node *condition,
+                           Vector *cases) {
   Node *n = createNode(NT_SWITCHSTMT, keyword->line, keyword->character);
   n->data.switchStmt.condition = condition;
   n->data.switchStmt.cases = cases;
   return n;
 }
-Node *breakStmtNodeCreate(Token *keyword) {
+Node *breakStmtNodeCreate(Token const *keyword) {
   Node *n = createNode(NT_SWITCHSTMT, keyword->line, keyword->character);
   return n;
 }
-Node *continueStmtNodeCreate(Token *keyword) {
+Node *continueStmtNodeCreate(Token const *keyword) {
   Node *n = createNode(NT_CONTINUESTMT, keyword->line, keyword->character);
   return n;
 }
-Node *returnStmtNodeCreate(Token *keyword, Node *value) {
+Node *returnStmtNodeCreate(Token const *keyword, Node *value) {
   Node *n = createNode(NT_RETURNSTMT, keyword->line, keyword->character);
   n->data.returnStmt.value = value;
   return n;
 }
-Node *asmStmtNodeCreate(Token *keyword, Node *assembly) {
+Node *asmStmtNodeCreate(Token const *keyword, Node *assembly) {
   Node *n = createNode(NT_ASMSTMT, keyword->line, keyword->character);
   n->data.asmStmt.assembly = assembly;
   return n;
@@ -213,12 +216,12 @@ Node *expressionStmtNodeCreate(Node *expression) {
   n->data.expressionStmt.expression = expression;
   return n;
 }
-Node *nullStmtNodeCreate(Token *semicolon) {
+Node *nullStmtNodeCreate(Token const *semicolon) {
   Node *n = createNode(NT_NULLSTMT, semicolon->line, semicolon->character);
   return n;
 }
 
-Node *switchCaseNodeCreate(Token *keyword, Vector *values, Node *body,
+Node *switchCaseNodeCreate(Token const *keyword, Vector *values, Node *body,
                            HashMap *bodyStab) {
   Node *n = createNode(NT_SWITCHCASE, keyword->line, keyword->character);
   n->data.switchCase.values = values;
@@ -226,7 +229,8 @@ Node *switchCaseNodeCreate(Token *keyword, Vector *values, Node *body,
   n->data.switchCase.bodyStab = bodyStab;
   return n;
 }
-Node *switchDefaultNodeCreate(Token *keyword, Node *body, HashMap *bodyStab) {
+Node *switchDefaultNodeCreate(Token const *keyword, Node *body,
+                              HashMap *bodyStab) {
   Node *n = createNode(NT_SWITCHDEFAULT, keyword->line, keyword->character);
   n->data.switchDefault.body = body;
   n->data.switchDefault.bodyStab = bodyStab;
@@ -248,7 +252,7 @@ Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,
   n->data.ternaryExp.alternative = alternative;
   return n;
 }
-Node *prefixUnOpExpNodeCreate(UnOpType op, Token *opToken, Node *target) {
+Node *prefixUnOpExpNodeCreate(UnOpType op, Token const *opToken, Node *target) {
   Node *n = createNode(NT_UNOPEXP, opToken->line, opToken->character);
   n->data.unOpExp.op = op;
   n->data.unOpExp.target = target;
@@ -267,7 +271,7 @@ Node *funCallExpNodeCreate(Node *function, Vector *arguments) {
   return n;
 }
 
-Node *literalNodeCreate(LiteralType type, Token *t) {
+Node *literalNodeCreate(LiteralType type, Token const *t) {
   Node *n = createNode(NT_LITERAL, t->line, t->character);
   n->data.literal.type = type;
   return n;
@@ -582,7 +586,7 @@ Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude) {
   }
 }
 
-Node *keywordTypeNodeCreate(TypeKeyword keyword, Token *keywordToken) {
+Node *keywordTypeNodeCreate(TypeKeyword keyword, Token const *keywordToken) {
   Node *n =
       createNode(NT_KEYWORDTYPE, keywordToken->line, keywordToken->character);
   n->data.keywordType.keyword = keyword;

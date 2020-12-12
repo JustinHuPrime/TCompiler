@@ -267,7 +267,7 @@ typedef struct Node {
       struct Node *
           initializer; /**< NT_VARDEFNSTMT, NT_EXPRESSIONSTMT, or NT_NULLSTMT */
       struct Node *condition; /**< expression */
-      struct Node *increment; /**< NT_EXPRESSIONSTMT or NT_NULLSTMT */
+      struct Node *increment; /**< nullable expression */
       struct Node *body;      /**< statement */
       HashMap *bodyStab;      /**< symbol table */
     } forStmt;
@@ -391,55 +391,58 @@ typedef struct Node {
  * Node constructors - these create and return initialized nodes
  */
 Node *fileNodeCreate(Node *module, Vector *imports, Vector *bodies);
-Node *moduleNodeCreate(Token *keyword, Node *id);
-Node *importNodeCreate(Token *keyword, Node *id);
+Node *moduleNodeCreate(Token const *keyword, Node *id);
+Node *importNodeCreate(Token const *keyword, Node *id);
 Node *funDefnNodeCreate(Node *returnType, Node *name, Vector *argTypes,
                         Vector *argNames, Node *body);
 Node *varDefnNodeCreate(Node *type, Vector *names, Vector *initializers);
 Node *funDeclNodeCreate(Node *returnType, Node *name, Vector *argTypes,
                         Vector *argNames);
 Node *varDeclNodeCreate(Node *type, Vector *names);
-Node *opaqueDeclNodeCreate(Token *keyword, Node *name);
-Node *structDeclNodeCreate(Token *keyword, Node *name, Vector *fields);
-Node *unionDeclNodeCreate(Token *keyword, Node *name, Vector *options);
-Node *enumDeclNodeCreate(Token *keyword, Node *name, Vector *constantNames,
-                         Vector *constantValues);
-Node *typedefDeclNodeCreate(Token *keyword, Node *originalType, Node *name);
-Node *compoundStmtNodeCreate(Token *lbrace, Vector *stmts, HashMap *stab);
-Node *ifStmtNodeCreate(Token *keyword, Node *predicate, Node *consequent,
+Node *opaqueDeclNodeCreate(Token const *keyword, Node *name);
+Node *structDeclNodeCreate(Token const *keyword, Node *name, Vector *fields);
+Node *unionDeclNodeCreate(Token const *keyword, Node *name, Vector *options);
+Node *enumDeclNodeCreate(Token const *keyword, Node *name,
+                         Vector *constantNames, Vector *constantValues);
+Node *typedefDeclNodeCreate(Token const *keyword, Node *originalType,
+                            Node *name);
+Node *compoundStmtNodeCreate(Token const *lbrace, Vector *stmts, HashMap *stab);
+Node *ifStmtNodeCreate(Token const *keyword, Node *predicate, Node *consequent,
                        HashMap *consequentStab, Node *alternative,
                        HashMap *alternativeStab);
-Node *whileStmtNodeCreate(Token *keyword, Node *condition, Node *body,
+Node *whileStmtNodeCreate(Token const *keyword, Node *condition, Node *body,
                           HashMap *bodyStab);
-Node *doWhileStmtNodeCreate(Token *keyword, Node *body, HashMap *bodyStab,
+Node *doWhileStmtNodeCreate(Token const *keyword, Node *body, HashMap *bodyStab,
                             Node *condition);
-Node *forStmtNodeCreate(Token *keyword, HashMap *loopStab, Node *initializer,
-                        Node *condition, Node *increment, Node *body,
-                        HashMap *bodyStab);
-Node *switchStmtNodeCreate(Token *keyword, Node *condition, Vector *cases);
-Node *breakStmtNodeCreate(Token *keyword);
-Node *continueStmtNodeCreate(Token *keyword);
-Node *returnStmtNodeCreate(Token *keyword, Node *value);
-Node *asmStmtNodeCreate(Token *keyword, Node *assembly);
+Node *forStmtNodeCreate(Token const *keyword, HashMap *loopStab,
+                        Node *initializer, Node *condition, Node *increment,
+                        Node *body, HashMap *bodyStab);
+Node *switchStmtNodeCreate(Token const *keyword, Node *condition,
+                           Vector *cases);
+Node *breakStmtNodeCreate(Token const *keyword);
+Node *continueStmtNodeCreate(Token const *keyword);
+Node *returnStmtNodeCreate(Token const *keyword, Node *value);
+Node *asmStmtNodeCreate(Token const *keyword, Node *assembly);
 Node *varDefnStmtNodeCreate(Node *type, Vector *names, Vector *initializers);
 Node *expressionStmtNodeCreate(Node *expression);
-Node *nullStmtNodeCreate(Token *semicolon);
-Node *switchCaseNodeCreate(Token *keyword, Vector *values, Node *body,
+Node *nullStmtNodeCreate(Token const *semicolon);
+Node *switchCaseNodeCreate(Token const *keyword, Vector *values, Node *body,
                            HashMap *bodyStab);
-Node *switchDefaultNodeCreate(Token *keyword, Node *body, HashMap *bodyStab);
+Node *switchDefaultNodeCreate(Token const *keyword, Node *body,
+                              HashMap *bodyStab);
 Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs);
 Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,
                            Node *alternative);
-Node *prefixUnOpExpNodeCreate(UnOpType op, Token *opToken, Node *target);
+Node *prefixUnOpExpNodeCreate(UnOpType op, Token const *opToken, Node *target);
 Node *postfixUnOpExpNodeCreate(UnOpType op, Node *target);
 Node *funCallExpNodeCreate(Node *function, Vector *arguments);
-Node *literalNodeCreate(LiteralType type, Token *t);
+Node *literalNodeCreate(LiteralType type, Token const *t);
 Node *charLiteralNodeCreate(Token *t);
 Node *wcharLiteralNodeCreate(Token *t);
 Node *stringLiteralNodeCreate(Token *t);
 Node *wstringLiteralNodeCreate(Token *t);
 Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude);
-Node *keywordTypeNodeCreate(TypeKeyword keyword, Token *keywordToken);
+Node *keywordTypeNodeCreate(TypeKeyword keyword, Token const *keywordToken);
 Node *modifiedTypeNodeCreate(TypeModifier modifier, Node *baseType);
 Node *arrayTypeNodeCreate(Node *baseType, Node *size);
 Node *funPtrTypeNodeCreate(Node *returnType, Vector *argTypes,

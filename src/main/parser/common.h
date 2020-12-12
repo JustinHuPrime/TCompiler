@@ -36,7 +36,7 @@
  * @param actual actual token
  */
 void errorExpectedString(FileListEntry *entry, char const *expected,
-                         Token *actual);
+                         Token const *actual);
 /**
  * prints an error complaining about a wrong token,
  * specifying what token it should have been
@@ -46,6 +46,6 @@ void errorExpectedString(FileListEntry *entry, char const *expected,
  * @param actual actual token
  */
 void errorExpectedToken(FileListEntry *entry, TokenType expected,
-                        Token *actual);
+                        Token const *actual);
 
 #endif  // TLC_PARSER_COMMON_H_

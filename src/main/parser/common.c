@@ -140,13 +140,13 @@ static char const *const TOKEN_NAMES[] = {
 };
 
 void errorExpectedString(FileListEntry *entry, char const *expected,
-                         Token *actual) {
+                         Token const *actual) {
   fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
           entry->inputFilename, actual->line, actual->character, expected,
           TOKEN_NAMES[actual->type]);
   entry->errored = true;
 }
 void errorExpectedToken(FileListEntry *entry, TokenType expected,
-                        Token *actual) {
+                        Token const *actual) {
   errorExpectedString(entry, TOKEN_NAMES[expected], actual);
 }

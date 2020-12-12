@@ -367,6 +367,7 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
   }
 }
 
+static Node *parseLiteral(FileListEntry *entry);
 /**
  * parses an aggregate initializer
  *
