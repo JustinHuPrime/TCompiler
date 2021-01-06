@@ -20,6 +20,8 @@
 #include "parser/functionBody.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "fileList.h"
 #include "parser/common.h"
@@ -30,27 +32,41 @@
 // token stuff
 
 /**
- * gets a references
+ * grabs the next token from unparsed
+ *
+ * like lex, but reads tokens from unparsed nodes
+ *
+ * assumes you don't go past the end of the unparsed
+ *
+ * @param unparsed node to read from
+ * @param t token to write into
  */
-static Token *unparsedNext(Node *unparsed) {
-  if (unparsed->data.unparsed.curr != unparsed->data.unparsed.tokens->size) {
-    Token *t = unparsed->data.unparsed.tokens
-                   ->elements[unparsed->data.unparsed.curr++];
-    unparsed->data.unparsed.tokens->elements[unparsed->data.unparsed.curr++] =
-        NULL;
-    return t;
-  } else {
-    return NULL;
-  }
+void unparsedNext(Node *unparsed, Token *t) {
+  // get pointer to saved token
+  Token *saved =
+      unparsed->data.unparsed.tokens->elements[unparsed->data.unparsed.curr];
+  // give ownership of it to the caller
+  memcpy(t, saved, sizeof(Token));
+  // free malloc'ed block - this token has its guts ripped out
+  free(saved);
+  // clear it - we don't need to remember it any more
+  unparsed->data.unparsed.tokens->elements[unparsed->data.unparsed.curr] = NULL;
+  unparsed->data.unparsed.curr++;
 }
 static void unparsedPrev(Node *unparsed, Token *t) {
-  unparsed->data.unparsed.tokens->elements[--unparsed->data.unparsed.curr] = t;
+  // malloc new block
+  Token *saved = malloc(sizeof(Token));
+  // copy from t (t now has its guts ripped out)
+  memcpy(saved, t, sizeof(Token));
+  // save it
+  unparsed->data.unparsed.tokens->elements[--unparsed->data.unparsed.curr] =
+      saved;
 }
 
 // miscellaneous functions
 
 /**
- * skips nodes until an end of stmt is encountered
+ * skips tokens until an end of stmt is encountered
  *
  * consumes semicolons, leaves start of stmt tokens (including any ids) and
  * left/right braces (components of a compoundStmt individually fail and panic,
@@ -60,14 +76,10 @@ static void unparsedPrev(Node *unparsed, Token *t) {
  */
 static void panicStmt(Node *unparsed) {
   while (true) {
-    Token *token = unparsedNext(unparsed);
-    if (token == NULL) {
-      // hit EOF while panicking - stop here.
-      return;
-    }
-    switch (token->type) {
+    Token token;
+    unparsedNext(unparsed, &token);
+    switch (token.type) {
       case TT_SEMI: {
-        tokenUninit(token);
         return;
       }
       case TT_LBRACE:
@@ -99,11 +111,11 @@ static void panicStmt(Node *unparsed) {
       case TT_UNION:
       case TT_ENUM:
       case TT_TYPEDEF: {
-        unparsedPrev(unparsed, token);
+        unparsedPrev(unparsed, &token);
         return;
       }
       default: {
-        tokenUninit(token);
+        tokenUninit(&token);
         break;
       }
     }

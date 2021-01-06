@@ -1256,7 +1256,13 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
       case TT_EOF: {
         // unmatched brace! - will let parseFunctionBody (in functionBody.c)
         // complain about it
-        free(token);
+        vectorInsert(tokens, token);
+
+        // put a copy of the EOF token back - safe and not
+        // strictly necessary: parseBodies will pull another token
+        // from the lexer, which thinks every token past the end is
+        // an EOF, and EOFs are all flat objects in memory
+        unLex(entry, token);
         return unparsedNodeCreate(tokens);
       }
       default: {
