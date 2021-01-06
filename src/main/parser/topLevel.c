@@ -62,6 +62,7 @@ static void panicTopLevel(FileListEntry *entry) {
       case TT_IMPORT:
       case TT_VOID:
       case TT_UBYTE:
+      case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
       case TT_UINT:
@@ -107,6 +108,7 @@ static void panicStructOrUnion(FileListEntry *entry) {
       }
       case TT_VOID:
       case TT_UBYTE:
+      case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
       case TT_UINT:
@@ -506,6 +508,10 @@ static Node *parseType(FileListEntry *entry) {
       type = keywordTypeNodeCreate(TK_UBYTE, &start);
       break;
     }
+    case TT_BYTE: {
+      type = keywordTypeNodeCreate(TK_BYTE, &start);
+      break;
+    }
     case TT_CHAR: {
       type = keywordTypeNodeCreate(TK_CHAR, &start);
       break;
@@ -621,6 +627,7 @@ static Node *parseType(FileListEntry *entry) {
           switch (next2.type) {
             case TT_VOID:
             case TT_UBYTE:
+            case TT_BYTE:
             case TT_CHAR:
             case TT_USHORT:
             case TT_SHORT:
@@ -927,6 +934,7 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
     switch (peek.type) {
       case TT_VOID:
       case TT_UBYTE:
+      case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
       case TT_UINT:
@@ -1298,6 +1306,7 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
     switch (peek.type) {
       case TT_VOID:
       case TT_UBYTE:
+      case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
       case TT_UINT:
@@ -1558,6 +1567,7 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
     switch (peek.type) {
       case TT_VOID:
       case TT_UBYTE:
+      case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
       case TT_UINT:
@@ -1657,6 +1667,7 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
     switch (peek.type) {
       case TT_VOID:
       case TT_UBYTE:
+      case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
       case TT_UINT:
@@ -1924,6 +1935,7 @@ static Vector *parseBodies(FileListEntry *entry) {
     switch (start.type) {
       case TT_VOID:
       case TT_UBYTE:
+      case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
       case TT_UINT:
