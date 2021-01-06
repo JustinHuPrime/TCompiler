@@ -898,9 +898,11 @@ bool nameNodeEqualWithDrop(Node *a, Node *b, size_t dropCount) {
   }
 }
 
-static void tokenFree(Token *token) {
-  tokenUninit(token);
-  free(token);
+static void nullableTokenFree(Token *token) {
+  if (token != NULL) {
+    tokenUninit(token);
+    free(token);
+  }
 }
 void nodeFree(Node *n) {
   if (n == NULL) return;
@@ -1114,7 +1116,8 @@ void nodeFree(Node *n) {
       break;
     }
     case NT_UNPARSED: {
-      vectorUninit(n->data.unparsed.tokens, (void (*)(void *))tokenFree);
+      vectorUninit(n->data.unparsed.tokens,
+                   (void (*)(void *))nullableTokenFree);
       free(n->data.unparsed.tokens);
       break;
     }

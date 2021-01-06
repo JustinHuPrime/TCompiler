@@ -32,14 +32,20 @@
 /**
  * gets a references
  */
-static Token const *unparsedNext(Node *unparsed) {
-  if (unparsed->data.unparsed.curr != unparsed->data.unparsed.tokens->size)
-    return unparsed->data.unparsed.tokens
-        ->elements[unparsed->data.unparsed.curr++];
-  else
+static Token *unparsedNext(Node *unparsed) {
+  if (unparsed->data.unparsed.curr != unparsed->data.unparsed.tokens->size) {
+    Token *t = unparsed->data.unparsed.tokens
+                   ->elements[unparsed->data.unparsed.curr++];
+    unparsed->data.unparsed.tokens->elements[unparsed->data.unparsed.curr++] =
+        NULL;
+    return t;
+  } else {
     return NULL;
+  }
 }
-static void unparsedPrev(Node *unparsed) { --unparsed->data.unparsed.curr; }
+static void unparsedPrev(Node *unparsed, Token *t) {
+  unparsed->data.unparsed.tokens->elements[--unparsed->data.unparsed.curr] = t;
+}
 
 // miscellaneous functions
 
@@ -54,9 +60,14 @@ static void unparsedPrev(Node *unparsed) { --unparsed->data.unparsed.curr; }
  */
 static void panicStmt(Node *unparsed) {
   while (true) {
-    Token const *token = unparsedNext(unparsed);
+    Token *token = unparsedNext(unparsed);
+    if (token == NULL) {
+      // hit EOF while panicking - stop here.
+      return;
+    }
     switch (token->type) {
       case TT_SEMI: {
+        tokenUninit(token);
         return;
       }
       case TT_LBRACE:
@@ -88,10 +99,11 @@ static void panicStmt(Node *unparsed) {
       case TT_UNION:
       case TT_ENUM:
       case TT_TYPEDEF: {
-        unparsedPrev(unparsed);
+        unparsedPrev(unparsed, token);
         return;
       }
       default: {
+        tokenUninit(token);
         break;
       }
     }
@@ -115,436 +127,8 @@ static Node *parseExpression(FileListEntry *entry, Node *unparsed,
 }
 
 // context sensitive parsers
-
-static Node *parseStmt(FileListEntry *, Node *, Environment *);
-/**
- * parses an if statement
- *
- * @param entry entry containing this node
- * @param unparsed unparsed node to read from
- * @param env environment to use
- * @param start first token
- *
- * @returns node or null on error
- */
-static Node *parseIfStmt(FileListEntry *entry, Node *unparsed, Environment *env,
-                         Token const *start) {
-  Token const *lparen = unparsedNext(unparsed);
-  if (lparen->type != TT_LPAREN) {
-    errorExpectedToken(entry, TT_LPAREN, lparen);
-
-    unparsedPrev(unparsed);
-    panicStmt(unparsed);
-    return NULL;
-  }
-
-  Node *predicate = parseExpression(entry, unparsed, env);
-  if (predicate == NULL) {
-    panicStmt(unparsed);
-    return NULL;
-  }
-
-  Token const *rparen = unparsedNext(unparsed);
-  if (rparen->type != TT_RPAREN) {
-    errorExpectedToken(entry, TT_RPAREN, rparen);
-
-    unparsedPrev(unparsed);
-    panicStmt(unparsed);
-
-    nodeFree(predicate);
-    return NULL;
-  }
-
-  HashMap *consequentStab = hashMapCreate();
-  environmentPush(env, consequentStab);
-  Node *consequent = parseStmt(entry, unparsed, env);
-  environmentPop(env);
-  if (consequent == NULL) {
-    stabFree(consequentStab);
-    nodeFree(predicate);
-    return NULL;
-  }
-
-  Token const *elseKwd = unparsedNext(unparsed);
-  if (elseKwd->type != TT_ELSE)
-    return ifStmtNodeCreate(start, predicate, consequent, consequentStab, NULL,
-                            NULL);
-
-  HashMap *alternativeStab = hashMapCreate();
-  environmentPush(env, alternativeStab);
-  Node *alternative = parseStmt(entry, unparsed, env);
-  environmentPop(env);
-  if (alternative == NULL) {
-    stabFree(alternativeStab);
-    nodeFree(consequent);
-    stabFree(consequentStab);
-    nodeFree(predicate);
-    return NULL;
-  }
-
-  return ifStmtNodeCreate(start, predicate, consequent, consequentStab,
-                          alternative, alternativeStab);
-}
-
-/**
- * parses a while statement
- *
- * @param entry entry containing this node
- * @param unparsed unparsed node to read from
- * @param env environment to use
- * @param start first token
- */
-static Node *parseWhileStmt(FileListEntry *entry, Node *unparsed,
-                            Environment *env, Token const *start) {
-  Token const *lparen = unparsedNext(unparsed);
-  if (lparen->type != TT_LPAREN) {
-    errorExpectedToken(entry, TT_LPAREN, lparen);
-
-    unparsedPrev(unparsed);
-    panicStmt(unparsed);
-    return NULL;
-  }
-
-  Node *condition = parseExpression(entry, unparsed, env);
-  if (condition == NULL) {
-    panicStmt(unparsed);
-    return NULL;
-  }
-
-  Token const *rparen = unparsedNext(unparsed);
-  if (rparen->type != TT_RPAREN) {
-    errorExpectedToken(entry, TT_RPAREN, rparen);
-
-    unparsedPrev(unparsed);
-    panicStmt(unparsed);
-
-    nodeFree(condition);
-    return NULL;
-  }
-
-  HashMap *bodyStab = hashMapCreate();
-  environmentPush(env, bodyStab);
-  Node *body = parseStmt(entry, unparsed, env);
-  environmentPop(env);
-  if (body == NULL) {
-    panicStmt(unparsed);
-
-    stabFree(bodyStab);
-    nodeFree(condition);
-    return NULL;
-  }
-
-  return whileStmtNodeCreate(start, condition, body, bodyStab);
-}
-
-/**
- * parses a do-while statement
- *
- * @param entry entry containing this node
- * @param unparsed unparsed node to read from
- * @param env environment to use
- * @param start first token
- */
-static Node *parseDoWhileStmt(FileListEntry *entry, Node *unparsed,
-                              Environment *env, Token const *start) {
-  HashMap *bodyStab = hashMapCreate();
-  environmentPush(env, bodyStab);
-  Node *body = parseStmt(entry, unparsed, env);
-  environmentPop(env);
-  if (body == NULL) {
-    panicStmt(unparsed);
-
-    stabFree(bodyStab);
-    return NULL;
-  }
-
-  Token const *whileKwd = unparsedNext(unparsed);
-  if (whileKwd->type != TT_WHILE) {
-    errorExpectedToken(entry, TT_WHILE, whileKwd);
-
-    unparsedPrev(unparsed);
-    panicStmt(unparsed);
-
-    nodeFree(body);
-    stabFree(bodyStab);
-    return NULL;
-  }
-
-  Token const *lparen = unparsedNext(unparsed);
-  if (lparen->type != TT_LPAREN) {
-    errorExpectedToken(entry, TT_LPAREN, lparen);
-
-    unparsedPrev(unparsed);
-    panicStmt(unparsed);
-
-    nodeFree(body);
-    stabFree(bodyStab);
-    return NULL;
-  }
-
-  Node *condition = parseExpression(entry, unparsed, env);
-  if (condition == NULL) {
-    panicStmt(unparsed);
-
-    nodeFree(body);
-    stabFree(bodyStab);
-    return NULL;
-  }
-
-  Token const *rparen = unparsedNext(unparsed);
-  if (rparen->type != TT_RPAREN) {
-    errorExpectedToken(entry, TT_RPAREN, rparen);
-
-    unparsedPrev(unparsed);
-    panicStmt(unparsed);
-
-    nodeFree(condition);
-    nodeFree(body);
-    stabFree(bodyStab);
-    return NULL;
-  }
-
-  return doWhileStmtNodeCreate(start, body, bodyStab, condition);
-}
-
-/**
- * parses the initializer in a for stmt
- *
- * @param entry entry that contains this node
- * @param unparsed unparsed node to read from
- * @param env environment to use
- */
-static Node *parseForInitStmt(FileListEntry *entry, Node *unparsed,
-                              Environment *env) {
-  return NULL;  // TODO: write this
-}
-
-/**
- * parses a for loop
- *
- * @param entry entry that contains this node
- * @param unparsed unparsed node to read from
- * @param env environment to use
- * @param start first token
- */
-static Node *parseForStmt(FileListEntry *entry, Node *unparsed,
-                          Environment *env, Token const *start) {
-  Token const *lparen = unparsedNext(unparsed);
-  if (lparen->type != TT_LPAREN) {
-    errorExpectedToken(entry, TT_LPAREN, lparen);
-
-    unparsedPrev(unparsed);
-    panicStmt(unparsed);
-    return NULL;
-  }
-
-  HashMap *loopStab = hashMapCreate();
-  environmentPush(env, loopStab);
-  Node *initializer = parseForInitStmt(entry, unparsed, env);
-  if (initializer == NULL) {
-    panicStmt(unparsed);
-
-    environmentPop(env);
-    stabFree(loopStab);
-    return NULL;
-  }
-
-  Node *condition = parseExpression(entry, unparsed, env);
-  if (condition == NULL) {
-    panicStmt(unparsed);
-
-    environmentPop(env);
-    nodeFree(initializer);
-    stabFree(loopStab);
-    return NULL;
-  }
-
-  Token const *semi = unparsedNext(unparsed);
-  if (semi->type != TT_SEMI) {
-    unparsedPrev(unparsed);
-
-    panicStmt(unparsed);
-
-    environmentPop(env);
-    nodeFree(initializer);
-    nodeFree(condition);
-    stabFree(loopStab);
-    return NULL;
-  }
-
-  Token const *peek = unparsedNext(unparsed);
-  Node *increment = NULL;
-  if (peek->type != TT_RPAREN) {
-    // increment isn't null!
-    unparsedPrev(unparsed);
-
-    increment = parseExpression(entry, unparsed, env);
-    if (increment == NULL) {
-      panicStmt(unparsed);
-
-      environmentPop(env);
-      nodeFree(initializer);
-      nodeFree(condition);
-      stabFree(loopStab);
-      return NULL;
-    }
-  }
-
-  Token const *rparen = unparsedNext(unparsed);
-  if (rparen->type != TT_RPAREN) {
-    errorExpectedToken(entry, TT_RPAREN, rparen);
-
-    unparsedPrev(unparsed);
-    panicStmt(unparsed);
-
-    environmentPop(env);
-    nodeFree(initializer);
-    nodeFree(condition);
-    nodeFree(increment);
-    stabFree(loopStab);
-    return NULL;
-  }
-
-  HashMap *bodyStab = hashMapCreate();
-  environmentPush(env, bodyStab);
-  Node *body = parseStmt(entry, unparsed, env);
-  environmentPop(env);
-  if (body == NULL) {
-    environmentPop(env);
-    nodeFree(initializer);
-    nodeFree(condition);
-    nodeFree(increment);
-    stabFree(loopStab);
-    return NULL;
-  }
-
-  environmentPop(env);
-
-  return forStmtNodeCreate(start, loopStab, initializer, condition, increment,
-                           body, bodyStab);
-}
-
-static Node *parseCompoundStmt(FileListEntry *, Node *, Environment *);
-/**
- * parses a statement
- *
- * @param entry entry that contains this node
- * @param unparsed unparsed node to read from
- * @param env environment to use
- *
- * @returns node or null on an error
- */
-static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
-  Token const *peek = unparsedNext(unparsed);
-  switch (peek->type) {
-    case TT_LBRACE: {
-      // another compoundStmt
-      unparsedPrev(unparsed);
-      return parseCompoundStmt(entry, unparsed, env);
-    }
-    case TT_IF: {
-      return parseIfStmt(entry, unparsed, env, peek);
-    }
-    case TT_WHILE: {
-      return parseWhileStmt(entry, unparsed, env, peek);
-    }
-    case TT_DO: {
-      return parseDoWhileStmt(entry, unparsed, env, peek);
-    }
-    case TT_FOR: {
-      return parseForStmt(entry, unparsed, env, peek);
-    }
-    case TT_SWITCH: {
-      // TODO: switch
-      return NULL;
-    }
-    case TT_BREAK: {
-      // TODO: break
-      return NULL;
-    }
-    case TT_CONTINUE: {
-      // TODO: continue
-      return NULL;
-    }
-    case TT_RETURN: {
-      // TODO: return
-      return NULL;
-    }
-    case TT_ASM: {
-      // TODO: asm
-      return NULL;
-    }
-    case TT_VOID:
-    case TT_UBYTE:
-    case TT_CHAR:
-    case TT_USHORT:
-    case TT_UINT:
-    case TT_INT:
-    case TT_WCHAR:
-    case TT_ULONG:
-    case TT_LONG:
-    case TT_FLOAT:
-    case TT_DOUBLE:
-    case TT_BOOL: {
-      // TODO: unambiguously a varDefn
-      return NULL;
-    }
-    case TT_ID: {
-      // TODO: maybe varDefn, maybe expressionStmt
-      return NULL;
-    }
-    case TT_STAR:
-    case TT_AMP:
-    case TT_INC:
-    case TT_DEC:
-    case TT_MINUS:
-    case TT_BANG:
-    case TT_TILDE:
-    case TT_CAST:
-    case TT_SIZEOF:
-    case TT_LPAREN:
-    case TT_LSQUARE: {
-      // TODO: unambiguously an expressionStmt
-      return NULL;
-    }
-    case TT_OPAQUE: {
-      // TODO: opaque
-      // TODO: include semantics for opaque in functions in standard
-      return NULL;
-    }
-    case TT_STRUCT: {
-      // TODO: struct
-      return NULL;
-    }
-    case TT_UNION: {
-      // TODO: union
-      return NULL;
-    }
-    case TT_ENUM: {
-      // TODO: enum
-      return NULL;
-    }
-    case TT_TYPEDEF: {
-      // TODO: typedef
-      return NULL;
-    }
-    case TT_SEMI: {
-      // nullStmt
-      return nullStmtNodeCreate(peek);
-    }
-    default: {
-      // unexpected token
-      errorExpectedString(entry, "a declaration or a statement", peek);
-      panicStmt(unparsed);
-      return NULL;
-    }
-  }
-}
-
 /**
  * parses a compound stmt
- *
- * assumes correct parens (enforced in parseFuncBody)
  *
  * @param entry entry that contains this node
  * @param unparsed unparsed node to read from
@@ -554,31 +138,7 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
  */
 static Node *parseCompoundStmt(FileListEntry *entry, Node *unparsed,
                                Environment *env) {
-  Token const *lbrace = unparsedNext(unparsed);
-  Vector *stmts = vectorCreate();
-  HashMap *stab = hashMapCreate();
-  environmentPush(env, stab);
-
-  Token const *peek = unparsedNext(unparsed);
-  while (true) {
-    if (peek == NULL) {
-      // deal with unexpected end
-      fprintf(stderr, "%s:%zu:%zu: error: unmatched left brace\n",
-              entry->inputFilename, lbrace->line, lbrace->character);
-      entry->errored = true;
-      return compoundStmtNodeCreate(lbrace, stmts, environmentPop(env));
-    }
-    switch (peek->type) {
-      case TT_RBRACE: {
-        return compoundStmtNodeCreate(lbrace, stmts, environmentPop(env));
-      }
-      default: {
-        unparsedPrev(unparsed);
-        Node *stmt = parseStmt(entry, unparsed, env);
-        if (stmt != NULL) vectorInsert(stmts, stmt);
-      }
-    }
-  }
+  return NULL;  // TODO: write this
 }
 
 void parseFunctionBody(FileListEntry *entry) {
@@ -587,13 +147,15 @@ void parseFunctionBody(FileListEntry *entry) {
 
   for (size_t bodyIdx = 0; bodyIdx < entry->ast->data.file.bodies->size;
        ++bodyIdx) {
+    // for each top level thing
     Node *body = entry->ast->data.file.bodies->elements[bodyIdx];
     switch (body->type) {
+      // if it's a funDefn
       case NT_FUNDEFN: {
+        // setup stab for arguments
         HashMap *stab = hashMapCreate();
         environmentPush(&env, stab);
 
-        // construct stab for arguments
         for (size_t argIdx = 0; argIdx < body->data.funDefn.argTypes->size;
              ++argIdx) {
           Node *argType = body->data.funDefn.argTypes->elements[argIdx];
@@ -605,7 +167,7 @@ void parseFunctionBody(FileListEntry *entry) {
           hashMapPut(stab, argName->data.id.id, stabEntry);
         }
 
-        // parse and reference resolve body
+        // parse and reference resolve body, replacing it in the original ast
         Node *unparsed = body->data.funDefn.body;
         body->data.funDefn.body = parseCompoundStmt(entry, unparsed, &env);
         nodeFree(unparsed);

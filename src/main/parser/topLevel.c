@@ -1254,7 +1254,8 @@ static Node *parseFuncBody(FileListEntry *entry, Token *start) {
         break;
       }
       case TT_EOF: {
-        // unmatched brace! - will let parseFunctionBody complain about it
+        // unmatched brace! - will let parseFunctionBody (in functionBody.c)
+        // complain about it
         free(token);
         return unparsedNodeCreate(tokens);
       }
@@ -1395,7 +1396,7 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
   Token lbrace;
   lex(entry, &lbrace);
   if (lbrace.type != TT_LBRACE) {
-    errorExpectedString(entry, "a left brace", &peek);
+    errorExpectedToken(entry, TT_LBRACE, &peek);
 
     unLex(entry, &peek);
     panicTopLevel(entry);
