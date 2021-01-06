@@ -27,7 +27,6 @@
 #include "parser/common.h"
 
 // TODO: also need to link ids to their referenced things
-// TODO: remember to replace token strings with null if the string is used
 
 // token stuff
 
@@ -348,7 +347,59 @@ static Node *parseDoWhileStmt(FileListEntry *entry, Node *unparsed,
  */
 static Node *parseForInitStmt(FileListEntry *entry, Node *unparsed,
                               Environment *env) {
-  return NULL;  // TODO: write this
+  Token peek;
+  next(unparsed, &peek);
+  switch (peek.type) {
+    case TT_VOID:
+    case TT_UBYTE:
+    case TT_BYTE:
+    case TT_CHAR:
+    case TT_USHORT:
+    case TT_UINT:
+    case TT_INT:
+    case TT_WCHAR:
+    case TT_ULONG:
+    case TT_LONG:
+    case TT_FLOAT:
+    case TT_DOUBLE:
+    case TT_BOOL: {
+      // unambiguously a varDefn
+      // TODO
+      return NULL;
+    }
+    case TT_ID: {
+      // maybe varDefn, maybe expressionStmt - disambiguate
+      // TODO
+      return NULL;
+    }
+    case TT_STAR:
+    case TT_AMP:
+    case TT_INC:
+    case TT_DEC:
+    case TT_MINUS:
+    case TT_BANG:
+    case TT_TILDE:
+    case TT_CAST:
+    case TT_SIZEOF:
+    case TT_LPAREN:
+    case TT_LSQUARE: {
+      // unambiguously an expressionStmt
+      // TODO
+      return NULL;
+    }
+    case TT_SEMI: {
+      return nullStmtNodeCreate(&peek);
+    }
+    default: {
+      errorExpectedString(
+          entry, "a variable declaration, an expression, or a semicolon",
+          &peek);
+
+      prev(unparsed, &peek);
+      panciStmt(unparsed);
+      return NULL;
+    }
+  }
 }
 
 /**
@@ -504,6 +555,7 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
     }
     case TT_VOID:
     case TT_UBYTE:
+    case TT_BYTE:
     case TT_CHAR:
     case TT_USHORT:
     case TT_UINT:
