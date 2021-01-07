@@ -322,30 +322,32 @@ An if statement dynamically chooses between the execution of two statements, or 
 
 The construct known as an else-if is a special case of the else statement: an else-if is just an if statement as the only statement in the else of the first if statement. There is no need for additional syntactic support for the else-if construct.
 
+Finally, both the consequent and the optional alternative statements of an if statement introduce their own scopes. Thus it is valid to declare a variable in the consequent statement of an if statement, but that variable will not be visible outside of the if statement.
+
 \section{While Loop Statements}
 
 \lstinputlisting[breaklines=true, firstline=51, lastline=51]{"Appendix B - Syntax.ebnf"}
 
-A while loop statement repeatedly executes the statement, checking the condition (must be a boolean expression) beforehand, and leaving the loop without executing the statement if and only if the expression is false.
+A while loop statement repeatedly executes the statement, checking the condition (must be a boolean expression) beforehand, and leaving the loop without executing the statement if and only if the expression is false. The loop body introduces a scope.
 
 \section{Do-While Loop Statements}
 
 \lstinputlisting[breaklines=true, firstline=52, lastline=52]{"Appendix B - Syntax.ebnf"}
 
 A do-while loop statement repeatedly executes the statement, checking the condition (must be a boolean expression) afterwards, and leaving the loop if and only if the expression is false
-\footnote{Unlike C, the do-while loop does not expect a semicolon after the while.}.
+\footnote{Unlike C, the do-while loop does not expect a semicolon after the while.}. The loop body introduces a scope.
 
 \section{For Loop Statements}
 
 \lstinputlisting[breaklines=true, firstline=53, lastline=53]{"Appendix B - Syntax.ebnf"}
 
-The for loop statement introduces a scope, and within that scope, the variable declaration statement resides. If the initializer is an expression, then the expression is evaluated for side-effect. Next, before each iteration of the loop, the condition is checked, then the loop body runs, then the increment expression is evaluated for side effects. Execution returns to checking for the condition. If the condition is false, the loop ends, and the increment is not run. Additionally, a continue statement will only jump to the increment expression - i.e. the end of the loop body.
+The for loop statement introduces a scope, and within that scope, the variable declaration statement resides. If the initializer is an expression, then the expression is evaluated for side-effect. Next, before each iteration of the loop, the condition is checked, then the loop body runs, then the increment expression is evaluated for side effects. Execution returns to checking for the condition. If the condition is false, the loop ends, and the increment is not run. Additionally, a continue statement will only jump to the increment expression - i.e. the end of the loop body. The loop body also introduces a scope.
 
 \section{Switch Statements}
 
 \lstinputlisting[breaklines=true, linerange={54-54, 61-62}]{"Appendix B - Syntax.ebnf"}
 
-A switch statement selects between several possible cases. The expression is evaluated, and it must be an integral expression. Then, the matching case is selected, and the matching statement is executed. Then, unless execution hits a break, execution proceeds down the following cases. If no case is matched, then the default and its statement is executed, and execution of the switch continues down the remaining cases. It is an error to have multiple cases with the same value. Additionally, despite the curly braces, the switch itself does not define an actual scope.
+A switch statement selects between several possible cases. The expression is evaluated, and it must be an integral expression. Then, the matching case is selected, and the matching statement is executed. Then, unless execution hits a break, execution proceeds down the following cases. If no case is matched, then the default and its statement is executed, and execution of the switch continues down the remaining cases. It is an error to have multiple cases with the same value. Additionally, despite the curly braces, the switch itself does not introduce a scope.
 
 \section{Break Statements}
 
