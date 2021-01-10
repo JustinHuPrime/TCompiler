@@ -121,7 +121,61 @@ static void panicStmt(Node *unparsed) {
   }
 }
 
+/**
+ * skips tokens until a start of switch or unambiguous start of stmt is
+ * encountered
+ *
+ * leaves start of stmt tokens (excluding ids) and start of case tokens
+ *
+ * @param unparsed unparsed node to read from
+ */
+static void panicSwitch(Node *unparsed) {
+  while (true) {
+    Token token;
+    next(unparsed, &token);
+    switch (token.type) {
+      case TT_IF:
+      case TT_WHILE:
+      case TT_DO:
+      case TT_FOR:
+      case TT_SWITCH:
+      case TT_BREAK:
+      case TT_CONTINUE:
+      case TT_RETURN:
+      case TT_ASM:
+      case TT_OPAQUE:
+      case TT_STRUCT:
+      case TT_UNION:
+      case TT_ENUM:
+      case TT_TYPEDEF:
+      case TT_CASE:
+      case TT_DEFAULT: {
+        prev(unparsed, &token);
+        return;
+      }
+      default: {
+        tokenUninit(&token);
+        break;
+      }
+    }
+  }
+}
+
 // context ignorant parsers
+
+/**
+ * parses an extended in literal
+ *
+ * @param entry entry to lex from
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns AST node or NULL if fatal error happened
+ */
+static Node *parseExtendedIntLiteral(FileListEntry *entry, Node *unparsed,
+                                     Environment *env) {
+  return NULL;  // TODO: write this
+}
 
 /**
  * parses an expression
@@ -137,9 +191,155 @@ static Node *parseExpression(FileListEntry *entry, Node *unparsed,
   return NULL;  // TODO: write this
 }
 
+static Node *parseStmt(FileListEntry *, Node *, Environment *);
+/**
+ * parses a switch case
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseSwitchCase(FileListEntry *entry, Node *unparsed,
+                             Environment *env, Token *start) {
+  Vector *values = vectorCreate();
+  Node *value = parseExtendedIntLiteral(entry, unparsed, env);
+  if (value == NULL) {
+    nodeVectorFree(values);
+    return NULL;
+  }
+  vectorInsert(values, value);
+
+  Token colon;
+  next(unparsed, &colon);
+  if (colon.type != TT_COLON) {
+    errorExpectedToken(entry, TT_COLON, &colon);
+
+    prev(unparsed, &colon);
+
+    nodeVectorFree(values);
+    return NULL;
+  }
+
+  while (true) {
+    Token peek;
+    next(unparsed, &peek);
+    if (peek.type == TT_CASE) {
+      value = parseExtendedIntLiteral(entry, unparsed, env);
+      if (value == NULL) {
+        nodeVectorFree(values);
+        return NULL;
+      }
+      vectorInsert(values, value);
+
+      next(unparsed, &colon);
+      if (colon.type != TT_COLON) {
+        errorExpectedToken(entry, TT_COLON, &colon);
+
+        prev(unparsed, &colon);
+
+        nodeVectorFree(values);
+        return NULL;
+      }
+    } else {
+      prev(unparsed, &peek);
+
+      environmentPush(env, hashMapCreate());
+      Node *body = parseStmt(entry, unparsed, env);
+      HashMap *bodyStab = environmentPop(env);
+      if (body == NULL) {
+        panicSwitch(unparsed);
+
+        nodeVectorFree(values);
+        stabFree(bodyStab);
+        return NULL;
+      }
+
+      return switchCaseNodeCreate(start, values, body, bodyStab);
+    }
+  }
+}
+
+/**
+ * parses a switch default
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseSwitchDefault(FileListEntry *entry, Node *unparsed,
+                                Environment *env, Token *start) {
+  Token colon;
+  next(unparsed, &colon);
+  if (colon.type != TT_COLON) {
+    errorExpectedToken(entry, TT_COLON, &colon);
+
+    prev(unparsed, &colon);
+    panicSwitch(unparsed);
+    return NULL;
+  }
+
+  environmentPush(env, hashMapCreate());
+  Node *body = parseStmt(entry, unparsed, env);
+  HashMap *bodyStab = environmentPop(env);
+  if (body == NULL) {
+    panicSwitch(unparsed);
+
+    stabFree(bodyStab);
+    return NULL;
+  }
+
+  return switchDefaultNodeCreate(start, body, bodyStab);
+}
+
 // context sensitive parsers
 
-static Node *parseStmt(FileListEntry *, Node *, Environment *);
+/**
+ * parses a compound stmt
+ *
+ * @param entry entry that contains this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node - never null
+ */
+static Node *parseCompoundStmt(FileListEntry *entry, Node *unparsed,
+                               Environment *env) {
+  Token lbrace;
+  next(unparsed, &lbrace);
+
+  Vector *stmts = vectorCreate();
+  environmentPush(env, hashMapCreate());
+
+  while (true) {
+    Token peek;
+    next(unparsed, &peek);
+    switch (peek.type) {
+      case TT_RBRACE: {
+        return compoundStmtNodeCreate(&lbrace, stmts, environmentPop(env));
+      }
+      case TT_EOF: {
+        fprintf(stderr, "%s:%zu:%zu: error: unmatched left brace\n",
+                entry->inputFilename, lbrace.line, lbrace.character);
+        entry->errored = true;
+
+        prev(unparsed, &peek);
+
+        return compoundStmtNodeCreate(&lbrace, stmts, environmentPop(env));
+      }
+      default: {
+        prev(unparsed, &peek);
+        Node *stmt = parseStmt(entry, unparsed, env);
+        if (stmt != NULL) vectorInsert(stmts, stmt);
+        break;
+      }
+    }
+  }
+}
+
 /**
  * parses an if statement
  *
@@ -396,7 +596,7 @@ static Node *parseForInitStmt(FileListEntry *entry, Node *unparsed,
           &peek);
 
       prev(unparsed, &peek);
-      panciStmt(unparsed);
+      panicStmt(unparsed);
       return NULL;
     }
   }
@@ -502,7 +702,114 @@ static Node *parseForStmt(FileListEntry *entry, Node *unparsed,
                            body, bodyStab);
 }
 
-static Node *parseCompoundStmt(FileListEntry *, Node *, Environment *);
+/**
+ * parses a switch statement
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param start first token
+ *
+ * @returns node or null on error
+ */
+static Node *parseSwitchStmt(FileListEntry *entry, Node *unparsed,
+                             Environment *env, Token *start) {
+  Token lparen;
+  next(unparsed, &lparen);
+  if (lparen.type != TT_LPAREN) {
+    errorExpectedToken(entry, TT_LPAREN, &lparen);
+
+    prev(unparsed, &lparen);
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  Node *condition = parseExpression(entry, unparsed, env);
+  if (condition == NULL) {
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  Token rparen;
+  next(unparsed, &rparen);
+  if (rparen.type != TT_RPAREN) {
+    errorExpectedToken(entry, TT_RPAREN, &rparen);
+
+    prev(unparsed, &rparen);
+    panicStmt(unparsed);
+
+    nodeFree(condition);
+    return NULL;
+  }
+
+  Token lbrace;
+  next(unparsed, &lbrace);
+  if (lbrace.type != TT_LBRACE) {
+    errorExpectedToken(entry, TT_LBRACE, &lbrace);
+
+    prev(unparsed, &lbrace);
+    panicStmt(unparsed);
+
+    nodeFree(condition);
+  }
+
+  Vector *cases = vectorCreate();
+  bool doneCases = false;
+  while (!doneCases) {
+    Token peek;
+    next(unparsed, &peek);
+    switch (peek.type) {
+      case TT_CASE: {
+        // start of a case
+        Node *caseNode = parseSwitchCase(entry, unparsed, env, &peek);
+        if (caseNode == NULL) {
+          panicSwitch(unparsed);
+          continue;
+        }
+        vectorInsert(cases, caseNode);
+        break;
+      }
+      case TT_DEFAULT: {
+        Node *defaultNode = parseSwitchDefault(entry, unparsed, env, &peek);
+        if (defaultNode == NULL) {
+          panicSwitch(unparsed);
+          continue;
+        }
+        vectorInsert(cases, defaultNode);
+        break;
+      }
+      case TT_RBRACE: {
+        doneCases = true;
+        break;
+      }
+      default: {
+        errorExpectedString(entry, "a right brace of a switch case", &peek);
+
+        prev(unparsed, &peek);
+        panicStmt(unparsed);
+
+        nodeVectorFree(cases);
+        nodeFree(condition);
+        return NULL;
+      }
+    }
+  }
+
+  if (cases->size == 0) {
+    fprintf(
+        stderr,
+        "%s:%zu:%zu: error: expected at least one case in a switch statement\n",
+        entry->inputFilename, lbrace.line, lbrace.character);
+    entry->errored = true;
+
+    nodeVectorFree(cases);
+    nodeFree(condition);
+    return NULL;
+  }
+
+  return switchStmtNodeCreate(start, condition, cases);
+}
+
 /**
  * parses a statement
  *
@@ -534,8 +841,7 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
       return parseForStmt(entry, unparsed, env, &peek);
     }
     case TT_SWITCH: {
-      // TODO: switch
-      return NULL;
+      return parseSwitchStmt(entry, unparsed, env, &peek);
     }
     case TT_BREAK: {
       // TODO: break
@@ -622,49 +928,6 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
 
       panicStmt(unparsed);
       return NULL;
-    }
-  }
-}
-
-/**
- * parses a compound stmt
- *
- * @param entry entry that contains this node
- * @param unparsed unparsed node to read from
- * @param env environment to use
- *
- * @returns node - never null
- */
-static Node *parseCompoundStmt(FileListEntry *entry, Node *unparsed,
-                               Environment *env) {
-  Token lbrace;
-  next(unparsed, &lbrace);
-
-  Vector *stmts = vectorCreate();
-  environmentPush(env, hashMapCreate());
-
-  while (true) {
-    Token peek;
-    next(unparsed, &peek);
-    switch (peek.type) {
-      case TT_RBRACE: {
-        return compoundStmtNodeCreate(&lbrace, stmts, environmentPop(env));
-      }
-      case TT_EOF: {
-        fprintf(stderr, "%s:%zu:%zu: error: unmatched left brace\n",
-                entry->inputFilename, lbrace.line, lbrace.character);
-        entry->errored = true;
-
-        prev(unparsed, &peek);
-
-        return compoundStmtNodeCreate(&lbrace, stmts, environmentPop(env));
-      }
-      default: {
-        prev(unparsed, &peek);
-        Node *stmt = parseStmt(entry, unparsed, env);
-        if (stmt != NULL) vectorInsert(stmts, stmt);
-        break;
-      }
     }
   }
 }
