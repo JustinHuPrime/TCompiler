@@ -24,9 +24,8 @@
 #include <string.h>
 
 #include "fileList.h"
+#include "internalError.h"
 #include "parser/common.h"
-
-// TODO: also need to link ids to their referenced things
 
 // token stuff
 
@@ -164,9 +163,9 @@ static void panicSwitch(Node *unparsed) {
 // context ignorant parsers
 
 /**
- * parses an extended in literal
+ * parses an extended int literal
  *
- * @param entry entry to lex from
+ * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
  *
@@ -174,6 +173,79 @@ static void panicSwitch(Node *unparsed) {
  */
 static Node *parseExtendedIntLiteral(FileListEntry *entry, Node *unparsed,
                                      Environment *env) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses an ID or scoped ID
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ *
+ * @returns node or null on error
+ */
+static Node *parseAnyId(FileListEntry *entry, Node *unparsed) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a definitely scoped ID
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ *
+ * @returns node or null on error
+ */
+static Node *parseScopedId(FileListEntry *entry, Node *unparsed) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses an ID (not scoped)
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ *
+ * @returns node or null on error
+ */
+static Node *parseId(FileListEntry *entry, Node *unparsed) {
+  Token id;
+  next(unparsed, &id);
+
+  if (id.type != TT_ID) {
+    errorExpectedToken(entry, TT_ID, &id);
+
+    prev(unparsed, &id);
+    return NULL;
+  }
+
+  return idNodeCreate(&id);
+}
+
+/**
+ * parses a type
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns AST node or NULL if fatal error happened
+ */
+static Node *parseType(FileListEntry *entry, Node *unparsed, Environment *env) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses an assignment expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseAssignmentExpression(FileListEntry *entry, Node *unparsed,
+                                       Environment *env) {
   return NULL;  // TODO: write this
 }
 
@@ -562,16 +634,8 @@ static Node *parseForInitStmt(FileListEntry *entry, Node *unparsed,
     case TT_LONG:
     case TT_FLOAT:
     case TT_DOUBLE:
-    case TT_BOOL: {
-      // unambiguously a varDefn
-      // TODO
-      return NULL;
-    }
-    case TT_ID: {
-      // maybe varDefn, maybe expressionStmt - disambiguate
-      // TODO
-      return NULL;
-    }
+    case TT_BOOL:
+    case TT_ID:
     case TT_STAR:
     case TT_AMP:
     case TT_INC:
@@ -582,13 +646,10 @@ static Node *parseForInitStmt(FileListEntry *entry, Node *unparsed,
     case TT_CAST:
     case TT_SIZEOF:
     case TT_LPAREN:
-    case TT_LSQUARE: {
-      // unambiguously an expressionStmt
-      // TODO
-      return NULL;
-    }
+    case TT_LSQUARE:
     case TT_SEMI: {
-      return nullStmtNodeCreate(&peek);
+      prev(unparsed, &peek);
+      return parseStmt(entry, unparsed, env);
     }
     default: {
       errorExpectedString(
@@ -796,10 +857,10 @@ static Node *parseSwitchStmt(FileListEntry *entry, Node *unparsed,
   }
 
   if (cases->size == 0) {
-    fprintf(
-        stderr,
-        "%s:%zu:%zu: error: expected at least one case in a switch statement\n",
-        entry->inputFilename, lbrace.line, lbrace.character);
+    fprintf(stderr,
+            "%s:%zu:%zu: error: expected at least one case in a switch "
+            "statement\n",
+            entry->inputFilename, lbrace.line, lbrace.character);
     entry->errored = true;
 
     nodeVectorFree(cases);
@@ -934,6 +995,168 @@ static Node *parseAsmStmt(FileListEntry *entry, Node *unparsed,
 }
 
 /**
+ * parses a variable definition statement
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseVarDefnStmt(FileListEntry *entry, Node *unparsed,
+                              Environment *env) {
+  Node *typeNode = parseType(entry, unparsed, env);
+  if (typeNode == NULL) {
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  Vector *names = vectorCreate();
+  Vector *initializers = vectorCreate();
+  bool done = false;
+  while (!done) {
+    Node *id = parseId(entry, unparsed);
+    if (id == NULL) {
+      panicStmt(unparsed);
+
+      nodeVectorFree(initializers);
+      nodeVectorFree(names);
+      nodeFree(typeNode);
+      return NULL;
+    }
+    vectorInsert(names, id);
+
+    Token peek;
+    next(unparsed, &peek);
+    switch (peek.type) {
+      case TT_EQ: {
+        // has initializer
+        Node *initializer = parseAssignmentExpression(entry, unparsed, env);
+        if (initializer == NULL) {
+          panicStmt(unparsed);
+
+          nodeVectorFree(initializers);
+          nodeVectorFree(names);
+          nodeFree(typeNode);
+          return NULL;
+        }
+        vectorInsert(initializers, initializer);
+
+        next(unparsed, &peek);
+        switch (peek.type) {
+          case TT_COMMA: {
+            // declaration continues
+            break;
+          }
+          case TT_SEMI: {
+            // end of declaration
+            done = true;
+            break;
+          }
+          default: {
+            errorExpectedString(entry, "a comma or a semicolon", &peek);
+
+            prev(unparsed, &peek);
+            panicStmt(unparsed);
+
+            nodeVectorFree(initializers);
+            nodeVectorFree(names);
+            nodeFree(typeNode);
+            return NULL;
+          }
+        }
+        break;
+      }
+      case TT_COMMA: {
+        // continue definition
+        vectorInsert(initializers, NULL);
+        break;
+      }
+      case TT_SEMI: {
+        // done
+        if (names->size == 0) {
+          fprintf(stderr,
+                  "%s:%zu:%zu: error: expected at least one name in a variable "
+                  "declaration\n",
+                  entry->inputFilename, typeNode->line, typeNode->character);
+          entry->errored = true;
+
+          nodeVectorFree(initializers);
+          nodeVectorFree(names);
+          nodeFree(typeNode);
+          return NULL;
+        }
+
+        done = true;
+        break;
+      }
+      default: {
+        errorExpectedString(entry, "a comma, a semicolon, or an equals sign",
+                            &peek);
+
+        prev(unparsed, &peek);
+        panicStmt(unparsed);
+
+        nodeVectorFree(initializers);
+        nodeVectorFree(names);
+        nodeFree(typeNode);
+        return NULL;
+      }
+    }
+  }
+
+  Type *type = nodeToType(typeNode, env);
+  if (type == NULL) {
+    nodeVectorFree(initializers);
+    nodeVectorFree(names);
+    nodeFree(typeNode);
+    return NULL;
+  }
+
+  for (size_t idx = 0; idx < names->size; idx++) {
+    Node *name = names->elements[idx];
+    name->data.id.entry =
+        variableStabEntryCreate(entry, name->line, name->character);
+    name->data.id.entry->data.variable.type = typeCopy(type);
+  }
+  typeFree(type);
+
+  return varDefnStmtNodeCreate(typeNode, names, initializers);
+}
+
+/**
+ * parses an expression statement
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseExpressionStmt(FileListEntry *entry, Node *unparsed,
+                                 Environment *env) {
+  Node *expression = parseExpression(entry, unparsed, env);
+  if (expression == NULL) {
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  Token semi;
+  next(unparsed, &semi);
+  if (semi.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semi);
+
+    prev(unparsed, &semi);
+    panicStmt(unparsed);
+
+    nodeFree(expression);
+    return NULL;
+  }
+
+  return expressionStmtNodeCreate(expression);
+}
+
+/**
  * parses a statement
  *
  * @param entry entry that contains this node
@@ -991,14 +1214,44 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
     case TT_FLOAT:
     case TT_DOUBLE:
     case TT_BOOL: {
-      // unambiguously a varDefn
-      // TODO
-      return NULL;
+      prev(unparsed, &peek);
+      return parseVarDefnStmt(entry, unparsed, env);
     }
     case TT_ID: {
       // maybe varDefn, maybe expressionStmt - disambiguate
-      // TODO
-      return NULL;
+      Node idNode;
+      idNode.type = NT_ID;
+      idNode.line = peek.line;
+      idNode.character = peek.character;
+      idNode.data.id.id = peek.string;
+      idNode.data.id.entry = NULL;
+
+      SymbolTableEntry *symbolEntry = environmentLookup(env, &idNode, false);
+      if (symbolEntry == NULL) {
+        prev(unparsed, &peek);
+        panicStmt(unparsed);
+        return NULL;
+      }
+
+      switch (symbolEntry->kind) {
+        case SK_VARIABLE:
+        case SK_FUNCTION:
+        case SK_ENUMCONST: {
+          prev(unparsed, &peek);
+          return parseExpressionStmt(entry, unparsed, env);
+        }
+        case SK_OPAQUE:
+        case SK_STRUCT:
+        case SK_UNION:
+        case SK_ENUM:
+        case SK_TYPEDEF: {
+          prev(unparsed, &peek);
+          return parseVarDefnStmt(entry, unparsed, env);
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid SymbolKind enum encountered");
+        }
+      }
     }
     case TT_STAR:
     case TT_AMP:
@@ -1012,8 +1265,8 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
     case TT_LPAREN:
     case TT_LSQUARE: {
       // unambiguously an expressionStmt
-      // TODO
-      return NULL;
+      prev(unparsed, &peek);
+      return parseExpressionStmt(entry, unparsed, env);
     }
     case TT_OPAQUE: {
       // TODO: opaque

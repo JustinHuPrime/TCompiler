@@ -1164,6 +1164,7 @@ static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
 
       nodeFree(type);
       nodeVectorFree(names);
+      nodeVectorFree(initializers);
       return NULL;
     }
 

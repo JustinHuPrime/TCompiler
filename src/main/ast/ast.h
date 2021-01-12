@@ -465,6 +465,8 @@ char *stringifyId(Node *id);
  *
  * @param n node to use
  * @param env environment to use
+ *
+ * @returns type or null on error
  */
 Type *nodeToType(Node *n, Environment *env);
 
