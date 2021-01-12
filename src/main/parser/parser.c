@@ -53,8 +53,9 @@ int parse(void) {
   // collisions among the entries (i.e. are all variables and functions defined
   // the same as they are declared?)
   //
-  // Pass seven parsed function bodies, fills in the symbol table entries for
-  // them, checking for collisions, and resolves identifier references
+  // Pass seven parses function bodies, fills in the symbol table entries for
+  // them, checking for collisions, and resolves identifier references (yes,
+  // this is a lot of work for one pass)
   //
   // TODO: finish writing descriptions for other passes
 

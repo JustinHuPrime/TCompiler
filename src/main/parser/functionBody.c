@@ -811,6 +811,129 @@ static Node *parseSwitchStmt(FileListEntry *entry, Node *unparsed,
 }
 
 /**
+ * parses a break statement
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param start first token
+ *
+ * @returns node or null on error
+ */
+static Node *parseBreakStmt(FileListEntry *entry, Node *unparsed,
+                            Environment *env, Token *start) {
+  Token semi;
+  next(unparsed, &semi);
+  if (semi.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semi);
+
+    prev(unparsed, &semi);
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  return breakStmtNodeCreate(start);
+}
+
+/**
+ * parses a continue statement
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param start first token
+ *
+ * @returns node or null on error
+ */
+static Node *parseContinueStmt(FileListEntry *entry, Node *unparsed,
+                               Environment *env, Token *start) {
+  Token semi;
+  next(unparsed, &semi);
+  if (semi.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semi);
+
+    prev(unparsed, &semi);
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  return continueStmtNodeCreate(start);
+}
+
+/**
+ * parses a return statement
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param start first token
+ *
+ * @returns node or null on error
+ */
+static Node *parseReturnStmt(FileListEntry *entry, Node *unparsed,
+                             Environment *env, Token *start) {
+  Token peek;
+  next(unparsed, &peek);
+  if (peek.type == TT_SEMI) {
+    return returnStmtNodeCreate(start, NULL);
+  } else {
+    prev(unparsed, &peek);
+    Node *value = parseExpression(entry, unparsed, env);
+
+    Token semi;
+    next(unparsed, &semi);
+    if (semi.type == TT_SEMI) {
+      errorExpectedToken(entry, TT_SEMI, &semi);
+
+      prev(unparsed, &semi);
+      panicStmt(unparsed);
+
+      nodeFree(value);
+      return NULL;
+    }
+
+    return returnStmtNodeCreate(start, value);
+  }
+}
+
+/**
+ * parses an asm statement
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param start first token
+ *
+ * @returns node or null on error
+ */
+static Node *parseAsmStmt(FileListEntry *entry, Node *unparsed,
+                          Environment *env, Token *start) {
+  Token str;
+  next(unparsed, &str);
+  if (str.type != TT_LIT_STRING) {
+    errorExpectedToken(entry, TT_LIT_STRING, &str);
+
+    prev(unparsed, &str);
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  Token semi;
+  next(unparsed, &semi);
+  if (semi.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semi);
+
+    prev(unparsed, &semi);
+    panicStmt(unparsed);
+
+    tokenUninit(&str);
+    return NULL;
+  }
+
+  return asmStmtNodeCreate(start, stringLiteralNodeCreate(&str));
+}
+
+/**
  * parses a statement
  *
  * @param entry entry that contains this node
@@ -844,20 +967,16 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
       return parseSwitchStmt(entry, unparsed, env, &peek);
     }
     case TT_BREAK: {
-      // TODO: break
-      return NULL;
+      return parseBreakStmt(entry, unparsed, env, &peek);
     }
     case TT_CONTINUE: {
-      // TODO: continue
-      return NULL;
+      return parseContinueStmt(entry, unparsed, env, &peek);
     }
     case TT_RETURN: {
-      // TODO: return
-      return NULL;
+      return parseReturnStmt(entry, unparsed, env, &peek);
     }
     case TT_ASM: {
-      // TODO: asm
-      return NULL;
+      return parseAsmStmt(entry, unparsed, env, &peek);
     }
     case TT_VOID:
     case TT_UBYTE:
