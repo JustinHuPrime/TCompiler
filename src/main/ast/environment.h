@@ -53,21 +53,30 @@ void environmentInit(Environment *env, FileListEntry *currentModuleFile);
 /**
  * looks up a symbol
  *
- * returns NULL if an error condition was hit
- *
  * @param env environment to look in
  * @param name id or scoped id node to look up
  * @param quiet boolean flag - if true, do not complain on error conditions
+ *
+ * @returns entry or NULL if an error condition was hit
  */
 SymbolTableEntry *environmentLookup(Environment *env, Node *name, bool quiet);
 
 /**
  * add a stab to the list of scopes
- * 
+ *
  * @param env environment to look in
- * @param map 
+ * @param map
  */
 void environmentPush(Environment *env, HashMap *map);
+
+/**
+ * get the topmost scope
+ *
+ * @param env environment to look in
+ *
+ * @returns scope hashmap
+ */
+HashMap *environmentTop(Environment *env);
 
 /**
  * remove a stab from the list of scopes, and return it

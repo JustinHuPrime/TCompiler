@@ -1118,6 +1118,16 @@ static Node *parseVarDefnStmt(FileListEntry *entry, Node *unparsed,
     name->data.id.entry =
         variableStabEntryCreate(entry, name->line, name->character);
     name->data.id.entry->data.variable.type = typeCopy(type);
+
+    SymbolTableEntry *existing =
+        hashMapGet(environmentTop(env), name->data.id.id);
+    if (existing != NULL) {
+      // whoops - this already exists! complain!
+      errorRedeclaration(entry, name->line, name->character, name->data.id.id,
+                         existing->file, existing->line, existing->character);
+    }
+
+    hashMapPut(environmentTop(env), name->data.id.id, name->data.id.entry);
   }
   typeFree(type);
 
@@ -1154,6 +1164,51 @@ static Node *parseExpressionStmt(FileListEntry *entry, Node *unparsed,
   }
 
   return expressionStmtNodeCreate(expression);
+}
+
+/**
+ * parses an opaque decl (within a function)
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param start first token
+ *
+ * @returns node or null on error
+ */
+static Node *parseOpaqueDecl(FileListEntry *entry, Node *unparsed,
+                             Environment *env, Token *start) {
+  Node *name = parseId(entry, unparsed);
+  if (name == NULL) {
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  Token semicolon;
+  next(unparsed, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
+
+    prev(unparsed, &semicolon);
+    panicStmt(unparsed);
+
+    nodeFree(name);
+    return NULL;
+  }
+
+  name->data.id.entry =
+      opaqueStabEntryCreate(entry, start->line, start->character);
+
+  SymbolTableEntry *existing =
+      hashMapGet(environmentTop(env), name->data.id.id);
+  if (existing != NULL) {
+    // whoops - this already exists! complain!
+    errorRedeclaration(entry, name->line, name->character, name->data.id.id,
+                       existing->file, existing->line, existing->character);
+  }
+
+  hashMapPut(environmentTop(env), name->data.id.id, name->data.id.entry);
+  return opaqueDeclNodeCreate(start, name);
 }
 
 /**
@@ -1269,9 +1324,7 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
       return parseExpressionStmt(entry, unparsed, env);
     }
     case TT_OPAQUE: {
-      // TODO: opaque
-      // TODO: include semantics for opaque in functions in standard
-      return NULL;
+      return parseOpaqueDecl(entry, unparsed, env, &peek);
     }
     case TT_STRUCT: {
       // TODO: struct

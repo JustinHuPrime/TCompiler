@@ -205,6 +205,15 @@ void environmentPush(Environment *env, HashMap *map) {
   vectorInsert(&env->scopes, map);
 }
 
+HashMap *environmentTop(Environment *env) {
+  if (env->scopes.size == 0) {
+    // no scope - return the main scope
+    return env->currentModuleFile->ast->data.file.stab;
+  } else {
+    return env->scopes.elements[env->scopes.size - 1];
+  }
+}
+
 HashMap *environmentPop(Environment *env) {
   return env->scopes.elements[--env->scopes.size];
 }

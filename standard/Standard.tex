@@ -136,7 +136,7 @@ Modules may import other modules. This means the identifiers from the module are
 
 \subsection{Opaque Type Declarations}
 
-The first exception to the requirement that no identifiers in the same scope have the same name is when dealing with opaque type declarations (see \ref{section:Opaque Type Declarations}), which may be redefined only if the opaque type was introduced to the scope from the implicit import.
+The first exception to the requirement that no identifiers in the same scope have the same name is when dealing with opaque type declarations (see \ref{section:Opaque Type Declarations}), which may be redefined only if the opaque type was introduced to the scope from the implicit import, or if the opaque type was introduced to the scope previous to the redefinition, and the redefinition is in the current scope.
 
 \subsection{Variable and Function Definitions}
 
@@ -259,6 +259,8 @@ A variable declaration declares the existence of a global variable. Variable dec
 \lstinputlisting[breaklines=true, firstline=23, lastline=23]{"Appendix B - Syntax.ebnf"}
 
 An opaque type declaration declares the existence of a user-defined type (structure, union, enumeration, or alias). Other than the existence of that type as a user-defined type, and the name, nothing else is specified.
+
+When redefined in a code file when it occurs in a declaration file, previous references to the opaque type are considered equivalent to a reference to the overriding type. When redefined in a function when it occurs in the same scope, previous references to the opaque type are also considered equivalent to a reference to the overriding type. Even though the type was redefined, the opaque type cannot be used in any way that would require more information than the existence and name of the type.
 
 \section{Struct Type Declarations}
 
