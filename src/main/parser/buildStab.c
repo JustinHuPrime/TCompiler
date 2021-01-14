@@ -25,6 +25,7 @@
 
 #include "ast/ast.h"
 #include "ast/environment.h"
+#include "common.h"
 #include "fileList.h"
 #include "internalError.h"
 #include "numericSizing.h"
@@ -181,19 +182,6 @@ int resolveImports(void) {
     return 0;
 }
 
-/**
- * complain about a redeclaration
- */
-static void errorRedeclaration(FileListEntry *file, size_t line,
-                               size_t character, char const *name,
-                               FileListEntry *collidingFile,
-                               size_t collidingLine, size_t collidingChar) {
-  fprintf(stderr, "%s:%zu:%zu: error: redeclaration of %s\n",
-          file->inputFilename, line, character, name);
-  fprintf(stderr, "%s:%zu:%zu: note: previously declared here\n",
-          collidingFile->inputFilename, collidingLine, collidingChar);
-}
-
 void startTopLevelStab(FileListEntry *entry) {
   Vector *bodies = entry->ast->data.file.bodies;
   HashMap *stab = entry->ast->data.file.stab;
@@ -219,7 +207,6 @@ void startTopLevelStab(FileListEntry *entry) {
           errorRedeclaration(entry, body->line, body->character, name,
                              existing->file, existing->line,
                              existing->character);
-          entry->errored = true;
         } else {
           // create an entry if it doesn't exist
           body->data.opaqueDecl.name->data.id.entry =
@@ -248,7 +235,6 @@ void startTopLevelStab(FileListEntry *entry) {
             errorRedeclaration(entry, body->line, body->character, name,
                                existing->file, existing->line,
                                existing->character);
-            entry->errored = true;
           }
         } else {
           body->data.structDecl.name->data.id.entry =
@@ -277,7 +263,6 @@ void startTopLevelStab(FileListEntry *entry) {
             errorRedeclaration(entry, body->line, body->character, name,
                                existing->file, existing->line,
                                existing->character);
-            entry->errored = true;
           }
         } else {
           body->data.unionDecl.name->data.id.entry =
@@ -307,7 +292,6 @@ void startTopLevelStab(FileListEntry *entry) {
             errorRedeclaration(entry, body->line, body->character, name,
                                existing->file, existing->line,
                                existing->character);
-            entry->errored = true;
           }
         } else {
           parentEnum = body->data.enumDecl.name->data.id.entry =
@@ -352,7 +336,6 @@ void startTopLevelStab(FileListEntry *entry) {
             errorRedeclaration(entry, body->line, body->character, name,
                                existing->file, existing->line,
                                existing->character);
-            entry->errored = true;
           }
         } else {
           body->data.typedefDecl.name->data.id.entry =
@@ -374,7 +357,6 @@ void startTopLevelStab(FileListEntry *entry) {
             errorRedeclaration(entry, name->line, name->character, nameString,
                                existing->file, existing->line,
                                existing->character);
-            entry->errored = true;
           } else {
             name->data.id.entry =
                 variableStabEntryCreate(entry, name->line, name->character);
@@ -406,7 +388,6 @@ void startTopLevelStab(FileListEntry *entry) {
               errorRedeclaration(entry, name->line, name->character, nameString,
                                  existing->file, existing->line,
                                  existing->character);
-              entry->errored = true;
             }
           } else {
             name->data.id.entry =
@@ -426,7 +407,6 @@ void startTopLevelStab(FileListEntry *entry) {
           errorRedeclaration(entry, body->line, body->character, name,
                              existing->file, existing->line,
                              existing->character);
-          entry->errored = true;
         } else {
           body->data.funDecl.name->data.id.entry =
               functionStabEntryCreate(entry, body->line, body->character);
@@ -453,7 +433,6 @@ void startTopLevelStab(FileListEntry *entry) {
             errorRedeclaration(entry, body->line, body->character, name,
                                existing->file, existing->line,
                                existing->character);
-            entry->errored = true;
           }
         } else {
           body->data.funDefn.name->data.id.entry =

@@ -48,4 +48,19 @@ void errorExpectedString(FileListEntry *entry, char const *expected,
 void errorExpectedToken(FileListEntry *entry, TokenType expected,
                         Token const *actual);
 
+/**
+ * complain about a redeclaration
+ *
+ * @param file file containing the redeclaration
+ * @param line line of the redeclaration
+ * @param character character of the redeclaration
+ * @param name colliding name
+ * @param collidingFile file containing the original declaration
+ * @param collidingLine line of the original declaration
+ * @param collidingChar character of the original declaration
+ */
+void errorRedeclaration(FileListEntry *file, size_t line, size_t character,
+                        char const *name, FileListEntry *collidingFile,
+                        size_t collidingLine, size_t collidingChar);
+
 #endif  // TLC_PARSER_COMMON_H_

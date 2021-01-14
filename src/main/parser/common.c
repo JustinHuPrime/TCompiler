@@ -150,3 +150,12 @@ void errorExpectedToken(FileListEntry *entry, TokenType expected,
                         Token const *actual) {
   errorExpectedString(entry, TOKEN_NAMES[expected], actual);
 }
+void errorRedeclaration(FileListEntry *file, size_t line, size_t character,
+                        char const *name, FileListEntry *collidingFile,
+                        size_t collidingLine, size_t collidingChar) {
+  fprintf(stderr, "%s:%zu:%zu: error: redeclaration of %s\n",
+          file->inputFilename, line, character, name);
+  fprintf(stderr, "%s:%zu:%zu: note: previously declared here\n",
+          collidingFile->inputFilename, collidingLine, collidingChar);
+  file->errored = true;
+}
