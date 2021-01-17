@@ -59,6 +59,26 @@ int buildTopLevelEnumStab(void);
 void checkScopedIdCollisions(FileListEntry *entry);
 
 /**
+ * completes the symbol table for a struct
+ *
+ * @param entry entry containing this declaration
+ * @param body declaration
+ * @param stabEntry symbol table entry to fill
+ * @param env enviroment to use
+ */
+void finishStructStab(FileListEntry *entry, Node *body,
+                      SymbolTableEntry *stabEntry, Environment *env);
+/**
+ * completes the symbol table for a union
+ *
+ * @param entry entry containing this declaration
+ * @param body declaration
+ * @param stabEntry symbol table entry to fill
+ * @param env enviroment to use
+ */
+void finishUnionStab(FileListEntry *entry, Node *body,
+                     SymbolTableEntry *stabEntry, Environment *env);
+/**
  * completes the symbol table for entries at the top level
  *
  * @param entry entry to prcess

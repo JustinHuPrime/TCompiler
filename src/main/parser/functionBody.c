@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "buildStab.h"
 #include "fileList.h"
 #include "internalError.h"
 #include "parser/common.h"
@@ -108,7 +109,8 @@ static void panicStmt(Node *unparsed) {
       case TT_STRUCT:
       case TT_UNION:
       case TT_ENUM:
-      case TT_TYPEDEF: {
+      case TT_TYPEDEF:
+      case TT_EOF: {
         prev(unparsed, &token);
         return;
       }
@@ -148,12 +150,55 @@ static void panicSwitch(Node *unparsed) {
       case TT_ENUM:
       case TT_TYPEDEF:
       case TT_CASE:
-      case TT_DEFAULT: {
+      case TT_DEFAULT:
+      case TT_EOF: {
         prev(unparsed, &token);
         return;
       }
       default: {
         tokenUninit(&token);
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * skips tokens until the end of a field/option boundary
+ *
+ * semicolons are consumed, right braces and the start of a type are left
+ *
+ * @param unparsed unparsed node to read from
+ */
+static void panicStructOrUnion(Node *unparsed) {
+  while (true) {
+    Token peek;
+    next(unparsed, &peek);
+    switch (peek.type) {
+      case TT_SEMI: {
+        return;
+      }
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_BYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
+      case TT_ID:
+      case TT_EOF:
+      case TT_RBRACE: {
+        prev(unparsed, &peek);
+        return;
+      }
+      default: {
+        tokenUninit(&peek);
         break;
       }
     }
@@ -232,6 +277,16 @@ static Node *parseId(FileListEntry *entry, Node *unparsed) {
  * @returns AST node or NULL if fatal error happened
  */
 static Node *parseType(FileListEntry *entry, Node *unparsed, Environment *env) {
+  return NULL;  // TODO: write this
+}
+
+/**
+ * parses a field or option declaration
+ *
+ * @param
+ */
+static Node *parseFieldOrOptionDecl(FileListEntry *entry, Node *unparsed,
+                                    Environment *env, Token *start) {
   return NULL;  // TODO: write this
 }
 
@@ -1212,6 +1267,260 @@ static Node *parseOpaqueDecl(FileListEntry *entry, Node *unparsed,
 }
 
 /**
+ * parses a struct decl (within a function)
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param start first token
+ *
+ * @returns node or null on error
+ */
+static Node *parseStructDecl(FileListEntry *entry, Node *unparsed,
+                             Environment *env, Token *start) {
+  Node *name = parseId(entry, unparsed);
+  if (name == NULL) {
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  Token lbrace;
+  next(unparsed, &lbrace);
+  if (lbrace.type != TT_LBRACE) {
+    errorExpectedToken(entry, TT_LBRACE, &lbrace);
+
+    prev(unparsed, &lbrace);
+    panicStmt(unparsed);
+
+    nodeFree(name);
+    return NULL;
+  }
+
+  Vector *fields = vectorCreate();
+  bool doneFields = false;
+  while (!doneFields) {
+    Token peek;
+    next(unparsed, &peek);
+    switch (peek.type) {
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_BYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
+      case TT_ID: {
+        // start of a field
+        Node *field = parseFieldOrOptionDecl(entry, unparsed, env, &peek);
+        if (field == NULL) {
+          panicStructOrUnion(unparsed);
+          continue;
+        }
+        vectorInsert(fields, field);
+        break;
+      }
+      case TT_RBRACE: {
+        doneFields = true;
+        break;
+      }
+      default: {
+        errorExpectedString(entry, "a right brace or a field", &peek);
+
+        prev(unparsed, &peek);
+        panicStmt(unparsed);
+
+        nodeFree(name);
+        nodeVectorFree(fields);
+        return NULL;
+      }
+    }
+  }
+
+  if (fields->size == 0) {
+    fprintf(stderr,
+            "%s:%zu:%zu: error: expected at least one field in a struct "
+            "declaration\n",
+            entry->inputFilename, lbrace.line, lbrace.character);
+    entry->errored = true;
+
+    nodeFree(name);
+    nodeVectorFree(fields);
+    return NULL;
+  }
+
+  Token semicolon;
+  next(unparsed, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
+
+    prev(unparsed, &semicolon);
+    panicStmt(unparsed);
+
+    nodeFree(name);
+    nodeVectorFree(fields);
+  }
+
+  Node *body = structDeclNodeCreate(start, name, fields);
+  SymbolTableEntry *existing =
+      hashMapGet(environmentTop(env), name->data.id.id);
+  if (existing != NULL) {
+    if (existing->kind == SK_OPAQUE) {
+      // overwrite the opaque
+      name->data.id.entry = existing;
+      existing->kind = SK_STRUCT;
+      vectorInit(&existing->data.structType.fieldNames);
+      vectorInit(&existing->data.structType.fieldTypes);
+      finishStructStab(entry, body, name->data.id.entry, env);
+    } else {
+      // whoops - this already exists! complain!
+      errorRedeclaration(entry, name->line, name->character, name->data.id.id,
+                         existing->file, existing->line, existing->character);
+    }
+  } else {
+    // create a new entry
+    name->data.id.entry =
+        structStabEntryCreate(entry, start->line, start->character);
+    hashMapPut(environmentTop(env), name->data.id.id, name->data.id.entry);
+    finishStructStab(entry, body, name->data.id.entry, env);
+  }
+
+  return body;
+}
+
+/**
+ * parses a union decl (within a function)
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param start first token
+ *
+ * @returns node or null on error
+ */
+static Node *parseUnionDecl(FileListEntry *entry, Node *unparsed,
+                            Environment *env, Token *start) {
+  Node *name = parseId(entry, unparsed);
+  if (name == NULL) {
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  Token lbrace;
+  next(unparsed, &lbrace);
+  if (lbrace.type != TT_LBRACE) {
+    errorExpectedToken(entry, TT_LBRACE, &lbrace);
+
+    prev(unparsed, &lbrace);
+    panicStmt(unparsed);
+
+    nodeFree(name);
+    return NULL;
+  }
+
+  Vector *options = vectorCreate();
+  bool doneOptions = false;
+  while (!doneOptions) {
+    Token peek;
+    next(unparsed, &peek);
+    switch (peek.type) {
+      case TT_VOID:
+      case TT_UBYTE:
+      case TT_BYTE:
+      case TT_CHAR:
+      case TT_USHORT:
+      case TT_UINT:
+      case TT_INT:
+      case TT_WCHAR:
+      case TT_ULONG:
+      case TT_LONG:
+      case TT_FLOAT:
+      case TT_DOUBLE:
+      case TT_BOOL:
+      case TT_ID: {
+        // start of an option
+        Node *option = parseFieldOrOptionDecl(entry, unparsed, env, &peek);
+        if (option == NULL) {
+          panicStructOrUnion(unparsed);
+          continue;
+        }
+        vectorInsert(options, option);
+        break;
+      }
+      case TT_RBRACE: {
+        doneOptions = true;
+        break;
+      }
+      default: {
+        errorExpectedString(entry, "a right brace or an option", &peek);
+
+        prev(unparsed, &peek);
+        panicStmt(unparsed);
+
+        nodeFree(name);
+        nodeVectorFree(options);
+        return NULL;
+      }
+    }
+  }
+
+  if (options->size == 0) {
+    fprintf(stderr,
+            "%s:%zu:%zu: error: expected at least one options in a union "
+            "declaration\n",
+            entry->inputFilename, lbrace.line, lbrace.character);
+    entry->errored = true;
+
+    nodeFree(name);
+    nodeVectorFree(options);
+    return NULL;
+  }
+
+  Token semicolon;
+  next(unparsed, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
+
+    prev(unparsed, &semicolon);
+    panicStmt(unparsed);
+
+    nodeFree(name);
+    nodeVectorFree(options);
+  }
+
+  Node *body = unionDeclNodeCreate(start, name, options);
+  SymbolTableEntry *existing =
+      hashMapGet(environmentTop(env), name->data.id.id);
+  if (existing != NULL) {
+    if (existing->kind == SK_OPAQUE) {
+      // overwrite the opaque
+      name->data.id.entry = existing;
+      existing->kind = SK_UNION;
+      vectorInit(&existing->data.unionType.optionNames);
+      vectorInit(&existing->data.unionType.optionTypes);
+      finishUnionStab(entry, body, name->data.id.entry, env);
+    } else {
+      // whoops - this already exists! complain!
+      errorRedeclaration(entry, name->line, name->character, name->data.id.id,
+                         existing->file, existing->line, existing->character);
+    }
+  } else {
+    // create a new entry
+    name->data.id.entry =
+        unionStabEntryCreate(entry, start->line, start->character);
+    hashMapPut(environmentTop(env), name->data.id.id, name->data.id.entry);
+    finishUnionStab(entry, body, name->data.id.entry, env);
+  }
+
+  return body;
+}
+
+/**
  * parses a statement
  *
  * @param entry entry that contains this node
@@ -1327,12 +1636,10 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
       return parseOpaqueDecl(entry, unparsed, env, &peek);
     }
     case TT_STRUCT: {
-      // TODO: struct
-      return NULL;
+      return parseStructDecl(entry, unparsed, env, &peek);
     }
     case TT_UNION: {
-      // TODO: union
-      return NULL;
+      return parseUnionDecl(entry, unparsed, env, &peek);
     }
     case TT_ENUM: {
       // TODO: enum

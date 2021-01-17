@@ -1012,6 +1012,48 @@ void checkScopedIdCollisions(FileListEntry *entry) {
   }
 }
 
+void finishStructStab(FileListEntry *entry, Node *body,
+                      SymbolTableEntry *stabEntry, Environment *env) {
+  Vector *fields = body->data.structDecl.fields;
+  for (size_t fieldIdx = 0; fieldIdx < fields->size; ++fieldIdx) {
+    Node *field = fields->elements[fieldIdx];
+    Type *type = nodeToType(field->data.varDecl.type, env);
+    if (type == NULL) {
+      entry->errored = true;
+      // process next field
+      continue;
+    }
+    Vector *names = field->data.varDecl.names;
+    for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
+      Node *name = names->elements[nameIdx];
+      vectorInsert(&stabEntry->data.structType.fieldNames, name->data.id.id);
+      vectorInsert(&stabEntry->data.structType.fieldTypes, typeCopy(type));
+    }
+    typeFree(type);
+  }
+}
+
+void finishUnionStab(FileListEntry *entry, Node *body,
+                     SymbolTableEntry *stabEntry, Environment *env) {
+  Vector *options = body->data.unionDecl.options;
+  for (size_t optionIdx = 0; optionIdx < options->size; ++optionIdx) {
+    Node *option = options->elements[optionIdx];
+    Type *type = nodeToType(option->data.varDecl.type, env);
+    if (type == NULL) {
+      entry->errored = true;
+      // process next option
+      continue;
+    }
+    Vector *names = option->data.varDecl.names;
+    for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
+      Node *name = names->elements[nameIdx];
+      vectorInsert(&stabEntry->data.unionType.optionNames, name->data.id.id);
+      vectorInsert(&stabEntry->data.unionType.optionTypes, typeCopy(type));
+    }
+    typeFree(type);
+  }
+}
+
 void finishTopLevelStab(FileListEntry *entry) {
   Environment env;
   environmentInit(&env, entry);
@@ -1022,49 +1064,13 @@ void finishTopLevelStab(FileListEntry *entry) {
     Node *body = entry->ast->data.file.bodies->elements[bodyIdx];
     switch (body->type) {
       case NT_STRUCTDECL: {
-        SymbolTableEntry *stabEntry = body->data.structDecl.name->data.id.entry;
-        Vector *fields = body->data.structDecl.fields;
-        for (size_t fieldIdx = 0; fieldIdx < fields->size; ++fieldIdx) {
-          Node *field = fields->elements[fieldIdx];
-          Type *type = nodeToType(field->data.varDecl.type, &env);
-          if (type == NULL) {
-            entry->errored = true;
-            // process next field
-            continue;
-          }
-          Vector *names = field->data.varDecl.names;
-          for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
-            Node *name = names->elements[nameIdx];
-            vectorInsert(&stabEntry->data.structType.fieldNames,
-                         name->data.id.id);
-            vectorInsert(&stabEntry->data.structType.fieldTypes,
-                         typeCopy(type));
-          }
-          typeFree(type);
-        }
+        finishStructStab(entry, body, body->data.structDecl.name->data.id.entry,
+                         &env);
         break;
       }
       case NT_UNIONDECL: {
-        SymbolTableEntry *stabEntry = body->data.unionDecl.name->data.id.entry;
-        Vector *options = body->data.unionDecl.options;
-        for (size_t optionIdx = 0; optionIdx < options->size; ++optionIdx) {
-          Node *option = options->elements[optionIdx];
-          Type *type = nodeToType(option->data.varDecl.type, &env);
-          if (type == NULL) {
-            entry->errored = true;
-            // process next option
-            continue;
-          }
-          Vector *names = option->data.varDecl.names;
-          for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
-            Node *name = names->elements[nameIdx];
-            vectorInsert(&stabEntry->data.unionType.optionNames,
-                         name->data.id.id);
-            vectorInsert(&stabEntry->data.unionType.optionTypes,
-                         typeCopy(type));
-          }
-          typeFree(type);
-        }
+        finishUnionStab(entry, body, body->data.unionDecl.name->data.id.entry,
+                        &env);
         break;
       }
       case NT_TYPEDEFDECL: {
