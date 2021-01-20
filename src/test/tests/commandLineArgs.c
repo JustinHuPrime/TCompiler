@@ -21,7 +21,6 @@
  * @file
  * tests for command line arguments
  */
-
 #include <stdlib.h>
 #include <string.h>
 

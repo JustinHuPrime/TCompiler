@@ -19,21 +19,15 @@
 
 /**
  * @file
- * listing of all test functions to run
+ * tests for the parser
  */
 
-#ifndef TLC_TEST_TESTS_H_
-#define TLC_TEST_TESTS_H_
+#include "parser/parser.h"
 
-/** tests bigInteger */
-void testBigInteger(void);
-/** tests numeric conversions */
-void testConversions(void);
-/** tests command line argument parsing */
-void testCommandLineArgs(void);
-/** tests lexing */
-void testLexer(void);
-/** tests the parser */
-void testParser(void);
+#include <stdlib.h>
+#include <string.h>
 
-#endif  // TLC_TEST_TESTS_H_
+#include "engine.h"
+#include "tests.h"
+
+void testParser(void) {}
