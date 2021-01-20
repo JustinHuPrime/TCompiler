@@ -118,6 +118,10 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
 }
 static FileListEntry *environmentFindModule(Environment *env, Node *name,
                                             size_t dropCount) {
+  if (nameNodeEqualWithDrop(
+          env->currentModuleFile->ast->data.file.module->data.module.id, name,
+          dropCount))
+    return env->currentModuleFile;
   for (size_t idx = 0; idx < env->importFiles.size; ++idx) {
     FileListEntry *file = env->importFiles.elements[idx];
     Node *moduleName = file->ast->data.file.module->data.module.id;

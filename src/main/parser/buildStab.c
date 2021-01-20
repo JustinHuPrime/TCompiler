@@ -105,6 +105,53 @@ int resolveImports(void) {
 
     Node **processed = malloc(sizeof(Node *) * imports->size);
     size_t numProcessed = 0;
+
+    // check for self-imports
+    Node **colliding = malloc(sizeof(Node *) * imports->size);
+    size_t numColliding = 0;
+    for (size_t importIdx = 0; importIdx < imports->size; ++importIdx) {
+      Node *import = imports->elements[importIdx];
+      if (nameNodeEqual(import->data.import.id,
+                        ast->data.file.module->data.module.id)) {
+        colliding[numColliding++] = import;
+      }
+    }
+    if (numColliding != 0) {
+      switch (options.duplicateImport) {
+        case OPTION_W_ERROR: {
+          char *nameString = stringifyId(ast->data.file.module->data.module.id);
+          fprintf(stderr, "%s:%zu:%zu: error: '%s' imports itself\n",
+                  fileList.entries[fileIdx].inputFilename,
+                  ast->data.file.module->line, ast->data.file.module->character,
+                  nameString);
+          free(nameString);
+          for (size_t idx = 0; idx < numColliding; ++idx)
+            fprintf(stderr, "%s:%zu:%zu: note: imported here\n",
+                    fileList.entries[fileIdx].inputFilename,
+                    colliding[idx]->line, colliding[idx]->character);
+          fileList.entries[fileIdx].errored = true;
+          break;
+        }
+        case OPTION_W_WARN: {
+          char *nameString = stringifyId(ast->data.file.module->data.module.id);
+          fprintf(stderr, "%s:%zu:%zu: warning: '%s' imports itself\n",
+                  fileList.entries[fileIdx].inputFilename,
+                  ast->data.file.module->line, ast->data.file.module->character,
+                  nameString);
+          free(nameString);
+          for (size_t idx = 0; idx < numColliding; ++idx)
+            fprintf(stderr, "%s:%zu:%zu: note: imported here\n",
+                    fileList.entries[fileIdx].inputFilename,
+                    colliding[idx]->line, colliding[idx]->character);
+          break;
+        }
+        case OPTION_W_IGNORE: {
+          break;
+        }
+      }
+    }
+
+    // check for duplicate imports
     for (size_t importIdx = 0; importIdx < imports->size; ++importIdx) {
       Node *import = imports->elements[importIdx];
 
@@ -112,9 +159,7 @@ int resolveImports(void) {
       // double-importing
       if (!nameArrayContains(processed, numProcessed, import->data.import.id)) {
         // check for upcoming duplicates
-        Node **colliding =
-            malloc(sizeof(Node *) * (imports->size - importIdx - 1));
-        size_t numColliding = 0;
+        numColliding = 0;
         for (size_t checkIdx = importIdx + 1; checkIdx < imports->size;
              ++checkIdx) {
           Node *toCheck = imports->elements[checkIdx];
@@ -155,7 +200,6 @@ int resolveImports(void) {
             }
           }
         }
-        free(colliding);
 
         import->data.import.referenced =
             fileListFindDeclName(import->data.import.id);
@@ -173,6 +217,7 @@ int resolveImports(void) {
         ++numProcessed;
       }
     }
+    free(colliding);
     free(processed);
   }
 
@@ -871,6 +916,8 @@ int buildTopLevelEnumStab(void) {
     }
   }
 
+  if (errored) return -1;
+
   return 0;
 }
 
@@ -1054,6 +1101,13 @@ void finishUnionStab(FileListEntry *entry, Node *body,
   }
 }
 
+void finishTypedefStab(FileListEntry *entry, Node *body,
+                       SymbolTableEntry *stabEntry, Environment *env) {
+  stabEntry->data.typedefType.actual =
+      nodeToType(body->data.typedefDecl.originalType, env);
+  if (stabEntry->data.typedefType.actual == NULL) entry->errored = true;
+}
+
 void finishTopLevelStab(FileListEntry *entry) {
   Environment env;
   environmentInit(&env, entry);
@@ -1074,11 +1128,8 @@ void finishTopLevelStab(FileListEntry *entry) {
         break;
       }
       case NT_TYPEDEFDECL: {
-        SymbolTableEntry *stabEntry =
-            body->data.typedefDecl.name->data.id.entry;
-        stabEntry->data.typedefType.actual =
-            nodeToType(body->data.typedefDecl.originalType, &env);
-        if (stabEntry->data.typedefType.actual == NULL) entry->errored = true;
+        finishTypedefStab(entry, body,
+                          body->data.typedefDecl.name->data.id.entry, &env);
         break;
       }
       case NT_VARDECL: {
