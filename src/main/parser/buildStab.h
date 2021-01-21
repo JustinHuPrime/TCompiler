@@ -79,6 +79,18 @@ void finishStructStab(FileListEntry *entry, Node *body,
 void finishUnionStab(FileListEntry *entry, Node *body,
                      SymbolTableEntry *stabEntry, Environment *env);
 /**
+ * completes the symbol table for an enum
+ *
+ * only for use by functionBody.c
+ *
+ * @param entry entry containing this declaration
+ * @param body declaration
+ * @param stabEntry symbol table entry to fill
+ * @param env environment to use
+ */
+void finishEnumStab(FileListEntry *entry, Node *body,
+                    SymbolTableEntry *stabEntry, Environment *env);
+/**
  * completes the symbol table for a typedef
  *
  * @param entry entry containing this declaration

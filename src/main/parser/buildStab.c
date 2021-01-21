@@ -1101,6 +1101,11 @@ void finishUnionStab(FileListEntry *entry, Node *body,
   }
 }
 
+void finishEnumStab(FileListEntry *entry, Node *body,
+                    SymbolTableEntry *stabEntry, Environment *env) {
+  // TODO
+}
+
 void finishTypedefStab(FileListEntry *entry, Node *body,
                        SymbolTableEntry *stabEntry, Environment *env) {
   stabEntry->data.typedefType.actual =

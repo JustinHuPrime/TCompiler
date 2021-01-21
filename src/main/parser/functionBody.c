@@ -49,8 +49,8 @@ static void next(Node *unparsed, Token *t) {
   // free malloc'ed block - this token has its guts ripped out
   free(saved);
   // clear it - we don't need to remember it any more
-  unparsed->data.unparsed.tokens->elements[unparsed->data.unparsed.curr] = NULL;
-  unparsed->data.unparsed.curr++;
+  unparsed->data.unparsed.tokens->elements[unparsed->data.unparsed.curr++] =
+      NULL;
 }
 static void prev(Node *unparsed, Token *t) {
   // malloc new block
@@ -199,6 +199,34 @@ static void panicStructOrUnion(Node *unparsed) {
       }
       default: {
         tokenUninit(&peek);
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * skips tokens until the end of an enum constant
+ *
+ * commas are consumed, EOFs, and right braces are left
+ *
+ * @param unparsed unparsed node to read from
+ */
+static void panicEnum(Node *unparsed) {
+  while (true) {
+    Token token;
+    next(unparsed, &token);
+    switch (token.type) {
+      case TT_COMMA: {
+        return;
+      }
+      case TT_EOF:
+      case TT_RBRACE: {
+        prev(unparsed, &token);
+        return;
+      }
+      default: {
+        tokenUninit(&token);
         break;
       }
     }
@@ -1168,7 +1196,7 @@ static Node *parseVarDefnStmt(FileListEntry *entry, Node *unparsed,
     return NULL;
   }
 
-  for (size_t idx = 0; idx < names->size; idx++) {
+  for (size_t idx = 0; idx < names->size; ++idx) {
     Node *name = names->elements[idx];
     name->data.id.entry =
         variableStabEntryCreate(entry, name->line, name->character);
@@ -1521,6 +1549,179 @@ static Node *parseUnionDecl(FileListEntry *entry, Node *unparsed,
 }
 
 /**
+ * parses an enum decl (within a function)
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param start first token
+ *
+ * @returns node or null on error
+ */
+static Node *parseEnumDecl(FileListEntry *entry, Node *unparsed,
+                           Environment *env, Token *start) {
+  Node *name = parseId(entry, unparsed);
+  if (name == NULL) {
+    panicStmt(unparsed);
+    return NULL;
+  }
+
+  Token lbrace;
+  next(unparsed, &lbrace);
+  if (lbrace.type != TT_LBRACE) {
+    errorExpectedToken(entry, TT_LBRACE, &lbrace);
+
+    prev(unparsed, &lbrace);
+    panicStmt(unparsed);
+
+    nodeFree(name);
+    return NULL;
+  }
+
+  Vector *constantNames = vectorCreate();
+  Vector *constantValues = vectorCreate();
+  bool done = false;
+  while (!done) {
+    Token peek;
+    next(unparsed, &peek);
+    switch (peek.type) {
+      case TT_ID: {
+        // start of a constant line
+        vectorInsert(constantNames, idNodeCreate(&peek));
+
+        next(unparsed, &peek);
+        switch (peek.type) {
+          case TT_EQ: {
+            // has an extended int literal
+            Node *literal = parseExtendedIntLiteral(entry, unparsed, env);
+            if (literal == NULL) {
+              panicEnum(unparsed);
+
+              vectorInsert(constantValues, NULL);
+              continue;
+            }
+            vectorInsert(constantValues, literal);
+
+            next(unparsed, &peek);
+            switch (peek.type) {
+              case TT_COMMA: {
+                // end of this constant
+                break;
+              }
+              case TT_RBRACE: {
+                // end of the whole enum
+                done = true;
+                break;
+              }
+              default: {
+                errorExpectedString(entry, "a comma or a right brace", &peek);
+
+                prev(unparsed, &peek);
+                panicEnum(unparsed);
+                continue;
+              }
+            }
+
+            break;
+          }
+          case TT_COMMA: {
+            // end of this constant
+            vectorInsert(constantValues, NULL);
+            break;
+          }
+          case TT_RBRACE: {
+            // end of the whole enum
+            vectorInsert(constantValues, NULL);
+            done = true;
+            break;
+          }
+          default: {
+            errorExpectedString(
+                entry, "a comma, an equals sign, or a right brace", &peek);
+
+            prev(unparsed, &peek);
+            panicEnum(unparsed);
+            continue;
+          }
+        }
+        break;
+      }
+      case TT_RBRACE: {
+        done = true;
+        break;
+      }
+      default: {
+        errorExpectedString(entry, "a right brace or an enumeration constant",
+                            &peek);
+
+        prev(unparsed, &peek);
+        panicStmt(unparsed);
+
+        nodeFree(name);
+        nodeVectorFree(constantNames);
+        nodeVectorFree(constantValues);
+        return NULL;
+      }
+    }
+  }
+
+  if (constantNames->size == 0) {
+    fprintf(stderr,
+            "%s:%zu:%zu: error: expected at least one enumeration constant in "
+            "a enumeration declaration\n",
+            entry->inputFilename, lbrace.line, lbrace.character);
+    entry->errored = true;
+
+    panicStmt(unparsed);
+
+    nodeFree(name);
+    nodeVectorFree(constantNames);
+    nodeVectorFree(constantValues);
+    return NULL;
+  }
+
+  Token semicolon;
+  next(unparsed, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
+
+    prev(unparsed, &semicolon);
+    panicStmt(unparsed);
+
+    nodeFree(name);
+    nodeVectorFree(constantNames);
+    nodeVectorFree(constantValues);
+    return NULL;
+  }
+
+  Node *body = enumDeclNodeCreate(start, name, constantNames, constantValues);
+  SymbolTableEntry *existing =
+      hashMapGet(environmentTop(env), name->data.id.id);
+  if (existing != NULL) {
+    if (existing->kind == SK_OPAQUE) {
+      // overwrite the opaque
+      name->data.id.entry = existing;
+      existing->kind = SK_ENUM;
+      vectorInit(&existing->data.enumType.constantNames);
+      vectorInit(&existing->data.enumType.constantValues);
+      finishEnumStab(entry, body, name->data.id.entry, env);
+    } else {
+      // whoops - this already exists! complain!
+      errorRedeclaration(entry, name->line, name->character, name->data.id.id,
+                         existing->file, existing->line, existing->character);
+    }
+  } else {
+    // create a new entry
+    name->data.id.entry =
+        enumStabEntryCreate(entry, start->line, start->character);
+    hashMapPut(environmentTop(env), name->data.id.id, name->data.id.entry);
+    finishEnumStab(entry, body, name->data.id.entry, env);
+  }
+
+  return body;
+}
+
+/**
  * parses a statement
  *
  * @param entry entry that contains this node
@@ -1642,8 +1843,7 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
       return parseUnionDecl(entry, unparsed, env, &peek);
     }
     case TT_ENUM: {
-      // TODO: enum
-      return NULL;
+      return parseEnumDecl(entry, unparsed, env, &peek);
     }
     case TT_TYPEDEF: {
       // TODO: typedef
