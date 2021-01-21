@@ -1722,6 +1722,71 @@ static Node *parseEnumDecl(FileListEntry *entry, Node *unparsed,
 }
 
 /**
+ * parses a typedef decl (within a function)
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param start first token
+ *
+ * @returns node or null on error
+ */
+static Node *parseTypedefDecl(FileListEntry *entry, Node *unparsed,
+                              Environment *env, Token *start) {
+  Node *originalType = parseType(entry, unparsed, env);
+  if (originalType == NULL) {
+    panicStmt(unparsed);
+
+    return NULL;
+  }
+
+  Node *name = parseId(entry, unparsed);
+  if (name == NULL) {
+    panicStmt(unparsed);
+
+    nodeFree(originalType);
+    return NULL;
+  }
+
+  Token semicolon;
+  next(unparsed, &semicolon);
+  if (semicolon.type != TT_SEMI) {
+    errorExpectedToken(entry, TT_SEMI, &semicolon);
+
+    prev(unparsed, &semicolon);
+    panicStmt(unparsed);
+
+    nodeFree(originalType);
+    nodeFree(name);
+    return NULL;
+  }
+
+  Node *body = typedefDeclNodeCreate(start, originalType, name);
+  SymbolTableEntry *existing =
+      hashMapGet(environmentTop(env), name->data.id.id);
+  if (existing != NULL) {
+    if (existing->kind == SK_OPAQUE) {
+      // overwrite the opaque
+      name->data.id.entry = existing;
+      existing->kind = SK_TYPEDEF;
+      finishTypedefStab(entry, body, name->data.id.entry, env);
+    } else {
+      // whoops - this already exists! complain!
+      errorRedeclaration(entry, name->line, name->character, name->data.id.id,
+                         existing->file, existing->line, existing->character);
+    }
+  } else {
+    // create a new entry
+    name->data.id.entry =
+        typedefStabEntryCreate(entry, start->line, start->character);
+    hashMapPut(environmentTop(env), name->data.id.id, name->data.id.entry);
+    finishTypedefStab(entry, body, name->data.id.entry, env);
+  }
+
+  return body;
+}
+
+/**
  * parses a statement
  *
  * @param entry entry that contains this node
@@ -1846,8 +1911,7 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
       return parseEnumDecl(entry, unparsed, env, &peek);
     }
     case TT_TYPEDEF: {
-      // TODO: typedef
-      return NULL;
+      return parseTypedefDecl(entry, unparsed, env, &peek);
     }
     case TT_SEMI: {
       return nullStmtNodeCreate(&peek);
