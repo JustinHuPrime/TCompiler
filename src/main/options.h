@@ -37,6 +37,7 @@ typedef enum {
 typedef enum {
   OPTION_DD_NONE,
   OPTION_DD_LEX,
+  OPTION_DD_PARSE,
 } DebugDumpOption;
 /** Holds options */
 typedef struct {

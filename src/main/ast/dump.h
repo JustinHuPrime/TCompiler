@@ -19,20 +19,19 @@
 
 /**
  * @file
- * lexer debug-dumping
+ * AST debug-dumping
  */
 
-#ifndef TLC_LEXER_DUMP_H_
-#define TLC_LEXER_DUMP_H_
+#ifndef TLC_AST_DUMP_H_
+#define TLC_AST_DUMP_H_
 
 #include "fileList.h"
 
 /**
- * Prints the lexed results of a file to stdout. Assumes that entry has not been
- * initialized for lexing. The function lexerInitMaps() must be called first.
+ * prints the parsed results of a file to stdout.
  *
- * @param entry entry to lex, must not be initialized for lexing already
+ * @param entry entry to dump
  */
-void lexDump(FileListEntry *entry);
+void astDump(FileListEntry *entry);
 
-#endif  // TLC_LEXER_DUMP_H_
+#endif  // TLC_AST_DUMP_H_

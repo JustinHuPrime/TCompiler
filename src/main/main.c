@@ -126,13 +126,20 @@ int main(int argc, char **argv) {
   if (parse() != 0) return CODE_PARSE_ERROR;
 
   // debug-dump stop for parsing
+  if (options.dump == OPTION_DD_PARSE) {
+    
+  }
+
+  // TODO: write this
 
   // typecheck
+  // TODO: write this
 
   // source code optimization
   // TODO: write this
 
   // translate to IR
+  // TODO: write this
 
   // middle-end
 

@@ -17,13 +17,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// lexer debug dumping
-
 #include "lexer/dump.h"
 
 #include <stdio.h>
 
-#include "fileList.h"
 #include "lexer/lexer.h"
 
 static char const *const TOKEN_NAMES[] = {

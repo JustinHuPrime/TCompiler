@@ -17,22 +17,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/**
- * @file
- * lexer debug-dumping
- */
+#include "ast/dump.h"
 
-#ifndef TLC_LEXER_DUMP_H_
-#define TLC_LEXER_DUMP_H_
+#include <stdio.h>
 
-#include "fileList.h"
-
-/**
- * Prints the lexed results of a file to stdout. Assumes that entry has not been
- * initialized for lexing. The function lexerInitMaps() must be called first.
- *
- * @param entry entry to lex, must not be initialized for lexing already
- */
-void lexDump(FileListEntry *entry);
-
-#endif  // TLC_LEXER_DUMP_H_
+void astDump(FileListEntry *entry) {
+  printf("%s:\n", entry->inputFilename);
+  // TODO
+}
