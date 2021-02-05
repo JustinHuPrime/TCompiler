@@ -958,7 +958,6 @@ static uint64_t extendedIntLiteralToValue(Node *n, Environment *env) {
     case NT_SCOPEDID: {
       SymbolTableEntry *enumConst = environmentLookup(env, n, false);
       if (enumConst == NULL) {
-        env->currentModuleFile->errored = true;
         return 0;
       } else if (enumConst->kind != SK_ENUMCONST) {
         fprintf(stderr,

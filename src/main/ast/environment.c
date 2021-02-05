@@ -57,10 +57,12 @@ static void errorNoDecl(FileListEntry *file, Node *node) {
   if (node->type == NT_ID) {
     fprintf(stderr, "%s:%zu:%zu: error: '%s' was not declared\n",
             file->inputFilename, node->line, node->character, node->data.id.id);
+    file->errored = true;
   } else {
     char *str = stringifyId(node);
     fprintf(stderr, "%s:%zu:%zu: error: '%s' was not declared\n",
             file->inputFilename, node->line, node->character, str);
+    file->errored = true;
     free(str);
   }
 }
