@@ -350,13 +350,24 @@ void startTopLevelStab(FileListEntry *entry) {
           // for each of the constants
           for (size_t idx = 0; idx < constantNames->size; ++idx) {
             Node *constantName = constantNames->elements[idx];
-            vectorInsert(&parentEnum->data.enumType.constantNames,
-                         constantName->data.id.id);
+            SymbolTableEntry *existing =
+                enumLookupEnumConst(parentEnum, constantName->data.id.id);
+            if (existing != NULL) {
+              // already exists - complain!
+              errorRedeclaration(entry, constantName->line,
+                                 constantName->character,
+                                 constantName->data.id.id, existing->file,
+                                 existing->line, existing->character);
+            } else {
+              vectorInsert(&parentEnum->data.enumType.constantNames,
+                           constantName->data.id.id);
 
-            constantName->data.id.entry = enumConstStabEntryCreate(
-                entry, constantName->line, constantName->character, parentEnum);
-            vectorInsert(&parentEnum->data.enumType.constantValues,
-                         constantName->data.id.entry);
+              constantName->data.id.entry =
+                  enumConstStabEntryCreate(entry, constantName->line,
+                                           constantName->character, parentEnum);
+              vectorInsert(&parentEnum->data.enumType.constantValues,
+                           constantName->data.id.entry);
+            }
           }
         }
         break;
@@ -1073,8 +1084,16 @@ void finishStructStab(FileListEntry *entry, Node *body,
     Vector *names = field->data.varDecl.names;
     for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
       Node *name = names->elements[nameIdx];
-      vectorInsert(&stabEntry->data.structType.fieldNames, name->data.id.id);
-      vectorInsert(&stabEntry->data.structType.fieldTypes, typeCopy(type));
+      Type *existing = structLookupField(stabEntry, name->data.id.id);
+      if (existing != NULL) {
+        // already exists - complain!
+        errorRedeclaration(entry, name->line, name->character, name->data.id.id,
+                           stabEntry->file, stabEntry->line,
+                           stabEntry->character);
+      } else {
+        vectorInsert(&stabEntry->data.structType.fieldNames, name->data.id.id);
+        vectorInsert(&stabEntry->data.structType.fieldTypes, typeCopy(type));
+      }
     }
     typeFree(type);
   }
@@ -1094,8 +1113,16 @@ void finishUnionStab(FileListEntry *entry, Node *body,
     Vector *names = option->data.varDecl.names;
     for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
       Node *name = names->elements[nameIdx];
-      vectorInsert(&stabEntry->data.unionType.optionNames, name->data.id.id);
-      vectorInsert(&stabEntry->data.unionType.optionTypes, typeCopy(type));
+      Type *existing = unionLookupOption(stabEntry, name->data.id.id);
+      if (existing != NULL) {
+        // already exists - complain!
+        errorRedeclaration(entry, name->line, name->character, name->data.id.id,
+                           stabEntry->file, stabEntry->line,
+                           stabEntry->character);
+      } else {
+        vectorInsert(&stabEntry->data.unionType.optionNames, name->data.id.id);
+        vectorInsert(&stabEntry->data.unionType.optionTypes, typeCopy(type));
+      }
     }
     typeFree(type);
   }
@@ -1103,6 +1130,40 @@ void finishUnionStab(FileListEntry *entry, Node *body,
 
 void finishEnumStab(FileListEntry *entry, Node *body,
                     SymbolTableEntry *stabEntry, Environment *env) {
+  Vector enumConstants;  // vector of SymbolTableEntry, non-owning
+  Vector dependencies;   // vector of SymbolTableEntry, non-owning, nullable
+  Vector enumValues;  // vector of extended int literals, non-owning, nullable
+  bool errored = false;
+  vectorInit(&enumConstants);
+  vectorInit(&dependencies);
+  vectorInit(&enumValues);
+
+  // create the enumConstant entries
+  Vector *constantNames = body->data.enumDecl.constantNames;
+  for (size_t idx = 0; idx < constantNames->size; ++idx) {
+    Node *constantName = constantNames->elements[idx];
+    vectorInsert(&stabEntry->data.enumType.constantNames,
+                 constantName->data.id.id);
+    constantName->data.id.entry = enumConstStabEntryCreate(
+        entry, constantName->line, constantName->character, stabEntry);
+    vectorInsert(&stabEntry->data.enumType.constantValues,
+                 constantName->data.id.entry);
+    SymbolTableEntry *existing =
+        enumLookupEnumConst(stabEntry, constantName->data.id.id);
+    if (existing != NULL) {
+      // already exists - complain!
+      errorRedeclaration(entry, constantName->line, constantName->character,
+                         constantName->data.id.id, existing->file,
+                         existing->line, existing->character);
+    } else {
+      vectorInsert(&enumConstants, constantName->data.id.entry);
+      vectorInsert(&dependencies, NULL);
+      vectorInsert(&enumValues,
+                   body->data.enumDecl.constantValues->elements[idx]);
+    }
+  }
+
+  // setup the dependencies
   // TODO
 }
 

@@ -261,6 +261,25 @@ SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
   vectorInit(&e->data.function.argumentTypes);
   return e;
 }
+
+Type *structLookupField(SymbolTableEntry *structEntry, char const *field) {
+  for (size_t idx = 0; idx < structEntry->data.structType.fieldNames.size;
+       ++idx) {
+    if (strcmp(structEntry->data.structType.fieldNames.elements[idx], field) ==
+        0)
+      return structEntry->data.structType.fieldTypes.elements[idx];
+  }
+  return NULL;
+}
+Type *unionLookupOption(SymbolTableEntry *unionEntry, char const *option) {
+  for (size_t idx = 0; idx < unionEntry->data.unionType.optionNames.size;
+       ++idx) {
+    if (strcmp(unionEntry->data.unionType.optionNames.elements[idx], option) ==
+        0)
+      return unionEntry->data.unionType.optionTypes.elements[idx];
+  }
+  return NULL;
+}
 SymbolTableEntry *enumLookupEnumConst(SymbolTableEntry *enumEntry,
                                       char const *name) {
   for (size_t idx = 0; idx < enumEntry->data.enumType.constantNames.size;

@@ -235,6 +235,14 @@ SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
                                           size_t character);
 
 /**
+ * find the type associated with a field, or return NULL
+ */
+Type *structLookupField(SymbolTableEntry *structEntry, char const *field);
+/**
+ * find the type associated with an option, or return NULL
+ */
+Type *unionLookupOption(SymbolTableEntry *unionEntry, char const *option);
+/**
  * find the enum const associated with a name, or return NULL
  */
 SymbolTableEntry *enumLookupEnumConst(SymbolTableEntry *enumEntry,

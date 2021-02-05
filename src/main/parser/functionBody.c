@@ -1951,7 +1951,15 @@ void parseFunctionBody(FileListEntry *entry) {
               variableStabEntryCreate(entry, argType->line, argType->character);
           stabEntry->data.variable.type = nodeToType(argType, &env);
           if (stabEntry->data.variable.type == NULL) entry->errored = true;
-          hashMapPut(stab, argName->data.id.id, stabEntry);
+          SymbolTableEntry *existing = hashMapGet(stab, argName->data.id.id);
+          if (existing != NULL) {
+            // already exists - complain!
+            errorRedeclaration(entry, argName->line, argName->character,
+                               argName->data.id.id, existing->file,
+                               existing->line, existing->character);
+          } else {
+            hashMapPut(stab, argName->data.id.id, stabEntry);
+          }
         }
 
         // parse and reference resolve body, replacing it in the original ast
