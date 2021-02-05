@@ -735,6 +735,7 @@ static uint64_t extendedIntLiteralToValue(Node *n, Environment *env) {
       SymbolTableEntry *enumConst = environmentLookup(env, n, false);
       if (enumConst == NULL) return 0;
 
+      // TODO: might not be an enumConst
       if (enumConst->data.enumConst.signedness) {
         // signed - allow only negatives
         if (enumConst->data.enumConst.data.signedValue <= 0) {

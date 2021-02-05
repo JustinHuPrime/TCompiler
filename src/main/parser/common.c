@@ -159,3 +159,8 @@ void errorRedeclaration(FileListEntry *file, size_t line, size_t character,
           collidingFile->inputFilename, collidingLine, collidingChar);
   file->errored = true;
 }
+void errorIntOverflow(FileListEntry *entry, Token *token) {
+  fprintf(stderr, "%s:%zu:%zu: error: integer constant is too large\n",
+          entry->inputFilename, token->line, token->character);
+  entry->errored = true;
+}

@@ -63,4 +63,12 @@ void errorRedeclaration(FileListEntry *file, size_t line, size_t character,
                         char const *name, FileListEntry *collidingFile,
                         size_t collidingLine, size_t collidingChar);
 
+/**
+ * prints an error complaining about a too-large integral value
+ *
+ * @param entry entry to attribute the error to
+ * @param token the bad token
+ */
+void errorIntOverflow(FileListEntry *entry, Token *token);
+
 #endif  // TLC_PARSER_COMMON_H_

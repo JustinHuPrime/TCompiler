@@ -27,20 +27,6 @@
 #include "parser/common.h"
 #include "util/conversions.h"
 
-// random stuff
-
-/**
- * prints an error complaining about a too-large integral value
- *
- * @param entry entry to attribute the error to
- * @param token the bad token
- */
-static void errorIntOverflow(FileListEntry *entry, Token *token) {
-  fprintf(stderr, "%s:%zu:%zu: error: integer constant is too large\n",
-          entry->inputFilename, token->line, token->character);
-  entry->errored = true;
-}
-
 // panics
 
 /**

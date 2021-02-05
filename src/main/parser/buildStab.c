@@ -1582,6 +1582,8 @@ void finishTopLevelStab(FileListEntry *entry) {
           name->data.id.entry->data.variable.type = typeCopy(type);
         }
 
+        // TODO: also resolve references in the initializer here
+
         typeFree(type);
 
         break;
