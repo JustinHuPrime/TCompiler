@@ -1556,6 +1556,7 @@ void finishTopLevelStab(FileListEntry *entry) {
       }
       case NT_VARDEFN: {
         Vector *names = body->data.varDefn.names;
+        Vector *initializers = body->data.varDefn.initializers;
         Type *type = nodeToType(body->data.varDefn.type, &env);
         if (type == NULL) {
           entry->errored = true;
@@ -1580,9 +1581,21 @@ void finishTopLevelStab(FileListEntry *entry) {
           }
 
           name->data.id.entry->data.variable.type = typeCopy(type);
-        }
 
-        // TODO: also resolve references in the initializer here
+          Node *initializer = initializers->elements[nameIdx];
+          if (initializer != NULL && initializer->type == NT_SCOPEDID) {
+            SymbolTableEntry *enumConst =
+                environmentLookup(&env, initializer, false);
+            if (enumConst != NULL && enumConst->kind != SK_ENUMCONST) {
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: expected a value literal, found %s\n",
+                      entry->inputFilename, initializer->line,
+                      initializer->character,
+                      symbolKindToString(enumConst->kind));
+              entry->errored = true;
+            }
+          }
+        }
 
         typeFree(type);
 
