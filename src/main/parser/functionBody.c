@@ -455,6 +455,7 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry, Node *unparsed,
                 "literal, found %s\n",
                 entry->inputFilename, n->line, n->character,
                 symbolKindToString(stabEntry->kind));
+        entry->errored = true;
 
         nodeFree(n);
         return NULL;

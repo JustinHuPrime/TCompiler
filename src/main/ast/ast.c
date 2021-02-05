@@ -957,9 +957,19 @@ static uint64_t extendedIntLiteralToValue(Node *n, Environment *env) {
     }
     case NT_SCOPEDID: {
       SymbolTableEntry *enumConst = environmentLookup(env, n, false);
-      if (enumConst == NULL) return 0;
+      if (enumConst == NULL) {
+        env->currentModuleFile->errored = true;
+        return 0;
+      } else if (enumConst->kind != SK_ENUMCONST) {
+        fprintf(stderr,
+                "%s:%zu:%zu: error: expected an extended integer "
+                "literal, found %s\n",
+                env->currentModuleFile->inputFilename, n->line, n->character,
+                symbolKindToString(enumConst->kind));
+        env->currentModuleFile->errored = true;
+        return 0;
+      }
 
-      // TODO: might not be an enumConst
       if (enumConst->data.enumConst.signedness) {
         // signed - allow only negatives
         if (enumConst->data.enumConst.data.signedValue <= 0) {
