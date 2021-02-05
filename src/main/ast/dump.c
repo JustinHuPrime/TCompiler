@@ -21,7 +21,12 @@
 
 #include <stdio.h>
 
-void astDump(FileListEntry *entry) {
+void astDumpStructure(FileListEntry *entry) {
+  printf("%s:\n", entry->inputFilename);
+  // TODO
+}
+
+void astDumpPretty(FileListEntry *entry) {
   printf("%s:\n", entry->inputFilename);
   // TODO
 }

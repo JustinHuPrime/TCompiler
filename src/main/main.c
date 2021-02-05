@@ -126,8 +126,8 @@ int main(int argc, char **argv) {
   if (parse() != 0) return CODE_PARSE_ERROR;
 
   // debug-dump stop for parsing
-  if (options.dump == OPTION_DD_PARSE) {
-    
+  if (options.dump == OPTION_DD_PARSE_STRUCTURE) {
+  } else if (options.dump == OPTION_DD_PARSE_PRETTY) {
   }
 
   // TODO: write this

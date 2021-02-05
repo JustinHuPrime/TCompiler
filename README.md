@@ -46,8 +46,6 @@ All warning options have three forms, a `-W...=error` form, a `-W...=warn` form,
 
 * `duplicate-import`: duplicated imports in a module. Defaults to ignore. If not an error, later imports have no effect.
 
-<!-- * `overload-ambiguity`: an overload set whose members may be ambiguous when called using default arguments. Defaults to error. Functions whose arguments are always ambiguous (i.e. takes the same arguments when including defaulted arguments) always results in an error. -->
-
 <!-- * `reseved-id`: something is defined using an id starting with two underscores (a reserved id). Defaults to error. -->
 
 <!-- * `void-return`: returning void in a non-void function. Defaults to error. May not be an error if inline assembly is used to setup the return value. -->
@@ -64,9 +62,9 @@ The option `--debug-dump` can be set to 3 values:
 
 * `--debug-dump=lex`: dumps the results of the 'lex' phase
 
-<!-- * `--debug-dump=parse-structure`: dumps the results of the parse phase, as a constructor-style tree -->
+* `--debug-dump=parse-structure`: dumps the results of the parse phase, as a constructor-style tree
 
-<!-- * `--debug-dump=parse-pretty`: dumps the results of the parse phase, as a pretty-printed T program -->
+* `--debug-dump=parse-pretty`: dumps the results of the parse phase, as a printed T program
 
 <!-- * `--debug-dump=ir`: dumps the results of the translate to IR phase -->
 

@@ -247,6 +247,32 @@ static void testOptions(void) {
 
   test("command line with debug-dump=lex passes", retval == 0);
   test("debug-dump option is correctly set", options.dump == OPTION_DD_LEX);
+
+  // --debug-dump=parse-structure
+  argc = 3;
+  char const *const argv13[] = {
+      "./tlc",
+      "--debug-dump=parse-structure",
+      "foo.tc",
+  };
+  retval = parseArgs(argc, argv13, &numFiles);
+
+  test("command line with debug-dump=parse-structure passes", retval == 0);
+  test("debug-dump option is correctly set",
+       options.dump == OPTION_DD_PARSE_STRUCTURE);
+
+  // --debug-dump=parse-pretty
+  argc = 3;
+  char const *const argv14[] = {
+      "./tlc",
+      "--debug-dump=parse-pretty",
+      "foo.tc",
+  };
+  retval = parseArgs(argc, argv14, &numFiles);
+
+  test("command line with debug-dump=parse-pretty passes", retval == 0);
+  test("debug-dump option is correctly set",
+       options.dump == OPTION_DD_PARSE_PRETTY);
 }
 
 void testCommandLineArgs(void) {
