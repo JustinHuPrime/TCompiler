@@ -877,6 +877,759 @@ static Node *parseFieldOrOptionDecl(FileListEntry *entry, Node *unparsed,
   return varDeclNodeCreate(type, names);
 }
 
+static Node *parseExpression(FileListEntry *entry, Node *unparsed,
+                             Environment *env);
+
+static Node *parseAssignmentExpression(FileListEntry *entry, Node *unparsed,
+                                       Environment *env);
+
+/**
+ * parses a primary expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
+                                    Environment *env) {
+  Token peek;
+  next(unparsed, &peek);
+  switch (peek.type) {
+    case TT_ID: {
+      Node *n = parseAnyId(entry, unparsed);
+      SymbolTableEntry *stabEntry = environmentLookup(env, n, false);
+      if (stabEntry->kind != SK_ENUMCONST && stabEntry->kind != SK_FUNCTION &&
+          stabEntry->kind != SK_VARIABLE) {
+        fprintf(stderr, "%s:%zu:%zu: error: cannot use a type as a variable",
+                entry->inputFilename, n->line, n->character);
+        fprintf(stderr, "%s:%zu:%zu: note: declared here",
+                stabEntry->file->inputFilename, stabEntry->line,
+                stabEntry->character);
+        entry->errored = true;
+      } else {
+        if (n->type == NT_ID) {
+          n->data.id.entry = stabEntry;
+        } else {
+          n->data.scopedId.entry = stabEntry;
+        }
+      }
+      return n;
+    }
+    case TT_LIT_STRING:
+    case TT_LIT_WSTRING:
+    case TT_LIT_CHAR:
+    case TT_LIT_WCHAR:
+    case TT_LIT_INT_0:
+    case TT_LIT_INT_B:
+    case TT_LIT_INT_O:
+    case TT_LIT_INT_D:
+    case TT_LIT_INT_H:
+    case TT_LIT_DOUBLE:
+    case TT_LIT_FLOAT: {
+      prev(unparsed, &peek);
+      return parseLiteral(entry, unparsed, env);
+    }
+    case TT_CAST: {
+      Token langle;
+      next(unparsed, &langle);
+      if (langle.type != TT_LANGLE) {
+        errorExpectedToken(entry, TT_LANGLE, &langle);
+
+        prev(unparsed, &langle);
+        return NULL;
+      }
+
+      Node *type = parseType(entry, unparsed, env);
+      if (type == NULL) {
+        return NULL;
+      }
+
+      Token rangle;
+      next(unparsed, &rangle);
+      if (rangle.type != TT_RANGLE) {
+        errorExpectedToken(entry, TT_RANGLE, &rangle);
+
+        prev(unparsed, &rangle);
+
+        nodeFree(type);
+        return NULL;
+      }
+
+      Token lparen;
+      next(unparsed, &lparen);
+      if (lparen.type != TT_LPAREN) {
+        errorExpectedToken(entry, TT_LPAREN, &lparen);
+
+        prev(unparsed, &lparen);
+
+        nodeFree(type);
+        return NULL;
+      }
+
+      Node *target = parseExpression(entry, unparsed, env);
+      if (target == NULL) {
+        nodeFree(type);
+        return NULL;
+      }
+
+      Token rparen;
+      next(unparsed, &rparen);
+      if (rparen.type != TT_RPAREN) {
+        errorExpectedToken(entry, TT_RPAREN, &rparen);
+
+        prev(unparsed, &rparen);
+
+        nodeFree(target);
+        nodeFree(type);
+        return NULL;
+      }
+
+      return castExpNodeCreate(&peek, type, target);
+    }
+    case TT_SIZEOF: {
+      Token lparen;
+      next(unparsed, &lparen);
+      if (lparen.type != TT_LPAREN) {
+        errorExpectedToken(entry, TT_LPAREN, &lparen);
+        return NULL;
+      }
+
+      Token sizeofPeek;
+      next(unparsed, &sizeofPeek);
+      switch (sizeofPeek.type) {
+        case TT_VOID:
+        case TT_UBYTE:
+        case TT_BYTE:
+        case TT_CHAR:
+        case TT_USHORT:
+        case TT_UINT:
+        case TT_INT:
+        case TT_WCHAR:
+        case TT_ULONG:
+        case TT_LONG:
+        case TT_FLOAT:
+        case TT_DOUBLE:
+        case TT_BOOL: {
+          // unambiguously a type
+          prev(unparsed, &sizeofPeek);
+          Node *target = parseType(entry, unparsed, env);
+          if (target == NULL) {
+            return NULL;
+          }
+
+          return prefixUnOpExpNodeCreate(UO_SIZEOFTYPE, &peek, target);
+        }
+        case TT_ID: {
+          // maybe a type, maybe an expression - disambiguat
+          Node idNode;
+          idNode.type = NT_ID;
+          idNode.line = sizeofPeek.line;
+          idNode.character = sizeofPeek.character;
+          idNode.data.id.id = sizeofPeek.string;
+          idNode.data.id.entry = NULL;
+
+          SymbolTableEntry *symbolEntry =
+              environmentLookup(env, &idNode, false);
+          if (symbolEntry == NULL) {
+            prev(unparsed, &sizeofPeek);
+            return NULL;
+          }
+
+          switch (symbolEntry->kind) {
+            case SK_VARIABLE:
+            case SK_FUNCTION:
+            case SK_ENUMCONST: {
+              prev(unparsed, &sizeofPeek);
+              Node *target = parseExpression(entry, unparsed, env);
+              if (target == NULL) {
+                return NULL;
+              }
+
+              return prefixUnOpExpNodeCreate(UO_SIZEOFEXP, &peek, target);
+            }
+            case SK_OPAQUE:
+            case SK_STRUCT:
+            case SK_UNION:
+            case SK_ENUM:
+            case SK_TYPEDEF: {
+              prev(unparsed, &sizeofPeek);
+              Node *target = parseType(entry, unparsed, env);
+              if (target == NULL) {
+                return NULL;
+              }
+
+              return prefixUnOpExpNodeCreate(UO_SIZEOFTYPE, &peek, target);
+            }
+            default: {
+              error(__FILE__, __LINE__, "invalid SymbolKind enum encountered");
+            }
+          }
+        }
+        case TT_STAR:
+        case TT_AMP:
+        case TT_INC:
+        case TT_DEC:
+        case TT_MINUS:
+        case TT_BANG:
+        case TT_TILDE:
+        case TT_CAST:
+        case TT_SIZEOF:
+        case TT_LPAREN:
+        case TT_LSQUARE: {
+          // unambiguously an expression
+          prev(unparsed, &sizeofPeek);
+          Node *target = parseExpression(entry, unparsed, env);
+          if (target == NULL) {
+            return NULL;
+          }
+
+          return prefixUnOpExpNodeCreate(UO_SIZEOFEXP, &peek, target);
+        }
+        default: {
+          // unexpected token
+          errorExpectedString(entry, "a type or an expression", &peek);
+
+          prev(unparsed, &peek);
+          return NULL;
+        }
+      }
+    }
+    case TT_LPAREN: {
+      Node *exp = parseExpression(entry, unparsed, env);
+      if (exp == NULL) {
+        return NULL;
+      }
+
+      Token rparen;
+      next(unparsed, &rparen);
+      if (rparen.type != TT_RPAREN) {
+        errorExpectedToken(entry, TT_RPAREN, &rparen);
+
+        nodeFree(exp);
+        return NULL;
+      }
+
+      return exp;
+    }
+    default: {
+      errorExpectedString(entry, "a primary expression", &peek);
+
+      prev(unparsed, &peek);
+      return NULL;
+    }
+  }
+}
+
+/**
+ * parses a postfix expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parsePostfixExpression(FileListEntry *entry, Node *unparsed,
+                                    Environment *env) {
+  Node *exp = parsePrimaryExpression(entry, unparsed, env);
+  if (exp == NULL) {
+    return NULL;
+  }
+
+  while (true) {
+    Token op;
+    next(unparsed, &op);
+    switch (op.type) {
+      case TT_DOT:
+      case TT_ARROW: {
+        Node *id = parseId(entry, unparsed);
+        if (id == NULL) {
+          nodeFree(exp);
+          return NULL;
+        }
+
+        exp = binOpExpNodeCreate(accessorTokenToBinop(op.type), exp, id);
+        break;
+      }
+      case TT_LPAREN: {
+        Vector *arguments = vectorCreate();
+
+        Token peek;
+        next(unparsed, &peek);
+        if (peek.type == TT_RPAREN) {
+          exp = funCallExpNodeCreate(exp, arguments);
+        } else {
+          Node *arg = parseAssignmentExpression(entry, unparsed, env);
+          if (arg == NULL) {
+            nodeVectorFree(arguments);
+            nodeFree(exp);
+            return NULL;
+          }
+          while (true) {
+            next(unparsed, &peek);
+            switch (peek.type) {
+              case TT_RPAREN: {
+                exp = funCallExpNodeCreate(exp, arguments);
+                break;
+              }
+              case TT_COMMA: {
+                Node *arg = parseAssignmentExpression(entry, unparsed, env);
+                if (arg == NULL) {
+                  nodeVectorFree(arguments);
+                  nodeFree(exp);
+                  return NULL;
+                }
+
+                vectorInsert(arguments, arg);
+                break;
+              }
+              default: {
+                errorExpectedString(entry, "a comma or a right-parenthesis",
+                                    &peek);
+                nodeVectorFree(arguments);
+                nodeFree(exp);
+                return NULL;
+              }
+            }
+          }
+        }
+        break;
+      }
+      case TT_LSQUARE: {
+        Node *index = parseExpression(entry, unparsed, env);
+        if (index == NULL) {
+          nodeFree(exp);
+          return NULL;
+        }
+
+        Token rsquare;
+        next(unparsed, &rsquare);
+        if (rsquare.type != TT_RSQUARE) {
+          errorExpectedToken(entry, TT_RSQUARE, &rsquare);
+
+          nodeFree(index);
+          nodeFree(exp);
+          return NULL;
+        }
+
+        exp = binOpExpNodeCreate(BO_ARRAY, exp, index);
+        break;
+      }
+      case TT_INC:
+      case TT_DEC:
+      case TT_NEGASSIGN:
+      case TT_LNOTASSIGN:
+      case TT_BITNOTASSIGN: {
+        exp = postfixUnOpExpNodeCreate(postfixTokenToUnop(op.type), exp);
+        break;
+      }
+      default: {
+        prev(unparsed, &op);
+        return exp;
+      }
+    }
+  }
+}
+
+/**
+ * parses a prefix expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parsePrefixExpression(FileListEntry *entry, Node *unparsed,
+                                   Environment *env) {
+  Token peek;
+  next(unparsed, &peek);
+  switch (peek.type) {
+    case TT_STAR:
+    case TT_AMP:
+    case TT_INC:
+    case TT_DEC:
+    case TT_MINUS:
+    case TT_BANG:
+    case TT_TILDE: {
+      Node *target = parsePrefixExpression(entry, unparsed, env);
+      if (target == NULL) {
+        return NULL;
+      }
+
+      return prefixUnOpExpNodeCreate(prefixTokenToUnop(peek.type), &peek,
+                                     target);
+    }
+    default: {
+      prev(unparsed, &peek);
+      return parsePostfixExpression(entry, unparsed, env);
+    }
+  }
+}
+
+/**
+ * parses a multiplication expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseMultiplicationExpression(FileListEntry *entry, Node *unparsed,
+                                           Environment *env) {
+  Node *exp = parsePrefixExpression(entry, unparsed, env);
+  if (exp == NULL) {
+    return NULL;
+  }
+
+  while (true) {
+    Token op;
+    next(unparsed, &op);
+    switch (op.type) {
+      case TT_STAR:
+      case TT_SLASH:
+      case TT_PERCENT: {
+        Node *rhs = parsePrefixExpression(entry, unparsed, env);
+        if (rhs == NULL) {
+          nodeFree(exp);
+          return NULL;
+        }
+
+        exp = binOpExpNodeCreate(multiplicationTokenToBinop(op.type), exp, rhs);
+        break;
+      }
+      default: {
+        prev(unparsed, &op);
+        return exp;
+      }
+    }
+  }
+}
+
+/**
+ * parses an addition expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseAdditionExpression(FileListEntry *entry, Node *unparsed,
+                                     Environment *env) {
+  Node *exp = parseMultiplicationExpression(entry, unparsed, env);
+  if (exp == NULL) {
+    return NULL;
+  }
+
+  while (true) {
+    Token op;
+    next(unparsed, &op);
+    switch (op.type) {
+      case TT_PLUS:
+      case TT_MINUS: {
+        Node *rhs = parseMultiplicationExpression(entry, unparsed, env);
+        if (rhs == NULL) {
+          nodeFree(exp);
+          return NULL;
+        }
+
+        exp = binOpExpNodeCreate(additionTokenToBinop(op.type), exp, rhs);
+        break;
+      }
+      default: {
+        prev(unparsed, &op);
+        return exp;
+      }
+    }
+  }
+}
+
+/**
+ * parses a shift expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseShiftExpression(FileListEntry *entry, Node *unparsed,
+                                  Environment *env) {
+  Node *exp = parseAdditionExpression(entry, unparsed, env);
+  if (exp == NULL) {
+    return NULL;
+  }
+
+  while (true) {
+    Token op;
+    next(unparsed, &op);
+    switch (op.type) {
+      case TT_LSHIFT:
+      case TT_ARSHIFT:
+      case TT_LRSHIFT: {
+        Node *rhs = parseAdditionExpression(entry, unparsed, env);
+        if (rhs == NULL) {
+          nodeFree(exp);
+          return NULL;
+        }
+
+        exp = binOpExpNodeCreate(shiftTokenToBinop(op.type), exp, rhs);
+        break;
+      }
+      default: {
+        prev(unparsed, &op);
+        return exp;
+      }
+    }
+  }
+}
+
+/**
+ * parses a spaceship expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseSpaceshipExpression(FileListEntry *entry, Node *unparsed,
+                                      Environment *env) {
+  Node *exp = parseShiftExpression(entry, unparsed, env);
+  if (exp == NULL) {
+    return NULL;
+  }
+
+  while (true) {
+    Token op;
+    next(unparsed, &op);
+    if (op.type != TT_SPACESHIP) {
+      prev(unparsed, &op);
+      return exp;
+    }
+
+    Node *rhs = parseShiftExpression(entry, unparsed, env);
+    if (rhs == NULL) {
+      nodeFree(exp);
+      return NULL;
+    }
+
+    exp = binOpExpNodeCreate(BO_SPACESHIP, exp, rhs);
+  }
+}
+
+/**
+ * parses a comparison expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseComparisonExpression(FileListEntry *entry, Node *unparsed,
+                                       Environment *env) {
+  Node *exp = parseSpaceshipExpression(entry, unparsed, env);
+  if (exp == NULL) {
+    return NULL;
+  }
+
+  while (true) {
+    Token op;
+    next(unparsed, &op);
+    switch (op.type) {
+      case TT_LANGLE:
+      case TT_RANGLE:
+      case TT_LTEQ:
+      case TT_GTEQ: {
+        Node *rhs = parseSpaceshipExpression(entry, unparsed, env);
+        if (rhs == NULL) {
+          nodeFree(exp);
+          return NULL;
+        }
+
+        exp = binOpExpNodeCreate(comparisonTokenToBinop(op.type), exp, rhs);
+        break;
+      }
+      default: {
+        prev(unparsed, &op);
+        return exp;
+      }
+    }
+  }
+}
+
+/**
+ * parses an equality expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseEqualityExpression(FileListEntry *entry, Node *unparsed,
+                                     Environment *env) {
+  Node *exp = parseComparisonExpression(entry, unparsed, env);
+  if (exp == NULL) {
+    return NULL;
+  }
+
+  while (true) {
+    Token op;
+    next(unparsed, &op);
+    switch (op.type) {
+      case TT_EQ:
+      case TT_NEQ: {
+        Node *rhs = parseComparisonExpression(entry, unparsed, env);
+        if (rhs == NULL) {
+          nodeFree(exp);
+          return NULL;
+        }
+
+        exp = binOpExpNodeCreate(equalityTokenToBinop(op.type), exp, rhs);
+        break;
+      }
+      default: {
+        prev(unparsed, &op);
+        return exp;
+      }
+    }
+  }
+}
+
+/**
+ * parses a bitwise expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseBitwiseExpression(FileListEntry *entry, Node *unparsed,
+                                    Environment *env) {
+  Node *exp = parseEqualityExpression(entry, unparsed, env);
+  if (exp == NULL) {
+    return NULL;
+  }
+
+  while (true) {
+    Token op;
+    next(unparsed, &op);
+    switch (op.type) {
+      case TT_LAND:
+      case TT_LOR: {
+        Node *rhs = parseEqualityExpression(entry, unparsed, env);
+        if (rhs == NULL) {
+          nodeFree(exp);
+          return NULL;
+        }
+
+        exp = binOpExpNodeCreate(bitwiseTokenToBinop(op.type), exp, rhs);
+        break;
+      }
+      default: {
+        prev(unparsed, &op);
+        return exp;
+      }
+    }
+  }
+}
+
+/**
+ * parses a logical expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseLogicalExpression(FileListEntry *entry, Node *unparsed,
+                                    Environment *env) {
+  Node *exp = parseBitwiseExpression(entry, unparsed, env);
+  if (exp == NULL) {
+    return NULL;
+  }
+
+  while (true) {
+    Token op;
+    next(unparsed, &op);
+    switch (op.type) {
+      case TT_LAND:
+      case TT_LOR: {
+        Node *rhs = parseLogicalExpression(entry, unparsed, env);
+        if (rhs == NULL) {
+          nodeFree(exp);
+          return NULL;
+        }
+
+        exp = binOpExpNodeCreate(logicalTokenToBinop(op.type), exp, rhs);
+        break;
+      }
+      default: {
+        prev(unparsed, &op);
+        return exp;
+      }
+    }
+  }
+}
+
+/**
+ * parses a ternary expression
+ *
+ * @param entry entry containing this node
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ *
+ * @returns node or null on error
+ */
+static Node *parseTernaryExpression(FileListEntry *entry, Node *unparsed,
+                                    Environment *env) {
+  Node *predicate = parseLogicalExpression(entry, unparsed, env);
+  if (predicate == NULL) {
+    return NULL;
+  }
+
+  Token question;
+  next(unparsed, &question);
+  if (question.type != TT_QUESTION) {
+    return predicate;
+  }
+
+  Node *consequent = parseExpression(entry, unparsed, env);
+  if (consequent == NULL) {
+    nodeFree(predicate);
+    return NULL;
+  }
+
+  Token colon;
+  next(unparsed, &colon);
+  if (colon.type != TT_COLON) {
+    errorExpectedToken(entry, TT_COLON, &colon);
+
+    prev(unparsed, &colon);
+
+    nodeFree(consequent);
+    nodeFree(predicate);
+    return NULL;
+  }
+
+  Node *alternative = parseTernaryExpression(entry, unparsed, env);
+  if (alternative == NULL) {
+    nodeFree(consequent);
+    nodeFree(predicate);
+    return NULL;
+  }
+
+  return ternaryExpNodeCreate(predicate, consequent, alternative);
+}
+
 /**
  * parses an assignment expression
  *
@@ -888,7 +1641,41 @@ static Node *parseFieldOrOptionDecl(FileListEntry *entry, Node *unparsed,
  */
 static Node *parseAssignmentExpression(FileListEntry *entry, Node *unparsed,
                                        Environment *env) {
-  return NULL;  // TODO: write this
+  Node *lhs = parseTernaryExpression(entry, unparsed, env);
+  if (lhs == NULL) {
+    return NULL;
+  }
+
+  Token op;
+  next(unparsed, &op);
+  switch (op.type) {
+    case TT_ASSIGN:
+    case TT_MULASSIGN:
+    case TT_DIVASSIGN:
+    case TT_MODASSIGN:
+    case TT_ADDASSIGN:
+    case TT_SUBASSIGN:
+    case TT_LSHIFTASSIGN:
+    case TT_ARSHIFTASSIGN:
+    case TT_LRSHIFTASSIGN:
+    case TT_BITANDASSIGN:
+    case TT_BITXORASSIGN:
+    case TT_BITORASSIGN:
+    case TT_LANDASSIGN:
+    case TT_LORASSIGN: {
+      Node *rhs = parseAssignmentExpression(entry, unparsed, env);
+      if (rhs == NULL) {
+        nodeFree(lhs);
+        return NULL;
+      }
+
+      return binOpExpNodeCreate(assignmentTokenToBinop(op.type), lhs, rhs);
+    }
+    default: {
+      prev(unparsed, &op);
+      return lhs;
+    }
+  }
 }
 
 /**
@@ -902,7 +1689,25 @@ static Node *parseAssignmentExpression(FileListEntry *entry, Node *unparsed,
  */
 static Node *parseExpression(FileListEntry *entry, Node *unparsed,
                              Environment *env) {
-  return NULL;  // TODO: write this
+  Node *lhs = parseAssignmentExpression(entry, unparsed, env);
+  if (lhs == NULL) {
+    return NULL;
+  }
+
+  Token comma;
+  next(unparsed, &comma);
+  if (comma.type != TT_COMMA) {
+    prev(unparsed, &comma);
+    return lhs;
+  }
+
+  Node *rhs = parseExpression(entry, unparsed, env);
+  if (rhs == NULL) {
+    nodeFree(lhs);
+    return NULL;
+  }
+
+  return binOpExpNodeCreate(BO_SEQ, lhs, rhs);
 }
 
 static Node *parseStmt(FileListEntry *, Node *, Environment *);

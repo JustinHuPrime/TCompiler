@@ -128,6 +128,21 @@ typedef enum {
   BO_ARRAY,
   BO_CAST,
 } BinOpType;
+/**
+ * converts tokens to their corresponding binops
+ *
+ * @param token token type of the operator
+ * @returns binary operator
+ */
+BinOpType assignmentTokenToBinop(TokenType token);
+BinOpType logicalTokenToBinop(TokenType token);
+BinOpType bitwiseTokenToBinop(TokenType token);
+BinOpType equalityTokenToBinop(TokenType token);
+BinOpType comparisonTokenToBinop(TokenType token);
+BinOpType shiftTokenToBinop(TokenType token);
+BinOpType additionTokenToBinop(TokenType token);
+BinOpType multiplicationTokenToBinop(TokenType token);
+BinOpType accessorTokenToBinop(TokenType token);
 
 /** the type of a syntactic unary operation */
 typedef enum {
@@ -145,9 +160,12 @@ typedef enum {
   UO_BITNOTASSIGN,
   UO_SIZEOFEXP,  /**< sizeof operator applied to an expression */
   UO_SIZEOFTYPE, /**< sizeof operator applied to a type */
-  UO_PARENS, /**< included only for line/character tracking, no semantic effects
-              */
+  UO_PARENS,     /**< included only for line/character tracking, no semantic
+                  * effects
+                  */
 } UnOpType;
+UnOpType prefixTokenToUnop(TokenType token);
+UnOpType postfixTokenToUnop(TokenType token);
 
 /** the type of a literal */
 typedef enum {
@@ -431,6 +449,7 @@ Node *switchCaseNodeCreate(Token const *keyword, Vector *values, Node *body,
 Node *switchDefaultNodeCreate(Token const *keyword, Node *body,
                               HashMap *bodyStab);
 Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs);
+Node *castExpNodeCreate(Token const *opToken, Node *type, Node *target);
 Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,
                            Node *alternative);
 Node *prefixUnOpExpNodeCreate(UnOpType op, Token const *opToken, Node *target);

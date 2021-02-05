@@ -30,6 +30,223 @@
 #include "util/conversions.h"
 #include "util/format.h"
 
+BinOpType assignmentTokenToBinop(TokenType token) {
+  switch (token) {
+    case TT_ASSIGN: {
+      return BO_ASSIGN;
+    }
+    case TT_MULASSIGN: {
+      return BO_MULASSIGN;
+    }
+    case TT_DIVASSIGN: {
+      return BO_DIVASSIGN;
+    }
+    case TT_ADDASSIGN: {
+      return BO_ADDASSIGN;
+    }
+    case TT_SUBASSIGN: {
+      return BO_SUBASSIGN;
+    }
+    case TT_LSHIFTASSIGN: {
+      return BO_LSHIFTASSIGN;
+    }
+    case TT_ARSHIFTASSIGN: {
+      return BO_ARSHIFTASSIGN;
+    }
+    case TT_LRSHIFTASSIGN: {
+      return BO_LRSHIFTASSIGN;
+    }
+    case TT_BITANDASSIGN: {
+      return BO_BITANDASSIGN;
+    }
+    case TT_BITXORASSIGN: {
+      return BO_BITXORASSIGN;
+    }
+    case TT_BITORASSIGN: {
+      return BO_BITORASSIGN;
+    }
+    case TT_LANDASSIGN: {
+      return BO_LANDASSIGN;
+    }
+    case TT_LORASSIGN: {
+      return BO_LORASSIGN;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid assign binop token given");
+    }
+  }
+}
+BinOpType logicalTokenToBinop(TokenType token) {
+  switch (token) {
+    case TT_LAND: {
+      return BO_LAND;
+    }
+    case TT_LOR: {
+      return BO_LOR;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid logical binop token given");
+    }
+  }
+}
+BinOpType bitwiseTokenToBinop(TokenType token) {
+  switch (token) {
+    case TT_AMP: {
+      return BO_BITAND;
+    }
+    case TT_BAR: {
+      return BO_BITOR;
+    }
+    case TT_CARET: {
+      return BO_BITXOR;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid logical binop token given");
+    }
+  }
+}
+BinOpType equalityTokenToBinop(TokenType token) {
+  switch (token) {
+    case TT_EQ: {
+      return BO_EQ;
+    }
+    case TT_NEQ: {
+      return BO_NEQ;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid equality binop token given");
+    }
+  }
+}
+BinOpType comparisonTokenToBinop(TokenType token) {
+  switch (token) {
+    case TT_LANGLE: {
+      return BO_LT;
+    }
+    case TT_RANGLE: {
+      return BO_GT;
+    }
+    case TT_LTEQ: {
+      return BO_LTEQ;
+    }
+    case TT_GTEQ: {
+      return BO_GTEQ;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid comparison binop token given");
+    }
+  }
+}
+BinOpType shiftTokenToBinop(TokenType token) {
+  switch (token) {
+    case TT_LSHIFT: {
+      return BO_LSHIFT;
+    }
+    case TT_ARSHIFT: {
+      return BO_ARSHIFT;
+    }
+    case TT_LRSHIFT: {
+      return BO_LRSHIFT;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid shift binop token given");
+    }
+  }
+}
+BinOpType additionTokenToBinop(TokenType token) {
+  switch (token) {
+    case TT_PLUS: {
+      return BO_ADD;
+    }
+    case TT_MINUS: {
+      return BO_SUB;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid addition binop token given");
+    }
+  }
+}
+BinOpType multiplicationTokenToBinop(TokenType token) {
+  switch (token) {
+    case TT_STAR: {
+      return BO_MUL;
+    }
+    case TT_SLASH: {
+      return BO_DIV;
+    }
+    case TT_PERCENT: {
+      return BO_MOD;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid multiplication binop token given");
+    }
+  }
+}
+BinOpType accessorTokenToBinop(TokenType token) {
+  switch (token) {
+    case TT_DOT: {
+      return BO_FIELD;
+    }
+    case TT_ARROW: {
+      return BO_PTRFIELD;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid accessor binop token given");
+    }
+  }
+}
+
+UnOpType prefixTokenToUnop(TokenType token) {
+  switch (token) {
+    case TT_STAR: {
+      return UO_DEREF;
+    }
+    case TT_AMP: {
+      return UO_ADDROF;
+    }
+    case TT_INC: {
+      return UO_PREINC;
+    }
+    case TT_DEC: {
+      return UO_PREDEC;
+    }
+    case TT_MINUS: {
+      return UO_NEG;
+    }
+    case TT_BANG: {
+      return UO_LNOT;
+    }
+    case TT_TILDE: {
+      return UO_BITNOT;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid prefix binop token given");
+    }
+  }
+}
+UnOpType postfixTokenToUnop(TokenType token) {
+  switch (token) {
+    case TT_INC: {
+      return UO_POSTINC;
+    }
+    case TT_DEC: {
+      return UO_POSTDEC;
+    }
+    case TT_NEGASSIGN: {
+      return UO_NEGASSIGN;
+    }
+    case TT_LNOTASSIGN: {
+      return UO_LNOTASSIGN;
+    }
+    case TT_BITNOTASSIGN: {
+      return UO_BITNOTASSIGN;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid postfix binop token given");
+    }
+  }
+}
+
 /**
  * create a partially initialized node
  *
@@ -242,6 +459,13 @@ Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs) {
   n->data.binOpExp.op = op;
   n->data.binOpExp.lhs = lhs;
   n->data.binOpExp.rhs = rhs;
+  return n;
+}
+Node *castExpNodeCreate(Token const *opToken, Node *type, Node *target) {
+  Node *n = createNode(NT_BINOPEXP, opToken->line, opToken->character);
+  n->data.binOpExp.op = BO_CAST;
+  n->data.binOpExp.lhs = type;
+  n->data.binOpExp.rhs = target;
   return n;
 }
 Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,

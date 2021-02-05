@@ -82,7 +82,7 @@ assignment_expression = ternary_expression
                       | ternary_expression, "||=", assignment_expression
 ;
 ternary_expression = logical_expression
-                   | logical_expression, "?", expression, ":", expression
+                   | logical_expression, "?", expression, ":", ternary_expression
 ;
 logical_expression = bitwise_expression, { ( "&&" | "||" ), bitwise_expression } ;
 bitwise_expression = equality_expression, { ( "&" | "|" | "^" ), equality_expression } ;
