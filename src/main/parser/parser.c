@@ -22,6 +22,7 @@
 #include "fileList.h"
 #include "parser/buildStab.h"
 #include "parser/functionBody.h"
+#include "parser/miscCheck.h"
 #include "parser/topLevel.h"
 
 int parse(void) {
@@ -58,7 +59,8 @@ int parse(void) {
   // them, checking for collisions, and resolves identifier references (yes,
   // this is a lot of work for one pass)
   //
-  // TODO: finish writing descriptions for other passes
+  // Pass eight checks for miscellaneous restrictions, like those placed on
+  // continue and break
 
   // note on parser calling conventions:
   // a context-ignorant parser shall unlex as much as it needs to/can if an
@@ -149,8 +151,13 @@ int parse(void) {
   if (errored) return -1;
 
   // pass 8 - check additional constraints and warnings (continue/break)
-
-  // TODO: write this
+  for (size_t idx = 0; idx < fileList.size; ++idx) {
+    if (fileList.entries[idx].isCode) {
+      checkMisc(&fileList.entries[idx]);
+      errored = errored || fileList.entries[idx].errored;
+    }
+  }
+  if (errored) return -1;
 
   return 0;
 }
