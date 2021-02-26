@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ast/dump.h"
 #include "fileList.h"
 #include "internalError.h"
 #include "lexer/dump.h"
@@ -127,10 +128,12 @@ int main(int argc, char **argv) {
 
   // debug-dump stop for parsing
   if (options.dump == OPTION_DD_PARSE_STRUCTURE) {
+    for (size_t idx = 0; idx < fileList.size; ++idx)
+      astDumpStructure(&fileList.entries[idx]);
   } else if (options.dump == OPTION_DD_PARSE_PRETTY) {
+    for (size_t idx = 0; idx < fileList.size; ++idx)
+      astDumpPretty(&fileList.entries[idx]);
   }
-
-  // TODO: write this
 
   // typecheck
   // TODO: write this

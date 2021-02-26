@@ -17,13 +17,15 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef TLC_UTIL_STRING_H_
-#define TLC_UTIL_STRING_H_
-
 /**
  * @file
  * additional c-string utilities
  */
+
+#ifndef TLC_UTIL_STRING_H_
+#define TLC_UTIL_STRING_H_
+
+#include <stdint.h>
 
 /**
  * produces a character escape sequence for a character
@@ -38,5 +40,33 @@ char *escapeChar(char c);
  * @param s string to escape
  */
 char *escapeString(char const *s);
+
+/**
+ * produces a character escape sequence for a T character
+ *
+ * @param c character to escape
+ */
+char *escapeTChar(uint8_t c);
+
+/**
+ * produces a character escape sequence for a T string
+ *
+ * @param s string to escape
+ */
+char *escapeTString(uint8_t const *s);
+
+/**
+ * produces a character escape sequence for a wide T character
+ *
+ * @param c character to escape
+ */
+char *escapeTWChar(uint32_t c);
+
+/**
+ * produces a character escape sequence for a wide T string
+ *
+ * @param s string to escape
+ */
+char *escapeTWString(uint32_t const *s);
 
 #endif  // TLC_UTIL_STRING_H_
