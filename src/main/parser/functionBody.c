@@ -1112,7 +1112,7 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
         return NULL;
       }
 
-      return exp;
+      return prefixUnOpExpNodeCreate(UO_PARENS, &peek, exp);
     }
     default: {
       errorExpectedString(entry, "a primary expression", &peek);
@@ -1600,6 +1600,7 @@ static Node *parseTernaryExpression(FileListEntry *entry, Node *unparsed,
   Token question;
   next(unparsed, &question);
   if (question.type != TT_QUESTION) {
+    prev(unparsed, &question);
     return predicate;
   }
 
@@ -2391,7 +2392,7 @@ static Node *parseReturnStmt(FileListEntry *entry, Node *unparsed,
 
     Token semi;
     next(unparsed, &semi);
-    if (semi.type == TT_SEMI) {
+    if (semi.type != TT_SEMI) {
       errorExpectedToken(entry, TT_SEMI, &semi);
 
       prev(unparsed, &semi);

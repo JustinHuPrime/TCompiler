@@ -1566,7 +1566,9 @@ void finishTopLevelStab(FileListEntry *entry) {
         for (size_t nameIdx = 0; nameIdx < names->size; ++nameIdx) {
           Node *name = names->elements[nameIdx];
           char const *nameString = name->data.id.id;
-          SymbolTableEntry *existing = hashMapGet(implicitStab, nameString);
+          SymbolTableEntry *existing =
+              implicitStab == NULL ? NULL
+                                   : hashMapGet(implicitStab, nameString);
           if (existing != NULL && existing->data.variable.type != NULL &&
               !typeEqual(existing->data.variable.type, type)) {
             fprintf(stderr,
@@ -1627,7 +1629,8 @@ void finishTopLevelStab(FileListEntry *entry) {
       }
       case NT_FUNDEFN: {
         char const *name = body->data.funDefn.name->data.id.id;
-        SymbolTableEntry *existing = hashMapGet(implicitStab, name);
+        SymbolTableEntry *existing =
+            implicitStab == NULL ? NULL : hashMapGet(implicitStab, name);
         bool mismatch = false;
 
         Type *returnType = nodeToType(body->data.funDefn.returnType, &env);

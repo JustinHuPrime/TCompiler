@@ -1398,9 +1398,9 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
   Token lbrace;
   lex(entry, &lbrace);
   if (lbrace.type != TT_LBRACE) {
-    errorExpectedToken(entry, TT_LBRACE, &peek);
+    errorExpectedToken(entry, TT_LBRACE, &lbrace);
 
-    unLex(entry, &peek);
+    unLex(entry, &lbrace);
     panicTopLevel(entry);
 
     nodeFree(returnType);
@@ -1410,7 +1410,7 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
     return NULL;
   }
 
-  Node *body = parseFuncBody(entry, &peek);
+  Node *body = parseFuncBody(entry, &lbrace);
   if (body == NULL) {
     panicTopLevel(entry);
 
