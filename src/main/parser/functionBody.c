@@ -899,6 +899,7 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
   next(unparsed, &peek);
   switch (peek.type) {
     case TT_ID: {
+      prev(unparsed, &peek);
       Node *n = parseAnyId(entry, unparsed);
       SymbolTableEntry *stabEntry = environmentLookup(env, n, false);
       if (stabEntry->kind != SK_ENUMCONST && stabEntry->kind != SK_FUNCTION &&
