@@ -1163,6 +1163,7 @@ static Node *parsePostfixExpression(FileListEntry *entry, Node *unparsed,
         if (peek.type == TT_RPAREN) {
           exp = funCallExpNodeCreate(exp, arguments);
         } else {
+          prev(unparsed, &peek);
           Node *arg = parseAssignmentExpression(entry, unparsed, env);
           if (arg == NULL) {
             nodeVectorFree(arguments);
@@ -1190,6 +1191,9 @@ static Node *parsePostfixExpression(FileListEntry *entry, Node *unparsed,
               default: {
                 errorExpectedString(entry, "a comma or a right-parenthesis",
                                     &peek);
+
+                prev(unparsed, &peek);
+
                 nodeVectorFree(arguments);
                 nodeFree(exp);
                 return NULL;
