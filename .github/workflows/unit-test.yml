@@ -19,4 +19,4 @@ jobs:
     - name: pdflatex version
       run: pdflatex --version
     - name: Build and Test
-      run: make -j
+      run: make
