@@ -100,6 +100,7 @@ typedef struct Type {
     } aggregate;
     struct {
       struct SymbolTableEntry *entry;
+      char *id;
     } reference;
   } data;
 } Type;
@@ -131,7 +132,7 @@ Type *aggregateTypeCreate(void);
 /**
  * create a reference type
  */
-Type *referenceTypeCreate(struct SymbolTableEntry *entry);
+Type *referenceTypeCreate(struct SymbolTableEntry *entry, char *id);
 /**
  * deep copies a type
  */
@@ -140,7 +141,14 @@ Type *typeCopy(Type *);
  * is a equal to b
  */
 bool typeEqual(Type *a, Type *b);
-
+/**
+ * format a list of types
+ */
+char *typeVectorToString(Vector *v);
+/**
+ * format a type
+ */
+char *typeToString(Type *t);
 /**
  * deinitializes a type
  *

@@ -26,6 +26,7 @@
 
 #include "fileList.h"
 #include "internalError.h"
+#include "util/format.h"
 #include "util/functional.h"
 
 void stabFree(HashMap *stab) {
@@ -66,9 +67,10 @@ Type *aggregateTypeCreate(void) {
   vectorInit(&t->data.aggregate.types);
   return t;
 }
-Type *referenceTypeCreate(SymbolTableEntry *entry) {
+Type *referenceTypeCreate(SymbolTableEntry *entry, char *id) {
   Type *t = typeCreate(TK_REFERENCE);
   t->data.reference.entry = entry;
+  t->data.reference.id = id;
   return t;
 }
 Type *typeCopy(Type *t) {
@@ -99,7 +101,8 @@ Type *typeCopy(Type *t) {
       return copy;
     }
     case TK_REFERENCE: {
-      return referenceTypeCreate(t->data.reference.entry);
+      return referenceTypeCreate(t->data.reference.entry,
+                                 strdup(t->data.reference.id));
     }
     default: {
       error(__FILE__, __LINE__, "bad type given to typeCopy");
@@ -157,6 +160,126 @@ bool typeEqual(Type *a, Type *b) {
     }
     default: {
       error(__FILE__, __LINE__, "bad type given to typeEqual");
+    }
+  }
+}
+char *typeVectorToString(Vector *v) {
+  if (v->size == 0) {
+    return strdup("");
+  } else {
+    char *base = typeToString(v->elements[0]);
+    for (size_t idx = 1; idx < v->size; ++idx) {
+      char *tmp = base;
+      char *add = typeToString(v->elements[idx]);
+      base = format("%s, %s", tmp, add);
+      free(tmp);
+      free(add);
+    }
+    return base;
+  }
+}
+char *typeToString(Type *t) {
+  switch (t->kind) {
+    case TK_KEYWORD: {
+      switch (t->data.keyword.keyword) {
+        case TK_VOID: {
+          return strdup("void");
+        }
+        case TK_UBYTE: {
+          return strdup("ubyte");
+        }
+        case TK_BYTE: {
+          return strdup("byte");
+        }
+        case TK_CHAR: {
+          return strdup("char");
+        }
+        case TK_USHORT: {
+          return strdup("ushort");
+        }
+        case TK_SHORT: {
+          return strdup("short");
+        }
+        case TK_UINT: {
+          return strdup("uint");
+        }
+        case TK_INT: {
+          return strdup("int");
+        }
+        case TK_WCHAR: {
+          return strdup("wchar");
+        }
+        case TK_ULONG: {
+          return strdup("ulong");
+        }
+        case TK_LONG: {
+          return strdup("long");
+        }
+        case TK_FLOAT: {
+          return strdup("float");
+        }
+        case TK_DOUBLE: {
+          return strdup("double");
+        }
+        case TK_BOOL: {
+          return strdup("bool");
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid type keyword enum given");
+        }
+      }
+    }
+    case TK_MODIFIED: {
+      char *base = typeToString(t->data.modified.modified);
+      char *retval;
+      switch (t->data.modified.modifier) {
+        case TM_CONST: {
+          retval = format("%s const", base);
+          break;
+        }
+        case TM_VOLATILE: {
+          retval = format("%s volatile", base);
+          break;
+        }
+        case TM_POINTER: {
+          if (base[strlen(base) - 1] == '*')
+            retval = format("%s*", base);
+          else
+            retval = format("%s *", base);
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid type modifier enum given");
+        }
+      }
+      free(base);
+      return retval;
+    }
+    case TK_ARRAY: {
+      char *base = typeToString(t->data.array.type);
+      char *retval = format("%s[%lu]", base, t->data.array.length);
+      free(base);
+      return retval;
+    }
+    case TK_FUNPTR: {
+      char *returnType = typeToString(t->data.funPtr.returnType);
+      char *args = typeVectorToString(&t->data.funPtr.argTypes);
+      char *retval = format("%s(%s)", returnType, args);
+      free(returnType);
+      free(args);
+      return retval;
+    }
+    case TK_AGGREGATE: {
+      char *elms = typeVectorToString(&t->data.aggregate.types);
+      char *retval = format("{%s}", elms);
+      free(elms);
+      return retval;
+    }
+    case TK_REFERENCE: {
+      return strdup(t->data.reference.id);
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid typekind enum encountered");
     }
   }
 }
