@@ -8,7 +8,7 @@ jobs:
     steps:
     - name: Install Dependencies
       run: |
-        sudo apt install gcc doxygen texlive
+        sudo apt install gcc doxygen texlive graphviz
     - uses: actions/checkout@v2
     - name: Build and Test
       run: make -j
