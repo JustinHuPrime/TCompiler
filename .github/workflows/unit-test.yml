@@ -10,13 +10,5 @@ jobs:
       run: |
         sudo apt install gcc doxygen texlive graphviz texlive-latex-extra
     - uses: actions/checkout@v2
-    - name: Make version
-      run: make --version
-    - name: gcc version
-      run: gcc --version
-    - name: doxygen version
-      run: doxygen --version
-    - name: pdflatex version
-      run: pdflatex --version
     - name: Build and Test
       run: make
