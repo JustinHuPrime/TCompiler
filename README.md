@@ -1,9 +1,9 @@
 # The T Programming Language version 0.2.0
 
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/JustinHuPrime/TCompiler/Unit%20Tests)
-<!-- Github issues and pr status goes here once we shift to that workflow -->
 ![GitHub](https://img.shields.io/github/license/JustinHuPrime/TCompiler)
 ![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/JustinHuPrime/TCompiler?include_prereleases)
+<!-- Github issues and pr status goes here once we shift to that workflow -->
 
 T is a C-like, module based programming language designed to be a fresh start, incorporating the good features from C and C++.
 
