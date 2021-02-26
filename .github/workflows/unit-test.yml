@@ -10,5 +10,10 @@ jobs:
       run: |
         sudo apt install gcc doxygen texlive graphviz
     - uses: actions/checkout@v2
+    - name: Report versions
+      run: |
+        make --version
+        gcc --version
+        doxygen --version
     - name: Build and Test
       run: make -j
