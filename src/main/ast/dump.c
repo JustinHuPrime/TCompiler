@@ -55,7 +55,7 @@ static char const *const TYPEMODIFIER_NAMES[] = {
     "POINTER",
 };
 
-static void stabEntryDumpStructure(SymbolTableEntry *entry) {
+static void stabEntryDump(SymbolTableEntry *entry) {
   switch (entry->kind) {
     case SK_VARIABLE: {
       char *typeStr = typeToString(entry->data.variable.type);
@@ -132,7 +132,7 @@ static void stabEntryDumpStructure(SymbolTableEntry *entry) {
   }
 }
 
-static void stabDumpStructure(HashMap *stab) {
+static void stabDump(HashMap *stab) {
   if (stab == NULL) {
     printf("(null)");
     return;
@@ -149,14 +149,14 @@ static void stabDumpStructure(HashMap *stab) {
         printf(", ");
       }
       printf("ENTRY(%s, ", stab->keys[idx]);
-      stabEntryDumpStructure(entry);
+      stabEntryDump(entry);
       printf(")");
     }
   }
   printf(")");
 }
 
-static void nodeDumpStructure(Node *n) {
+static void nodeDump(Node *n) {
   if (n == NULL) {
     printf("(null)");
     return;
@@ -165,206 +165,206 @@ static void nodeDumpStructure(Node *n) {
   switch (n->type) {
     case NT_FILE: {
       printf("FILE(");
-      stabDumpStructure(n->data.file.stab);
+      stabDump(n->data.file.stab);
       printf(", ");
-      nodeDumpStructure(n->data.file.module);
+      nodeDump(n->data.file.module);
       for (size_t idx = 0; idx < n->data.file.imports->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.file.imports->elements[idx]);
+        nodeDump(n->data.file.imports->elements[idx]);
       }
       for (size_t idx = 0; idx < n->data.file.bodies->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.file.bodies->elements[idx]);
+        nodeDump(n->data.file.bodies->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_MODULE: {
       printf("MODULE(");
-      nodeDumpStructure(n->data.module.id);
+      nodeDump(n->data.module.id);
       printf(")");
       break;
     }
     case NT_IMPORT: {
       printf("IMPORT(");
-      nodeDumpStructure(n->data.import.id);
+      nodeDump(n->data.import.id);
       printf(")");
       break;
     }
     case NT_FUNDEFN: {
       printf("FUNDEFN(");
-      nodeDumpStructure(n->data.funDefn.returnType);
+      nodeDump(n->data.funDefn.returnType);
       printf(", ");
-      nodeDumpStructure(n->data.funDefn.name);
+      nodeDump(n->data.funDefn.name);
       for (size_t idx = 0; idx < n->data.funDefn.argTypes->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.funDefn.argTypes->elements[idx]);
+        nodeDump(n->data.funDefn.argTypes->elements[idx]);
       }
       for (size_t idx = 0; idx < n->data.funDefn.argNames->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.funDefn.argNames->elements[idx]);
+        nodeDump(n->data.funDefn.argNames->elements[idx]);
       }
       printf(", ");
-      stabDumpStructure(n->data.funDefn.argStab);
+      stabDump(n->data.funDefn.argStab);
       printf(", ");
-      nodeDumpStructure(n->data.funDefn.body);
+      nodeDump(n->data.funDefn.body);
       printf(")");
       break;
     }
     case NT_VARDEFN: {
       printf("VARDEFN(");
-      nodeDumpStructure(n->data.varDefn.type);
+      nodeDump(n->data.varDefn.type);
       for (size_t idx = 0; idx < n->data.varDefn.names->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.varDefn.names->elements[idx]);
+        nodeDump(n->data.varDefn.names->elements[idx]);
       }
       for (size_t idx = 0; idx < n->data.varDefn.initializers->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.varDefn.initializers->elements[idx]);
+        nodeDump(n->data.varDefn.initializers->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_FUNDECL: {
       printf("FUNDECL(");
-      nodeDumpStructure(n->data.funDecl.returnType);
+      nodeDump(n->data.funDecl.returnType);
       printf(", ");
-      nodeDumpStructure(n->data.funDecl.name);
+      nodeDump(n->data.funDecl.name);
       for (size_t idx = 0; idx < n->data.funDecl.argTypes->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.funDecl.argTypes->elements[idx]);
+        nodeDump(n->data.funDecl.argTypes->elements[idx]);
       }
       for (size_t idx = 0; idx < n->data.funDecl.argNames->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.funDecl.argNames->elements[idx]);
+        nodeDump(n->data.funDecl.argNames->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_VARDECL: {
       printf("VARDECL(");
-      nodeDumpStructure(n->data.varDecl.type);
+      nodeDump(n->data.varDecl.type);
       for (size_t idx = 0; idx < n->data.varDecl.names->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.varDecl.names->elements[idx]);
+        nodeDump(n->data.varDecl.names->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_OPAQUEDECL: {
       printf("OPAQUEDECL(");
-      nodeDumpStructure(n->data.opaqueDecl.name);
+      nodeDump(n->data.opaqueDecl.name);
       printf(")");
       break;
     }
     case NT_STRUCTDECL: {
       printf("STRUCTDECL(");
-      nodeDumpStructure(n->data.structDecl.name);
+      nodeDump(n->data.structDecl.name);
       for (size_t idx = 0; idx < n->data.structDecl.fields->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.structDecl.fields->elements[idx]);
+        nodeDump(n->data.structDecl.fields->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_UNIONDECL: {
       printf("UNIONDECL(");
-      nodeDumpStructure(n->data.unionDecl.name);
+      nodeDump(n->data.unionDecl.name);
       for (size_t idx = 0; idx < n->data.unionDecl.options->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.unionDecl.options->elements[idx]);
+        nodeDump(n->data.unionDecl.options->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_ENUMDECL: {
       printf("ENUMDECL(");
-      nodeDumpStructure(n->data.enumDecl.name);
+      nodeDump(n->data.enumDecl.name);
       for (size_t idx = 0; idx < n->data.enumDecl.constantNames->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.enumDecl.constantNames->elements[idx]);
+        nodeDump(n->data.enumDecl.constantNames->elements[idx]);
       }
       for (size_t idx = 0; idx < n->data.enumDecl.constantValues->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.enumDecl.constantValues->elements[idx]);
+        nodeDump(n->data.enumDecl.constantValues->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_TYPEDEFDECL: {
       printf("TYPEDEFDECL(");
-      nodeDumpStructure(n->data.typedefDecl.name);
+      nodeDump(n->data.typedefDecl.name);
       printf(", ");
-      nodeDumpStructure(n->data.typedefDecl.originalType);
+      nodeDump(n->data.typedefDecl.originalType);
       printf(")");
       break;
     }
     case NT_COMPOUNDSTMT: {
       printf("COMPOUNDSTMT(");
-      stabDumpStructure(n->data.compoundStmt.stab);
+      stabDump(n->data.compoundStmt.stab);
       for (size_t idx = 0; idx < n->data.compoundStmt.stmts->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.compoundStmt.stmts->elements[idx]);
+        nodeDump(n->data.compoundStmt.stmts->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_IFSTMT: {
       printf("IFSTMT(");
-      nodeDumpStructure(n->data.ifStmt.predicate);
+      nodeDump(n->data.ifStmt.predicate);
       printf(", ");
-      nodeDumpStructure(n->data.ifStmt.consequent);
+      nodeDump(n->data.ifStmt.consequent);
       printf(", ");
-      stabDumpStructure(n->data.ifStmt.consequentStab);
+      stabDump(n->data.ifStmt.consequentStab);
       printf(", ");
-      nodeDumpStructure(n->data.ifStmt.alternative);
+      nodeDump(n->data.ifStmt.alternative);
       printf(", ");
-      stabDumpStructure(n->data.ifStmt.alternativeStab);
+      stabDump(n->data.ifStmt.alternativeStab);
       printf(")");
       break;
     }
     case NT_WHILESTMT: {
       printf("WHILESTMT(");
-      nodeDumpStructure(n->data.whileStmt.condition);
+      nodeDump(n->data.whileStmt.condition);
       printf(", ");
-      nodeDumpStructure(n->data.whileStmt.body);
+      nodeDump(n->data.whileStmt.body);
       printf(", ");
-      stabDumpStructure(n->data.whileStmt.bodyStab);
+      stabDump(n->data.whileStmt.bodyStab);
       printf(")");
       break;
     }
     case NT_DOWHILESTMT: {
       printf("DOWHILESTMT(");
-      nodeDumpStructure(n->data.whileStmt.body);
+      nodeDump(n->data.whileStmt.body);
       printf(", ");
-      stabDumpStructure(n->data.whileStmt.bodyStab);
+      stabDump(n->data.whileStmt.bodyStab);
       printf(", ");
-      nodeDumpStructure(n->data.whileStmt.condition);
+      nodeDump(n->data.whileStmt.condition);
       printf(")");
       break;
     }
     case NT_FORSTMT: {
       printf("FORSTMT(");
-      stabDumpStructure(n->data.forStmt.loopStab);
+      stabDump(n->data.forStmt.loopStab);
       printf(", ");
-      nodeDumpStructure(n->data.forStmt.initializer);
+      nodeDump(n->data.forStmt.initializer);
       printf(", ");
-      nodeDumpStructure(n->data.forStmt.condition);
+      nodeDump(n->data.forStmt.condition);
       printf(", ");
-      nodeDumpStructure(n->data.forStmt.increment);
+      nodeDump(n->data.forStmt.increment);
       printf(", ");
-      nodeDumpStructure(n->data.forStmt.body);
+      nodeDump(n->data.forStmt.body);
       printf(", ");
-      stabDumpStructure(n->data.forStmt.bodyStab);
+      stabDump(n->data.forStmt.bodyStab);
       printf(")");
       break;
     }
     case NT_SWITCHSTMT: {
       printf("SWITCHSTMT(");
-      nodeDumpStructure(n->data.switchStmt.condition);
+      nodeDump(n->data.switchStmt.condition);
       for (size_t idx = 0; idx < n->data.switchStmt.cases->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.switchStmt.cases->elements[idx]);
+        nodeDump(n->data.switchStmt.cases->elements[idx]);
       }
       printf(")");
       break;
@@ -379,34 +379,34 @@ static void nodeDumpStructure(Node *n) {
     }
     case NT_RETURNSTMT: {
       printf("RETURNSTMT(");
-      nodeDumpStructure(n->data.returnStmt.value);
+      nodeDump(n->data.returnStmt.value);
       printf(")");
       break;
     }
     case NT_ASMSTMT: {
       printf("ASMSTMT(");
-      nodeDumpStructure(n->data.asmStmt.assembly);
+      nodeDump(n->data.asmStmt.assembly);
       printf(")");
       break;
     }
     case NT_VARDEFNSTMT: {
       printf("VARDEFNSTMT(");
-      nodeDumpStructure(n->data.varDefnStmt.type);
+      nodeDump(n->data.varDefnStmt.type);
       for (size_t idx = 0; idx < n->data.varDefnStmt.names->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.varDefnStmt.names->elements[idx]);
+        nodeDump(n->data.varDefnStmt.names->elements[idx]);
       }
       for (size_t idx = 0; idx < n->data.varDefnStmt.initializers->size;
            ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.varDefnStmt.initializers->elements[idx]);
+        nodeDump(n->data.varDefnStmt.initializers->elements[idx]);
       }
       printf(")");
       break;
     }
     case NT_EXPRESSIONSTMT: {
       printf("EXPRESSIONSTMT(");
-      nodeDumpStructure(n->data.expressionStmt.expression);
+      nodeDump(n->data.expressionStmt.expression);
       printf(")");
       break;
     }
@@ -418,53 +418,53 @@ static void nodeDumpStructure(Node *n) {
       printf("SWITCHCASE(");
       for (size_t idx = 0; idx < n->data.switchCase.values->size; ++idx) {
         if (idx != 0) printf(", ");
-        nodeDumpStructure(n->data.switchCase.values->elements[idx]);
+        nodeDump(n->data.switchCase.values->elements[idx]);
       }
       printf(", ");
-      nodeDumpStructure(n->data.switchCase.body);
+      nodeDump(n->data.switchCase.body);
       printf(", ");
-      stabDumpStructure(n->data.switchCase.bodyStab);
+      stabDump(n->data.switchCase.bodyStab);
       printf(")");
       break;
     }
     case NT_SWITCHDEFAULT: {
       printf("SWITCHDEFAULT(");
-      nodeDumpStructure(n->data.switchDefault.body);
+      nodeDump(n->data.switchDefault.body);
       printf(", ");
-      stabDumpStructure(n->data.switchDefault.bodyStab);
+      stabDump(n->data.switchDefault.bodyStab);
       printf(")");
       break;
     }
     case NT_BINOPEXP: {
       printf("BINOPEXP(%s, ", BINOP_NAMES[n->data.binOpExp.op]);
-      nodeDumpStructure(n->data.binOpExp.lhs);
+      nodeDump(n->data.binOpExp.lhs);
       printf(", ");
-      nodeDumpStructure(n->data.binOpExp.rhs);
+      nodeDump(n->data.binOpExp.rhs);
       printf(")");
       break;
     }
     case NT_TERNARYEXP: {
       printf("TERNARYEXP(");
-      nodeDumpStructure(n->data.ternaryExp.predicate);
+      nodeDump(n->data.ternaryExp.predicate);
       printf(", ");
-      nodeDumpStructure(n->data.ternaryExp.consequent);
+      nodeDump(n->data.ternaryExp.consequent);
       printf(", ");
-      nodeDumpStructure(n->data.ternaryExp.alternative);
+      nodeDump(n->data.ternaryExp.alternative);
       printf(")");
       break;
     }
     case NT_UNOPEXP: {
       printf("UNOPEXP(%s, ", UNOP_NAMES[n->data.unOpExp.op]);
-      nodeDumpStructure(n->data.unOpExp.target);
+      nodeDump(n->data.unOpExp.target);
       printf(")");
       break;
     }
     case NT_FUNCALLEXP: {
       printf("FUNCALLEXP(");
-      nodeDumpStructure(n->data.funCallExp.function);
+      nodeDump(n->data.funCallExp.function);
       for (size_t idx = 0; idx < n->data.funCallExp.arguments->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.funCallExp.arguments->elements[idx]);
+        nodeDump(n->data.funCallExp.arguments->elements[idx]);
       }
       printf(")");
       break;
@@ -547,8 +547,7 @@ static void nodeDumpStructure(Node *n) {
           for (size_t idx = 0;
                idx < n->data.literal.data.aggregateInitVal->size; ++idx) {
             if (idx != 0) printf(", ");
-            nodeDumpStructure(
-                n->data.literal.data.aggregateInitVal->elements[idx]);
+            nodeDump(n->data.literal.data.aggregateInitVal->elements[idx]);
           }
           printf(")");
           break;
@@ -564,28 +563,28 @@ static void nodeDumpStructure(Node *n) {
     case NT_MODIFIEDTYPE: {
       printf("MODIFIEDTYPE(%s, ",
              TYPEMODIFIER_NAMES[n->data.modifiedType.modifier]);
-      nodeDumpStructure(n->data.modifiedType.baseType);
+      nodeDump(n->data.modifiedType.baseType);
       printf(")");
       break;
     }
     case NT_ARRAYTYPE: {
       printf("ARRAYTYPE(");
-      nodeDumpStructure(n->data.arrayType.baseType);
+      nodeDump(n->data.arrayType.baseType);
       printf(", ");
-      nodeDumpStructure(n->data.arrayType.size);
+      nodeDump(n->data.arrayType.size);
       printf(")");
       break;
     }
     case NT_FUNPTRTYPE: {
       printf("FUNPTRTYPE(");
-      nodeDumpStructure(n->data.funPtrType.returnType);
+      nodeDump(n->data.funPtrType.returnType);
       for (size_t idx = 0; idx < n->data.funPtrType.argTypes->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.funPtrType.argTypes->elements[idx]);
+        nodeDump(n->data.funPtrType.argTypes->elements[idx]);
       }
       for (size_t idx = 0; idx < n->data.funPtrType.argNames->size; ++idx) {
         printf(", ");
-        nodeDumpStructure(n->data.funPtrType.argNames->elements[idx]);
+        nodeDump(n->data.funPtrType.argNames->elements[idx]);
       }
       printf(")");
       break;
@@ -606,15 +605,9 @@ static void nodeDumpStructure(Node *n) {
   }
 }
 
-void astDumpStructure(FileListEntry *entry) {
+void astDump(FileListEntry *entry) {
   printf("%s (%s):\n", entry->inputFilename,
          entry->isCode ? "code" : "declaration");
-  nodeDumpStructure(entry->ast);
+  nodeDump(entry->ast);
   printf("\n");
-}
-
-void astDumpPretty(FileListEntry *entry) {
-  printf("%s (%s):\n", entry->inputFilename,
-         entry->isCode ? "code" : "declaration");
-  // TODO
 }

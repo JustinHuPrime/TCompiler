@@ -28,17 +28,10 @@
 #include "fileList.h"
 
 /**
- * prints the parsed results of a file to stdout as nested constructors.
+ * prints the parsed results of a file to stdout
  *
  * @param entry entry to dump
  */
-void astDumpStructure(FileListEntry *entry);
-
-/**
- * prints the parsed results of a file to stdout as a printed program.
- *
- * @param entry entry to dump
- */
-void astDumpPretty(FileListEntry *entry);
+void astDump(FileListEntry *entry);
 
 #endif  // TLC_AST_DUMP_H_

@@ -127,12 +127,9 @@ int main(int argc, char **argv) {
   if (parse() != 0) return CODE_PARSE_ERROR;
 
   // debug-dump stop for parsing
-  if (options.dump == OPTION_DD_PARSE_STRUCTURE) {
+  if (options.dump == OPTION_DD_PARSE) {
     for (size_t idx = 0; idx < fileList.size; ++idx)
-      astDumpStructure(&fileList.entries[idx]);
-  } else if (options.dump == OPTION_DD_PARSE_PRETTY) {
-    for (size_t idx = 0; idx < fileList.size; ++idx)
-      astDumpPretty(&fileList.entries[idx]);
+      astDump(&fileList.entries[idx]);
   }
 
   // typecheck

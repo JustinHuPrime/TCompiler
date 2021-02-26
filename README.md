@@ -63,9 +63,7 @@ The option `--debug-dump` can be set to 3 values:
 
 * `--debug-dump=lex`: dumps the results of the 'lex' phase
 
-* `--debug-dump=parse-structure`: dumps the results of the parse phase, as a constructor-style tree
-
-* `--debug-dump=parse-pretty`: dumps the results of the parse phase, as a printed T program
+* `--debug-dump=parse`: dumps the results of the parse phase
 
 <!-- * `--debug-dump=ir`: dumps the results of the translate to IR phase -->
 

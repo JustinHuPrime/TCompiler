@@ -62,10 +62,8 @@ int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
       options.dump = OPTION_DD_NONE;
     } else if (strcmp(argv[idx], "--debug-dump=lex") == 0) {
       options.dump = OPTION_DD_LEX;
-    } else if (strcmp(argv[idx], "--debug-dump=parse-structure") == 0) {
-      options.dump = OPTION_DD_PARSE_STRUCTURE;
-    } else if (strcmp(argv[idx], "--debug-dump=parse-pretty") == 0) {
-      options.dump = OPTION_DD_PARSE_PRETTY;
+    } else if (strcmp(argv[idx], "--debug-dump=parse") == 0) {
+      options.dump = OPTION_DD_PARSE;
     } else {
       fprintf(stderr, "tlc: error: options '%s' not recognized\n", argv[idx]);
       return -1;
