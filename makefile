@@ -98,7 +98,7 @@ debug: $(EXENAME) $(TEXENAME) docs
 	@$(ECHO) "Done building debug!"
 
 release: OPTIONS := $(OPTIONS) $(RELEASEOPTIONS)
-release: $(EXENAME) $(TEXENAME) $(STANDARDDIR)/Standard.pdf
+release: $(EXENAME) $(TEXENAME) docs
 	@$(ECHO) "Running tests"
 	@./$(TEXENAME)
 	@$(ECHO) "Done building release!"

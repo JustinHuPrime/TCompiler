@@ -1,0 +1,14 @@
+name: Unit Tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Dependencies
+      run: |
+        sudo apt install gcc doxygen texlive
+    - uses: actions/checkout@v2
+    - name: Build and Test
+    - run: make -j
