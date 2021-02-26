@@ -2478,7 +2478,7 @@ static Node *parseVarDefnStmt(FileListEntry *entry, Node *unparsed,
     Token peek;
     next(unparsed, &peek);
     switch (peek.type) {
-      case TT_EQ: {
+      case TT_ASSIGN: {
         // has initializer
         Node *initializer = parseAssignmentExpression(entry, unparsed, env);
         if (initializer == NULL) {
@@ -2957,7 +2957,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Node *unparsed,
 
         next(unparsed, &peek);
         switch (peek.type) {
-          case TT_EQ: {
+          case TT_ASSIGN: {
             // has an extended int literal
             Node *literal = parseExtendedIntLiteral(entry, unparsed, env);
             if (literal == NULL) {

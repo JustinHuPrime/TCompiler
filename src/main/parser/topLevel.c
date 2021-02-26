@@ -1157,7 +1157,7 @@ static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
     Token next;
     lex(entry, &next);
     switch (next.type) {
-      case TT_EQ: {
+      case TT_ASSIGN: {
         // has initializer
         Node *literal = parseLiteral(entry);
         if (literal == NULL) {
@@ -1466,7 +1466,7 @@ static Node *parseFunOrVarDefn(FileListEntry *entry, Token *start) {
       vectorInsert(initializers, NULL);
       return finishVarDefn(entry, type, names, initializers, false);
     }
-    case TT_EQ: {
+    case TT_ASSIGN: {
       // var defn, continued with initializer
       Vector *names = vectorCreate();
       vectorInsert(names, id);
@@ -1759,7 +1759,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Token *start) {
 
         lex(entry, &peek);
         switch (peek.type) {
-          case TT_EQ: {
+          case TT_ASSIGN: {
             // has an extended int literal
             Node *literal = parseExtendedIntLiteral(entry);
             if (literal == NULL) {
