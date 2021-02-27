@@ -170,7 +170,54 @@ static void testImportParser(void) {
   nodeFree(entries[2].ast);
 }
 
+void testFunDefnParser(void) {
+  // TODO
+}
+
+void testVarDefnParser(void) {
+  // TODO
+}
+
+void testFunDeclParser(void) {
+  // TODO
+}
+
+void testVarDeclParser(void) {
+  // TODO
+}
+
+void testOpaqueDeclParser(void) {
+  // TODO
+}
+
+void testStructDeclParser(void) {
+  // TODO
+}
+
+void testUnionDeclParser(void) {
+  // TODO
+}
+
+void testEnumDeclParser(void) {
+  // TODO
+}
+
+void testTypedefDeclParser(void) {
+  // TODO
+}
+
 void testParser(void) {
   testModuleParser();
   testImportParser();
+
+  testFunDefnParser();
+  testVarDefnParser();
+
+  testFunDeclParser();
+  testVarDeclParser();
+  testOpaqueDeclParser();
+  testStructDeclParser();
+  testUnionDeclParser();
+  testEnumDeclParser();
+  testTypedefDeclParser();
 }
