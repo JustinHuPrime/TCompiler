@@ -1149,11 +1149,11 @@ void nodeFree(Node *n) {
       break;
     }
     case NT_MODULE: {
-      nodeFree(n->data.file.module);
+      nodeFree(n->data.module.id);
       break;
     }
     case NT_IMPORT: {
-      nodeFree(n->data.file.module);
+      nodeFree(n->data.import.id);
       break;
     }
     case NT_FUNDEFN: {

@@ -30,6 +30,7 @@ int main(void) {
 
   testCommandLineArgs();
   testLexer();
+  testParser();
 
   return testStatusStatus();
 }
