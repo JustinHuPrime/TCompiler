@@ -31,90 +31,107 @@
 #include "fileList.h"
 #include "tests.h"
 
-static void testModuleParser(FileListEntry *entry) {
-  entry->inputFilename = "testFiles/parser/moduleWithId.tc";
-  entry->isCode = true;
-  entry->errored = false;
+static void testModuleParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/moduleWithId.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
   test("parser accepts the file", parse() == 0);
-  test("file has not errored", entry->errored == false);
-  test("there are no imports", entry->ast->data.file.imports->size == 0);
-  test("there are no bodies", entry->ast->data.file.bodies->size == 0);
-  test("the file stab is empty", entry->ast->data.file.stab->size == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("there are no imports", entries[0].ast->data.file.imports->size == 0);
+  test("there are no bodies", entries[0].ast->data.file.bodies->size == 0);
+  test("the file stab is empty", entries[0].ast->data.file.stab->size == 0);
   test("the module is a module",
-       entry->ast->data.file.module->type == NT_MODULE);
+       entries[0].ast->data.file.module->type == NT_MODULE);
   test("the module's id is an id",
-       entry->ast->data.file.module->data.module.id->type == NT_ID);
+       entries[0].ast->data.file.module->data.module.id->type == NT_ID);
   test("the module's id is 'foo'",
-       strcmp(entry->ast->data.file.module->data.module.id->data.id.id,
+       strcmp(entries[0].ast->data.file.module->data.module.id->data.id.id,
               "foo") == 0);
   test("the module's id has no stab entry listed",
-       entry->ast->data.file.module->data.module.id->data.id.entry == NULL);
-  nodeFree(entry->ast);
+       entries[0].ast->data.file.module->data.module.id->data.id.entry == NULL);
+  nodeFree(entries[0].ast);
 
-  entry->inputFilename = "testFiles/parser/moduleWithScopedId.tc";
-  entry->isCode = true;
-  entry->errored = false;
+  entries[0].inputFilename = "testFiles/parser/moduleWithScopedId.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
   test("parser accepts the file", parse() == 0);
-  test("file has not errored", entry->errored == false);
-  test("there are no imports", entry->ast->data.file.imports->size == 0);
-  test("there are no bodies", entry->ast->data.file.bodies->size == 0);
-  test("the file stab is empty", entry->ast->data.file.stab->size == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("there are no imports", entries[0].ast->data.file.imports->size == 0);
+  test("there are no bodies", entries[0].ast->data.file.bodies->size == 0);
+  test("the file stab is empty", entries[0].ast->data.file.stab->size == 0);
   test("the module is a module",
-       entry->ast->data.file.module->type == NT_MODULE);
+       entries[0].ast->data.file.module->type == NT_MODULE);
   test("the module's id is a scoped id",
-       entry->ast->data.file.module->data.module.id->type == NT_SCOPEDID);
+       entries[0].ast->data.file.module->data.module.id->type == NT_SCOPEDID);
   test("the module's scoped id has three elements",
-       entry->ast->data.file.module->data.module.id->data.scopedId.components
+       entries[0]
+               .ast->data.file.module->data.module.id->data.scopedId.components
                ->size == 3);
   test("the module's scoped id's first element is an id",
-       ((Node *)entry->ast->data.file.module->data.module.id->data.scopedId
-            .components->elements[0])
+       ((Node *)entries[0]
+            .ast->data.file.module->data.module.id->data.scopedId.components
+            ->elements[0])
                ->type == NT_ID);
   test("the module's scoped id's first element is 'foo'",
-       strcmp(((Node *)entry->ast->data.file.module->data.module.id->data
-                   .scopedId.components->elements[0])
+       strcmp(((Node *)entries[0]
+                   .ast->data.file.module->data.module.id->data.scopedId
+                   .components->elements[0])
                   ->data.id.id,
               "foo") == 0);
   test("the module's scoped id's first element has no stab entry listed",
-       ((Node *)entry->ast->data.file.module->data.module.id->data.scopedId
-            .components->elements[0])
+       ((Node *)entries[0]
+            .ast->data.file.module->data.module.id->data.scopedId.components
+            ->elements[0])
                ->data.id.entry == NULL);
   test("the module's scoped id's second element is an id",
-       ((Node *)entry->ast->data.file.module->data.module.id->data.scopedId
-            .components->elements[1])
+       ((Node *)entries[0]
+            .ast->data.file.module->data.module.id->data.scopedId.components
+            ->elements[1])
                ->type == NT_ID);
   test("the module's scoped id's second element is 'bar'",
-       strcmp(((Node *)entry->ast->data.file.module->data.module.id->data
-                   .scopedId.components->elements[1])
+       strcmp(((Node *)entries[0]
+                   .ast->data.file.module->data.module.id->data.scopedId
+                   .components->elements[1])
                   ->data.id.id,
               "bar") == 0);
   test("the module's scoped id's second element has no stab entry listed",
-       ((Node *)entry->ast->data.file.module->data.module.id->data.scopedId
-            .components->elements[1])
+       ((Node *)entries[0]
+            .ast->data.file.module->data.module.id->data.scopedId.components
+            ->elements[1])
                ->data.id.entry == NULL);
   test("the module's scoped id's third element is an id",
-       ((Node *)entry->ast->data.file.module->data.module.id->data.scopedId
-            .components->elements[2])
+       ((Node *)entries[0]
+            .ast->data.file.module->data.module.id->data.scopedId.components
+            ->elements[2])
                ->type == NT_ID);
   test("the module's scoped id's third element is 'baz'",
-       strcmp(((Node *)entry->ast->data.file.module->data.module.id->data
-                   .scopedId.components->elements[2])
+       strcmp(((Node *)entries[0]
+                   .ast->data.file.module->data.module.id->data.scopedId
+                   .components->elements[2])
                   ->data.id.id,
               "baz") == 0);
   test("the module's scoped id's third element has no stab entry listed",
-       ((Node *)entry->ast->data.file.module->data.module.id->data.scopedId
-            .components->elements[2])
+       ((Node *)entries[0]
+            .ast->data.file.module->data.module.id->data.scopedId.components
+            ->elements[2])
                ->data.id.entry == NULL);
   test("the module's id has no stab entry listed",
-       entry->ast->data.file.module->data.module.id->data.scopedId.entry ==
+       entries[0].ast->data.file.module->data.module.id->data.scopedId.entry ==
            NULL);
-  nodeFree(entry->ast);
+  nodeFree(entries[0].ast);
 }
 
-void testParser(void) {
+static void testImportParser(void) {
   FileListEntry entries[2];
   fileList.entries = &entries[0];
   fileList.size = 2;
+}
 
-  testModuleParser(&entries[0]);
+void testParser(void) {
+  testModuleParser();
+  testImportParser();
 }
