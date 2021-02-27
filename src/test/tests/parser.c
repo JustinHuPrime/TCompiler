@@ -86,7 +86,7 @@ static void testModuleParser(void) {
 }
 
 static void testImportParser(void) {
-  FileListEntry entries[2];
+  FileListEntry entries[3];
   fileList.entries = &entries[0];
   fileList.size = 2;
 
@@ -143,6 +143,31 @@ static void testImportParser(void) {
                ->data.import.referenced == &entries[1]);
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
+
+  fileList.size = 3;
+  entries[0].inputFilename = "testFiles/parser/multipleImports.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  entries[1].inputFilename = "testFiles/parser/target.td";
+  entries[1].isCode = false;
+  entries[1].errored = false;
+  entries[2].inputFilename = "testFiles/parser/targetWithScope.td";
+  entries[2].isCode = false;
+  entries[2].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("there are two imports", entries[0].ast->data.file.imports->size == 2);
+  test("there are no bodies", entries[0].ast->data.file.bodies->size == 0);
+  test("the file stab is empty", entries[0].ast->data.file.stab->size == 0);
+  test("the first import references entries[1]",
+       ((Node *)entries[0].ast->data.file.imports->elements[0])
+               ->data.import.referenced == &entries[1]);
+  test("the second import references entries[2]",
+       ((Node *)entries[0].ast->data.file.imports->elements[1])
+               ->data.import.referenced == &entries[2]);
+  nodeFree(entries[0].ast);
+  nodeFree(entries[1].ast);
+  nodeFree(entries[2].ast);
 }
 
 void testParser(void) {

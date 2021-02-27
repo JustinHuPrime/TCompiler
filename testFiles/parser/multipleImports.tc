@@ -1,0 +1,4 @@
+module foo;
+
+import target;
+import target::with::scope;
