@@ -89,6 +89,60 @@ static void testImportParser(void) {
   FileListEntry entries[2];
   fileList.entries = &entries[0];
   fileList.size = 2;
+
+  entries[0].inputFilename = "testFiles/parser/importWithId.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  entries[1].inputFilename = "testFiles/parser/target.td";
+  entries[1].isCode = false;
+  entries[1].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("there is one import", entries[0].ast->data.file.imports->size == 1);
+  test("there are no bodies", entries[0].ast->data.file.bodies->size == 0);
+  test("the file stab is empty", entries[0].ast->data.file.stab->size == 0);
+  test("the import is an import",
+       ((Node *)entries[0].ast->data.file.imports->elements[0])->type ==
+           NT_IMPORT);
+  test("the import's id is 'target'",
+       idEqual(((Node *)entries[0].ast->data.file.imports->elements[0])
+                   ->data.import.id,
+               "target"));
+  test("the import's id has no stab entry listed",
+       ((Node *)entries[0].ast->data.file.imports->elements[0])
+               ->data.import.id->data.id.entry == NULL);
+  test("the import's referenced is entries[1]",
+       ((Node *)entries[0].ast->data.file.imports->elements[0])
+               ->data.import.referenced == &entries[1]);
+  nodeFree(entries[0].ast);
+  nodeFree(entries[1].ast);
+
+  entries[0].inputFilename = "testFiles/parser/importWithScopedId.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  entries[1].inputFilename = "testFiles/parser/targetWithScope.td";
+  entries[1].isCode = false;
+  entries[1].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("there is one import", entries[0].ast->data.file.imports->size == 1);
+  test("there are no bodies", entries[0].ast->data.file.bodies->size == 0);
+  test("the file stab is empty", entries[0].ast->data.file.stab->size == 0);
+  test("the import is an import",
+       ((Node *)entries[0].ast->data.file.imports->elements[0])->type ==
+           NT_IMPORT);
+  test("the import's id is 'target::with::scope'",
+       idEqual(((Node *)entries[0].ast->data.file.imports->elements[0])
+                   ->data.import.id,
+               "target::with::scope"));
+  test("the import's id has no stab entry listed",
+       ((Node *)entries[0].ast->data.file.imports->elements[0])
+               ->data.import.id->data.scopedId.entry == NULL);
+  test("the import's referenced is entries[1]",
+       ((Node *)entries[0].ast->data.file.imports->elements[0])
+               ->data.import.referenced == &entries[1]);
+  nodeFree(entries[0].ast);
+  nodeFree(entries[1].ast);
 }
 
 void testParser(void) {
