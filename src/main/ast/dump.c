@@ -59,24 +59,28 @@ static void stabEntryDump(SymbolTableEntry *entry) {
   switch (entry->kind) {
     case SK_VARIABLE: {
       char *typeStr = typeToString(entry->data.variable.type);
-      printf("VARIABLE(%s)", typeStr);
+      printf("VARIABLE(%s, %zu, %zu, %s)", entry->file->inputFilename,
+             entry->line, entry->character, typeStr);
       free(typeStr);
       break;
     }
     case SK_FUNCTION: {
       char *returnType = typeToString(entry->data.function.returnType);
       char *argTypes = typeVectorToString(&entry->data.function.argumentTypes);
-      printf("FUNCTION(%s, %s)", returnType, argTypes);
+      printf("FUNCTION(%s, %zu, %zu, %s, %s)", entry->file->inputFilename,
+             entry->line, entry->character, returnType, argTypes);
       free(returnType);
       free(argTypes);
       break;
     }
     case SK_OPAQUE: {
-      printf("OPAQUE()");
+      printf("OPAQUE(%s, %zu, %zu)", entry->file->inputFilename, entry->line,
+             entry->character);
       break;
     }
     case SK_STRUCT: {
-      printf("STRUCT(");
+      printf("STRUCT(%s, %zu, %zu", entry->file->inputFilename, entry->line,
+             entry->character);
       for (size_t idx = 0; idx < entry->data.structType.fieldNames.size;
            ++idx) {
         char *typeStr =
@@ -89,7 +93,8 @@ static void stabEntryDump(SymbolTableEntry *entry) {
       break;
     }
     case SK_UNION: {
-      printf("UNION(");
+      printf("UNION(%s, %zu, %zu", entry->file->inputFilename, entry->line,
+             entry->character);
       for (size_t idx = 0; idx < entry->data.unionType.optionNames.size;
            ++idx) {
         char *typeStr =
@@ -102,7 +107,8 @@ static void stabEntryDump(SymbolTableEntry *entry) {
       break;
     }
     case SK_ENUM: {
-      printf("ENUM(");
+      printf("ENUM(%s, %zu, %zu", entry->file->inputFilename, entry->line,
+             entry->character);
       for (size_t idx = 0; idx < entry->data.enumType.constantNames.size;
            ++idx) {
         SymbolTableEntry *constEntry =
@@ -122,7 +128,8 @@ static void stabEntryDump(SymbolTableEntry *entry) {
     }
     case SK_TYPEDEF: {
       char *typeStr = typeToString(entry->data.typedefType.actual);
-      printf("TYEPDEF(%s)", typeStr);
+      printf("TYEPDEF(%s, %zu, %zu, %s)", entry->file->inputFilename,
+             entry->line, entry->character, typeStr);
       free(typeStr);
       break;
     }
@@ -164,7 +171,7 @@ static void nodeDump(Node *n) {
 
   switch (n->type) {
     case NT_FILE: {
-      printf("FILE(");
+      printf("FILE(%zu, %zu, ", n->line, n->character);
       stabDump(n->data.file.stab);
       printf(", ");
       nodeDump(n->data.file.module);
@@ -180,19 +187,19 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_MODULE: {
-      printf("MODULE(");
+      printf("MODULE(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.module.id);
       printf(")");
       break;
     }
     case NT_IMPORT: {
-      printf("IMPORT(");
+      printf("IMPORT(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.import.id);
       printf(")");
       break;
     }
     case NT_FUNDEFN: {
-      printf("FUNDEFN(");
+      printf("FUNDEFN(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.funDefn.returnType);
       printf(", ");
       nodeDump(n->data.funDefn.name);
@@ -212,7 +219,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_VARDEFN: {
-      printf("VARDEFN(");
+      printf("VARDEFN(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.varDefn.type);
       for (size_t idx = 0; idx < n->data.varDefn.names->size; ++idx) {
         printf(", ");
@@ -226,7 +233,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_FUNDECL: {
-      printf("FUNDECL(");
+      printf("FUNDECL(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.funDecl.returnType);
       printf(", ");
       nodeDump(n->data.funDecl.name);
@@ -242,7 +249,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_VARDECL: {
-      printf("VARDECL(");
+      printf("VARDECL(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.varDecl.type);
       for (size_t idx = 0; idx < n->data.varDecl.names->size; ++idx) {
         printf(", ");
@@ -252,13 +259,13 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_OPAQUEDECL: {
-      printf("OPAQUEDECL(");
+      printf("OPAQUEDECL(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.opaqueDecl.name);
       printf(")");
       break;
     }
     case NT_STRUCTDECL: {
-      printf("STRUCTDECL(");
+      printf("STRUCTDECL(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.structDecl.name);
       for (size_t idx = 0; idx < n->data.structDecl.fields->size; ++idx) {
         printf(", ");
@@ -268,7 +275,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_UNIONDECL: {
-      printf("UNIONDECL(");
+      printf("UNIONDECL(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.unionDecl.name);
       for (size_t idx = 0; idx < n->data.unionDecl.options->size; ++idx) {
         printf(", ");
@@ -278,7 +285,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_ENUMDECL: {
-      printf("ENUMDECL(");
+      printf("ENUMDECL(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.enumDecl.name);
       for (size_t idx = 0; idx < n->data.enumDecl.constantNames->size; ++idx) {
         printf(", ");
@@ -292,7 +299,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_TYPEDEFDECL: {
-      printf("TYPEDEFDECL(");
+      printf("TYPEDEFDECL(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.typedefDecl.name);
       printf(", ");
       nodeDump(n->data.typedefDecl.originalType);
@@ -300,7 +307,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_COMPOUNDSTMT: {
-      printf("COMPOUNDSTMT(");
+      printf("COMPOUNDSTMT(%zu, %zu, ", n->line, n->character);
       stabDump(n->data.compoundStmt.stab);
       for (size_t idx = 0; idx < n->data.compoundStmt.stmts->size; ++idx) {
         printf(", ");
@@ -310,7 +317,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_IFSTMT: {
-      printf("IFSTMT(");
+      printf("IFSTMT(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.ifStmt.predicate);
       printf(", ");
       nodeDump(n->data.ifStmt.consequent);
@@ -324,7 +331,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_WHILESTMT: {
-      printf("WHILESTMT(");
+      printf("WHILESTMT(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.whileStmt.condition);
       printf(", ");
       nodeDump(n->data.whileStmt.body);
@@ -334,7 +341,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_DOWHILESTMT: {
-      printf("DOWHILESTMT(");
+      printf("DOWHILESTMT(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.whileStmt.body);
       printf(", ");
       stabDump(n->data.whileStmt.bodyStab);
@@ -344,7 +351,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_FORSTMT: {
-      printf("FORSTMT(");
+      printf("FORSTMT(%zu, %zu, ", n->line, n->character);
       stabDump(n->data.forStmt.loopStab);
       printf(", ");
       nodeDump(n->data.forStmt.initializer);
@@ -360,7 +367,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_SWITCHSTMT: {
-      printf("SWITCHSTMT(");
+      printf("SWITCHSTMT(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.switchStmt.condition);
       for (size_t idx = 0; idx < n->data.switchStmt.cases->size; ++idx) {
         printf(", ");
@@ -370,27 +377,27 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_BREAKSTMT: {
-      printf("BREAKSTMT()");
+      printf("BREAKSTMT(%zu, %zu)", n->line, n->character);
       break;
     }
     case NT_CONTINUESTMT: {
-      printf("CONTINUESTMT()");
+      printf("CONTINUESTMT(%zu, %zu)", n->line, n->character);
       break;
     }
     case NT_RETURNSTMT: {
-      printf("RETURNSTMT(");
+      printf("RETURNSTMT(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.returnStmt.value);
       printf(")");
       break;
     }
     case NT_ASMSTMT: {
-      printf("ASMSTMT(");
+      printf("ASMSTMT(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.asmStmt.assembly);
       printf(")");
       break;
     }
     case NT_VARDEFNSTMT: {
-      printf("VARDEFNSTMT(");
+      printf("VARDEFNSTMT(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.varDefnStmt.type);
       for (size_t idx = 0; idx < n->data.varDefnStmt.names->size; ++idx) {
         printf(", ");
@@ -405,19 +412,19 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_EXPRESSIONSTMT: {
-      printf("EXPRESSIONSTMT(");
+      printf("EXPRESSIONSTMT(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.expressionStmt.expression);
       printf(")");
       break;
     }
     case NT_NULLSTMT: {
-      printf("NULLSTMT()");
+      printf("NULLSTMT(%zu, %zu)", n->line, n->character);
       break;
     }
     case NT_SWITCHCASE: {
-      printf("SWITCHCASE(");
+      printf("SWITCHCASE(%zu, %zu", n->line, n->character);
       for (size_t idx = 0; idx < n->data.switchCase.values->size; ++idx) {
-        if (idx != 0) printf(", ");
+        printf(", ");
         nodeDump(n->data.switchCase.values->elements[idx]);
       }
       printf(", ");
@@ -428,7 +435,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_SWITCHDEFAULT: {
-      printf("SWITCHDEFAULT(");
+      printf("SWITCHDEFAULT(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.switchDefault.body);
       printf(", ");
       stabDump(n->data.switchDefault.bodyStab);
@@ -436,7 +443,8 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_BINOPEXP: {
-      printf("BINOPEXP(%s, ", BINOP_NAMES[n->data.binOpExp.op]);
+      printf("BINOPEXP(%zu, %zu, %s, ", n->line, n->character,
+             BINOP_NAMES[n->data.binOpExp.op]);
       nodeDump(n->data.binOpExp.lhs);
       printf(", ");
       nodeDump(n->data.binOpExp.rhs);
@@ -444,7 +452,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_TERNARYEXP: {
-      printf("TERNARYEXP(");
+      printf("TERNARYEXP(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.ternaryExp.predicate);
       printf(", ");
       nodeDump(n->data.ternaryExp.consequent);
@@ -454,13 +462,14 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_UNOPEXP: {
-      printf("UNOPEXP(%s, ", UNOP_NAMES[n->data.unOpExp.op]);
+      printf("UNOPEXP(%zu, %zu, %s, ", n->line, n->character,
+             UNOP_NAMES[n->data.unOpExp.op]);
       nodeDump(n->data.unOpExp.target);
       printf(")");
       break;
     }
     case NT_FUNCALLEXP: {
-      printf("FUNCALLEXP(");
+      printf("FUNCALLEXP(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.funCallExp.function);
       for (size_t idx = 0; idx < n->data.funCallExp.arguments->size; ++idx) {
         printf(", ");
@@ -470,7 +479,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_LITERAL: {
-      printf("LITERAL(");
+      printf("LITERAL(%zu, %zu, ", n->line, n->character);
       switch (n->data.literal.type) {
         case LT_UBYTE: {
           printf("UBYTE(%hhu)", n->data.literal.data.ubyteVal);
@@ -557,18 +566,19 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_KEYWORDTYPE: {
-      printf("KEYWORDTYPE(%s)", TYPEKEYWORD_NAMES[n->data.keywordType.keyword]);
+      printf("KEYWORDTYPE(%zu, %zu, %s)", n->line, n->character,
+             TYPEKEYWORD_NAMES[n->data.keywordType.keyword]);
       break;
     }
     case NT_MODIFIEDTYPE: {
-      printf("MODIFIEDTYPE(%s, ",
+      printf("MODIFIEDTYPE(%zu, %zu, %s, ", n->line, n->character,
              TYPEMODIFIER_NAMES[n->data.modifiedType.modifier]);
       nodeDump(n->data.modifiedType.baseType);
       printf(")");
       break;
     }
     case NT_ARRAYTYPE: {
-      printf("ARRAYTYPE(");
+      printf("ARRAYTYPE(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.arrayType.baseType);
       printf(", ");
       nodeDump(n->data.arrayType.size);
@@ -576,7 +586,7 @@ static void nodeDump(Node *n) {
       break;
     }
     case NT_FUNPTRTYPE: {
-      printf("FUNPTRTYPE(");
+      printf("FUNPTRTYPE(%zu, %zu, ", n->line, n->character);
       nodeDump(n->data.funPtrType.returnType);
       for (size_t idx = 0; idx < n->data.funPtrType.argTypes->size; ++idx) {
         printf(", ");
@@ -591,12 +601,12 @@ static void nodeDump(Node *n) {
     }
     case NT_SCOPEDID: {
       char *idString = stringifyId(n);
-      printf("SCOPEDID(%s)", idString);
+      printf("SCOPEDID(%zu, %zu, %s)", n->line, n->character, idString);
       free(idString);
       break;
     }
     case NT_ID: {
-      printf("ID(%s)", n->data.id.id);
+      printf("ID(%zu, %zu, %s)", n->line, n->character, n->data.id.id);
       break;
     }
     case NT_UNPARSED: {
