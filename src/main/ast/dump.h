@@ -25,13 +25,16 @@
 #ifndef TLC_AST_DUMP_H_
 #define TLC_AST_DUMP_H_
 
+#include <stdio.h>
+
 #include "fileList.h"
 
 /**
  * prints the parsed results of a file to stdout
  *
+ * @param where standard IO stream to output to
  * @param entry entry to dump
  */
-void astDump(FileListEntry *entry);
+void astDump(FILE *where, FileListEntry *entry);
 
 #endif  // TLC_AST_DUMP_H_

@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
   // debug-dump stop for parsing
   if (options.dump == OPTION_DD_PARSE) {
     for (size_t idx = 0; idx < fileList.size; ++idx)
-      astDump(&fileList.entries[idx]);
+      astDump(stdout, &fileList.entries[idx]);
   }
 
   // typecheck
