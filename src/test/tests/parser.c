@@ -24,24 +24,37 @@
 
 #include "parser/parser.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "ast/dump.h"
 #include "engine.h"
 #include "fileList.h"
 #include "tests.h"
 
-static bool idEqual(Node *id, char const *compare) {
-  char *stringified = stringifyId(id);
-  bool retval = strcmp(stringified, compare) == 0;
-  free(stringified);
+static bool dumpEqual(FileListEntry *entry, char const *expected) {
+  FILE *temp = tmpfile();
+  astDump(temp, entry);
+  fflush(temp);
 
-  if (id->type == NT_SCOPEDID) {
-    for (size_t idx = 0; idx < id->data.scopedId.components->size; ++idx) {
-      Node *component = id->data.scopedId.components->elements[idx];
-      if (component->data.id.entry != NULL) retval = false;
-    }
+  long len = ftell(temp);
+  if (len < 0) {
+    fclose(temp);
+    return false;
   }
+
+  rewind(temp);
+  char *buffer = malloc((unsigned long)len + 1);
+  buffer[len] = '\0';
+  if (fread(buffer, sizeof(char), (unsigned long)len, temp) !=
+      (unsigned long)len) {
+    fclose(temp);
+    return false;
+  }
+
+  bool retval = strcmp(buffer, expected) == 0;
+  fclose(temp);
   return retval;
 }
 
@@ -55,15 +68,10 @@ static void testModuleParser(void) {
   entries[0].errored = false;
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
-  test("there are no imports", entries[0].ast->data.file.imports->size == 0);
-  test("there are no bodies", entries[0].ast->data.file.bodies->size == 0);
-  test("the file stab is empty", entries[0].ast->data.file.stab->size == 0);
-  test("the module is a module",
-       entries[0].ast->data.file.module->type == NT_MODULE);
-  test("the module's id is 'foo'",
-       idEqual(entries[0].ast->data.file.module->data.module.id, "foo"));
-  test("the module's id has no stab entry listed",
-       entries[0].ast->data.file.module->data.module.id->data.id.entry == NULL);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/moduleWithId.tc (code):\n"
+                 "FILE(1, 1, STAB(), MODULE(1, 1, ID(1, 8, foo)))\n"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/moduleWithScopedId.tc";
@@ -71,17 +79,12 @@ static void testModuleParser(void) {
   entries[0].errored = false;
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
-  test("there are no imports", entries[0].ast->data.file.imports->size == 0);
-  test("there are no bodies", entries[0].ast->data.file.bodies->size == 0);
-  test("the file stab is empty", entries[0].ast->data.file.stab->size == 0);
-  test("the module is a module",
-       entries[0].ast->data.file.module->type == NT_MODULE);
-  test("the module's id is foo::bar::baz",
-       idEqual(entries[0].ast->data.file.module->data.module.id,
-               "foo::bar::baz"));
-  test("the module's id has no stab entry listed",
-       entries[0].ast->data.file.module->data.module.id->data.scopedId.entry ==
-           NULL);
+  test(
+      "ast is correct",
+      dumpEqual(
+          &entries[0],
+          "testFiles/parser/moduleWithScopedId.tc (code):\n"
+          "FILE(1, 1, STAB(), MODULE(1, 1, SCOPEDID(1, 8, foo::bar::baz)))\n"));
   nodeFree(entries[0].ast);
 }
 
@@ -98,22 +101,7 @@ static void testImportParser(void) {
   entries[1].errored = false;
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
-  test("there is one import", entries[0].ast->data.file.imports->size == 1);
-  test("there are no bodies", entries[0].ast->data.file.bodies->size == 0);
-  test("the file stab is empty", entries[0].ast->data.file.stab->size == 0);
-  test("the import is an import",
-       ((Node *)entries[0].ast->data.file.imports->elements[0])->type ==
-           NT_IMPORT);
-  test("the import's id is 'target'",
-       idEqual(((Node *)entries[0].ast->data.file.imports->elements[0])
-                   ->data.import.id,
-               "target"));
-  test("the import's id has no stab entry listed",
-       ((Node *)entries[0].ast->data.file.imports->elements[0])
-               ->data.import.id->data.id.entry == NULL);
-  test("the import's referenced is entries[1]",
-       ((Node *)entries[0].ast->data.file.imports->elements[0])
-               ->data.import.referenced == &entries[1]);
+  // TODO: test ast dump equality
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
@@ -125,22 +113,7 @@ static void testImportParser(void) {
   entries[1].errored = false;
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
-  test("there is one import", entries[0].ast->data.file.imports->size == 1);
-  test("there are no bodies", entries[0].ast->data.file.bodies->size == 0);
-  test("the file stab is empty", entries[0].ast->data.file.stab->size == 0);
-  test("the import is an import",
-       ((Node *)entries[0].ast->data.file.imports->elements[0])->type ==
-           NT_IMPORT);
-  test("the import's id is 'target::with::scope'",
-       idEqual(((Node *)entries[0].ast->data.file.imports->elements[0])
-                   ->data.import.id,
-               "target::with::scope"));
-  test("the import's id has no stab entry listed",
-       ((Node *)entries[0].ast->data.file.imports->elements[0])
-               ->data.import.id->data.scopedId.entry == NULL);
-  test("the import's referenced is entries[1]",
-       ((Node *)entries[0].ast->data.file.imports->elements[0])
-               ->data.import.referenced == &entries[1]);
+  // TODO: test ast dump equality
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
@@ -156,53 +129,55 @@ static void testImportParser(void) {
   entries[2].errored = false;
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
-  test("there are two imports", entries[0].ast->data.file.imports->size == 2);
-  test("there are no bodies", entries[0].ast->data.file.bodies->size == 0);
-  test("the file stab is empty", entries[0].ast->data.file.stab->size == 0);
-  test("the first import references entries[1]",
-       ((Node *)entries[0].ast->data.file.imports->elements[0])
-               ->data.import.referenced == &entries[1]);
-  test("the second import references entries[2]",
-       ((Node *)entries[0].ast->data.file.imports->elements[1])
-               ->data.import.referenced == &entries[2]);
+  // TODO: test ast dump equality
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
   nodeFree(entries[2].ast);
 }
 
-void testFunDefnParser(void) {
+static void testFunDefnParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/funDefnNoBodyNoArgs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  // TODO: test ast dump equality
+  nodeFree(entries[0].ast);
+}
+
+static void testVarDefnParser(void) {
   // TODO
 }
 
-void testVarDefnParser(void) {
+static void testFunDeclParser(void) {
   // TODO
 }
 
-void testFunDeclParser(void) {
+static void testVarDeclParser(void) {
   // TODO
 }
 
-void testVarDeclParser(void) {
+static void testOpaqueDeclParser(void) {
   // TODO
 }
 
-void testOpaqueDeclParser(void) {
+static void testStructDeclParser(void) {
   // TODO
 }
 
-void testStructDeclParser(void) {
+static void testUnionDeclParser(void) {
   // TODO
 }
 
-void testUnionDeclParser(void) {
+static void testEnumDeclParser(void) {
   // TODO
 }
 
-void testEnumDeclParser(void) {
-  // TODO
-}
-
-void testTypedefDeclParser(void) {
+static void testTypedefDeclParser(void) {
   // TODO
 }
 
