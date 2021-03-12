@@ -30,6 +30,11 @@ void testStatusInit(void) {
   status.numPassed = 0;
 }
 int testStatusStatus(void) {
+  if (status.numTests == status.numPassed)
+    printf("\x1B[1;92mAll %zu tests passed!\x1B[m\n", status.numTests);
+  else
+    printf("\x1B[1;91m%zu out of %zu tests failed!\x1B[m\n",
+           status.numTests - status.numPassed, status.numTests);
   return status.numTests == status.numPassed ? 0 : -1;
 }
 void test(char const *name, bool condition) {
