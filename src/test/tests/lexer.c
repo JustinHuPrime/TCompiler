@@ -243,23 +243,35 @@ static void testAllTokens(void) {
   };
   size_t const numTokens = sizeof(types) / sizeof(TokenType);
 
+  bool errorFlagOK = true;
+  bool typeOK = true;
+  bool characterOK = true;
+  bool lineOK = true;
+  bool additionalDataOK = true;
   for (size_t idx = 0; idx < numTokens; ++idx) {
     Token token;
     lex(&entry, &token);
     if (entry.errored) dropLine();
-    test("lex accepts token", entry.errored == false);
-    test("token has expected type", token.type == types[idx]);
-    test("token is at expected character", token.character == characters[idx]);
-    test("token is at expected line", token.line == lines[idx]);
-    if (strings[idx] == NULL)
-      test("token has no additional data", token.string == NULL);
-    else
-      test("token's additional data matches",
-           strcmp(strings[idx], token.string) == 0);
+
+    if (entry.errored) errorFlagOK = false;
+    if (token.type != types[idx]) typeOK = false;
+    if (token.character != characters[idx]) characterOK = false;
+    if (token.line != lines[idx]) lineOK = false;
+    if ((strings[idx] == NULL) != (token.string == NULL))
+      additionalDataOK = false;
+    if (strings[idx] != NULL && token.string != NULL &&
+        strcmp(strings[idx], token.string) != 0)
+      additionalDataOK = false;
 
     if (token.string != NULL) free(token.string);
     entry.errored = false;
   }
+  test("lex accepts token", errorFlagOK);
+  test("token has expected type", typeOK);
+  test("token is at expected character", characterOK);
+  test("token is at expected line", lineOK);
+  test("token has correct additional data", additionalDataOK);
+
   lexerStateUninit(&entry);
 }
 
@@ -304,22 +316,33 @@ static void testErrors(void) {
   };
   size_t const numTokens = sizeof(types) / sizeof(TokenType);
 
+  bool errorFlagOK = true;
+  bool typeOK = true;
+  bool characterOK = true;
+  bool lineOK = true;
+  bool additionalDataOK = true;
   for (size_t idx = 0; idx < numTokens; ++idx) {
     lex(&entry, &token);
     if (entry.errored) dropLine();
-    test("token has expected error flag", entry.errored == errors[idx]);
-    test("token has expected type", token.type == types[idx]);
-    test("token is at expected character", token.character == characters[idx]);
-    test("token is at expected line", token.line == lines[idx]);
-    if (strings[idx] == NULL)
-      test("token has no additional data", token.string == NULL);
-    else
-      test("token's additional data matches",
-           strcmp(strings[idx], token.string) == 0);
+
+    if (entry.errored != errors[idx]) errorFlagOK = false;
+    if (token.type != types[idx]) typeOK = false;
+    if (token.character != characters[idx]) characterOK = false;
+    if (token.line != lines[idx]) lineOK = false;
+    if ((strings[idx] == NULL) != (token.string == NULL))
+      additionalDataOK = false;
+    if (strings[idx] != NULL && token.string != NULL &&
+        strcmp(strings[idx], token.string) != 0)
+      additionalDataOK = false;
 
     if (token.string != NULL) free(token.string);
     entry.errored = false;
   }
+  test("token has expected error flag", errorFlagOK);
+  test("token has expected type", typeOK);
+  test("token is at expected character", characterOK);
+  test("token is at expected line", lineOK);
+  test("token has correct additional data", additionalDataOK);
 
   lexerStateUninit(&entry);
 
