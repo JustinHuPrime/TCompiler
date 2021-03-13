@@ -871,6 +871,7 @@ static Node *finishVarDecl(FileListEntry *entry, Node *type, Vector *names) {
       nodeVectorFree(names);
       return NULL;
     }
+    vectorInsert(names, id);
 
     Token next;
     lex(entry, &next);
