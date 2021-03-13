@@ -75,8 +75,15 @@ static void stabEntryDump(FILE *where, SymbolTableEntry *entry) {
       break;
     }
     case SK_OPAQUE: {
-      fprintf(where, "OPAQUE(%s, %zu, %zu)", entry->file->inputFilename,
-              entry->line, entry->character);
+      if (entry->data.opaqueType.definition == NULL)
+        fprintf(where, "OPAQUE(%s, %zu, %zu, REFERENCES())",
+                entry->file->inputFilename, entry->line, entry->character);
+      else
+        fprintf(where, "OPAQUE(%s, %zu, %zu, REFERENCES(%s, %zu, %zu))",
+                entry->file->inputFilename, entry->line, entry->character,
+                entry->data.opaqueType.definition->file->inputFilename,
+                entry->data.opaqueType.definition->line,
+                entry->data.opaqueType.definition->character);
       break;
     }
     case SK_STRUCT: {
