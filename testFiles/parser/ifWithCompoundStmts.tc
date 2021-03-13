@@ -1,0 +1,11 @@
+module foo;
+
+void bar(bool b) {
+  int i;
+  if (b)
+    i = 1;
+  else {
+    int j = 0;
+    i = j;
+  }
+}

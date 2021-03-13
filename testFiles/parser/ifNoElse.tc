@@ -1,0 +1,7 @@
+module foo;
+
+void bar(bool b) {
+  int i = 0;
+  if (b)
+    i = 1;
+}

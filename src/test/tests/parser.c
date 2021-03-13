@@ -516,7 +516,39 @@ static void testCompoundStmtParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testIfStmtParser(void) {}
+static void testIfStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/ifNoElse.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/ifNoElse.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/ifWithElse.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/ifWithElse.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/ifWithCompoundStmts.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/ifWithCompoundStmts.txt"));
+  nodeFree(entries[0].ast);
+}
 
 static void testWhileStmtParser(void) {}
 
