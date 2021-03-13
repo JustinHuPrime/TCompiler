@@ -1,0 +1,2 @@
+testFiles/parser/funDeclOneArg.td (declaration):
+FILE(1, 1, STAB(ENTRY(bar, FUNCTION(testFiles/parser/funDeclOneArg.td, 3, 1, void(int)))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), FUNDECL(3, 1, KEYWORDTYPE(3, 1, void), ID(3, 6, bar, REFERENCES(testFiles/parser/funDeclOneArg.td, 3, 1)), KEYWORDTYPE(3, 10, int), (null)))
