@@ -1937,9 +1937,11 @@ static Node *parseIfStmt(FileListEntry *entry, Node *unparsed, Environment *env,
 
   Token elseKwd;
   next(unparsed, &elseKwd);
-  if (elseKwd.type != TT_ELSE)
+  if (elseKwd.type != TT_ELSE) {
+    prev(unparsed, &elseKwd);
     return ifStmtNodeCreate(start, predicate, consequent, consequentStab, NULL,
                             NULL);
+  }
 
   environmentPush(env, hashMapCreate());
   Node *alternative = parseStmt(entry, unparsed, env);
