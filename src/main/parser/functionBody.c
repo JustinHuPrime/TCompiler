@@ -433,11 +433,6 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry, Node *unparsed,
       if (n == NULL) errorIntOverflow(entry, &peek);
       return n;
     }
-    case TT_BAD_CHAR:
-    case TT_BAD_BIN:
-    case TT_BAD_HEX: {
-      return NULL;
-    }
     case TT_ID: {
       prev(unparsed, &peek);
       Node *n = parseScopedId(entry, unparsed);
@@ -462,6 +457,11 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry, Node *unparsed,
       }
 
       return n;
+    }
+    case TT_BAD_CHAR:
+    case TT_BAD_BIN:
+    case TT_BAD_HEX: {
+      return NULL;
     }
     default: {
       errorExpectedString(entry, "an exended integer literal", &peek);
@@ -500,12 +500,15 @@ static Node *parseAggregateInitializer(FileListEntry *entry, Node *unparsed,
       case TT_LIT_INT_H:
       case TT_LIT_DOUBLE:
       case TT_LIT_FLOAT:
+      case TT_TRUE:
+      case TT_FALSE:
+      case TT_NULL:
+      case TT_ID:
+      case TT_LSQUARE:
       case TT_BAD_STRING:
       case TT_BAD_CHAR:
       case TT_BAD_BIN:
-      case TT_BAD_HEX:
-      case TT_ID:
-      case TT_LSQUARE: {
+      case TT_BAD_HEX: {
         // this is the start of a field
         prev(unparsed, &peek);
         Node *literal = parseLiteral(entry, unparsed, env);
@@ -553,9 +556,6 @@ static Node *parseLiteral(FileListEntry *entry, Node *unparsed,
     case TT_LIT_INT_0:
     case TT_LIT_INT_D:
     case TT_LIT_INT_H:
-    case TT_BAD_CHAR:
-    case TT_BAD_BIN:
-    case TT_BAD_HEX:
     case TT_ID: {
       prev(unparsed, &peek);
       return parseExtendedIntLiteral(entry, unparsed, env);
@@ -578,12 +578,25 @@ static Node *parseLiteral(FileListEntry *entry, Node *unparsed,
       n->data.literal.data.floatBits = bits;
       return n;
     }
-    case TT_BAD_STRING: {
-      return NULL;
+
+    case TT_TRUE:
+    case TT_FALSE: {
+      Node *n = literalNodeCreate(LT_BOOL, &peek);
+      n->data.literal.data.boolVal = peek.type == TT_TRUE;
+      return n;
+    }
+    case TT_NULL: {
+      return literalNodeCreate(LT_NULL, &peek);
     }
     case TT_LSQUARE: {
       // aggregate initializer
       return parseAggregateInitializer(entry, unparsed, env, &peek);
+    }
+    case TT_BAD_CHAR:
+    case TT_BAD_BIN:
+    case TT_BAD_HEX:
+    case TT_BAD_STRING: {
+      return NULL;
     }
     default: {
       errorExpectedString(entry, "a literal", &peek);
@@ -929,7 +942,14 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
     case TT_LIT_INT_D:
     case TT_LIT_INT_H:
     case TT_LIT_DOUBLE:
-    case TT_LIT_FLOAT: {
+    case TT_LIT_FLOAT:
+    case TT_TRUE:
+    case TT_FALSE:
+    case TT_NULL:
+    case TT_BAD_CHAR:
+    case TT_BAD_BIN:
+    case TT_BAD_HEX:
+    case TT_BAD_STRING: {
       prev(unparsed, &peek);
       return parseLiteral(entry, unparsed, env);
     }

@@ -336,14 +336,14 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
       if (n == NULL) errorIntOverflow(entry, &peek);
       return n;
     }
+    case TT_ID: {
+      unLex(entry, &peek);
+      return parseScopedId(entry);
+    }
     case TT_BAD_CHAR:
     case TT_BAD_BIN:
     case TT_BAD_HEX: {
       return NULL;
-    }
-    case TT_ID: {
-      unLex(entry, &peek);
-      return parseScopedId(entry);
     }
     default: {
       errorExpectedString(entry, "an exended integer literal", &peek);
@@ -380,12 +380,15 @@ static Node *parseAggregateInitializer(FileListEntry *entry, Token *start) {
       case TT_LIT_INT_H:
       case TT_LIT_DOUBLE:
       case TT_LIT_FLOAT:
+      case TT_TRUE:
+      case TT_FALSE:
+      case TT_NULL:
+      case TT_ID:
+      case TT_LSQUARE:
       case TT_BAD_STRING:
       case TT_BAD_CHAR:
       case TT_BAD_BIN:
-      case TT_BAD_HEX:
-      case TT_ID:
-      case TT_LSQUARE: {
+      case TT_BAD_HEX: {
         // this is the start of a field
         unLex(entry, &peek);
         Node *literal = parseLiteral(entry);
@@ -432,9 +435,6 @@ static Node *parseLiteral(FileListEntry *entry) {
     case TT_LIT_INT_0:
     case TT_LIT_INT_D:
     case TT_LIT_INT_H:
-    case TT_BAD_CHAR:
-    case TT_BAD_BIN:
-    case TT_BAD_HEX:
     case TT_ID: {
       unLex(entry, &peek);
       return parseExtendedIntLiteral(entry);
@@ -457,12 +457,24 @@ static Node *parseLiteral(FileListEntry *entry) {
       n->data.literal.data.floatBits = bits;
       return n;
     }
-    case TT_BAD_STRING: {
-      return NULL;
+    case TT_TRUE:
+    case TT_FALSE: {
+      Node *n = literalNodeCreate(LT_BOOL, &peek);
+      n->data.literal.data.boolVal = peek.type == TT_TRUE;
+      return n;
+    }
+    case TT_NULL: {
+      return literalNodeCreate(LT_NULL, &peek);
     }
     case TT_LSQUARE: {
       // aggregate initializer
       return parseAggregateInitializer(entry, &peek);
+    }
+    case TT_BAD_CHAR:
+    case TT_BAD_BIN:
+    case TT_BAD_HEX:
+    case TT_BAD_STRING: {
+      return NULL;
     }
     default: {
       errorExpectedString(entry, "a literal", &peek);
