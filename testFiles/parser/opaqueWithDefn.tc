@@ -1,0 +1,5 @@
+module foo;
+
+struct bar {
+  int i;
+};

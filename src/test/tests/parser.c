@@ -341,7 +341,35 @@ static void testVarDeclParser(void) {
 }
 
 static void testOpaqueDeclParser(void) {
-  // TODO
+  FileListEntry entries[2];
+  fileList.entries = &entries[0];
+  fileList.size = 2;
+
+  entries[0].inputFilename = "testFiles/parser/opaqueNoDefn.td";
+  entries[0].isCode = false;
+  entries[0].errored = false;
+  entries[1].inputFilename = "testFiles/parser/empty.tc";
+  entries[1].isCode = true;
+  entries[1].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/opaqueNoDefn.txt"));
+  nodeFree(entries[0].ast);
+  nodeFree(entries[1].ast);
+
+  entries[0].inputFilename = "testFiles/parser/opaqueWithDefn.td";
+  entries[0].isCode = false;
+  entries[0].errored = false;
+  entries[1].inputFilename = "testFiles/parser/opaqueWithDefn.tc";
+  entries[1].isCode = true;
+  entries[1].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/opaqueWithDefn.txt"));
+  nodeFree(entries[0].ast);
+  nodeFree(entries[1].ast);
 }
 
 static void testStructDeclParser(void) {

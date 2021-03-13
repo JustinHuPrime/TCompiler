@@ -1,0 +1,2 @@
+testFiles/parser/opaqueNoDefn.td (declaration):
+FILE(1, 1, STAB(ENTRY(bar, OPAQUE(testFiles/parser/opaqueNoDefn.td, 3, 1, REFERENCES()))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), OPAQUEDECL(3, 1, ID(3, 8, bar, REFERENCES(testFiles/parser/opaqueNoDefn.td, 3, 1))))
