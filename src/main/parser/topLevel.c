@@ -1153,6 +1153,7 @@ static Node *finishVarDefn(FileListEntry *entry, Node *type, Vector *names,
       nodeVectorFree(initializers);
       return NULL;
     }
+    vectorInsert(names, id);
 
     Token next;
     lex(entry, &next);
@@ -1471,7 +1472,6 @@ static Node *parseFunOrVarDefn(FileListEntry *entry, Token *start) {
       Vector *names = vectorCreate();
       vectorInsert(names, id);
       Vector *initializers = vectorCreate();
-      vectorInsert(initializers, NULL);
       return finishVarDefn(entry, type, names, initializers, true);
     }
     case TT_LPAREN: {
