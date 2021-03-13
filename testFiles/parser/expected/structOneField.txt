@@ -1,0 +1,2 @@
+testFiles/parser/structOneField.td (declaration):
+FILE(1, 1, STAB(ENTRY(bar, STRUCT(testFiles/parser/structOneField.td, 3, 1, FIELD(int, x)))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), STRUCTDECL(3, 1, ID(3, 8, bar, REFERENCES(testFiles/parser/structOneField.td, 3, 1)), VARDECL(4, 3, KEYWORDTYPE(4, 3, int), ID(4, 7, x, REFERENCES()))))

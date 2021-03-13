@@ -373,7 +373,34 @@ static void testOpaqueDeclParser(void) {
 }
 
 static void testStructDeclParser(void) {
-  // TODO
+  FileListEntry entries[2];
+  fileList.entries = &entries[0];
+  fileList.size = 2;
+
+  entries[0].inputFilename = "testFiles/parser/structOneField.td";
+  entries[0].isCode = false;
+  entries[0].errored = false;
+  entries[1].inputFilename = "testFiles/parser/empty.tc";
+  entries[1].isCode = true;
+  entries[1].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/structOneField.txt"));
+  nodeFree(entries[0].ast);
+  nodeFree(entries[1].ast);
+
+  entries[0].inputFilename = "testFiles/parser/structManyFields.td";
+  entries[0].isCode = false;
+  entries[0].errored = false;
+  entries[1].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test(
+      "ast is correct",
+      dumpEqual(&entries[0], "testFiles/parser/expected/structManyFields.txt"));
+  nodeFree(entries[0].ast);
+  nodeFree(entries[1].ast);
 }
 
 static void testUnionDeclParser(void) {
