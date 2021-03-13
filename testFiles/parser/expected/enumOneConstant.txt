@@ -1,0 +1,2 @@
+testFiles/parser/enumOneConstant.tc (code):
+FILE(1, 1, STAB(ENTRY(bar, ENUM(testFiles/parser/enumOneConstant.tc, 3, 1, CONSTANT(A, 0)))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), ENUMDECL(3, 1, ID(3, 6, bar, REFERENCES(testFiles/parser/enumOneConstant.tc, 3, 1)), ID(4, 3, A, REFERENCES(testFiles/parser/enumOneConstant.tc, 4, 3)), (null)))

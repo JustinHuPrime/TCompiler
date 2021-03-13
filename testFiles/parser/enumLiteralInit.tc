@@ -1,0 +1,7 @@
+module foo;
+
+enum bar {
+  A,
+  B = 5,
+  C,
+};

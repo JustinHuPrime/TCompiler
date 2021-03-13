@@ -1,0 +1,13 @@
+module foo;
+
+enum bar {
+  A,
+  B,
+  C,
+};
+
+enum baz {
+  D = bar::C,
+  E,
+  F,
+};
