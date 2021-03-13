@@ -480,28 +480,81 @@ static void testTypedefDeclParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testCompoundStmtParser(void) {}
+static void testCompoundStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/compoundStmtOneStmt.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/compoundStmtOneStmt.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/compoundStmtManyStmts.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/compoundStmtManyStmts.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/compoundStmtNestedStmts.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/compoundStmtNestedStmts.txt"));
+  nodeFree(entries[0].ast);
+}
+
 static void testIfStmtParser(void) {}
+
 static void testWhileStmtParser(void) {}
+
 static void testDoWhileStmtParser(void) {}
+
 static void testForStmtParser(void) {}
+
 static void testSwitchStmtParser(void) {}
+
 static void testBreakStmtParser(void) {}
+
 static void testContinueStmtParser(void) {}
+
 static void testReturnStmtParser(void) {}
+
 static void testAsmStmtParser(void) {}
+
 static void testVariableDefinitionStmtParser(void) {}
+
 static void testExpressionStmtParser(void) {}
+
 static void testOpaqueDeclStmtParser(void) {}
+
 static void testStructDeclStmtParser(void) {}
+
 static void testUnionDeclStmtParser(void) {}
+
 static void testEnumDeclStmtParser(void) {}
+
 static void testTypedefDeclStmtParser(void) {}
+
 static void testNullStmtParser(void) {}
 
 // TODO: expression parser tests
 
 // TODO: type parser tests
+
+// TODO: literal parser tests? number, character, string, aggregates
 
 void testParser(void) {
   testModuleParser();

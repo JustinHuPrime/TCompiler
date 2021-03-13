@@ -1,0 +1,15 @@
+module foo;
+
+void bar() {
+  {
+    bool b = true;
+  }
+  int i = 0;
+  {
+    void *p = null;
+  }
+  char c = 'a';
+  {
+    char *s = "str";
+  }
+}

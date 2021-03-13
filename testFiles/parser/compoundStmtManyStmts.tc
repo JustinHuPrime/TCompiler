@@ -1,0 +1,6 @@
+module foo;
+
+void bar() {
+  int i = 0;
+  char c = 'a';
+}
