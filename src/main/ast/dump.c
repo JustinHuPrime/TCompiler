@@ -67,7 +67,7 @@ static void stabEntryDump(FILE *where, SymbolTableEntry *entry) {
     case SK_FUNCTION: {
       char *returnType = typeToString(entry->data.function.returnType);
       char *argTypes = typeVectorToString(&entry->data.function.argumentTypes);
-      fprintf(where, "FUNCTION(%s, %zu, %zu, %s, %s)",
+      fprintf(where, "FUNCTION(%s, %zu, %zu, %s(%s))",
               entry->file->inputFilename, entry->line, entry->character,
               returnType, argTypes);
       free(returnType);
