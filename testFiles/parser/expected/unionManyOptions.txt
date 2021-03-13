@@ -1,2 +1,2 @@
-testFiles/parser/unionManyOptions.td (declaration):
-FILE(1, 1, STAB(ENTRY(bar, UNION(testFiles/parser/unionManyOptions.td, 3, 1, OPTION(int, x), OPTION(int, y), OPTION(float, r)))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), UNIONDECL(3, 1, ID(3, 7, bar, REFERENCES(testFiles/parser/unionManyOptions.td, 3, 1)), VARDECL(4, 3, KEYWORDTYPE(4, 3, int), ID(4, 7, x, REFERENCES()), ID(4, 10, y, REFERENCES())), VARDECL(5, 3, KEYWORDTYPE(5, 3, float), ID(5, 9, r, REFERENCES()))))
+testFiles/parser/unionManyOptions.tc (code):
+FILE(1, 1, STAB(ENTRY(bar, UNION(testFiles/parser/unionManyOptions.tc, 3, 1, OPTION(int, x), OPTION(int, y), OPTION(float, r)))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), UNIONDECL(3, 1, ID(3, 7, bar, REFERENCES(testFiles/parser/unionManyOptions.tc, 3, 1)), VARDECL(4, 3, KEYWORDTYPE(4, 3, int), ID(4, 7, x, REFERENCES()), ID(4, 10, y, REFERENCES())), VARDECL(5, 3, KEYWORDTYPE(5, 3, float), ID(5, 9, r, REFERENCES()))))

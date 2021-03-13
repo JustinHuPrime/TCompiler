@@ -1,2 +1,2 @@
-testFiles/parser/structManyFields.td (declaration):
-FILE(1, 1, STAB(ENTRY(bar, STRUCT(testFiles/parser/structManyFields.td, 3, 1, FIELD(int, x), FIELD(int, y), FIELD(float, r)))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), STRUCTDECL(3, 1, ID(3, 8, bar, REFERENCES(testFiles/parser/structManyFields.td, 3, 1)), VARDECL(4, 3, KEYWORDTYPE(4, 3, int), ID(4, 7, x, REFERENCES()), ID(4, 10, y, REFERENCES())), VARDECL(5, 3, KEYWORDTYPE(5, 3, float), ID(5, 9, r, REFERENCES()))))
+testFiles/parser/structManyFields.tc (code):
+FILE(1, 1, STAB(ENTRY(bar, STRUCT(testFiles/parser/structManyFields.tc, 3, 1, FIELD(int, x), FIELD(int, y), FIELD(float, r)))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), STRUCTDECL(3, 1, ID(3, 8, bar, REFERENCES(testFiles/parser/structManyFields.tc, 3, 1)), VARDECL(4, 3, KEYWORDTYPE(4, 3, int), ID(4, 7, x, REFERENCES()), ID(4, 10, y, REFERENCES())), VARDECL(5, 3, KEYWORDTYPE(5, 3, float), ID(5, 9, r, REFERENCES()))))
