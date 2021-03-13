@@ -65,7 +65,8 @@ int resolveImports(void) {
       for (size_t compareIdx = fileIdx + 1; compareIdx < fileList.size;
            ++compareIdx) {
         // check it against each other file
-        if (nameNodeEqual(
+        if (!fileList.entries[compareIdx].isCode &&
+            nameNodeEqual(
                 fileList.entries[fileIdx].ast->data.file.module->data.module.id,
                 fileList.entries[compareIdx]
                     .ast->data.file.module->data.module.id)) {
