@@ -352,11 +352,11 @@ static void nodeDump(FILE *where, Node *n) {
     }
     case NT_DOWHILESTMT: {
       fprintf(where, "DOWHILESTMT(%zu, %zu, ", n->line, n->character);
-      nodeDump(where, n->data.whileStmt.body);
+      nodeDump(where, n->data.doWhileStmt.body);
       fprintf(where, ", ");
-      stabDump(where, n->data.whileStmt.bodyStab);
+      stabDump(where, n->data.doWhileStmt.bodyStab);
       fprintf(where, ", ");
-      nodeDump(where, n->data.whileStmt.condition);
+      nodeDump(where, n->data.doWhileStmt.condition);
       fprintf(where, ")");
       break;
     }
