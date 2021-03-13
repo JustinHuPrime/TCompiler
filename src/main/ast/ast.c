@@ -740,18 +740,22 @@ Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude) {
     if (magnitude <= UBYTE_MAX) {
       Node *n = literalNodeCreate(LT_UBYTE, t);
       n->data.literal.data.ubyteVal = (uint8_t)magnitude;
+      tokenUninit(t);
       return n;
     } else if (magnitude <= USHORT_MAX) {
       Node *n = literalNodeCreate(LT_USHORT, t);
       n->data.literal.data.ushortVal = (uint16_t)magnitude;
+      tokenUninit(t);
       return n;
     } else if (magnitude <= UINT_MAX) {
       Node *n = literalNodeCreate(LT_UINT, t);
       n->data.literal.data.uintVal = (uint32_t)magnitude;
+      tokenUninit(t);
       return n;
     } else if (magnitude <= ULONG_MAX) {
       Node *n = literalNodeCreate(LT_ULONG, t);
       n->data.literal.data.ulongVal = (uint64_t)magnitude;
+      tokenUninit(t);
       return n;
     } else {
       error(__FILE__, __LINE__,
@@ -763,18 +767,22 @@ Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude) {
     if (magnitude <= BYTE_MIN) {
       Node *n = literalNodeCreate(LT_BYTE, t);
       n->data.literal.data.byteVal = (int8_t)-magnitude;
+      tokenUninit(t);
       return n;
     } else if (magnitude <= SHORT_MIN) {
       Node *n = literalNodeCreate(LT_SHORT, t);
       n->data.literal.data.shortVal = (int16_t)-magnitude;
+      tokenUninit(t);
       return n;
     } else if (magnitude <= INT_MIN) {
       Node *n = literalNodeCreate(LT_INT, t);
       n->data.literal.data.intVal = (int32_t)-magnitude;
+      tokenUninit(t);
       return n;
     } else if (magnitude <= LONG_MIN) {
       Node *n = literalNodeCreate(LT_LONG, t);
       n->data.literal.data.longVal = (int64_t)-magnitude;
+      tokenUninit(t);
       return n;
     } else {
       // user-side size error
@@ -786,18 +794,22 @@ Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude) {
     if (magnitude <= BYTE_MAX) {
       Node *n = literalNodeCreate(LT_BYTE, t);
       n->data.literal.data.byteVal = (int8_t)magnitude;
+      tokenUninit(t);
       return n;
     } else if (magnitude <= SHORT_MAX) {
       Node *n = literalNodeCreate(LT_SHORT, t);
       n->data.literal.data.shortVal = (int16_t)magnitude;
+      tokenUninit(t);
       return n;
     } else if (magnitude <= INT_MAX) {
       Node *n = literalNodeCreate(LT_INT, t);
       n->data.literal.data.intVal = (int32_t)magnitude;
+      tokenUninit(t);
       return n;
     } else if (magnitude <= LONG_MAX) {
       Node *n = literalNodeCreate(LT_LONG, t);
       n->data.literal.data.longVal = (int64_t)magnitude;
+      tokenUninit(t);
       return n;
     } else {
       // user-side size error
