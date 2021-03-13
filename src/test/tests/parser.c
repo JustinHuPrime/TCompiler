@@ -550,9 +550,35 @@ static void testIfStmtParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testWhileStmtParser(void) {}
+static void testWhileStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testDoWhileStmtParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/while.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/while.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testDoWhileStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/doWhile.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/doWhile.txt"));
+  nodeFree(entries[0].ast);
+}
 
 static void testForStmtParser(void) {}
 
