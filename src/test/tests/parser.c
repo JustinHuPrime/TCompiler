@@ -171,7 +171,8 @@ static void testImportParser(void) {
   entries[2].errored = false;
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
-  // TODO: test ast dump equality
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/multipleImports.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
   nodeFree(entries[2].ast);
