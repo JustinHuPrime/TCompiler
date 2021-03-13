@@ -1,0 +1,2 @@
+testFiles/parser/varDefnOneIdWithInit.tc (code):
+FILE(1, 1, STAB(ENTRY(bar, VARIABLE(testFiles/parser/varDefnOneIdWithInit.tc, 3, 5, int))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), VARDEFN(3, 1, KEYWORDTYPE(3, 1, int), ID(3, 5, bar, REFERENCES(testFiles/parser/varDefnOneIdWithInit.tc, 3, 5)), LITERAL(3, 11, UBYTE(12))))

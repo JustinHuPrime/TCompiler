@@ -235,7 +235,38 @@ static void testFunDefnParser(void) {
 }
 
 static void testVarDefnParser(void) {
-  // TODO
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/varDefnOneIdNoInit.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/varDefnOneIdNoInit.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/varDefnOneIdWithInit.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/varDefnOneIdWithInit.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/varDefnMany.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/varDefnMany.txt"));
+  nodeFree(entries[0].ast);
 }
 
 static void testFunDeclParser(void) {
