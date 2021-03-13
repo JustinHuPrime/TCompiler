@@ -480,7 +480,24 @@ static void testTypedefDeclParser(void) {
   nodeFree(entries[0].ast);
 }
 
-// TODO: statement parser tests
+static void testCompoundStmtParser(void) {}
+static void testIfStmtParser(void) {}
+static void testWhileStmtParser(void) {}
+static void testDoWhileStmtParser(void) {}
+static void testForStmtParser(void) {}
+static void testSwitchStmtParser(void) {}
+static void testBreakStmtParser(void) {}
+static void testContinueStmtParser(void) {}
+static void testReturnStmtParser(void) {}
+static void testAsmStmtParser(void) {}
+static void testVariableDefinitionStmtParser(void) {}
+static void testExpressionStmtParser(void) {}
+static void testOpaqueDeclStmtParser(void) {}
+static void testStructDeclStmtParser(void) {}
+static void testUnionDeclStmtParser(void) {}
+static void testEnumDeclStmtParser(void) {}
+static void testTypedefDeclStmtParser(void) {}
+static void testNullStmtParser(void) {}
 
 // TODO: expression parser tests
 
@@ -500,4 +517,23 @@ void testParser(void) {
   testUnionDeclParser();
   testEnumDeclParser();
   testTypedefDeclParser();
+
+  testCompoundStmtParser();
+  testIfStmtParser();
+  testWhileStmtParser();
+  testDoWhileStmtParser();
+  testForStmtParser();
+  testSwitchStmtParser();
+  testBreakStmtParser();
+  testContinueStmtParser();
+  testReturnStmtParser();
+  testAsmStmtParser();
+  testVariableDefinitionStmtParser();
+  testExpressionStmtParser();
+  testOpaqueDeclStmtParser();
+  testStructDeclStmtParser();
+  testUnionDeclStmtParser();
+  testEnumDeclStmtParser();
+  testTypedefDeclStmtParser();
+  testNullStmtParser();
 }
