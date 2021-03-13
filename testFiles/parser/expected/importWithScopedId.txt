@@ -1,0 +1,2 @@
+testFiles/parser/importWithScopedId.tc (code):
+FILE(1, 1, STAB(), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), IMPORT(3, 1, SCOPEDID(3, 8, target::with::scope, REFERENCES())))

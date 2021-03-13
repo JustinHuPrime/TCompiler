@@ -1,0 +1,2 @@
+testFiles/parser/moduleWithScopedId.tc (code):
+FILE(1, 1, STAB(), MODULE(1, 1, SCOPEDID(1, 8, foo::bar::baz, REFERENCES())))

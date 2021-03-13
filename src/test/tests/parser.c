@@ -33,28 +33,72 @@
 #include "fileList.h"
 #include "tests.h"
 
-static bool dumpEqual(FileListEntry *entry, char const *expected) {
-  FILE *temp = tmpfile();
-  astDump(temp, entry);
-  fflush(temp);
+static bool dumpEqual(FileListEntry *entry, char const *expectedFilename) {
+  FILE *actualFile = tmpfile();
+  astDump(actualFile, entry);
+  fflush(actualFile);
 
-  long len = ftell(temp);
-  if (len < 0) {
-    fclose(temp);
+  long actualLen = ftell(actualFile);
+  if (actualLen < 0) {
+    fprintf(stderr, "couldn't get length of actual for %s\n", expectedFilename);
+
+    fclose(actualFile);
     return false;
   }
 
-  rewind(temp);
-  char *buffer = malloc((unsigned long)len + 1);
-  buffer[len] = '\0';
-  if (fread(buffer, sizeof(char), (unsigned long)len, temp) !=
-      (unsigned long)len) {
-    fclose(temp);
+  rewind(actualFile);
+  char *actualBuffer = malloc((unsigned long)actualLen + 1);
+  actualBuffer[actualLen] = '\0';
+  if (fread(actualBuffer, sizeof(char), (unsigned long)actualLen, actualFile) !=
+      (unsigned long)actualLen) {
+    fprintf(stderr, "couldn't read actual for %s\n", expectedFilename);
+
+    free(actualBuffer);
+    fclose(actualFile);
     return false;
   }
 
-  bool retval = strcmp(buffer, expected) == 0;
-  fclose(temp);
+  FILE *expectedFile = fopen(expectedFilename, "rb");
+  if (expectedFile == NULL) {
+    fprintf(stderr, "couldn't read expected for %s\n", expectedFilename);
+
+    free(actualBuffer);
+    fclose(actualFile);
+    return false;
+  }
+
+  fseek(expectedFile, 0, SEEK_END);
+  long expectedLen = ftell(expectedFile);
+  if (expectedLen < 0) {
+    fprintf(stderr, "couldn't get length of expected for %s\n",
+            expectedFilename);
+
+    fclose(expectedFile);
+    free(actualBuffer);
+    fclose(actualFile);
+    return false;
+  }
+
+  rewind(expectedFile);
+  char *expectedBuffer = malloc((unsigned long)expectedLen + 1);
+  expectedBuffer[expectedLen] = '\0';
+  if (fread(expectedBuffer, sizeof(char), (unsigned long)expectedLen,
+            expectedFile) != (unsigned long)expectedLen) {
+    fprintf(stderr, "couldn't read expected for %s\n", expectedFilename);
+
+    free(expectedBuffer);
+    fclose(expectedFile);
+    free(actualBuffer);
+    fclose(actualFile);
+    return false;
+  }
+
+  bool retval = strcmp(actualBuffer, expectedBuffer) == 0;
+
+  free(expectedBuffer);
+  fclose(expectedFile);
+  free(actualBuffer);
+  fclose(actualFile);
   return retval;
 }
 
@@ -69,9 +113,7 @@ static void testModuleParser(void) {
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
   test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/moduleWithId.tc (code):\n"
-                 "FILE(1, 1, STAB(), MODULE(1, 1, ID(1, 8, foo)))\n"));
+       dumpEqual(&entries[0], "testFiles/parser/expected/moduleWithId.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/moduleWithScopedId.tc";
@@ -79,12 +121,9 @@ static void testModuleParser(void) {
   entries[0].errored = false;
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
-  test(
-      "ast is correct",
-      dumpEqual(
-          &entries[0],
-          "testFiles/parser/moduleWithScopedId.tc (code):\n"
-          "FILE(1, 1, STAB(), MODULE(1, 1, SCOPEDID(1, 8, foo::bar::baz)))\n"));
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/moduleWithScopedId.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -101,7 +140,8 @@ static void testImportParser(void) {
   entries[1].errored = false;
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
-  // TODO: test ast dump equality
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/importWithId.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
@@ -113,7 +153,9 @@ static void testImportParser(void) {
   entries[1].errored = false;
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
-  // TODO: test ast dump equality
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/importWithScopedId.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
