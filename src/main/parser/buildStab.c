@@ -814,7 +814,8 @@ int buildTopLevelEnumStab(void) {
                       dependency->data.enumConst.data.signedValue + 1;
                 }
               } else {
-                if (current->data.enumConst.data.unsignedValue == ULONG_MAX) {
+                if (dependency->data.enumConst.data.unsignedValue ==
+                    ULONG_MAX) {
                   errored = true;
                   fprintf(stderr,
                           "%s:%zu:%zu: error: unrepresentable enumeration "
