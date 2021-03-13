@@ -30,8 +30,10 @@
 #include "util/functional.h"
 
 void stabFree(HashMap *stab) {
-  hashMapUninit(stab, (void (*)(void *))stabEntryFree);
-  free(stab);
+  if (stab != NULL) {
+    hashMapUninit(stab, (void (*)(void *))stabEntryFree);
+    free(stab);
+  }
 }
 
 static Type *typeCreate(TypeKind kind) {
