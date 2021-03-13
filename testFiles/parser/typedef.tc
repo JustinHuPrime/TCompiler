@@ -1,0 +1,3 @@
+module foo;
+
+typedef char **bar;
