@@ -3311,7 +3311,7 @@ void parseFunctionBody(FileListEntry *entry) {
       // if it's a funDefn
       case NT_FUNDEFN: {
         // setup stab for arguments
-        HashMap *stab = hashMapCreate();
+        HashMap *stab = body->data.funDefn.argStab;
         environmentPush(&env, stab);
 
         for (size_t argIdx = 0; argIdx < body->data.funDefn.argTypes->size;
@@ -3338,7 +3338,7 @@ void parseFunctionBody(FileListEntry *entry) {
         body->data.funDefn.body = parseCompoundStmt(entry, unparsed, &env);
         nodeFree(unparsed);
 
-        body->data.funDefn.argStab = environmentPop(&env);
+        environmentPop(&env);
         break;
       }
       default: {
