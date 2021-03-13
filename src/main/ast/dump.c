@@ -608,12 +608,26 @@ static void nodeDump(FILE *where, Node *n) {
     }
     case NT_SCOPEDID: {
       char *idString = stringifyId(n);
-      fprintf(where, "SCOPEDID(%zu, %zu, %s)", n->line, n->character, idString);
+      if (n->data.scopedId.entry == NULL)
+        fprintf(where, "SCOPEDID(%zu, %zu, %s, REFERENCES())", n->line,
+                n->character, idString);
+      else
+        fprintf(
+            where, "SCOPEDID(%zu, %zu, %s, REFERENCES(%s, %zu, %zu))", n->line,
+            n->character, idString, n->data.scopedId.entry->file->inputFilename,
+            n->data.scopedId.entry->line, n->data.scopedId.entry->character);
       free(idString);
       break;
     }
     case NT_ID: {
-      fprintf(where, "ID(%zu, %zu, %s)", n->line, n->character, n->data.id.id);
+      if (n->data.id.entry == NULL)
+        fprintf(where, "ID(%zu, %zu, %s, REFERENCES())", n->line, n->character,
+                n->data.id.id);
+      else
+        fprintf(where, "ID(%zu, %zu, %s, REFERENCES(%s, %zu, %zu))", n->line,
+                n->character, n->data.id.id,
+                n->data.id.entry->file->inputFilename, n->data.id.entry->line,
+                n->data.id.entry->character);
       break;
     }
     case NT_UNPARSED: {
