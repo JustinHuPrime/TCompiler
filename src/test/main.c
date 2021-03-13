@@ -19,18 +19,26 @@
 
 // Calls all test modules and reports the stats
 
+#include <string.h>
+
 #include "engine.h"
 #include "tests.h"
 
-int main(void) {
+int main(int argc, char *argv[]) {
+  if (argc > 2) {
+    fprintf(stderr, "usage: %s [suite]\n", argv[0]);
+    return -1;
+  }
+
   testStatusInit();
 
-  testBigInteger();
-  testConversions();
+  if (argc < 2 || strcmp(argv[1], "bigInteger") == 0) testBigInteger();
+  if (argc < 2 || strcmp(argv[1], "conversions") == 0) testConversions();
 
-  testCommandLineArgs();
-  testLexer();
-  testParser();
+  if (argc < 2 || strcmp(argv[1], "commandLineArgs") == 0)
+    testCommandLineArgs();
+  if (argc < 2 || strcmp(argv[1], "lexer") == 0) testLexer();
+  if (argc < 2 || strcmp(argv[1], "parser") == 0) testParser();
 
   return testStatusStatus();
 }
