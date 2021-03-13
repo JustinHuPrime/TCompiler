@@ -1,0 +1,3 @@
+module foo;
+
+int bar(int arg1, void * arg2, int arg3) {}

@@ -1,0 +1,2 @@
+testFiles/parser/funDefnNoBodyOneArg.tc (code):
+FILE(1, 1, STAB(ENTRY(bar, FUNCTION(testFiles/parser/funDefnNoBodyOneArg.tc, 3, 1, int(int)))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), FUNDEFN(3, 1, KEYWORDTYPE(3, 1, int), ID(3, 5, bar, REFERENCES(testFiles/parser/funDefnNoBodyOneArg.tc, 3, 1)), KEYWORDTYPE(3, 9, int), ID(3, 13, arg1, REFERENCES()), STAB(ENTRY(arg1, VARIABLE(testFiles/parser/funDefnNoBodyOneArg.tc, 3, 9, int))), COMPOUNDSTMT(3, 19, STAB())))

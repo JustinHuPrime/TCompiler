@@ -188,7 +188,49 @@ static void testFunDefnParser(void) {
   entries[0].errored = false;
   test("parser accepts the file", parse() == 0);
   test("file has not errored", entries[0].errored == false);
-  // TODO: test ast dump equality
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/funDefnNoBodyNoArgs.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/funDefnNoBodyOneArg.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/funDefnNoBodyOneArg.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/funDefnNoBodyManyArgs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/funDefnNoBodyManyArgs.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/funDefnOneBodyNoArgs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/funDefnOneBodyNoArgs.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/funDefnManyBodiesNoArgs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/funDefnManyBodiesNoArgs.txt"));
   nodeFree(entries[0].ast);
 }
 

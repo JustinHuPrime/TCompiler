@@ -1,0 +1,7 @@
+module foo;
+
+int bar() {
+  int i = 2;
+  i += 1;
+  return i;
+}
