@@ -3303,7 +3303,25 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
     case TT_CAST:
     case TT_SIZEOF:
     case TT_LPAREN:
-    case TT_LSQUARE: {
+    case TT_LSQUARE:
+    case TT_LIT_INT_0:
+    case TT_LIT_INT_B:
+    case TT_BAD_BIN:
+    case TT_LIT_INT_O:
+    case TT_LIT_INT_D:
+    case TT_LIT_INT_H:
+    case TT_BAD_HEX:
+    case TT_LIT_CHAR:
+    case TT_BAD_CHAR:
+    case TT_LIT_WCHAR:
+    case TT_LIT_FLOAT:
+    case TT_LIT_DOUBLE:
+    case TT_LIT_STRING:
+    case TT_BAD_STRING:
+    case TT_LIT_WSTRING:
+    case TT_TRUE:
+    case TT_FALSE:
+    case TT_NULL: {
       // unambiguously an expressionStmt
       prev(unparsed, &peek);
       return parseExpressionStmt(entry, unparsed, env);
