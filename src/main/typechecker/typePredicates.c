@@ -93,7 +93,109 @@ bool typeIsIntegral(Type const *t) {
  * @returns if to * can be asigned to from *
  */
 static bool pointerTypeIsAssignable(Type const *toBase, Type const *fromBase) {
-  return false;  // TODO
+  switch (toBase->kind) {
+    case TK_KEYWORD: {
+      switch (toBase->data.keyword.keyword) {
+        case TK_VOID: {
+          // row 3
+          return true;
+        }
+        default: {
+          // row 4-16
+          switch (fromBase->kind) {
+            case TK_KEYWORD: {
+              switch (fromBase->data.keyword.keyword) {
+                case TK_VOID: {
+                  return true;
+                }
+                default: {
+                  return toBase->data.keyword.keyword ==
+                         fromBase->data.keyword.keyword;
+                }
+              }
+            }
+            default: {
+              return false;
+            }
+          }
+        }
+      }
+    }
+    case TK_REFERENCE: {
+      // row 17-20
+      switch (fromBase->kind) {
+        case TK_KEYWORD: {
+          return fromBase->data.keyword.keyword == TK_VOID;
+        }
+        case TK_REFERENCE: {
+          if (toBase->data.reference.entry->kind == SK_OPAQUE &&
+              fromBase->data.reference.entry->kind == SK_OPAQUE) {
+            return toBase->data.reference.entry ==
+                       fromBase->data.reference.entry ||
+                   toBase->data.reference.entry ==
+                       fromBase->data.reference.entry->data.opaqueType
+                           .definition ||
+                   toBase->data.reference.entry->data.opaqueType.definition ==
+                       fromBase->data.reference.entry ||
+                   toBase->data.reference.entry->data.opaqueType.definition ==
+                       fromBase->data.reference.entry->data.opaqueType
+                           .definition;
+          } else if (toBase->data.reference.entry->kind == SK_OPAQUE) {
+            return toBase->data.reference.entry ==
+                       fromBase->data.reference.entry ||
+                   toBase->data.reference.entry->data.opaqueType.definition ==
+                       fromBase->data.reference.entry;
+          } else if (fromBase->data.reference.entry->kind == SK_OPAQUE) {
+            return toBase->data.reference.entry ==
+                       fromBase->data.reference.entry ||
+                   toBase->data.reference.entry ==
+                       fromBase->data.reference.entry->data.opaqueType
+                           .definition;
+          } else {
+            return toBase->data.reference.entry ==
+                   fromBase->data.reference.entry;
+          }
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    case TK_MODIFIED: {
+      switch (toBase->data.modified.modifier) {
+        case TM_CONST:
+        case TM_VOLATILE: {
+          // row 21, 22
+          return pointerTypeIsAssignable(toBase->data.modified.modified,
+                                         fromBase);
+        }
+        case TM_POINTER: {
+          // row 24
+          return typeEqual(toBase, fromBase) ||
+                 (fromBase->kind == TK_KEYWORD &&
+                  fromBase->data.keyword.keyword == TK_VOID);
+        }
+        default: {
+          error(__FILE__, __LINE__, "bad typemodifier encountered");
+        }
+      }
+    }
+    case TK_ARRAY: {
+      // row 23
+      return typeEqual(toBase, fromBase) ||
+             (fromBase->kind == TK_KEYWORD &&
+              fromBase->data.keyword.keyword == TK_VOID);
+    }
+    case TK_FUNPTR: {
+      // row 25
+      return typeEqual(toBase, fromBase) ||
+             (fromBase->kind == TK_KEYWORD &&
+              fromBase->data.keyword.keyword == TK_VOID);
+    }
+    default: {
+      return false;  // can't form a pointer to that anyways
+    }
+  }
 }
 
 /**
