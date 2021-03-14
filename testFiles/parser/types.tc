@@ -1,0 +1,23 @@
+module foo;
+
+int a;
+int const b;
+int volatile c;
+int['a'] d;
+int *e;
+int(int, int arg2) f;
+ubyte const volatile ub1;
+ubyte volatile const ub2;
+ubyte const[1] const arry;
+
+void bar() {
+  int a;
+  int const b;
+  int volatile c;
+  int['a'] d;
+  int *e;
+  int(int, int arg2) f;
+  ubyte const volatile ub1;
+  ubyte volatile const ub2;
+  ubyte const[1] const arry;
+}
