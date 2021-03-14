@@ -16,7 +16,7 @@ bool,,,,,,,,,,,,,bool,,,,,merged base types,merged base types,,,
 Structure Types,,,,,,,,,,,,,,,,,,merged base types,merged base types,,,
 Union Types,,,,,,,,,,,,,,,,,,merged base types,merged base types,,,
 Enumeration Types,,,,,,,,,,,,,,,,"both sides must have the same type, result has the same type as inputs",,merged base types,merged base types,,,
-Type Aliases,,,,,,,,,,,,,,,,,"both sides must have the same type, result has the same type as inputs",merged base types,merged base types,,,
+Type Aliases,,,,,,,,,,,,,,,,,,merged base types,merged base types,,,
 Constant Types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types
 Volatile Types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types,merged base types
 Array Types,,,,,,,,,,,,,,,,,,merged base types,merged base types,,,
