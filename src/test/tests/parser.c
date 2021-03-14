@@ -957,11 +957,35 @@ static void testSwitchDefaultParser(void) {
   nodeFree(entries[0].ast);
 }
 
-// TODO: expression parser tests
+static void testSeqExprParser(void) {}
 
-// TODO: type parser tests
+static void testAssignmentExprParser(void) {}
 
-// TODO: literal parser tests? number, character, string, aggregates
+static void testTernaryExprParser(void) {}
+
+static void testLogicalExprParser(void) {}
+
+static void testBitwiseExprParser(void) {}
+
+static void testEqualityExprParser(void) {}
+
+static void testComparisonExprParser(void) {}
+
+static void testSpaceshipExprParser(void) {}
+
+static void testShiftExprParser(void) {}
+
+static void testAdditionExprParser(void) {}
+
+static void testMultiplicationExprParser(void) {}
+
+static void testPrefixExprParser(void) {}
+
+static void testPostfixExprParser(void) {}
+
+static void testPrimaryExprParser(void) {}
+
+static void testTypeParser(void) {}
 
 void testParser(void) {
   testModuleParser();
@@ -999,4 +1023,21 @@ void testParser(void) {
 
   testSwitchCaseParser();
   testSwitchDefaultParser();
+
+  testSeqExprParser();
+  testAssignmentExprParser();
+  testTernaryExprParser();
+  testLogicalExprParser();
+  testBitwiseExprParser();
+  testEqualityExprParser();
+  testComparisonExprParser();
+  testSpaceshipExprParser();
+  testShiftExprParser();
+  testAdditionExprParser();
+  testMultiplicationExprParser();
+  testPrefixExprParser();
+  testPostfixExprParser();
+  testPrimaryExprParser();
+
+  testTypeParser();
 }
