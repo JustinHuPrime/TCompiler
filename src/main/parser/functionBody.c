@@ -1241,6 +1241,8 @@ static Node *parsePostfixExpression(FileListEntry *entry, Node *unparsed,
             nodeFree(exp);
             return NULL;
           }
+          vectorInsert(arguments, arg);
+
           bool done = false;
           while (!done) {
             next(unparsed, &peek);
