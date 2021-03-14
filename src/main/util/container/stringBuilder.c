@@ -59,7 +59,7 @@ void tstringBuilderPush(TStringBuilder *sb, uint8_t c) {
   sb->string[sb->size++] = c;
 }
 uint8_t *tstringBuilderData(TStringBuilder const *sb) {
-  uint8_t *string = malloc((sb->size + 1) * sizeof(char));
+  uint8_t *string = malloc((sb->size + 1) * sizeof(uint8_t));
   memcpy(string, sb->string, sb->size * sizeof(uint8_t));
   string[sb->size] = '\0';
   return string;
@@ -74,12 +74,12 @@ void twstringBuilderInit(TWStringBuilder *sb) {
 void twstringBuilderPush(TWStringBuilder *sb, uint32_t c) {
   if (sb->size == sb->capacity) {
     sb->capacity *= VECTOR_GROWTH_FACTOR;
-    sb->string = realloc(sb->string, sb->capacity * sizeof(char));
+    sb->string = realloc(sb->string, sb->capacity * sizeof(uint32_t));
   }
   sb->string[sb->size++] = c;
 }
 uint32_t *twstringBuilderData(TWStringBuilder const *sb) {
-  uint32_t *string = malloc((sb->size + 1) * sizeof(char));
+  uint32_t *string = malloc((sb->size + 1) * sizeof(uint32_t));
   memcpy(string, sb->string, sb->size * sizeof(uint32_t));
   string[sb->size] = '\0';
   return string;
