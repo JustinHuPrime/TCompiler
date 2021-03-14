@@ -125,7 +125,7 @@ literal = extended_int_literal
         | "null"
         | aggregate_initializer
 ;
-aggregate_initializer = "[", [ literal, { ",", literal } ], "]" ;
+aggregate_initializer = "[", [ literal, { ",", literal }, [ "," ] ], "]" ;
 
 type = base_type, { "const" | "volatile" | "[", extended_int_literal, "]" | "*" | "(", [ type, [ identifier ], { ",", type, [ identifier ] } ], ")" } ;
 base_type = "void"
