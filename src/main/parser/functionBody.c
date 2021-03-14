@@ -1088,6 +1088,17 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
               return NULL;
             }
 
+            Token rparen;
+            next(unparsed, &rparen);
+            if (rparen.type != TT_RPAREN) {
+              errorExpectedToken(entry, TT_RPAREN, &lparen);
+
+              prev(unparsed, &rparen);
+
+              nodeFree(target);
+              return NULL;
+            }
+
             return prefixUnOpExpNodeCreate(UO_SIZEOFTYPE, &peek, target);
           }
           case TT_ID: {
@@ -1112,6 +1123,17 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
                   return NULL;
                 }
 
+                Token rparen;
+                next(unparsed, &rparen);
+                if (rparen.type != TT_RPAREN) {
+                  errorExpectedToken(entry, TT_RPAREN, &lparen);
+
+                  prev(unparsed, &rparen);
+
+                  nodeFree(target);
+                  return NULL;
+                }
+
                 return prefixUnOpExpNodeCreate(UO_SIZEOFEXP, &peek, target);
               }
               case SK_OPAQUE:
@@ -1122,6 +1144,17 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
                 prev(unparsed, &sizeofPeek);
                 Node *target = parseType(entry, unparsed, env, idNode);
                 if (target == NULL) {
+                  return NULL;
+                }
+
+                Token rparen;
+                next(unparsed, &rparen);
+                if (rparen.type != TT_RPAREN) {
+                  errorExpectedToken(entry, TT_RPAREN, &lparen);
+
+                  prev(unparsed, &rparen);
+
+                  nodeFree(target);
                   return NULL;
                 }
 
@@ -1143,6 +1176,24 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
           case TT_CAST:
           case TT_SIZEOF:
           case TT_LPAREN:
+          case TT_LIT_INT_0:
+          case TT_LIT_INT_B:
+          case TT_BAD_BIN:
+          case TT_LIT_INT_O:
+          case TT_LIT_INT_D:
+          case TT_LIT_INT_H:
+          case TT_BAD_HEX:
+          case TT_LIT_CHAR:
+          case TT_BAD_CHAR:
+          case TT_LIT_WCHAR:
+          case TT_LIT_FLOAT:
+          case TT_LIT_DOUBLE:
+          case TT_LIT_STRING:
+          case TT_BAD_STRING:
+          case TT_LIT_WSTRING:
+          case TT_TRUE:
+          case TT_FALSE:
+          case TT_NULL:
           case TT_LSQUARE: {
             // unambiguously an expression
             prev(unparsed, &sizeofPeek);
@@ -1151,13 +1202,24 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
               return NULL;
             }
 
+            Token rparen;
+            next(unparsed, &rparen);
+            if (rparen.type != TT_RPAREN) {
+              errorExpectedToken(entry, TT_RPAREN, &lparen);
+
+              prev(unparsed, &rparen);
+
+              nodeFree(target);
+              return NULL;
+            }
+
             return prefixUnOpExpNodeCreate(UO_SIZEOFEXP, &peek, target);
           }
           default: {
             // unexpected token
-            errorExpectedString(entry, "a type or an expression", &peek);
+            errorExpectedString(entry, "a type or an expression", &sizeofPeek);
 
-            prev(unparsed, &peek);
+            prev(unparsed, &sizeofPeek);
             return NULL;
           }
         }
@@ -2197,6 +2259,24 @@ static Node *parseForInitStmt(FileListEntry *entry, Node *unparsed,
     case TT_CAST:
     case TT_SIZEOF:
     case TT_LPAREN:
+    case TT_LIT_INT_0:
+    case TT_LIT_INT_B:
+    case TT_BAD_BIN:
+    case TT_LIT_INT_O:
+    case TT_LIT_INT_D:
+    case TT_LIT_INT_H:
+    case TT_BAD_HEX:
+    case TT_LIT_CHAR:
+    case TT_BAD_CHAR:
+    case TT_LIT_WCHAR:
+    case TT_LIT_FLOAT:
+    case TT_LIT_DOUBLE:
+    case TT_LIT_STRING:
+    case TT_BAD_STRING:
+    case TT_LIT_WSTRING:
+    case TT_TRUE:
+    case TT_FALSE:
+    case TT_NULL:
     case TT_LSQUARE:
     case TT_SEMI: {
       prev(unparsed, &peek);
