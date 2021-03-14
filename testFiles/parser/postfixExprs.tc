@@ -1,0 +1,19 @@
+module foo;
+
+struct s {
+  int x, y;
+};
+
+void baz(int x, int y) {}
+
+void bar(s *p) {
+  s v;
+  bar(p);
+  baz(v.x, p->y);
+  p[1];
+  p++--;
+  p->x =-;
+  p->x =~;
+  bool b;
+  b =!;
+}

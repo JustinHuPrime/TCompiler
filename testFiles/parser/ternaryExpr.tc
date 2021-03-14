@@ -1,0 +1,5 @@
+module foo;
+
+void bar(int i, int j) {
+  i > 0 ? i : j;
+}

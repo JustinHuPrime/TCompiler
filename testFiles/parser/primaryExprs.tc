@@ -1,0 +1,32 @@
+module foo;
+
+enum e {
+  A,
+};
+
+void bar() {
+  foo::bar;
+  bar;
+  0;
+  0x1f;
+  0b101;
+  0773;
+  10;
+  'a';
+  'b'w;
+  e::A;
+  1.1f;
+  1.2;
+  "string";
+  "wide string"w;
+  true;
+  false;
+  null;
+  [1, 2, 3];
+  cast<int>(3);
+  sizeof(1 + 2);
+  /*
+  sizeof(int);
+  (1 + 2);
+  */
+}

@@ -1,0 +1,7 @@
+module foo;
+
+void bar(int *i, bool b, int j) {
+  *&++--i;
+  !b;
+  ~-j;
+}

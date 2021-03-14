@@ -957,35 +957,240 @@ static void testSwitchDefaultParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testSeqExprParser(void) {}
+static void testSeqExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testAssignmentExprParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/seqExprOne.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/seqExprOne.txt"));
+  nodeFree(entries[0].ast);
 
-static void testTernaryExprParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/seqExprMany.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/seqExprMany.txt"));
+  nodeFree(entries[0].ast);
+}
 
-static void testLogicalExprParser(void) {}
+static void testAssignmentExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testBitwiseExprParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/assignmentExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/assignmentExprs.txt"));
+  nodeFree(entries[0].ast);
+}
 
-static void testEqualityExprParser(void) {}
+static void testTernaryExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testComparisonExprParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/ternaryExpr.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/ternaryExpr.txt"));
+  nodeFree(entries[0].ast);
+}
 
-static void testSpaceshipExprParser(void) {}
+static void testLogicalExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testShiftExprParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/logicalExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/logicalExprs.txt"));
+  nodeFree(entries[0].ast);
+}
 
-static void testAdditionExprParser(void) {}
+static void testBitwiseExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testMultiplicationExprParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/bitwiseExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/bitwiseExprs.txt"));
+  nodeFree(entries[0].ast);
+}
 
-static void testPrefixExprParser(void) {}
+static void testEqualityExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testPostfixExprParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/equalityExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/equalityExprs.txt"));
+  nodeFree(entries[0].ast);
+}
 
-static void testPrimaryExprParser(void) {}
+static void testComparisonExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testTypeParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/comparisonExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/comparisonExprs.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testSpaceshipExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/spaceshipExpr.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/spaceshipExpr.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testShiftExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/shiftExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/shiftExprs.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testAdditionExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/additionExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/additionExprs.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testMultiplicationExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/multiplicationExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/multiplicationExprs.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testPrefixExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/prefixExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/prefixExprs.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testPostfixExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/postfixExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/postfixExprs.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testPrimaryExprParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/primaryExprs.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/primaryExprs.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testTypeParser(void) {
+  // FileListEntry entries[1];
+  // fileList.entries = &entries[0];
+  // fileList.size = 1;
+
+  // entries[0].inputFilename = "testFiles/parser/types.tc";
+  // entries[0].isCode = true;
+  // entries[0].errored = false;
+  // test("parser accepts the file", parse() == 0);
+  // test("file has not errored", entries[0].errored == false);
+  // test("ast is correct",
+  //      dumpEqual(&entries[0], "testFiles/parser/expected/types.txt"));
+  // nodeFree(entries[0].ast);
+}
 
 void testParser(void) {
   testModuleParser();
