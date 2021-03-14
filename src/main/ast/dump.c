@@ -26,16 +26,19 @@
 #include "util/string.h"
 
 static char const *const BINOP_NAMES[] = {
-    "SEQ",           "ASSIGN",       "MULASSIGN",    "DIVASSIGN",
-    "ADDASSIGN",     "SUBASSIGN",    "LSHIFTASSIGN", "ARSHIFTASSIGN",
-    "LRSHIFTASSIGN", "BITANDASSIGN", "BITXORASSIGN", "BITORASSIGN",
-    "LANDASSIGN",    "LORASSIGN",    "LAND",         "LOR",
-    "BITAND",        "BITOR",        "BITXOR",       "EQ",
-    "NEQ",           "LT",           "GT",           "LTEQ",
-    "GTEQ",          "SPACESHIP",    "LSHIFT",       "ARSHIFT",
-    "LRSHIFT",       "ADD",          "SUB",          "MUL",
-    "DIV",           "MOD",          "FIELD",        "PTRFIELD",
-    "ARRAY",         "CAST",
+    "SEQ",           "ASSIGN",       "MULASSIGN",
+    "DIVASSIGN",     "MODASSIGN",    "ADDASSIGN",
+    "SUBASSIGN",     "LSHIFTASSIGN", "ARSHIFTASSIGN",
+    "LRSHIFTASSIGN", "BITANDASSIGN", "BITXORASSIGN",
+    "BITORASSIGN",   "LANDASSIGN",   "LORASSIGN",
+    "LAND",          "LOR",          "BITAND",
+    "BITOR",         "BITXOR",       "EQ",
+    "NEQ",           "LT",           "GT",
+    "LTEQ",          "GTEQ",         "SPACESHIP",
+    "LSHIFT",        "ARSHIFT",      "LRSHIFT",
+    "ADD",           "SUB",          "MUL",
+    "DIV",           "MOD",          "FIELD",
+    "PTRFIELD",      "ARRAY",        "CAST",
 };
 
 static char const *const UNOP_NAMES[] = {

@@ -41,6 +41,9 @@ BinOpType assignmentTokenToBinop(TokenType token) {
     case TT_DIVASSIGN: {
       return BO_DIVASSIGN;
     }
+    case TT_MODASSIGN: {
+      return BO_MODASSIGN;
+    }
     case TT_ADDASSIGN: {
       return BO_ADDASSIGN;
     }
