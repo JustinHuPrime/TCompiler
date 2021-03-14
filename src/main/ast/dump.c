@@ -551,11 +551,13 @@ static void nodeDump(FILE *where, Node *n) {
         case LT_WSTRING: {
           char *escaped = escapeTWString(n->data.literal.data.wstringVal);
           fprintf(where, "WSTRING(%s)", escaped);
+          free(escaped);
           break;
         }
         case LT_WCHAR: {
-          fprintf(where, "WCHAR(%s)",
-                  escapeTWChar(n->data.literal.data.wcharVal));
+          char *escaped = escapeTWChar(n->data.literal.data.wcharVal);
+          fprintf(where, "WCHAR(%s)", escaped);
+          free(escaped);
           break;
         }
         case LT_BOOL: {

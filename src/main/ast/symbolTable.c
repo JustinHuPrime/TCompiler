@@ -302,6 +302,11 @@ void typeFree(Type *t) {
     }
     case TK_AGGREGATE: {
       vectorUninit(&t->data.aggregate.types, (void (*)(void *))typeFree);
+      break;
+    }
+    case TK_REFERENCE: {
+      free(t->data.reference.id);
+      break;
     }
     default: {
       break;  // nothing to do

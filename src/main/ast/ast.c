@@ -1295,10 +1295,12 @@ void nodeFree(Node *n) {
     case NT_SWITCHCASE: {
       nodeVectorFree(n->data.switchCase.values);
       nodeFree(n->data.switchCase.body);
+      stabFree(n->data.switchCase.bodyStab);
       break;
     }
     case NT_SWITCHDEFAULT: {
       nodeFree(n->data.switchDefault.body);
+      stabFree(n->data.switchDefault.bodyStab);
       break;
     }
     case NT_BINOPEXP: {
