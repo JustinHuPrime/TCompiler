@@ -901,7 +901,20 @@ static void testTypedefDeclStmtParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testNullStmtParser(void) {}
+static void testNullStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/nullStmt.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/nullStmt.txt"));
+  nodeFree(entries[0].ast);
+}
 
 static void testSwitchCaseParser(void) {}
 
