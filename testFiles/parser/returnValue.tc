@@ -1,0 +1,5 @@
+module foo;
+
+int bar() {
+  return 0x1b;
+}

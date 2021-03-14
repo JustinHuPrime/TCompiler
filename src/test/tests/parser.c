@@ -652,11 +652,59 @@ static void testSwitchStmtParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testBreakStmtParser(void) {}
+static void testBreakStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testContinueStmtParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/break.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/break.txt"));
+  nodeFree(entries[0].ast);
+}
 
-static void testReturnStmtParser(void) {}
+static void testContinueStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/continue.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/continue.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testReturnStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/returnVoid.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/returnVoid.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/returnValue.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/returnValue.txt"));
+  nodeFree(entries[0].ast);
+}
 
 static void testAsmStmtParser(void) {}
 
