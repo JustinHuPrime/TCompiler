@@ -53,6 +53,17 @@ static void next(Node *unparsed, Token *t) {
   unparsed->data.unparsed.tokens->elements[unparsed->data.unparsed.curr++] =
       NULL;
 }
+
+/**
+ * returns a token to unparsed
+ *
+ * like lex, but returns tokens to unparsed nodes
+ *
+ * assumes you don't go past the start of the unparsed
+ *
+ * @param unparsed node to write to
+ * @param t token to read from
+ */
 static void prev(Node *unparsed, Token *t) {
   // malloc new block
   Token *saved = malloc(sizeof(Token));
@@ -2192,6 +2203,7 @@ static Node *parseForStmt(FileListEntry *entry, Node *unparsed,
   }
 
   Token peek;
+  // could technically use a peek function here, but it's only this one case
   next(unparsed, &peek);
   Node *increment = NULL;
   if (peek.type != TT_RPAREN) {
