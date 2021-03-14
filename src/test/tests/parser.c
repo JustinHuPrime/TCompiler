@@ -721,7 +721,51 @@ static void testAsmStmtParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testVariableDefinitionStmtParser(void) {}
+static void testVariableDefinitionStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/varDefnStmtOneVar.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/varDefnStmtOneVar.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/varDefnStmtManyVars.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/varDefnStmtManyVars.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/varDefnStmtExprInit.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/varDefnStmtExprInit.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/varDefnStmtMultiInit.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/varDefnStmtMultiInit.txt"));
+  nodeFree(entries[0].ast);
+}
 
 static void testExpressionStmtParser(void) {}
 

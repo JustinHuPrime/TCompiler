@@ -1,0 +1,5 @@
+module foo;
+
+void bar(int arg) {
+  int i = arg * 2, j = arg * 3;
+}
