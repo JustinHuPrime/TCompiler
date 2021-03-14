@@ -782,15 +782,124 @@ static void testExpressionStmtParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testOpaqueDeclStmtParser(void) {}
+static void testOpaqueDeclStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testStructDeclStmtParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/opaqueDeclStmtNoDefn.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/opaqueDeclStmtNoDefn.txt"));
+  nodeFree(entries[0].ast);
 
-static void testUnionDeclStmtParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/opaqueDeclStmtWithDefn.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/opaqueDeclStmtWithDefn.txt"));
+  nodeFree(entries[0].ast);
+}
 
-static void testEnumDeclStmtParser(void) {}
+static void testStructDeclStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testTypedefDeclStmtParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/structDeclStmtOneField.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/structDeclStmtOneField.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/structDeclStmtManyFields.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/structDeclStmtManyFields.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testUnionDeclStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/unionDeclStmtOneOption.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/unionDeclStmtOneOption.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/unionDeclStmtManyOptions.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/unionDeclStmtManyOptions.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testEnumDeclStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/enumDeclStmtOneConstant.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/enumDeclStmtOneConstant.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/enumDeclStmtManyConstants.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/enumDeclStmtManyConstants.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testTypedefDeclStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/typedefDeclStmt.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/typedefDeclStmt.txt"));
+  nodeFree(entries[0].ast);
+}
 
 static void testNullStmtParser(void) {}
 

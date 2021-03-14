@@ -1,0 +1,6 @@
+module foo;
+
+void bar() {
+  opaque o;
+  o *ptr = null;
+}

@@ -1,0 +1,7 @@
+module foo;
+
+void bar() {
+  union u {
+    int i;
+  };
+}

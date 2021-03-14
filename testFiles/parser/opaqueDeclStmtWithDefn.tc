@@ -1,0 +1,9 @@
+module foo;
+
+void bar() {
+  opaque o;
+  struct o {
+    int x, y;
+  };
+  o *ptr = null;
+}
