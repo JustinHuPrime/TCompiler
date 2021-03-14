@@ -53,4 +53,14 @@ bool typeIsIntegral(Type const *t);
  */
 bool typeIsInitializable(Type const *to, Type const *from);
 
+/**
+ * Produces true if given type can be used to mutate a variable of the target
+ * type
+ *
+ * @param from type to query
+ * @param to type to test against
+ * @returns if from can be used to assign to to
+ */
+bool typeIsAssignable(Type const *to, Type const *from);
+
 #endif  // TLC_TYPECHECKER_TYPEPREDICATES_H_
