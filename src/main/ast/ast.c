@@ -462,6 +462,7 @@ Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs) {
   n->data.binOpExp.op = op;
   n->data.binOpExp.lhs = lhs;
   n->data.binOpExp.rhs = rhs;
+  n->data.binOpExp.type = NULL;
   return n;
 }
 Node *castExpNodeCreate(Token const *opToken, Node *type, Node *target) {
@@ -469,6 +470,7 @@ Node *castExpNodeCreate(Token const *opToken, Node *type, Node *target) {
   n->data.binOpExp.op = BO_CAST;
   n->data.binOpExp.lhs = type;
   n->data.binOpExp.rhs = target;
+  n->data.binOpExp.type = NULL;
   return n;
 }
 Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,
@@ -477,35 +479,42 @@ Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,
   n->data.ternaryExp.predicate = predicate;
   n->data.ternaryExp.consequent = consequent;
   n->data.ternaryExp.alternative = alternative;
+  n->data.ternaryExp.type = NULL;
   return n;
 }
 Node *prefixUnOpExpNodeCreate(UnOpType op, Token const *opToken, Node *target) {
   Node *n = createNode(NT_UNOPEXP, opToken->line, opToken->character);
   n->data.unOpExp.op = op;
   n->data.unOpExp.target = target;
+  n->data.unOpExp.type = NULL;
   return n;
 }
 Node *postfixUnOpExpNodeCreate(UnOpType op, Node *target) {
   Node *n = createNode(NT_UNOPEXP, target->line, target->character);
   n->data.unOpExp.op = op;
   n->data.unOpExp.target = target;
+  n->data.unOpExp.type = NULL;
   return n;
 }
 Node *funCallExpNodeCreate(Node *function, Vector *arguments) {
   Node *n = createNode(NT_FUNCALLEXP, function->line, function->character);
   n->data.funCallExp.function = function;
   n->data.funCallExp.arguments = arguments;
+  n->data.funCallExp.type = NULL;
   return n;
 }
 
 Node *literalNodeCreate(LiteralType type, Token const *t) {
   Node *n = createNode(NT_LITERAL, t->line, t->character);
-  n->data.literal.type = type;
+  n->data.literal.literalType = type;
+  n->data.literal.type = NULL;
   return n;
 }
 Node *charLiteralNodeCreate(Token *t) {
   Node *n = createNode(NT_LITERAL, t->line, t->character);
-  n->data.literal.type = LT_CHAR;
+  n->data.literal.literalType = LT_CHAR;
+  n->data.literal.type = NULL;
+
   char *string = t->string;
 
   if (string[0] == '\\') {
@@ -555,7 +564,9 @@ Node *charLiteralNodeCreate(Token *t) {
 }
 Node *wcharLiteralNodeCreate(Token *t) {
   Node *n = createNode(NT_LITERAL, t->line, t->character);
-  n->data.literal.type = LT_WCHAR;
+  n->data.literal.literalType = LT_WCHAR;
+  n->data.literal.type = NULL;
+
   char *string = t->string;
 
   if (string[0] == '\\') {
@@ -613,7 +624,8 @@ Node *wcharLiteralNodeCreate(Token *t) {
 }
 Node *stringLiteralNodeCreate(Token *t) {
   Node *n = createNode(NT_LITERAL, t->line, t->character);
-  n->data.literal.type = LT_STRING;
+  n->data.literal.literalType = LT_STRING;
+  n->data.literal.type = NULL;
 
   TStringBuilder sb;
   tstringBuilderInit(&sb);
@@ -671,7 +683,8 @@ Node *stringLiteralNodeCreate(Token *t) {
 }
 Node *wstringLiteralNodeCreate(Token *t) {
   Node *n = createNode(NT_LITERAL, t->line, t->character);
-  n->data.literal.type = LT_WSTRING;
+  n->data.literal.literalType = LT_WSTRING;
+  n->data.literal.type = NULL;
 
   TWStringBuilder sb;
   twstringBuilderInit(&sb);
@@ -857,12 +870,14 @@ Node *scopedIdNodeCreate(Vector *components) {
   Node *n = createNode(NT_SCOPEDID, first->line, first->character);
   n->data.scopedId.components = components;
   n->data.scopedId.entry = NULL;
+  n->data.scopedId.type = NULL;
   return n;
 }
 Node *idNodeCreate(Token *id) {
   Node *n = createNode(NT_ID, id->line, id->character);
   n->data.id.id = id->string;
   n->data.id.entry = NULL;
+  n->data.id.type = NULL;
   return n;
 }
 
@@ -912,7 +927,7 @@ static void errorNotPositive(Node *n, Environment *env) {
 static uint64_t extendedIntLiteralToValue(Node *n, Environment *env) {
   switch (n->type) {
     case NT_LITERAL: {
-      switch (n->data.literal.type) {
+      switch (n->data.literal.literalType) {
         case LT_UBYTE: {
           return n->data.literal.data.ubyteVal;
         }
@@ -1306,25 +1321,29 @@ void nodeFree(Node *n) {
     case NT_BINOPEXP: {
       nodeFree(n->data.binOpExp.lhs);
       nodeFree(n->data.binOpExp.rhs);
+      typeFree(n->data.binOpExp.type);
       break;
     }
     case NT_TERNARYEXP: {
       nodeFree(n->data.ternaryExp.predicate);
       nodeFree(n->data.ternaryExp.consequent);
       nodeFree(n->data.ternaryExp.alternative);
+      typeFree(n->data.ternaryExp.type);
       break;
     }
     case NT_UNOPEXP: {
       nodeFree(n->data.unOpExp.target);
+      typeFree(n->data.unOpExp.type);
       break;
     }
     case NT_FUNCALLEXP: {
       nodeFree(n->data.funCallExp.function);
       nodeVectorFree(n->data.funCallExp.arguments);
+      typeFree(n->data.funCallExp.type);
       break;
     }
     case NT_LITERAL: {
-      switch (n->data.literal.type) {
+      switch (n->data.literal.literalType) {
         case LT_STRING: {
           free(n->data.literal.data.stringVal);
           break;
@@ -1341,6 +1360,7 @@ void nodeFree(Node *n) {
           break;
         }
       }
+      typeFree(n->data.literal.type);
       break;
     }
     case NT_KEYWORDTYPE: {
@@ -1363,10 +1383,12 @@ void nodeFree(Node *n) {
     }
     case NT_SCOPEDID: {
       nodeVectorFree(n->data.scopedId.components);
+      typeFree(n->data.scopedId.type);
       break;
     }
     case NT_ID: {
       free(n->data.id.id);
+      typeFree(n->data.id.type);
       break;
     }
     case NT_UNPARSED: {

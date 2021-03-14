@@ -286,6 +286,8 @@ char *typeToString(Type *t) {
   }
 }
 void typeFree(Type *t) {
+  if (t == NULL) return;
+
   switch (t->kind) {
     case TK_MODIFIED: {
       typeFree(t->data.modified.modified);

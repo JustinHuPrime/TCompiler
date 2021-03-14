@@ -493,7 +493,7 @@ static void nodeDump(FILE *where, Node *n) {
     }
     case NT_LITERAL: {
       fprintf(where, "LITERAL(%zu, %zu, ", n->line, n->character);
-      switch (n->data.literal.type) {
+      switch (n->data.literal.literalType) {
         case LT_UBYTE: {
           fprintf(where, "UBYTE(%hhu)", n->data.literal.data.ubyteVal);
           break;

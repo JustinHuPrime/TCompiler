@@ -331,23 +331,27 @@ typedef struct Node {
       BinOpType op;
       struct Node *lhs;
       struct Node *rhs;
+      Type *type;
     } binOpExp;
     struct {
       struct Node *predicate;   /**< expression */
       struct Node *consequent;  /**< expression */
       struct Node *alternative; /**< expression */
+      Type *type;
     } ternaryExp;
     struct {
       UnOpType op;
       struct Node *target;
+      Type *type;
     } unOpExp;
     struct {
       struct Node *function; /**< expression */
       Vector *arguments;     /**< vector of Nodes, each is an expression */
+      Type *type;
     } funCallExp;
 
     struct {
-      LiteralType type;
+      LiteralType literalType;
       union {
         uint8_t ubyteVal;
         int8_t byteVal;
@@ -368,6 +372,7 @@ typedef struct Node {
         Vector *aggregateInitVal; /**< vector of Nodes, each is an NT_LITERAL or
                                     an NT_SCOPEDID (enumeration constant) */
       } data;
+      Type *type;
     } literal;
 
     struct {
@@ -392,11 +397,13 @@ typedef struct Node {
                              long. these nodes have null stab entry variables */
       SymbolTableEntry *entry; /**< non-owning reference to the stab entry, if
                                   any, this references. Nullable */
+      Type *type;
     } scopedId;
     struct {
       char *id;
       SymbolTableEntry *entry; /**< non-owning reference to the stab entry, if
                                   any, this references. Nullable */
+      Type *type;
     } id;
 
     struct {

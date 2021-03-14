@@ -721,7 +721,7 @@ int buildTopLevelEnumStab(void) {
             current->data.enumConst.data.unsignedValue = 0;
           } else {
             // must be a plain (int, char, etc.) literal
-            switch (literal->data.literal.type) {
+            switch (literal->data.literal.literalType) {
               case LT_UBYTE: {
                 current->data.enumConst.signedness = false;
                 current->data.enumConst.data.unsignedValue =
@@ -1325,7 +1325,7 @@ void finishEnumStab(FileListEntry *entry, Node *body,
             current->data.enumConst.data.unsignedValue = 0;
           } else {
             // must be a plain (int, char, etc.) literal
-            switch (literal->data.literal.type) {
+            switch (literal->data.literal.literalType) {
               case LT_UBYTE: {
                 current->data.enumConst.signedness = false;
                 current->data.enumConst.data.unsignedValue =
