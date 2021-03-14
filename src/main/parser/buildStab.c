@@ -1146,12 +1146,6 @@ void finishEnumStab(FileListEntry *entry, Node *body,
   Vector *constantNames = body->data.enumDecl.constantNames;
   for (size_t idx = 0; idx < constantNames->size; ++idx) {
     Node *constantName = constantNames->elements[idx];
-    vectorInsert(&stabEntry->data.enumType.constantNames,
-                 constantName->data.id.id);
-    constantName->data.id.entry = enumConstStabEntryCreate(
-        entry, constantName->line, constantName->character, stabEntry);
-    vectorInsert(&stabEntry->data.enumType.constantValues,
-                 constantName->data.id.entry);
     SymbolTableEntry *existing =
         enumLookupEnumConst(stabEntry, constantName->data.id.id);
     if (existing != NULL) {
@@ -1161,6 +1155,14 @@ void finishEnumStab(FileListEntry *entry, Node *body,
                          existing->line, existing->character);
       errored = true;
     } else {
+      constantName->data.id.entry = enumConstStabEntryCreate(
+          entry, constantName->line, constantName->character, stabEntry);
+
+      vectorInsert(&stabEntry->data.enumType.constantNames,
+                   constantName->data.id.id);
+      vectorInsert(&stabEntry->data.enumType.constantValues,
+                   constantName->data.id.entry);
+
       vectorInsert(&enumConstants, constantName->data.id.entry);
       vectorInsert(&dependencies, NULL);
       vectorInsert(&enumValues,
