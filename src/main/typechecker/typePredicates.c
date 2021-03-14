@@ -198,71 +198,6 @@ static bool pointerTypeIsAssignable(Type const *toBase, Type const *fromBase) {
   }
 }
 
-/**
- * produce true if `to` is assignble to `from` without conversions
- *
- * assumes this is in the context of arrays - so from can't be an aggregate
- *
- * @param to type to assign to
- * @param from type to assign from
- * @returns if from can be converted to to via memcpy
- */
-static bool typeIsTriviallyInitializable(Type const *to, Type const *from) {
-  switch (to->kind) {
-    case TK_KEYWORD: {
-      // row 3-15
-      switch (from->kind) {
-        case TK_KEYWORD: {
-          return to->data.keyword.keyword == from->data.keyword.keyword;
-        }
-        case TK_MODIFIED: {
-          switch (from->data.modified.modifier) {
-            case TM_CONST:
-            case TM_VOLATILE: {
-              return typeIsTriviallyInitializable(to,
-                                                  from->data.modified.modified);
-            }
-            case TM_POINTER: {
-              return false;
-            }
-            default: {
-              error(__FILE__, __LINE__, "bad type modifier encountered");
-            }
-          }
-        }
-        default: {
-          return false;
-        }
-      }
-    }
-    case TK_MODIFIED: {
-      switch (to->data.modified.modifier) {
-        case TM_CONST:
-        case TM_VOLATILE: {
-          // row 20, 21
-          return typeIsTriviallyInitializable(to->data.modified.modified, from);
-        }
-        case TM_POINTER: {
-          // row 23
-          return typeIsInitializable(to, from);
-        }
-        default: {
-          error(__FILE__, __LINE__, "bad type modifier encountered");
-        }
-      }
-    }
-    case TK_REFERENCE:
-    case TK_ARRAY:
-    case TK_FUNPTR: {
-      // row 16, 17, 18, 19, 22, 24
-      return typeIsInitializable(to, from);
-    }
-    default: {
-      return false;
-    }
-  }
-}
-
 bool typeIsInitializable(Type const *to, Type const *from) {
   // implements appendix C
   switch (to->kind) {
@@ -834,9 +769,7 @@ bool typeIsInitializable(Type const *to, Type const *from) {
       // row 22
       switch (from->kind) {
         case TK_ARRAY: {
-          return to->data.array.length == from->data.array.length &&
-                 typeIsTriviallyInitializable(to->data.array.type,
-                                              from->data.array.type);
+          return typeEqual(to, from);
         }
         case TK_AGGREGATE: {
           Vector const *types = &to->data.aggregate.types;
