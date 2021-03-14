@@ -767,7 +767,20 @@ static void testVariableDefinitionStmtParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testExpressionStmtParser(void) {}
+static void testExpressionStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/expression.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/expression.txt"));
+  nodeFree(entries[0].ast);
+}
 
 static void testOpaqueDeclStmtParser(void) {}
 
