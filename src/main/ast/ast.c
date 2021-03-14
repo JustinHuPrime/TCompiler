@@ -1082,6 +1082,9 @@ Type *nodeToType(Node *n, Environment *env) {
     }
     case NT_ID: {
       SymbolTableEntry *entry = environmentLookup(env, n, false);
+      if (entry == NULL) {
+        return NULL;
+      }
       switch (entry->kind) {
         case SK_OPAQUE:
         case SK_STRUCT:
