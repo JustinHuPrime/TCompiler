@@ -449,12 +449,14 @@ static Node *parseLiteral(FileListEntry *entry) {
       uint64_t bits = doubleStringToBits(peek.string);
       Node *n = literalNodeCreate(LT_DOUBLE, &peek);
       n->data.literal.data.doubleBits = bits;
+      tokenUninit(&peek);
       return n;
     }
     case TT_LIT_FLOAT: {
       uint32_t bits = floatStringToBits(peek.string);
       Node *n = literalNodeCreate(LT_FLOAT, &peek);
       n->data.literal.data.floatBits = bits;
+      tokenUninit(&peek);
       return n;
     }
     case TT_TRUE:
