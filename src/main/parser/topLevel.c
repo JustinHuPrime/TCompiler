@@ -604,7 +604,7 @@ static Node *parseType(FileListEntry *entry) {
         }
 
         type = arrayTypeNodeCreate(type, size);
-        return NULL;
+        break;
       }
       case TT_STAR: {
         type = modifiedTypeNodeCreate(TM_POINTER, type);
