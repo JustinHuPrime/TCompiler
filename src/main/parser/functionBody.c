@@ -79,7 +79,7 @@ static void prev(Node *unparsed, Token *t) {
 /**
  * skips tokens until an end of stmt is encountered
  *
- * consumes semicolons, leaves start of stmt tokens (including any ids) and
+ * consumes semicolons, leaves start of stmt tokens (not including ids) and
  * left/right braces (components of a compoundStmt individually fail and panic,
  * but a compoundStmt never ends with a panic)
  *
@@ -116,7 +116,6 @@ static void panicStmt(Node *unparsed) {
       case TT_FLOAT:
       case TT_DOUBLE:
       case TT_BOOL:
-      case TT_ID:
       case TT_OPAQUE:
       case TT_STRUCT:
       case TT_UNION:
@@ -623,83 +622,91 @@ static Node *parseLiteral(FileListEntry *entry, Node *unparsed,
  * parses a type
  *
  * @param entry entry to lex from
+ * @param unparsed unparsed node to read from
+ * @param env environment to use
+ * @param startId first id node in type or null if no first id node
  * @returns AST node or NULL if fatal error happened
  */
-static Node *parseType(FileListEntry *entry, Node *unparsed, Environment *env) {
+static Node *parseType(FileListEntry *entry, Node *unparsed, Environment *env,
+                       Node *startId) {
   Node *type;
 
-  Token start;
-  next(unparsed, &start);
-  switch (start.type) {
-    case TT_VOID: {
-      type = keywordTypeNodeCreate(TK_VOID, &start);
-      break;
-    }
-    case TT_UBYTE: {
-      type = keywordTypeNodeCreate(TK_UBYTE, &start);
-      break;
-    }
-    case TT_BYTE: {
-      type = keywordTypeNodeCreate(TK_BYTE, &start);
-      break;
-    }
-    case TT_CHAR: {
-      type = keywordTypeNodeCreate(TK_CHAR, &start);
-      break;
-    }
-    case TT_USHORT: {
-      type = keywordTypeNodeCreate(TK_USHORT, &start);
-      break;
-    }
-    case TT_SHORT: {
-      type = keywordTypeNodeCreate(TK_SHORT, &start);
-      break;
-    }
-    case TT_UINT: {
-      type = keywordTypeNodeCreate(TK_UINT, &start);
-      break;
-    }
-    case TT_INT: {
-      type = keywordTypeNodeCreate(TK_INT, &start);
-      break;
-    }
-    case TT_WCHAR: {
-      type = keywordTypeNodeCreate(TK_WCHAR, &start);
-      break;
-    }
-    case TT_ULONG: {
-      type = keywordTypeNodeCreate(TK_ULONG, &start);
-      break;
-    }
-    case TT_LONG: {
-      type = keywordTypeNodeCreate(TK_LONG, &start);
-      break;
-    }
-    case TT_FLOAT: {
-      type = keywordTypeNodeCreate(TK_FLOAT, &start);
-      break;
-    }
-    case TT_DOUBLE: {
-      type = keywordTypeNodeCreate(TK_DOUBLE, &start);
-      break;
-    }
-    case TT_BOOL: {
-      type = keywordTypeNodeCreate(TK_BOOL, &start);
-      break;
-    }
-    case TT_ID: {
-      prev(unparsed, &start);
-      type = parseAnyId(entry, unparsed);
-      if (type == NULL) return NULL;
-      break;
-    }
-    default: {
-      errorExpectedString(entry, "a type", &start);
+  if (startId == NULL) {
+    Token start;
+    next(unparsed, &start);
+    switch (start.type) {
+      case TT_VOID: {
+        type = keywordTypeNodeCreate(TK_VOID, &start);
+        break;
+      }
+      case TT_UBYTE: {
+        type = keywordTypeNodeCreate(TK_UBYTE, &start);
+        break;
+      }
+      case TT_BYTE: {
+        type = keywordTypeNodeCreate(TK_BYTE, &start);
+        break;
+      }
+      case TT_CHAR: {
+        type = keywordTypeNodeCreate(TK_CHAR, &start);
+        break;
+      }
+      case TT_USHORT: {
+        type = keywordTypeNodeCreate(TK_USHORT, &start);
+        break;
+      }
+      case TT_SHORT: {
+        type = keywordTypeNodeCreate(TK_SHORT, &start);
+        break;
+      }
+      case TT_UINT: {
+        type = keywordTypeNodeCreate(TK_UINT, &start);
+        break;
+      }
+      case TT_INT: {
+        type = keywordTypeNodeCreate(TK_INT, &start);
+        break;
+      }
+      case TT_WCHAR: {
+        type = keywordTypeNodeCreate(TK_WCHAR, &start);
+        break;
+      }
+      case TT_ULONG: {
+        type = keywordTypeNodeCreate(TK_ULONG, &start);
+        break;
+      }
+      case TT_LONG: {
+        type = keywordTypeNodeCreate(TK_LONG, &start);
+        break;
+      }
+      case TT_FLOAT: {
+        type = keywordTypeNodeCreate(TK_FLOAT, &start);
+        break;
+      }
+      case TT_DOUBLE: {
+        type = keywordTypeNodeCreate(TK_DOUBLE, &start);
+        break;
+      }
+      case TT_BOOL: {
+        type = keywordTypeNodeCreate(TK_BOOL, &start);
+        break;
+      }
+      case TT_ID: {
+        prev(unparsed, &start);
+        type = parseAnyId(entry, unparsed);
+        if (type == NULL) return NULL;
+        break;
+      }
+      default: {
+        errorExpectedString(entry, "a type", &start);
 
-      prev(unparsed, &start);
+        prev(unparsed, &start);
 
-      return NULL;
+        return NULL;
+      }
     }
+  } else {
+    type = startId;
   }
 
   while (true) {
@@ -771,8 +778,8 @@ static Node *parseType(FileListEntry *entry, Node *unparsed, Environment *env) {
             case TT_DOUBLE:
             case TT_BOOL:
             case TT_ID: {
-              prev(unparsed, &start);
-              Node *argType = parseType(entry, unparsed, env);
+              prev(unparsed, &next2);
+              Node *argType = parseType(entry, unparsed, env, NULL);
               if (argType == NULL) {
                 nodeVectorFree(argTypes);
                 nodeVectorFree(argNames);
@@ -847,7 +854,7 @@ static Node *parseType(FileListEntry *entry, Node *unparsed, Environment *env) {
 static Node *parseFieldOrOptionDecl(FileListEntry *entry, Node *unparsed,
                                     Environment *env, Token *start) {
   prev(unparsed, start);
-  Node *type = parseType(entry, unparsed, env);
+  Node *type = parseType(entry, unparsed, env, NULL);
   if (type == NULL) {
     return NULL;
   }
@@ -903,10 +910,10 @@ static Node *parseFieldOrOptionDecl(FileListEntry *entry, Node *unparsed,
 }
 
 static Node *parseExpression(FileListEntry *entry, Node *unparsed,
-                             Environment *env);
+                             Environment *env, Node *start);
 
 static Node *parseAssignmentExpression(FileListEntry *entry, Node *unparsed,
-                                       Environment *env);
+                                       Environment *env, Node *start);
 
 /**
  * parses a primary expression
@@ -914,247 +921,254 @@ static Node *parseAssignmentExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
-                                    Environment *env) {
-  Token peek;
-  next(unparsed, &peek);
-  switch (peek.type) {
-    case TT_ID: {
-      prev(unparsed, &peek);
-      Node *n = parseAnyId(entry, unparsed);
-      SymbolTableEntry *stabEntry = environmentLookup(env, n, false);
-      if (stabEntry == NULL) {
-        return NULL;
-      } else if (stabEntry->kind != SK_ENUMCONST &&
-                 stabEntry->kind != SK_FUNCTION &&
-                 stabEntry->kind != SK_VARIABLE) {
-        fprintf(stderr, "%s:%zu:%zu: error: cannot use a type as a variable",
-                entry->inputFilename, n->line, n->character);
-        fprintf(stderr, "%s:%zu:%zu: note: declared here",
-                stabEntry->file->inputFilename, stabEntry->line,
-                stabEntry->character);
-        entry->errored = true;
-      } else {
-        if (n->type == NT_ID) {
-          n->data.id.entry = stabEntry;
+                                    Environment *env, Node *start) {
+  if (start == NULL) {
+    Token peek;
+    next(unparsed, &peek);
+    switch (peek.type) {
+      case TT_ID: {
+        prev(unparsed, &peek);
+        Node *n = parseAnyId(entry, unparsed);
+        SymbolTableEntry *stabEntry = environmentLookup(env, n, false);
+        if (stabEntry == NULL) {
+          return NULL;
+        } else if (stabEntry->kind != SK_ENUMCONST &&
+                   stabEntry->kind != SK_FUNCTION &&
+                   stabEntry->kind != SK_VARIABLE) {
+          fprintf(stderr, "%s:%zu:%zu: error: cannot use a type as a variable",
+                  entry->inputFilename, n->line, n->character);
+          fprintf(stderr, "%s:%zu:%zu: note: declared here",
+                  stabEntry->file->inputFilename, stabEntry->line,
+                  stabEntry->character);
+          entry->errored = true;
         } else {
-          n->data.scopedId.entry = stabEntry;
-        }
-      }
-      return n;
-    }
-    case TT_LIT_STRING:
-    case TT_LIT_WSTRING:
-    case TT_LIT_CHAR:
-    case TT_LIT_WCHAR:
-    case TT_LIT_INT_0:
-    case TT_LIT_INT_B:
-    case TT_LIT_INT_O:
-    case TT_LIT_INT_D:
-    case TT_LIT_INT_H:
-    case TT_LIT_DOUBLE:
-    case TT_LIT_FLOAT:
-    case TT_TRUE:
-    case TT_FALSE:
-    case TT_NULL:
-    case TT_BAD_CHAR:
-    case TT_BAD_BIN:
-    case TT_BAD_HEX:
-    case TT_BAD_STRING: {
-      prev(unparsed, &peek);
-      return parseLiteral(entry, unparsed, env);
-    }
-    case TT_CAST: {
-      Token langle;
-      next(unparsed, &langle);
-      if (langle.type != TT_LANGLE) {
-        errorExpectedToken(entry, TT_LANGLE, &langle);
-
-        prev(unparsed, &langle);
-        return NULL;
-      }
-
-      Node *type = parseType(entry, unparsed, env);
-      if (type == NULL) {
-        return NULL;
-      }
-
-      Token rangle;
-      next(unparsed, &rangle);
-      if (rangle.type != TT_RANGLE) {
-        errorExpectedToken(entry, TT_RANGLE, &rangle);
-
-        prev(unparsed, &rangle);
-
-        nodeFree(type);
-        return NULL;
-      }
-
-      Token lparen;
-      next(unparsed, &lparen);
-      if (lparen.type != TT_LPAREN) {
-        errorExpectedToken(entry, TT_LPAREN, &lparen);
-
-        prev(unparsed, &lparen);
-
-        nodeFree(type);
-        return NULL;
-      }
-
-      Node *target = parseExpression(entry, unparsed, env);
-      if (target == NULL) {
-        nodeFree(type);
-        return NULL;
-      }
-
-      Token rparen;
-      next(unparsed, &rparen);
-      if (rparen.type != TT_RPAREN) {
-        errorExpectedToken(entry, TT_RPAREN, &rparen);
-
-        prev(unparsed, &rparen);
-
-        nodeFree(target);
-        nodeFree(type);
-        return NULL;
-      }
-
-      return castExpNodeCreate(&peek, type, target);
-    }
-    case TT_SIZEOF: {
-      Token lparen;
-      next(unparsed, &lparen);
-      if (lparen.type != TT_LPAREN) {
-        errorExpectedToken(entry, TT_LPAREN, &lparen);
-        return NULL;
-      }
-
-      Token sizeofPeek;
-      next(unparsed, &sizeofPeek);
-      switch (sizeofPeek.type) {
-        case TT_VOID:
-        case TT_UBYTE:
-        case TT_BYTE:
-        case TT_CHAR:
-        case TT_USHORT:
-        case TT_UINT:
-        case TT_INT:
-        case TT_WCHAR:
-        case TT_ULONG:
-        case TT_LONG:
-        case TT_FLOAT:
-        case TT_DOUBLE:
-        case TT_BOOL: {
-          // unambiguously a type
-          prev(unparsed, &sizeofPeek);
-          Node *target = parseType(entry, unparsed, env);
-          if (target == NULL) {
-            return NULL;
-          }
-
-          return prefixUnOpExpNodeCreate(UO_SIZEOFTYPE, &peek, target);
-        }
-        case TT_ID: {
-          // maybe a type, maybe an expression - disambiguat
-          Node idNode;
-          idNode.type = NT_ID;
-          idNode.line = sizeofPeek.line;
-          idNode.character = sizeofPeek.character;
-          idNode.data.id.id = sizeofPeek.string;
-          idNode.data.id.entry = NULL;
-
-          SymbolTableEntry *symbolEntry =
-              environmentLookup(env, &idNode, false);
-          if (symbolEntry == NULL) {
-            prev(unparsed, &sizeofPeek);
-            return NULL;
-          }
-
-          switch (symbolEntry->kind) {
-            case SK_VARIABLE:
-            case SK_FUNCTION:
-            case SK_ENUMCONST: {
-              prev(unparsed, &sizeofPeek);
-              Node *target = parseExpression(entry, unparsed, env);
-              if (target == NULL) {
-                return NULL;
-              }
-
-              return prefixUnOpExpNodeCreate(UO_SIZEOFEXP, &peek, target);
-            }
-            case SK_OPAQUE:
-            case SK_STRUCT:
-            case SK_UNION:
-            case SK_ENUM:
-            case SK_TYPEDEF: {
-              prev(unparsed, &sizeofPeek);
-              Node *target = parseType(entry, unparsed, env);
-              if (target == NULL) {
-                return NULL;
-              }
-
-              return prefixUnOpExpNodeCreate(UO_SIZEOFTYPE, &peek, target);
-            }
-            default: {
-              error(__FILE__, __LINE__, "invalid SymbolKind enum encountered");
-            }
+          if (n->type == NT_ID) {
+            n->data.id.entry = stabEntry;
+          } else {
+            n->data.scopedId.entry = stabEntry;
           }
         }
-        case TT_STAR:
-        case TT_AMP:
-        case TT_INC:
-        case TT_DEC:
-        case TT_MINUS:
-        case TT_BANG:
-        case TT_TILDE:
-        case TT_CAST:
-        case TT_SIZEOF:
-        case TT_LPAREN:
-        case TT_LSQUARE: {
-          // unambiguously an expression
-          prev(unparsed, &sizeofPeek);
-          Node *target = parseExpression(entry, unparsed, env);
-          if (target == NULL) {
-            return NULL;
-          }
+        return n;
+      }
+      case TT_LIT_STRING:
+      case TT_LIT_WSTRING:
+      case TT_LIT_CHAR:
+      case TT_LIT_WCHAR:
+      case TT_LIT_INT_0:
+      case TT_LIT_INT_B:
+      case TT_LIT_INT_O:
+      case TT_LIT_INT_D:
+      case TT_LIT_INT_H:
+      case TT_LIT_DOUBLE:
+      case TT_LIT_FLOAT:
+      case TT_TRUE:
+      case TT_FALSE:
+      case TT_NULL:
+      case TT_BAD_CHAR:
+      case TT_BAD_BIN:
+      case TT_BAD_HEX:
+      case TT_BAD_STRING: {
+        prev(unparsed, &peek);
+        return parseLiteral(entry, unparsed, env);
+      }
+      case TT_CAST: {
+        Token langle;
+        next(unparsed, &langle);
+        if (langle.type != TT_LANGLE) {
+          errorExpectedToken(entry, TT_LANGLE, &langle);
 
-          return prefixUnOpExpNodeCreate(UO_SIZEOFEXP, &peek, target);
-        }
-        default: {
-          // unexpected token
-          errorExpectedString(entry, "a type or an expression", &peek);
-
-          prev(unparsed, &peek);
+          prev(unparsed, &langle);
           return NULL;
         }
+
+        Node *type = parseType(entry, unparsed, env, NULL);
+        if (type == NULL) {
+          return NULL;
+        }
+
+        Token rangle;
+        next(unparsed, &rangle);
+        if (rangle.type != TT_RANGLE) {
+          errorExpectedToken(entry, TT_RANGLE, &rangle);
+
+          prev(unparsed, &rangle);
+
+          nodeFree(type);
+          return NULL;
+        }
+
+        Token lparen;
+        next(unparsed, &lparen);
+        if (lparen.type != TT_LPAREN) {
+          errorExpectedToken(entry, TT_LPAREN, &lparen);
+
+          prev(unparsed, &lparen);
+
+          nodeFree(type);
+          return NULL;
+        }
+
+        Node *target = parseExpression(entry, unparsed, env, NULL);
+        if (target == NULL) {
+          nodeFree(type);
+          return NULL;
+        }
+
+        Token rparen;
+        next(unparsed, &rparen);
+        if (rparen.type != TT_RPAREN) {
+          errorExpectedToken(entry, TT_RPAREN, &rparen);
+
+          prev(unparsed, &rparen);
+
+          nodeFree(target);
+          nodeFree(type);
+          return NULL;
+        }
+
+        return castExpNodeCreate(&peek, type, target);
       }
-    }
-    case TT_LPAREN: {
-      Node *exp = parseExpression(entry, unparsed, env);
-      if (exp == NULL) {
+      case TT_SIZEOF: {
+        Token lparen;
+        next(unparsed, &lparen);
+        if (lparen.type != TT_LPAREN) {
+          errorExpectedToken(entry, TT_LPAREN, &lparen);
+          return NULL;
+        }
+
+        Token sizeofPeek;
+        next(unparsed, &sizeofPeek);
+        switch (sizeofPeek.type) {
+          case TT_VOID:
+          case TT_UBYTE:
+          case TT_BYTE:
+          case TT_CHAR:
+          case TT_USHORT:
+          case TT_UINT:
+          case TT_INT:
+          case TT_WCHAR:
+          case TT_ULONG:
+          case TT_LONG:
+          case TT_FLOAT:
+          case TT_DOUBLE:
+          case TT_BOOL: {
+            // unambiguously a type
+            prev(unparsed, &sizeofPeek);
+            Node *target = parseType(entry, unparsed, env, NULL);
+            if (target == NULL) {
+              return NULL;
+            }
+
+            return prefixUnOpExpNodeCreate(UO_SIZEOFTYPE, &peek, target);
+          }
+          case TT_ID: {
+            // maybe a type, maybe an expression - disambiguate
+
+            prev(unparsed, &peek);
+            Node *idNode = parseAnyId(entry, unparsed);
+
+            SymbolTableEntry *symbolEntry =
+                environmentLookup(env, idNode, false);
+            if (symbolEntry == NULL) {
+              nodeFree(idNode);
+              return NULL;
+            }
+
+            switch (symbolEntry->kind) {
+              case SK_VARIABLE:
+              case SK_FUNCTION:
+              case SK_ENUMCONST: {
+                Node *target = parseExpression(entry, unparsed, env, idNode);
+                if (target == NULL) {
+                  return NULL;
+                }
+
+                return prefixUnOpExpNodeCreate(UO_SIZEOFEXP, &peek, target);
+              }
+              case SK_OPAQUE:
+              case SK_STRUCT:
+              case SK_UNION:
+              case SK_ENUM:
+              case SK_TYPEDEF: {
+                prev(unparsed, &sizeofPeek);
+                Node *target = parseType(entry, unparsed, env, idNode);
+                if (target == NULL) {
+                  return NULL;
+                }
+
+                return prefixUnOpExpNodeCreate(UO_SIZEOFTYPE, &peek, target);
+              }
+              default: {
+                error(__FILE__, __LINE__,
+                      "invalid SymbolKind enum encountered");
+              }
+            }
+          }
+          case TT_STAR:
+          case TT_AMP:
+          case TT_INC:
+          case TT_DEC:
+          case TT_MINUS:
+          case TT_BANG:
+          case TT_TILDE:
+          case TT_CAST:
+          case TT_SIZEOF:
+          case TT_LPAREN:
+          case TT_LSQUARE: {
+            // unambiguously an expression
+            prev(unparsed, &sizeofPeek);
+            Node *target = parseExpression(entry, unparsed, env, NULL);
+            if (target == NULL) {
+              return NULL;
+            }
+
+            return prefixUnOpExpNodeCreate(UO_SIZEOFEXP, &peek, target);
+          }
+          default: {
+            // unexpected token
+            errorExpectedString(entry, "a type or an expression", &peek);
+
+            prev(unparsed, &peek);
+            return NULL;
+          }
+        }
+      }
+      case TT_LPAREN: {
+        Node *exp = parseExpression(entry, unparsed, env, NULL);
+        if (exp == NULL) {
+          return NULL;
+        }
+
+        Token rparen;
+        next(unparsed, &rparen);
+        if (rparen.type != TT_RPAREN) {
+          errorExpectedToken(entry, TT_RPAREN, &rparen);
+
+          nodeFree(exp);
+          return NULL;
+        }
+
+        return prefixUnOpExpNodeCreate(UO_PARENS, &peek, exp);
+      }
+      default: {
+        errorExpectedString(entry, "a primary expression", &peek);
+
+        prev(unparsed, &peek);
         return NULL;
       }
-
-      Token rparen;
-      next(unparsed, &rparen);
-      if (rparen.type != TT_RPAREN) {
-        errorExpectedToken(entry, TT_RPAREN, &rparen);
-
-        nodeFree(exp);
-        return NULL;
-      }
-
-      return prefixUnOpExpNodeCreate(UO_PARENS, &peek, exp);
     }
-    default: {
-      errorExpectedString(entry, "a primary expression", &peek);
-
-      prev(unparsed, &peek);
-      return NULL;
+  } else {
+    if (start->type == NT_ID) {
+      start->data.id.entry = environmentLookup(env, start, false);
+    } else {
+      start->data.scopedId.entry = environmentLookup(env, start, false);
     }
+    return start;
   }
 }
 
@@ -1164,12 +1178,13 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parsePostfixExpression(FileListEntry *entry, Node *unparsed,
-                                    Environment *env) {
-  Node *exp = parsePrimaryExpression(entry, unparsed, env);
+                                    Environment *env, Node *start) {
+  Node *exp = parsePrimaryExpression(entry, unparsed, env, start);
   if (exp == NULL) {
     return NULL;
   }
@@ -1198,7 +1213,7 @@ static Node *parsePostfixExpression(FileListEntry *entry, Node *unparsed,
           exp = funCallExpNodeCreate(exp, arguments);
         } else {
           prev(unparsed, &peek);
-          Node *arg = parseAssignmentExpression(entry, unparsed, env);
+          Node *arg = parseAssignmentExpression(entry, unparsed, env, NULL);
           if (arg == NULL) {
             nodeVectorFree(arguments);
             nodeFree(exp);
@@ -1214,7 +1229,8 @@ static Node *parsePostfixExpression(FileListEntry *entry, Node *unparsed,
                 break;
               }
               case TT_COMMA: {
-                Node *arg = parseAssignmentExpression(entry, unparsed, env);
+                Node *arg =
+                    parseAssignmentExpression(entry, unparsed, env, NULL);
                 if (arg == NULL) {
                   nodeVectorFree(arguments);
                   nodeFree(exp);
@@ -1240,7 +1256,7 @@ static Node *parsePostfixExpression(FileListEntry *entry, Node *unparsed,
         break;
       }
       case TT_LSQUARE: {
-        Node *index = parseExpression(entry, unparsed, env);
+        Node *index = parseExpression(entry, unparsed, env, NULL);
         if (index == NULL) {
           nodeFree(exp);
           return NULL;
@@ -1281,33 +1297,38 @@ static Node *parsePostfixExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parsePrefixExpression(FileListEntry *entry, Node *unparsed,
-                                   Environment *env) {
-  Token peek;
-  next(unparsed, &peek);
-  switch (peek.type) {
-    case TT_STAR:
-    case TT_AMP:
-    case TT_INC:
-    case TT_DEC:
-    case TT_MINUS:
-    case TT_BANG:
-    case TT_TILDE: {
-      Node *target = parsePrefixExpression(entry, unparsed, env);
-      if (target == NULL) {
-        return NULL;
-      }
+                                   Environment *env, Node *start) {
+  if (start == NULL) {
+    Token peek;
+    next(unparsed, &peek);
+    switch (peek.type) {
+      case TT_STAR:
+      case TT_AMP:
+      case TT_INC:
+      case TT_DEC:
+      case TT_MINUS:
+      case TT_BANG:
+      case TT_TILDE: {
+        Node *target = parsePrefixExpression(entry, unparsed, env, NULL);
+        if (target == NULL) {
+          return NULL;
+        }
 
-      return prefixUnOpExpNodeCreate(prefixTokenToUnop(peek.type), &peek,
-                                     target);
+        return prefixUnOpExpNodeCreate(prefixTokenToUnop(peek.type), &peek,
+                                       target);
+      }
+      default: {
+        prev(unparsed, &peek);
+        return parsePostfixExpression(entry, unparsed, env, NULL);
+      }
     }
-    default: {
-      prev(unparsed, &peek);
-      return parsePostfixExpression(entry, unparsed, env);
-    }
+  } else {
+    return parsePostfixExpression(entry, unparsed, env, start);
   }
 }
 
@@ -1317,12 +1338,13 @@ static Node *parsePrefixExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseMultiplicationExpression(FileListEntry *entry, Node *unparsed,
-                                           Environment *env) {
-  Node *exp = parsePrefixExpression(entry, unparsed, env);
+                                           Environment *env, Node *start) {
+  Node *exp = parsePrefixExpression(entry, unparsed, env, start);
   if (exp == NULL) {
     return NULL;
   }
@@ -1334,7 +1356,7 @@ static Node *parseMultiplicationExpression(FileListEntry *entry, Node *unparsed,
       case TT_STAR:
       case TT_SLASH:
       case TT_PERCENT: {
-        Node *rhs = parsePrefixExpression(entry, unparsed, env);
+        Node *rhs = parsePrefixExpression(entry, unparsed, env, NULL);
         if (rhs == NULL) {
           nodeFree(exp);
           return NULL;
@@ -1357,12 +1379,13 @@ static Node *parseMultiplicationExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseAdditionExpression(FileListEntry *entry, Node *unparsed,
-                                     Environment *env) {
-  Node *exp = parseMultiplicationExpression(entry, unparsed, env);
+                                     Environment *env, Node *start) {
+  Node *exp = parseMultiplicationExpression(entry, unparsed, env, start);
   if (exp == NULL) {
     return NULL;
   }
@@ -1373,7 +1396,7 @@ static Node *parseAdditionExpression(FileListEntry *entry, Node *unparsed,
     switch (op.type) {
       case TT_PLUS:
       case TT_MINUS: {
-        Node *rhs = parseMultiplicationExpression(entry, unparsed, env);
+        Node *rhs = parseMultiplicationExpression(entry, unparsed, env, NULL);
         if (rhs == NULL) {
           nodeFree(exp);
           return NULL;
@@ -1396,12 +1419,13 @@ static Node *parseAdditionExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseShiftExpression(FileListEntry *entry, Node *unparsed,
-                                  Environment *env) {
-  Node *exp = parseAdditionExpression(entry, unparsed, env);
+                                  Environment *env, Node *start) {
+  Node *exp = parseAdditionExpression(entry, unparsed, env, start);
   if (exp == NULL) {
     return NULL;
   }
@@ -1413,7 +1437,7 @@ static Node *parseShiftExpression(FileListEntry *entry, Node *unparsed,
       case TT_LSHIFT:
       case TT_ARSHIFT:
       case TT_LRSHIFT: {
-        Node *rhs = parseAdditionExpression(entry, unparsed, env);
+        Node *rhs = parseAdditionExpression(entry, unparsed, env, NULL);
         if (rhs == NULL) {
           nodeFree(exp);
           return NULL;
@@ -1436,12 +1460,13 @@ static Node *parseShiftExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseSpaceshipExpression(FileListEntry *entry, Node *unparsed,
-                                      Environment *env) {
-  Node *exp = parseShiftExpression(entry, unparsed, env);
+                                      Environment *env, Node *start) {
+  Node *exp = parseShiftExpression(entry, unparsed, env, start);
   if (exp == NULL) {
     return NULL;
   }
@@ -1454,7 +1479,7 @@ static Node *parseSpaceshipExpression(FileListEntry *entry, Node *unparsed,
       return exp;
     }
 
-    Node *rhs = parseShiftExpression(entry, unparsed, env);
+    Node *rhs = parseShiftExpression(entry, unparsed, env, NULL);
     if (rhs == NULL) {
       nodeFree(exp);
       return NULL;
@@ -1470,12 +1495,13 @@ static Node *parseSpaceshipExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseComparisonExpression(FileListEntry *entry, Node *unparsed,
-                                       Environment *env) {
-  Node *exp = parseSpaceshipExpression(entry, unparsed, env);
+                                       Environment *env, Node *start) {
+  Node *exp = parseSpaceshipExpression(entry, unparsed, env, start);
   if (exp == NULL) {
     return NULL;
   }
@@ -1488,7 +1514,7 @@ static Node *parseComparisonExpression(FileListEntry *entry, Node *unparsed,
       case TT_RANGLE:
       case TT_LTEQ:
       case TT_GTEQ: {
-        Node *rhs = parseSpaceshipExpression(entry, unparsed, env);
+        Node *rhs = parseSpaceshipExpression(entry, unparsed, env, NULL);
         if (rhs == NULL) {
           nodeFree(exp);
           return NULL;
@@ -1511,12 +1537,13 @@ static Node *parseComparisonExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseEqualityExpression(FileListEntry *entry, Node *unparsed,
-                                     Environment *env) {
-  Node *exp = parseComparisonExpression(entry, unparsed, env);
+                                     Environment *env, Node *start) {
+  Node *exp = parseComparisonExpression(entry, unparsed, env, start);
   if (exp == NULL) {
     return NULL;
   }
@@ -1527,7 +1554,7 @@ static Node *parseEqualityExpression(FileListEntry *entry, Node *unparsed,
     switch (op.type) {
       case TT_EQ:
       case TT_NEQ: {
-        Node *rhs = parseComparisonExpression(entry, unparsed, env);
+        Node *rhs = parseComparisonExpression(entry, unparsed, env, NULL);
         if (rhs == NULL) {
           nodeFree(exp);
           return NULL;
@@ -1550,12 +1577,13 @@ static Node *parseEqualityExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseBitwiseExpression(FileListEntry *entry, Node *unparsed,
-                                    Environment *env) {
-  Node *exp = parseEqualityExpression(entry, unparsed, env);
+                                    Environment *env, Node *start) {
+  Node *exp = parseEqualityExpression(entry, unparsed, env, start);
   if (exp == NULL) {
     return NULL;
   }
@@ -1567,7 +1595,7 @@ static Node *parseBitwiseExpression(FileListEntry *entry, Node *unparsed,
       case TT_AMP:
       case TT_BAR:
       case TT_CARET: {
-        Node *rhs = parseEqualityExpression(entry, unparsed, env);
+        Node *rhs = parseEqualityExpression(entry, unparsed, env, NULL);
         if (rhs == NULL) {
           nodeFree(exp);
           return NULL;
@@ -1590,12 +1618,13 @@ static Node *parseBitwiseExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseLogicalExpression(FileListEntry *entry, Node *unparsed,
-                                    Environment *env) {
-  Node *exp = parseBitwiseExpression(entry, unparsed, env);
+                                    Environment *env, Node *start) {
+  Node *exp = parseBitwiseExpression(entry, unparsed, env, start);
   if (exp == NULL) {
     return NULL;
   }
@@ -1606,7 +1635,7 @@ static Node *parseLogicalExpression(FileListEntry *entry, Node *unparsed,
     switch (op.type) {
       case TT_LAND:
       case TT_LOR: {
-        Node *rhs = parseLogicalExpression(entry, unparsed, env);
+        Node *rhs = parseLogicalExpression(entry, unparsed, env, NULL);
         if (rhs == NULL) {
           nodeFree(exp);
           return NULL;
@@ -1629,12 +1658,13 @@ static Node *parseLogicalExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseTernaryExpression(FileListEntry *entry, Node *unparsed,
-                                    Environment *env) {
-  Node *predicate = parseLogicalExpression(entry, unparsed, env);
+                                    Environment *env, Node *start) {
+  Node *predicate = parseLogicalExpression(entry, unparsed, env, start);
   if (predicate == NULL) {
     return NULL;
   }
@@ -1646,7 +1676,7 @@ static Node *parseTernaryExpression(FileListEntry *entry, Node *unparsed,
     return predicate;
   }
 
-  Node *consequent = parseExpression(entry, unparsed, env);
+  Node *consequent = parseExpression(entry, unparsed, env, NULL);
   if (consequent == NULL) {
     nodeFree(predicate);
     return NULL;
@@ -1664,7 +1694,7 @@ static Node *parseTernaryExpression(FileListEntry *entry, Node *unparsed,
     return NULL;
   }
 
-  Node *alternative = parseTernaryExpression(entry, unparsed, env);
+  Node *alternative = parseTernaryExpression(entry, unparsed, env, NULL);
   if (alternative == NULL) {
     nodeFree(consequent);
     nodeFree(predicate);
@@ -1680,12 +1710,13 @@ static Node *parseTernaryExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseAssignmentExpression(FileListEntry *entry, Node *unparsed,
-                                       Environment *env) {
-  Node *lhs = parseTernaryExpression(entry, unparsed, env);
+                                       Environment *env, Node *start) {
+  Node *lhs = parseTernaryExpression(entry, unparsed, env, start);
   if (lhs == NULL) {
     return NULL;
   }
@@ -1707,7 +1738,7 @@ static Node *parseAssignmentExpression(FileListEntry *entry, Node *unparsed,
     case TT_BITORASSIGN:
     case TT_LANDASSIGN:
     case TT_LORASSIGN: {
-      Node *rhs = parseAssignmentExpression(entry, unparsed, env);
+      Node *rhs = parseAssignmentExpression(entry, unparsed, env, NULL);
       if (rhs == NULL) {
         nodeFree(lhs);
         return NULL;
@@ -1728,12 +1759,13 @@ static Node *parseAssignmentExpression(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first id in expression, or null if none provided
  *
  * @returns node or null on error
  */
 static Node *parseExpression(FileListEntry *entry, Node *unparsed,
-                             Environment *env) {
-  Node *lhs = parseAssignmentExpression(entry, unparsed, env);
+                             Environment *env, Node *start) {
+  Node *lhs = parseAssignmentExpression(entry, unparsed, env, start);
   if (lhs == NULL) {
     return NULL;
   }
@@ -1745,7 +1777,7 @@ static Node *parseExpression(FileListEntry *entry, Node *unparsed,
     return lhs;
   }
 
-  Node *rhs = parseExpression(entry, unparsed, env);
+  Node *rhs = parseExpression(entry, unparsed, env, NULL);
   if (rhs == NULL) {
     nodeFree(lhs);
     return NULL;
@@ -1925,7 +1957,7 @@ static Node *parseIfStmt(FileListEntry *entry, Node *unparsed, Environment *env,
     return NULL;
   }
 
-  Node *predicate = parseExpression(entry, unparsed, env);
+  Node *predicate = parseExpression(entry, unparsed, env, NULL);
   if (predicate == NULL) {
     panicStmt(unparsed);
     return NULL;
@@ -1997,7 +2029,7 @@ static Node *parseWhileStmt(FileListEntry *entry, Node *unparsed,
     return NULL;
   }
 
-  Node *condition = parseExpression(entry, unparsed, env);
+  Node *condition = parseExpression(entry, unparsed, env, NULL);
   if (condition == NULL) {
     panicStmt(unparsed);
     return NULL;
@@ -2075,7 +2107,7 @@ static Node *parseDoWhileStmt(FileListEntry *entry, Node *unparsed,
     return NULL;
   }
 
-  Node *condition = parseExpression(entry, unparsed, env);
+  Node *condition = parseExpression(entry, unparsed, env, NULL);
   if (condition == NULL) {
     panicStmt(unparsed);
 
@@ -2187,7 +2219,7 @@ static Node *parseForStmt(FileListEntry *entry, Node *unparsed,
     return NULL;
   }
 
-  Node *condition = parseExpression(entry, unparsed, env);
+  Node *condition = parseExpression(entry, unparsed, env, NULL);
   if (condition == NULL) {
     panicStmt(unparsed);
 
@@ -2215,7 +2247,7 @@ static Node *parseForStmt(FileListEntry *entry, Node *unparsed,
   if (peek.type != TT_RPAREN) {
     // increment isn't null
     prev(unparsed, &peek);
-    increment = parseExpression(entry, unparsed, env);
+    increment = parseExpression(entry, unparsed, env, NULL);
     if (increment == NULL) {
       panicStmt(unparsed);
 
@@ -2281,7 +2313,7 @@ static Node *parseSwitchStmt(FileListEntry *entry, Node *unparsed,
     return NULL;
   }
 
-  Node *condition = parseExpression(entry, unparsed, env);
+  Node *condition = parseExpression(entry, unparsed, env, NULL);
   if (condition == NULL) {
     panicStmt(unparsed);
     return NULL;
@@ -2435,7 +2467,7 @@ static Node *parseReturnStmt(FileListEntry *entry, Node *unparsed,
     return returnStmtNodeCreate(start, NULL);
   } else {
     prev(unparsed, &peek);
-    Node *value = parseExpression(entry, unparsed, env);
+    Node *value = parseExpression(entry, unparsed, env, NULL);
 
     Token semi;
     next(unparsed, &semi);
@@ -2496,12 +2528,13 @@ static Node *parseAsmStmt(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first ID in type (or null if none)
  *
  * @returns node or null on error
  */
 static Node *parseVarDefnStmt(FileListEntry *entry, Node *unparsed,
-                              Environment *env) {
-  Node *typeNode = parseType(entry, unparsed, env);
+                              Environment *env, Node *start) {
+  Node *typeNode = parseType(entry, unparsed, env, start);
   if (typeNode == NULL) {
     panicStmt(unparsed);
     return NULL;
@@ -2527,7 +2560,8 @@ static Node *parseVarDefnStmt(FileListEntry *entry, Node *unparsed,
     switch (peek.type) {
       case TT_ASSIGN: {
         // has initializer
-        Node *initializer = parseAssignmentExpression(entry, unparsed, env);
+        Node *initializer =
+            parseAssignmentExpression(entry, unparsed, env, NULL);
         if (initializer == NULL) {
           panicStmt(unparsed);
 
@@ -2636,12 +2670,13 @@ static Node *parseVarDefnStmt(FileListEntry *entry, Node *unparsed,
  * @param entry entry containing this node
  * @param unparsed unparsed node to read from
  * @param env environment to use
+ * @param start first ID in expression or NULL if none exists
  *
  * @returns node or null on error
  */
 static Node *parseExpressionStmt(FileListEntry *entry, Node *unparsed,
-                                 Environment *env) {
-  Node *expression = parseExpression(entry, unparsed, env);
+                                 Environment *env, Node *start) {
+  Node *expression = parseExpression(entry, unparsed, env, start);
   if (expression == NULL) {
     panicStmt(unparsed);
     return NULL;
@@ -3146,7 +3181,7 @@ static Node *parseEnumDecl(FileListEntry *entry, Node *unparsed,
  */
 static Node *parseTypedefDecl(FileListEntry *entry, Node *unparsed,
                               Environment *env, Token *start) {
-  Node *originalType = parseType(entry, unparsed, env);
+  Node *originalType = parseType(entry, unparsed, env, NULL);
   if (originalType == NULL) {
     panicStmt(unparsed);
 
@@ -3258,20 +3293,18 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
     case TT_DOUBLE:
     case TT_BOOL: {
       prev(unparsed, &peek);
-      return parseVarDefnStmt(entry, unparsed, env);
+      return parseVarDefnStmt(entry, unparsed, env, NULL);
     }
     case TT_ID: {
       // maybe varDefn, maybe expressionStmt - disambiguate
-      Node idNode;
-      idNode.type = NT_ID;
-      idNode.line = peek.line;
-      idNode.character = peek.character;
-      idNode.data.id.id = peek.string;
-      idNode.data.id.entry = NULL;
 
-      SymbolTableEntry *symbolEntry = environmentLookup(env, &idNode, false);
+      // get the whole ID, if it's scoped
+      prev(unparsed, &peek);
+      Node *idNode = parseAnyId(entry, unparsed);
+
+      SymbolTableEntry *symbolEntry = environmentLookup(env, idNode, false);
       if (symbolEntry == NULL) {
-        prev(unparsed, &peek);
+        nodeFree(idNode);
         panicStmt(unparsed);
         return NULL;
       }
@@ -3280,16 +3313,14 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
         case SK_VARIABLE:
         case SK_FUNCTION:
         case SK_ENUMCONST: {
-          prev(unparsed, &peek);
-          return parseExpressionStmt(entry, unparsed, env);
+          return parseExpressionStmt(entry, unparsed, env, idNode);
         }
         case SK_OPAQUE:
         case SK_STRUCT:
         case SK_UNION:
         case SK_ENUM:
         case SK_TYPEDEF: {
-          prev(unparsed, &peek);
-          return parseVarDefnStmt(entry, unparsed, env);
+          return parseVarDefnStmt(entry, unparsed, env, idNode);
         }
         default: {
           error(__FILE__, __LINE__, "invalid SymbolKind enum encountered");
@@ -3327,7 +3358,7 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
     case TT_NULL: {
       // unambiguously an expressionStmt
       prev(unparsed, &peek);
-      return parseExpressionStmt(entry, unparsed, env);
+      return parseExpressionStmt(entry, unparsed, env, NULL);
     }
     case TT_OPAQUE: {
       return parseOpaqueDecl(entry, unparsed, env, &peek);
