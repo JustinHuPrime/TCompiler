@@ -626,7 +626,31 @@ static void testForStmtParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testSwitchStmtParser(void) {}
+static void testSwitchStmtParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/switchStmtOneCase.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/switchStmtOneCase.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/switchStmtManyCases.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/switchStmtManyCases.txt"));
+  nodeFree(entries[0].ast);
+}
 
 static void testBreakStmtParser(void) {}
 
@@ -651,6 +675,10 @@ static void testEnumDeclStmtParser(void) {}
 static void testTypedefDeclStmtParser(void) {}
 
 static void testNullStmtParser(void) {}
+
+static void testSwitchCaseParser(void) {}
+
+static void testSwitchDefaultParser(void) {}
 
 // TODO: expression parser tests
 
@@ -691,4 +719,7 @@ void testParser(void) {
   testEnumDeclStmtParser();
   testTypedefDeclStmtParser();
   testNullStmtParser();
+
+  testSwitchCaseParser();
+  testSwitchDefaultParser();
 }
