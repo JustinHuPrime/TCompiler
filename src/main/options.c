@@ -1,4 +1,4 @@
-// Copyright 2020 Justin Hu
+// Copyright 2020-2021 Justin Hu
 //
 // This file is part of the T Language Compiler.
 //
