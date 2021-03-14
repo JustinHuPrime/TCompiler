@@ -136,19 +136,19 @@ Type *referenceTypeCreate(struct SymbolTableEntry *entry, char *id);
 /**
  * deep copies a type
  */
-Type *typeCopy(Type *);
+Type *typeCopy(Type const *);
 /**
  * is a equal to b
  */
-bool typeEqual(Type *a, Type *b);
+bool typeEqual(Type const *a, Type const *b);
 /**
  * format a list of types
  */
-char *typeVectorToString(Vector *v);
+char *typeVectorToString(Vector const *v);
 /**
  * format a type
  */
-char *typeToString(Type *t);
+char *typeToString(Type const *t);
 /**
  * deinitializes a type
  *

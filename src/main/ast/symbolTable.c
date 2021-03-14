@@ -75,7 +75,7 @@ Type *referenceTypeCreate(SymbolTableEntry *entry, char *id) {
   t->data.reference.id = id;
   return t;
 }
-Type *typeCopy(Type *t) {
+Type *typeCopy(Type const *t) {
   switch (t->kind) {
     case TK_KEYWORD: {
       return keywordTypeCreate(t->data.keyword.keyword);
@@ -111,7 +111,7 @@ Type *typeCopy(Type *t) {
     }
   }
 }
-bool typeEqual(Type *a, Type *b) {
+bool typeEqual(Type const *a, Type const *b) {
   if (a->kind != b->kind) return false;
 
   switch (a->kind) {
@@ -165,7 +165,7 @@ bool typeEqual(Type *a, Type *b) {
     }
   }
 }
-char *typeVectorToString(Vector *v) {
+char *typeVectorToString(Vector const *v) {
   if (v->size == 0) {
     return strdup("");
   } else {
@@ -180,7 +180,7 @@ char *typeVectorToString(Vector *v) {
     return base;
   }
 }
-char *typeToString(Type *t) {
+char *typeToString(Type const *t) {
   switch (t->kind) {
     case TK_KEYWORD: {
       switch (t->data.keyword.keyword) {
