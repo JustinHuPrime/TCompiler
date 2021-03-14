@@ -97,19 +97,21 @@ static SymbolTableEntry *environmentLookupUnscoped(Environment *env,
     if (matched != NULL) matches[numMatches++] = matched;
   }
 
-  if (numMatches == 0 && !quiet) {
-    errorNoDecl(env->currentModuleFile, nameNode);
+  if (numMatches == 0) {
+    if (!quiet) errorNoDecl(env->currentModuleFile, nameNode);
     free(matches);
     return NULL;
-  } else if (numMatches > 1 && !quiet) {
-    fprintf(stderr,
-            "%s:%zu:%zu: error: '%s' declared in mutliple imported modules\n",
-            env->currentModuleFile->inputFilename, nameNode->line,
-            nameNode->character, name);
-    for (size_t idx = 0; idx < numMatches; ++idx)
-      fprintf(stderr, "%s:%zu:%zu: note: declared here\n",
-              matches[idx]->file->inputFilename, matches[idx]->line,
-              matches[idx]->character);
+  } else if (numMatches > 1) {
+    if (!quiet) {
+      fprintf(stderr,
+              "%s:%zu:%zu: error: '%s' declared in mutliple imported modules\n",
+              env->currentModuleFile->inputFilename, nameNode->line,
+              nameNode->character, name);
+      for (size_t idx = 0; idx < numMatches; ++idx)
+        fprintf(stderr, "%s:%zu:%zu: note: declared here\n",
+                matches[idx]->file->inputFilename, matches[idx]->line,
+                matches[idx]->character);
+    }
     free(matches);
     return NULL;
   } else {
