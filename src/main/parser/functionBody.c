@@ -1204,11 +1204,13 @@ static Node *parsePostfixExpression(FileListEntry *entry, Node *unparsed,
             nodeFree(exp);
             return NULL;
           }
-          while (true) {
+          bool done = false;
+          while (!done) {
             next(unparsed, &peek);
             switch (peek.type) {
               case TT_RPAREN: {
                 exp = funCallExpNodeCreate(exp, arguments);
+                done = true;
                 break;
               }
               case TT_COMMA: {
