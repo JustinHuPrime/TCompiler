@@ -1242,50 +1242,52 @@ void finishEnumStab(FileListEntry *entry, Node *body,
       path->prev = NULL;
 
       processed[startIdx] = true;
-      size_t curr =
-          constantEntryFind(&enumConstants, dependencies.elements[startIdx]);
-      while (true) {
-        // loop that's my problem detected - complain
-        if (curr == startIdx) {
-          errored = true;
-          SymbolTableEntry *start = enumConstants.elements[startIdx];
-          fprintf(stderr,
-                  "%s:%zu:%zu: error: circular reference in enumeration "
-                  "constants\n",
-                  start->file->inputFilename, start->line, start->character);
-          PathNode *currPathNode = path;
-          while (currPathNode != NULL) {
-            currPathNode = currPathNode->prev;
-            SymbolTableEntry *currEntry =
-                enumConstants.elements[currPathNode->curr];
-            fprintf(stderr, "%s:%zu:%zu: note: references above\n",
-                    currEntry->file->inputFilename, currEntry->line,
-                    currEntry->character);
-          }
-          break;
-        }
-
-        // loop that's not my problem detected - stop early
-        PathNode *currPathNode = path;
-        bool willBreak = false;
-        while (currPathNode != NULL) {
-          if (currPathNode->curr == curr) {
-            // is in a loop - break
-            willBreak = true;
+      if (dependencies.elements[startIdx] != NULL) {
+        size_t curr =
+            constantEntryFind(&enumConstants, dependencies.elements[startIdx]);
+        while (true) {
+          // loop that's my problem detected - complain
+          if (curr == startIdx) {
+            errored = true;
+            SymbolTableEntry *start = enumConstants.elements[startIdx];
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: circular reference in enumeration "
+                    "constants\n",
+                    start->file->inputFilename, start->line, start->character);
+            PathNode *currPathNode = path;
+            while (currPathNode != NULL) {
+              currPathNode = currPathNode->prev;
+              SymbolTableEntry *currEntry =
+                  enumConstants.elements[currPathNode->curr];
+              fprintf(stderr, "%s:%zu:%zu: note: references above\n",
+                      currEntry->file->inputFilename, currEntry->line,
+                      currEntry->character);
+            }
             break;
           }
-          currPathNode = path->prev;
+
+          // loop that's not my problem detected - stop early
+          PathNode *currPathNode = path;
+          bool willBreak = false;
+          while (currPathNode != NULL) {
+            if (currPathNode->curr == curr) {
+              // is in a loop - break
+              willBreak = true;
+              break;
+            }
+            currPathNode = path->prev;
+          }
+          if (willBreak) break;
+
+          PathNode *newPath = malloc(sizeof(PathNode));
+          newPath->curr = curr;
+          newPath->prev = path;
+          path = newPath;
+
+          SymbolTableEntry *dependency = dependencies.elements[startIdx];
+          if (dependency == NULL) break;
+          curr = constantEntryFind(&enumConstants, dependency);
         }
-        if (willBreak) break;
-
-        PathNode *newPath = malloc(sizeof(PathNode));
-        newPath->curr = curr;
-        newPath->prev = path;
-        path = newPath;
-
-        SymbolTableEntry *dependency = dependencies.elements[startIdx];
-        if (dependency == NULL) break;
-        curr = constantEntryFind(&enumConstants, dependency);
       }
 
       while (path != NULL) {
