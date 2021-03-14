@@ -1,0 +1,7 @@
+module foo;
+
+int bar(int i) {
+  switch (i) {
+    default: return 1;
+  }
+}

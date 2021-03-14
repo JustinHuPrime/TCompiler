@@ -1,0 +1,10 @@
+module foo;
+
+int bar(int i) {
+  switch (i) {
+    case 0:
+    case 1:
+    case -1: { return 0; }
+    default: return 1;
+  }
+}

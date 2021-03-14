@@ -916,9 +916,46 @@ static void testNullStmtParser(void) {
   nodeFree(entries[0].ast);
 }
 
-static void testSwitchCaseParser(void) {}
+static void testSwitchCaseParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
 
-static void testSwitchDefaultParser(void) {}
+  entries[0].inputFilename = "testFiles/parser/switchCaseOneValue.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/switchCaseOneValue.txt"));
+  nodeFree(entries[0].ast);
+
+  entries[0].inputFilename = "testFiles/parser/switchCaseManyValues.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0],
+                 "testFiles/parser/expected/switchCaseManyValues.txt"));
+  nodeFree(entries[0].ast);
+}
+
+static void testSwitchDefaultParser(void) {
+  FileListEntry entries[1];
+  fileList.entries = &entries[0];
+  fileList.size = 1;
+
+  entries[0].inputFilename = "testFiles/parser/switchDefault.tc";
+  entries[0].isCode = true;
+  entries[0].errored = false;
+  test("parser accepts the file", parse() == 0);
+  test("file has not errored", entries[0].errored == false);
+  test("ast is correct",
+       dumpEqual(&entries[0], "testFiles/parser/expected/switchDefault.txt"));
+  nodeFree(entries[0].ast);
+}
 
 // TODO: expression parser tests
 
