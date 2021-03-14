@@ -926,8 +926,11 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
       prev(unparsed, &peek);
       Node *n = parseAnyId(entry, unparsed);
       SymbolTableEntry *stabEntry = environmentLookup(env, n, false);
-      if (stabEntry->kind != SK_ENUMCONST && stabEntry->kind != SK_FUNCTION &&
-          stabEntry->kind != SK_VARIABLE) {
+      if (stabEntry == NULL) {
+        return NULL;
+      } else if (stabEntry->kind != SK_ENUMCONST &&
+                 stabEntry->kind != SK_FUNCTION &&
+                 stabEntry->kind != SK_VARIABLE) {
         fprintf(stderr, "%s:%zu:%zu: error: cannot use a type as a variable",
                 entry->inputFilename, n->line, n->character);
         fprintf(stderr, "%s:%zu:%zu: note: declared here",
