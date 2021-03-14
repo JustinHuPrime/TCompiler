@@ -1562,8 +1562,9 @@ static Node *parseBitwiseExpression(FileListEntry *entry, Node *unparsed,
     Token op;
     next(unparsed, &op);
     switch (op.type) {
-      case TT_LAND:
-      case TT_LOR: {
+      case TT_AMP:
+      case TT_BAR:
+      case TT_CARET: {
         Node *rhs = parseEqualityExpression(entry, unparsed, env);
         if (rhs == NULL) {
           nodeFree(exp);
