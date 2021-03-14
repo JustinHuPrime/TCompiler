@@ -31,6 +31,7 @@
 #include "lexer/lexer.h"
 #include "options.h"
 #include "parser/parser.h"
+#include "typechecker/typechecker.h"
 #include "version.h"
 
 /**
@@ -71,6 +72,7 @@ enum {
   CODE_OPTION_ERROR,
   CODE_FILE_ERROR,
   CODE_PARSE_ERROR,
+  CODE_TYPECHECK_ERROR,
 };
 
 // compile the given declaration and code files into one assembly file per code
@@ -133,7 +135,7 @@ int main(int argc, char **argv) {
   }
 
   // typecheck
-  // TODO: write this
+  if (typecheck() != 0) return CODE_TYPECHECK_ERROR;
 
   // source code optimization
   // TODO: write this
