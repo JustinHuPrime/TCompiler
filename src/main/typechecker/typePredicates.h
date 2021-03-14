@@ -36,8 +36,9 @@
 bool typeIsBoolean(Type const *t);
 
 /**
- * Produces true if given type is integral (bit pattern can be meaningfully interpreted as an integer)
- * 
+ * Produces true if given type is integral (bit pattern can be meaningfully
+ * interpreted as an integer - excludes pointers)
+ *
  * @param t type to query
  * @returns if type is integral
  */
@@ -45,7 +46,7 @@ bool typeIsIntegral(Type const *t);
 
 /**
  * Produces true if given type can be used to initialize to the target type
- * 
+ *
  * @param from type to query
  * @param to type to test against
  * @returns if from can be used to initialize to
