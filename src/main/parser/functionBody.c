@@ -2206,6 +2206,8 @@ static Node *parseForStmt(FileListEntry *entry, Node *unparsed,
       stabFree(environmentPop(env));
       return NULL;
     }
+  } else {
+    prev(unparsed, &peek);
   }
 
   Token rparen;
