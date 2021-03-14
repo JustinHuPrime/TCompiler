@@ -403,7 +403,7 @@ Node *switchStmtNodeCreate(Token const *keyword, Node *condition,
   return n;
 }
 Node *breakStmtNodeCreate(Token const *keyword) {
-  Node *n = createNode(NT_SWITCHSTMT, keyword->line, keyword->character);
+  Node *n = createNode(NT_BREAKSTMT, keyword->line, keyword->character);
   return n;
 }
 Node *continueStmtNodeCreate(Token const *keyword) {
