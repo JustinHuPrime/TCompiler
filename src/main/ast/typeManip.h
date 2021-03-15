@@ -76,6 +76,22 @@ bool typeIsUnsignedIntegral(Type const *t);
 bool typeIsSignedIntegral(Type const *t);
 
 /**
+ * Produces true if given type is a floating point value
+ *
+ * @param t type to query
+ * @returns if type is a floating point number
+ */
+bool typeIsFloat(Type const *t);
+
+/**
+ * Produces true if given type is const
+ *
+ * @param t
+ * @returns if type is const
+ */
+bool typeIsConst(Type const *t);
+
+/**
  * Produces true if given type can be used to initialize to the target type
  *
  * @param from type to query
@@ -121,7 +137,7 @@ bool typeIsCompound(Type const *t);
 
 /**
  * Produces true if the given type is an array
- * 
+ *
  * @param t type
  * @returns if type is an array, after cv-qualification
  */
@@ -181,7 +197,16 @@ size_t typeSizeof(Type const *t);
  *
  * @param to type to cast to
  * @param from type to cast from
+ * @returns if from can be cast to to
  */
 bool typeCastable(Type const *to, Type const *from);
+
+/**
+ * gets the CV-unqualified base part from a type
+ *
+ * @param t type to extract base from
+ * @returns pointer to base part of type
+ */
+Type const *typeGetNonCV(Type const *t);
 
 #endif  // TLC_AST_TYPEMANIP_H_

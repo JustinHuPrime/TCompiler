@@ -29,6 +29,16 @@
 #include "internalError.h"
 
 /**
+ * mark an lvalue expression as escaping (and thus its variables need to live in
+ * memory)
+ *
+ * @param exp expression to mark as escaping - must be an lvalue
+ */
+static void expressionEscapes(Node *exp) {
+  // TODO
+}
+
+/**
  * produce true of expression has an address
  *
  * @param exp expression to check
@@ -952,27 +962,121 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
       return exp->data.ternaryExp.type;
     }
     case NT_UNOPEXP: {
+      Type const *target = typecheckExpression(entry, exp->data.unOpExp.target);
+      if (target == NULL) {
+        return NULL;
+      }
+
       switch (exp->data.unOpExp.op) {
         case UO_DEREF: {
-          return NULL;  // TODO
+          if (!typeIsValuePointer(target)) {
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: attempted to dereference a non-pointer\n",
+                entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+
+          exp->data.unOpExp.type = typeGetDereferenced(target);
+          Type const *nonCV = typeGetNonCV(exp->data.unOpExp.type);
+          if (nonCV->kind == TK_KEYWORD &&
+              nonCV->data.keyword.keyword == TK_VOID) {
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: attempted to dereference a void pointer\n",
+                entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.unOpExp.type;
         }
         case UO_ADDROF: {
-          return NULL;  // TODO
+          if (!expressionIsLvalue(exp->data.unOpExp.target)) {
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: cannot take the address of a non-lvalue\n",
+                entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+
+          expressionEscapes(exp->data.unOpExp.target);
+          return exp->data.unOpExp.type =
+                     modifiedTypeCreate(TM_POINTER, typeCopy(target));
         }
         case UO_PREINC:
         case UO_PREDEC:
         case UO_POSTINC:
         case UO_POSTDEC: {
-          return NULL;  // TODO
+          if (!expressionIsLvalue(exp->data.unOpExp.target) ||
+              !typeIsConst(target)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot modify target of %s operator\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    exp->data.unOpExp.op == UO_PREINC ||
+                            exp->data.unOpExp.op == UO_POSTINC
+                        ? "increment"
+                        : "decrement");
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (!typeIsIntegral(target) && !typeIsValuePointer(target) &&
+              !typeIsFloat(target)) {
+            char *typeString = typeToString(target);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot %s a value of type '%s'\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    exp->data.unOpExp.op == UO_PREINC ||
+                            exp->data.unOpExp.op == UO_POSTINC
+                        ? "increment"
+                        : "decrement",
+                    typeString);
+            free(typeString);
+            entry->errored = true;
+            return NULL;
+          }
+          return exp->data.unOpExp.type = typeCopy(target);
         }
         case UO_NEG: {
-          return NULL;  // TODO
+          if (!typeIsSignedIntegral(target) && !typeIsFloat(target)) {
+            char *typeString = typeToString(target);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot negate a value of type '%s'\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            free(typeString);
+            entry->errored = true;
+            return NULL;
+          }
+          return exp->data.unOpExp.type = typeCopy(target);
         }
         case UO_LNOT: {
-          return NULL;  // TODO
+          if (!typeIsBoolean(target)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to apply a logical not to a "
+                    "non-boolean\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+          return exp->data.unOpExp.type = typeCopy(target);
         }
         case UO_BITNOT: {
-          return NULL;  // TODO
+          if (!typeIsIntegral(target)) {
+            char *typeString = typeToString(target);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: may not apply a bitwise not to a value "
+                    "of type '%s'",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            free(typeString);
+            entry->errored = true;
+            return NULL;
+          }
+          return exp->data.unOpExp.type = typeCopy(target);
         }
         case UO_NEGASSIGN: {
           return NULL;  // TODO
@@ -998,6 +1102,9 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
       }
     }
     case NT_FUNCALLEXP: {
+      return NULL;  // TODO
+    }
+    case NT_LITERAL: {
       return NULL;  // TODO
     }
     case NT_ID:

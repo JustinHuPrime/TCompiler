@@ -222,6 +222,14 @@ bool typeIsSignedIntegral(Type const *t) {
   }
 }
 
+bool typeIsFloat(Type const *t) {
+  return false;  // TODO
+}
+
+bool typeIsConst(Type const *t) {
+  return t->kind == TK_MODIFIED && t->data.modified.modifier == TM_CONST;
+}
+
 /**
  * produce true if `to *` is assignable to `from *`
  *
@@ -1050,4 +1058,8 @@ size_t typeSizeof(Type const *t) {
 
 bool typeCastable(Type const *to, Type const *from) {
   return false;  // TODO
+}
+
+Type const *typeGetNonCV(Type const *t) {
+  return t;  // TODO
 }
