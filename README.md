@@ -61,7 +61,7 @@ The option `--debug-dump` can be set to 3 values:
 
 * `--debug-dump=none`: default, turns off the data dump
 
-* `--debug-dump=lex`: dumps the results of the 'lex' phase
+* `--debug-dump=lex`: dumps the results of the lex phase
 
 * `--debug-dump=parse`: dumps the results of the parse phase
 
