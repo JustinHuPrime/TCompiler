@@ -989,3 +989,7 @@ bool typeIsValuePointer(Type const *t) {
     }
   }
 }
+
+bool typeIsComparable(Type const *lhs, Type const *rhs) {
+  return false;  // TODO
+}

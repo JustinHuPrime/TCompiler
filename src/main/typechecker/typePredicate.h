@@ -102,4 +102,13 @@ bool typeIsAssignable(Type const *to, Type const *from);
  */
 bool typeIsValuePointer(Type const *t);
 
+/**
+ * Produces true if you can compare two values of the given type
+ * 
+ * @param lhs lhs type
+ * @param rhs rhs type
+ * @returns if you can meaninfully compare two values of the given type
+ */
+bool typeIsComparable(Type const *lhs, Type const *rhs);
+
 #endif  // TLC_TYPECHECKER_TYPEPREDICATE_H_
