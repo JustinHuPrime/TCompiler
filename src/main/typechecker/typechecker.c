@@ -97,7 +97,6 @@ static Type const *typecheckPlainBinOp(FileListEntry *entry, Node *exp,
         "%s:%zu:%zu: error: attempted to apply %s operator on non-%s value\n",
         entry->inputFilename, exp->data.binOpExp.lhs->line,
         exp->data.binOpExp.lhs->character, opName, lhsReqName);
-    entry->errored = true;
     bad = true;
   }
   if (rhs != NULL && !rhsReq(rhs)) {
@@ -106,11 +105,13 @@ static Type const *typecheckPlainBinOp(FileListEntry *entry, Node *exp,
         "%s:%zu:%zu: error: attempted to apply %s operator on non-%s value\n",
         entry->inputFilename, exp->data.binOpExp.rhs->line,
         exp->data.binOpExp.rhs->character, opName, rhsReqName);
-    entry->errored = true;
     bad = true;
   }
 
-  if (bad || lhs == NULL || rhs == NULL) return NULL;
+  if (bad || lhs == NULL || rhs == NULL) {
+    entry->errored = true;
+    return NULL;
+  }
 
   exp->data.binOpExp.type = typeMerge(lhs, rhs);
   if (exp->data.binOpExp.type == NULL) {
@@ -148,23 +149,22 @@ static Type *typecheckPlainAssignBinOp(FileListEntry *entry, Node *expression,
   Type const *lhs = typecheckExpression(entry, expression->data.binOpExp.lhs);
   Type const *rhs = typecheckExpression(entry, expression->data.binOpExp.rhs);
 
-  bool bad = false;
   if (lhs != NULL && !expressionIsLvalue(expression->data.binOpExp.lhs)) {
     fprintf(stderr,
             "%s:%zu:%zu: error: cannot assign to a non-lvalue expression\n",
             entry->inputFilename, expression->data.binOpExp.lhs->line,
             expression->data.binOpExp.lhs->character);
     entry->errored = true;
-    bad = true;
+    return NULL;
   }
 
+  bool bad = false;
   if (lhs != NULL && !lhsReq(lhs)) {
     fprintf(
         stderr,
         "%s:%zu:%zu: error: attempted to apply %s operator on non-%s value\n",
         entry->inputFilename, expression->data.binOpExp.lhs->line,
         expression->data.binOpExp.lhs->character, opName, lhsReqName);
-    entry->errored = true;
     bad = true;
   }
 
@@ -174,11 +174,13 @@ static Type *typecheckPlainAssignBinOp(FileListEntry *entry, Node *expression,
         "%s:%zu:%zu: error: attempted to apply %s operator on non-%s value\n",
         entry->inputFilename, expression->data.binOpExp.rhs->line,
         expression->data.binOpExp.rhs->character, opName, rhsReqName);
-    entry->errored = true;
     bad = true;
   }
 
-  if (bad || lhs == NULL || rhs == NULL) return NULL;
+  if (bad || lhs == NULL || rhs == NULL) {
+    entry->errored = true;
+    return NULL;
+  }
 
   Type *resultType = typeMerge(lhs, rhs);
   if (resultType == NULL) {
@@ -242,9 +244,10 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
                 entry->inputFilename, exp->data.binOpExp.lhs->line,
                 exp->data.binOpExp.lhs->character);
             entry->errored = true;
+            return NULL;
           }
 
-          if (lhs != NULL && rhs != NULL && !typeIsAssignable(lhs, rhs)) {
+          if (lhs != NULL && !typeIsAssignable(lhs, rhs)) {
             char *fromString = typeToString(rhs);
             char *toString = typeToString(lhs);
             fprintf(stderr,
@@ -256,7 +259,13 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
             free(toString);
             free(fromString);
           }
-          return lhs;
+
+          if (lhs == NULL || rhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type = typeCopy(lhs);
         }
         case BO_MULASSIGN: {
           return typecheckPlainAssignBinOp(
@@ -286,9 +295,13 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
             return NULL;
           }
 
-          if (lhs != NULL && rhs != NULL && typeIsNumeric(lhs) &&
-              typeIsNumeric(rhs)) {
-            Type *resultType = typeExpMerge(lhs, rhs);
+          if (lhs != NULL || rhs != NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (typeIsNumeric(lhs) && typeIsNumeric(rhs)) {
+            Type *resultType = typeMerge(lhs, rhs);
             if (resultType == NULL) {
               char *lhsString = typeToString(lhs);
               char *rhsString = typeToString(rhs);
@@ -304,7 +317,7 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
               free(rhsString);
               entry->errored = true;
               return NULL;
-            } else if (!typeAssignable(lhs, resultType)) {
+            } else if (!typeIsAssignable(lhs, resultType)) {
               char *fromString = typeToString(resultType);
               char *toString = typeToString(lhs);
               fprintf(stderr,
@@ -328,7 +341,8 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
               char *rhsString = typeToString(rhs);
               fprintf(
                   stderr,
-                  "%s:%zu:%zu: error: cannot apply compound %s and assignment "
+                  "%s:%zu:%zu: error: cannot apply compound %s and "
+                  "assignment "
                   "operator to a value of type '%s' and a value of type '%s'",
                   entry->inputFilename, exp->line, exp->character,
                   exp->data.binOpExp.op == BO_ADDASSIGN ? "addition"
@@ -343,10 +357,82 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
         }
         case BO_LSHIFTASSIGN:
         case BO_LRSHIFTASSIGN: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          if (lhs != NULL && !expressionIsLvalue(exp->data.binOpExp.lhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to assign to non-lvalue\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+
+          bool bad = false;
+          if (lhs != NULL && !typeIsIntegral(lhs)) {
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: attempted to apply compound %s shift and "
+                "assignment operator on non-integral value\n",
+                entry->inputFilename, exp->data.binOpExp.lhs->line,
+                exp->data.binOpExp.lhs->character,
+                exp->data.binOpExp.op == BO_LSHIFT ? "left" : "logical right");
+            bad = true;
+          }
+          if (rhs != NULL && !typeIsUnsignedIntegral(rhs)) {
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: attempted to apply compound %s shift and "
+                "assignment operator on non-unsigned integral value",
+                entry->inputFilename, exp->data.binOpExp.rhs->line,
+                exp->data.binOpExp.rhs->character,
+                exp->data.binOpExp.op == BO_LSHIFT ? "left" : "logical right");
+            bad = true;
+          }
+          if (bad || lhs == NULL || rhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type = typeCopy(lhs);
         }
         case BO_ARSHIFTASSIGN: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          if (lhs != NULL && !expressionIsLvalue(exp->data.binOpExp.lhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to assign to non-lvalue\n",
+                    entry->inputFilename, exp->line, exp->character);
+            return NULL;
+          }
+
+          bool bad = false;
+          if (lhs != NULL && !typeIsSignedIntegral(lhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to apply compound arithmetic "
+                    "right shift and assignemt operator on non-signed integral "
+                    "value\n",
+                    entry->inputFilename, exp->data.binOpExp.lhs->line,
+                    exp->data.binOpExp.lhs->character);
+            bad = true;
+          }
+          if (rhs != NULL && !typeIsUnsignedIntegral(rhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to apply compound arithmetic "
+                    "right shift and assignemt operator on non-unsigned "
+                    "integral value",
+                    entry->inputFilename, exp->data.binOpExp.rhs->line,
+                    exp->data.binOpExp.rhs->character);
+            bad = true;
+          }
+
+          if (bad || lhs == NULL || rhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type = typeCopy(lhs);
         }
         case BO_BITANDASSIGN: {
           return typecheckPlainAssignBinOp(

@@ -145,7 +145,71 @@ bool typeIsIntegral(Type const *t) {
       switch (t->data.modified.modifier) {
         case TM_CONST:
         case TM_VOLATILE: {
-          return typeIsNumeric(t->data.modified.modified);
+          return typeIsIntegral(t->data.modified.modified);
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+bool typeIsUnsignedIntegral(Type const *t) {
+  switch (t->kind) {
+    case TK_KEYWORD: {
+      switch (t->data.keyword.keyword) {
+        case TK_UBYTE:
+        case TK_USHORT:
+        case TK_UINT:
+        case TK_ULONG: {
+          return true;
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    case TK_MODIFIED: {
+      switch (t->data.modified.modifier) {
+        case TM_CONST:
+        case TM_VOLATILE: {
+          return typeIsUnsignedIntegral(t->data.modified.modified);
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+bool typeIsSignedIntegral(Type const *t) {
+  switch (t->kind) {
+    case TK_KEYWORD: {
+      switch (t->data.keyword.keyword) {
+        case TK_BYTE:
+        case TK_SHORT:
+        case TK_INT:
+        case TK_LONG: {
+          return true;
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    case TK_MODIFIED: {
+      switch (t->data.modified.modifier) {
+        case TM_CONST:
+        case TM_VOLATILE: {
+          return typeIsSignedIntegral(t->data.modified.modified);
         }
         default: {
           return false;
@@ -906,4 +970,26 @@ bool typeIsAssignable(Type const *to, Type const *from) {
 
 Type *typeMerge(Type const *lhs, Type const *rhs) {
   return NULL;  // TODO
+}
+
+bool typeIsValuePointer(Type const *t) {
+  switch (t->kind) {
+    case TK_MODIFIED: {
+      switch (t->data.modified.modifier) {
+        case TM_POINTER: {
+          return true;
+        }
+        case TM_CONST:
+        case TM_VOLATILE: {
+          return typeIsValuePointer(t->data.modified.modified);
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid typeModifier enum");
+        }
+      }
+    }
+    default: {
+      return false;
+    }
+  }
 }

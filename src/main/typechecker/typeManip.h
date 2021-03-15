@@ -60,6 +60,22 @@ bool typeIsNumeric(Type const *t);
 bool typeIsIntegral(Type const *t);
 
 /**
+ * Produces true if given type is an unsigned integral
+ *
+ * @param t type to query
+ * @returns if type is unsigned
+ */
+bool typeIsUnsignedIntegral(Type const *t);
+
+/**
+ * Produces true if given type is an unsigned integral
+ *
+ * @param t type to query
+ * @returns if type is unsigned
+ */
+bool typeIsSignedIntegral(Type const *t);
+
+/**
  * Produces true if given type can be used to initialize to the target type
  *
  * @param from type to query
@@ -88,5 +104,13 @@ bool typeIsAssignable(Type const *to, Type const *from);
  * @returns type of op
  */
 Type *typeMerge(Type const *lhs, Type const *rhs);
+
+/**
+ * Produce true if t, ignoring cv-qualification, is a value pointer
+ *
+ * @param t type to query
+ * @returns if t is a value pointer
+ */
+bool typeIsValuePointer(Type const *t);
 
 #endif  // TLC_TYPECHECKER_TYPEMANIP_H_
