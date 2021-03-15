@@ -1079,13 +1079,72 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
           return exp->data.unOpExp.type = typeCopy(target);
         }
         case UO_NEGASSIGN: {
-          return NULL;  // TODO
+          if (!expressionIsLvalue(exp->data.unOpExp.target) ||
+              !typeIsConst(target)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot modify target of "
+                    "compound negation assignment operator\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (!typeIsSignedIntegral(target) && !typeIsFloat(target)) {
+            char *typeString = typeToString(target);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot negate a value of type '%s'\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            free(typeString);
+            entry->errored = true;
+            return NULL;
+          }
+          return exp->data.unOpExp.type = typeCopy(target);
         }
         case UO_LNOTASSIGN: {
-          return NULL;  // TODO
+          if (!expressionIsLvalue(exp->data.unOpExp.target) ||
+              !typeIsConst(target)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot modify target of "
+                    "compound logical not assignment operator\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (!typeIsBoolean(target)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to apply a logical not to a "
+                    "non-boolean\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+          return exp->data.unOpExp.type = typeCopy(target);
         }
         case UO_BITNOTASSIGN: {
-          return NULL;  // TODO
+          if (!expressionIsLvalue(exp->data.unOpExp.target) ||
+              !typeIsConst(target)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot modify target of "
+                    "compound bitwise not assignment operator\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (!typeIsIntegral(target)) {
+            char *typeString = typeToString(target);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: may not apply a bitwise not to a value "
+                    "of type '%s'",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            free(typeString);
+            entry->errored = true;
+            return NULL;
+          }
+          return exp->data.unOpExp.type = typeCopy(target);
         }
         case UO_SIZEOFEXP: {
           return NULL;  // TODO
