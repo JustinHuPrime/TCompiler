@@ -19,11 +19,11 @@
 
 /**
  * @file
- * typecheck type manipulation
+ * typecheck type predicates
  */
 
-#ifndef TLC_TYPECHECKER_TYPEMANIP_H_
-#define TLC_TYPECHECKER_TYPEMANIP_H_
+#ifndef TLC_TYPECHECKER_TYPEPREDICATE_H_
+#define TLC_TYPECHECKER_TYPEPREDICATE_H_
 
 #include "ast/symbolTable.h"
 
@@ -95,17 +95,6 @@ bool typeIsInitializable(Type const *to, Type const *from);
 bool typeIsAssignable(Type const *to, Type const *from);
 
 /**
- * Produce the result of a merging of these two types
- *
- * merging only happens for ternary and arithmetic expressions
- *
- * @param lhs lhs of op
- * @param rhs rhs of op
- * @returns type of op
- */
-Type *typeMerge(Type const *lhs, Type const *rhs);
-
-/**
  * Produce true if t, ignoring cv-qualification, is a value pointer
  *
  * @param t type to query
@@ -113,4 +102,4 @@ Type *typeMerge(Type const *lhs, Type const *rhs);
  */
 bool typeIsValuePointer(Type const *t);
 
-#endif  // TLC_TYPECHECKER_TYPEMANIP_H_
+#endif  // TLC_TYPECHECKER_TYPEPREDICATE_H_

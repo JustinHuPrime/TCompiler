@@ -25,7 +25,20 @@
 
 #include "fileList.h"
 #include "internalError.h"
-#include "typechecker/typeManip.h"
+#include "typechecker/typePredicate.h"
+
+/**
+ * Produce the result of a merging of these two types
+ *
+ * merging only happens for ternary and arithmetic expressions
+ *
+ * @param lhs lhs of op
+ * @param rhs rhs of op
+ * @returns type of op - nullable if no merge is possible
+ */
+static Type *typeMerge(Type const *lhs, Type const *rhs) {
+  return NULL;  // TODO
+}
 
 /**
  * produce true of expression has an address

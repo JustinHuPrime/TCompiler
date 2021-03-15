@@ -17,7 +17,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "typechecker/typeManip.h"
+#include "typechecker/typePredicate.h"
 
 #include "internalError.h"
 
@@ -966,10 +966,6 @@ bool typeIsInitializable(Type const *to, Type const *from) {
 bool typeIsAssignable(Type const *to, Type const *from) {
   return (to->kind != TK_MODIFIED || to->data.modified.modifier != TM_CONST) &&
          typeIsInitializable(to, from);
-}
-
-Type *typeMerge(Type const *lhs, Type const *rhs) {
-  return NULL;  // TODO
 }
 
 bool typeIsValuePointer(Type const *t) {
