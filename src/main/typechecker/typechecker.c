@@ -1147,10 +1147,11 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
           return exp->data.unOpExp.type = typeCopy(target);
         }
         case UO_SIZEOFEXP: {
-          return NULL;  // TODO
+          typecheckExpression(entry, exp->data.unOpExp.target);
+          return exp->data.unOpExp.type = keywordTypeCreate(TK_ULONG);
         }
         case UO_SIZEOFTYPE: {
-          return NULL;  // TODO
+          return exp->data.unOpExp.type = keywordTypeCreate(TK_ULONG);
         }
         case UO_PARENS: {
           return typecheckExpression(entry, exp->data.unOpExp.target);
