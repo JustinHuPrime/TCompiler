@@ -162,7 +162,7 @@ static Type *typecheckPlainAssignBinOp(FileListEntry *entry, Node *expression,
   Type const *lhs = typecheckExpression(entry, expression->data.binOpExp.lhs);
   Type const *rhs = typecheckExpression(entry, expression->data.binOpExp.rhs);
 
-  if (lhs != NULL && !expressionIsLvalue(expression->data.binOpExp.lhs)) {
+  if (!expressionIsLvalue(expression->data.binOpExp.lhs)) {
     fprintf(stderr,
             "%s:%zu:%zu: error: cannot assign to a non-lvalue expression\n",
             entry->inputFilename, expression->data.binOpExp.lhs->line,
@@ -250,7 +250,7 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
           Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
           Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
 
-          if (lhs != NULL && !expressionIsLvalue(exp->data.binOpExp.lhs)) {
+          if (!expressionIsLvalue(exp->data.binOpExp.lhs)) {
             fprintf(
                 stderr,
                 "%s:%zu:%zu: error: cannot assign to a non-lvalue expression\n",
@@ -300,7 +300,7 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
           Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
           Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
 
-          if (lhs != NULL && !expressionIsLvalue(exp->data.binOpExp.lhs)) {
+          if (!expressionIsLvalue(exp->data.binOpExp.lhs)) {
             fprintf(stderr,
                     "%s:%zu:%zu: error: attempted to assign to non-lvalue\n",
                     entry->inputFilename, exp->line, exp->character);
@@ -373,7 +373,7 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
           Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
           Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
 
-          if (lhs != NULL && !expressionIsLvalue(exp->data.binOpExp.lhs)) {
+          if (!expressionIsLvalue(exp->data.binOpExp.lhs)) {
             fprintf(stderr,
                     "%s:%zu:%zu: error: attempted to assign to non-lvalue\n",
                     entry->inputFilename, exp->line, exp->character);
@@ -413,7 +413,7 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
           Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
           Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
 
-          if (lhs != NULL && !expressionIsLvalue(exp->data.binOpExp.lhs)) {
+          if (!expressionIsLvalue(exp->data.binOpExp.lhs)) {
             fprintf(stderr,
                     "%s:%zu:%zu: error: attempted to assign to non-lvalue\n",
                     entry->inputFilename, exp->line, exp->character);
@@ -462,17 +462,77 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
               entry, exp, typeIsIntegral, "integral", typeIsIntegral,
               "integral", "compound bitwise or and assignment");
         }
-        case BO_LANDASSIGN: {
-          return NULL;  // TODO
-        }
+        case BO_LANDASSIGN:
         case BO_LORASSIGN: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+
+          if (!expressionIsLvalue(exp->data.binOpExp.lhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to assign to non-lvalue\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+
+          bool bad = false;
+          if (lhs != NULL && !typeIsBoolean(lhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to apply a compound logical "
+                    "%s and assignment to a non-boolean",
+                    entry->inputFilename, exp->data.binOpExp.lhs->line,
+                    exp->data.binOpExp.lhs->character,
+                    exp->data.binOpExp.op == BO_LANDASSIGN ? "and" : "or");
+            bad = true;
+          }
+          if (rhs != NULL && !typeIsBoolean(rhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to apply a compound logical "
+                    "%s and assignment to a non-boolean\n",
+                    entry->inputFilename, exp->data.binOpExp.rhs->line,
+                    exp->data.binOpExp.rhs->character,
+                    exp->data.binOpExp.op == BO_LANDASSIGN ? "and" : "or");
+            bad = true;
+          }
+
+          if (bad || lhs == NULL || rhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type = typeCopy(lhs);
         }
-        case BO_LAND: {
-          return NULL;  // TODO
-        }
+        case BO_LAND:
         case BO_LOR: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          bool bad = false;
+          if (lhs != NULL && !typeIsBoolean(lhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to apply a logical %s to a "
+                    "non-boolean\n",
+                    entry->inputFilename, exp->data.binOpExp.lhs->line,
+                    exp->data.binOpExp.lhs->character,
+                    exp->data.binOpExp.op == BO_LAND ? "and" : "or");
+            bad = true;
+          }
+          if (rhs != NULL && !typeIsBoolean(rhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to apply a logical %s to a "
+                    "non-boolean",
+                    entry->inputFilename, exp->data.binOpExp.rhs->line,
+                    exp->data.binOpExp.rhs->character,
+                    exp->data.binOpExp.op == BO_LAND ? "and" : "or");
+            bad = true;
+          }
+
+          if (bad || lhs == NULL || rhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type = keywordTypeCreate(TK_BOOL);
         }
         case BO_BITAND: {
           return typecheckPlainBinOp(entry, exp, typeIsIntegral, "integral",
