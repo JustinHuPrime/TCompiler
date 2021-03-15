@@ -916,7 +916,40 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
       }
     }
     case NT_TERNARYEXP: {
-      return NULL;  // TODO
+      Type const *predicate =
+          typecheckExpression(entry, exp->data.ternaryExp.predicate);
+      Type const *consequent =
+          typecheckExpression(entry, exp->data.ternaryExp.consequent);
+      Type const *alternative =
+          typecheckExpression(entry, exp->data.ternaryExp.alternative);
+
+      bool bad = false;
+      if (predicate != NULL && !typeIsBoolean(predicate)) {
+        fprintf(stderr,
+                "%s:%zu:%zu: error: condition in a ternary expression must be "
+                "a boolean\n",
+                entry->inputFilename, exp->data.ternaryExp.predicate->line,
+                exp->data.ternaryExp.predicate->character);
+        bad = true;
+      }
+
+      if (bad || predicate == NULL || consequent == NULL ||
+          alternative == NULL) {
+        entry->errored = true;
+        return NULL;
+      }
+
+      exp->data.ternaryExp.type = typeMerge(consequent, alternative);
+      if (exp->data.ternaryExp.type == NULL) {
+        fprintf(stderr,
+                "%s:%zu:%zu: error: conflicting types in branches of ternary "
+                "expression\n",
+                entry->inputFilename, exp->line, exp->character);
+        entry->errored = true;
+        return NULL;
+      }
+
+      return exp->data.ternaryExp.type;
     }
     case NT_UNOPEXP: {
       switch (exp->data.unOpExp.op) {
