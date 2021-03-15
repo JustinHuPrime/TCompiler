@@ -275,7 +275,71 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
         }
         case BO_ADDASSIGN:
         case BO_SUBASSIGN: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          if (lhs != NULL && !expressionIsLvalue(exp->data.binOpExp.lhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to assign to non-lvalue\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (lhs != NULL && rhs != NULL && typeIsNumeric(lhs) &&
+              typeIsNumeric(rhs)) {
+            Type *resultType = typeExpMerge(lhs, rhs);
+            if (resultType == NULL) {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: cannot apply compound %s and "
+                      "assignment operator to a value of type '%s' with a "
+                      "value of type '%s'\n",
+                      entry->inputFilename, exp->line, exp->character,
+                      exp->data.binOpExp.op == BO_ADDASSIGN ? "addition"
+                                                            : "subtraction",
+                      lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              entry->errored = true;
+              return NULL;
+            } else if (!typeAssignable(lhs, resultType)) {
+              char *fromString = typeToString(resultType);
+              char *toString = typeToString(lhs);
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: cannot assign a value of type '%s' "
+                      "to a value of type '%s'\n",
+                      entry->inputFilename, exp->line, exp->character,
+                      fromString, toString);
+              free(fromString);
+              free(toString);
+              typeFree(resultType);
+              entry->errored = true;
+              return NULL;
+            } else {
+              return exp->data.binOpExp.type = resultType;
+            }
+          } else {
+            if (typeIsValuePointer(lhs) && typeIsIntegral(rhs)) {
+              return exp->data.binOpExp.type = typeCopy(lhs);
+            } else {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              fprintf(
+                  stderr,
+                  "%s:%zu:%zu: error: cannot apply compound %s and assignment "
+                  "operator to a value of type '%s' and a value of type '%s'",
+                  entry->inputFilename, exp->line, exp->character,
+                  exp->data.binOpExp.op == BO_ADDASSIGN ? "addition"
+                                                        : "subtraction",
+                  lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              entry->errored = true;
+              return NULL;
+            }
+          }
         }
         case BO_LSHIFTASSIGN:
         case BO_LRSHIFTASSIGN: {
