@@ -22,23 +22,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "ast/typeManip.h"
 #include "fileList.h"
 #include "internalError.h"
-#include "typechecker/typePredicate.h"
-
-/**
- * Produce the result of a merging of these two types
- *
- * merging only happens for ternary and arithmetic expressions
- *
- * @param lhs lhs of op
- * @param rhs rhs of op
- * @returns type of op - nullable if no merge is possible
- */
-static Type *typeMerge(Type const *lhs, Type const *rhs) {
-  return NULL;  // TODO
-}
 
 /**
  * produce true of expression has an address
@@ -666,10 +654,92 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
           return exp->data.binOpExp.type = typeCopy(lhs);
         }
         case BO_ADD: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          if (lhs == NULL || rhs == NULL) {
+            return NULL;
+          }
+
+          if (typeIsNumeric(lhs) && typeIsNumeric(rhs)) {
+            exp->data.binOpExp.type = typeMerge(lhs, rhs);
+            if (exp->data.binOpExp.type == NULL) {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: cannot apply addition operator to a "
+                      "value of type '%s' with a value of type '%s'\n",
+                      entry->inputFilename, exp->line, exp->character,
+                      lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              entry->errored = true;
+              return NULL;
+            } else {
+              return exp->data.binOpExp.type;
+            }
+          } else {
+            if (typeIsValuePointer(lhs) && typeIsIntegral(rhs)) {
+              return exp->data.binOpExp.type = typeCopy(lhs);
+            } else if (typeIsIntegral(lhs) && typeIsValuePointer(rhs)) {
+              return exp->data.binOpExp.type = typeCopy(rhs);
+            } else {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: cannot apply addition operator to a "
+                      "value of type '%s' and a value of type '%s'\n",
+                      entry->inputFilename, exp->line, exp->character,
+                      lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              return NULL;
+            }
+          }
         }
         case BO_SUB: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          if (lhs == NULL || rhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (typeIsNumeric(lhs) && typeIsNumeric(rhs)) {
+            exp->data.binOpExp.type = typeMerge(lhs, rhs);
+            if (exp->data.binOpExp.type == NULL) {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: cannot apply subtraction operator to "
+                      "a value of type '%s' with a value of type '%s'\n",
+                      entry->inputFilename, exp->line, exp->character,
+                      lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              entry->errored = true;
+              return NULL;
+            } else {
+              return exp->data.binOpExp.type;
+            }
+          } else {
+            if (typeIsValuePointer(lhs) && typeIsIntegral(rhs)) {
+              return exp->data.binOpExp.type = typeCopy(lhs);
+            } else {
+              char *lhsString = typeToString(lhs);
+              char *rhsString = typeToString(rhs);
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: cannot apply subtraction operator to "
+                      "a value of type '%s' and a value of type '%s'\n",
+                      entry->inputFilename, exp->line, exp->character,
+                      lhsString, rhsString);
+              free(lhsString);
+              free(rhsString);
+              entry->errored = true;
+              return NULL;
+            }
+          }
         }
         case BO_MUL: {
           return typecheckPlainBinOp(entry, exp, typeIsNumeric, "numeric",
@@ -685,10 +755,106 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
                                      typeIsIntegral, "integral", "modulo");
         }
         case BO_FIELD: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          if (lhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (!typeIsCompound(lhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to access a field or option "
+                    "of something that is not a struct and not a union\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+
+          SymbolTableEntry *definition = lhs->data.reference.entry;
+          Vector *names = definition->kind == SK_STRUCT
+                              ? &definition->data.structType.fieldNames
+                              : &definition->data.unionType.optionNames;
+          Vector *types = definition->kind == SK_STRUCT
+                              ? &definition->data.structType.fieldTypes
+                              : &definition->data.unionType.optionTypes;
+          char const *fieldName = exp->data.binOpExp.rhs->data.id.id;
+
+          size_t fieldIdx;
+          bool found = false;
+          for (size_t idx = 0; idx < names->size; idx++) {
+            if (strcmp(names->elements[idx], fieldName) == 0) {
+              found = true;
+              fieldIdx = idx;
+              break;
+            }
+          }
+          if (!found) {
+            fprintf(stderr, "%s:%zu:%zu: error: no such %s\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    definition->kind == SK_STRUCT ? "field" : "option");
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type = typeCopy(types->elements[fieldIdx]);
         }
         case BO_PTRFIELD: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          if (lhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (!typeIsValuePointer(lhs)) {
+            fprintf(stderr, "%s:%zu:%zu: error: not a pointer\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+            return NULL;
+          }
+          Type *dereferenced = typeGetDereferenced(lhs);
+          if (!typeIsCompound(dereferenced)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to access a field of "
+                    "something that is not a struct and not a union\n",
+                    entry->inputFilename, exp->line, exp->character);
+            typeFree(dereferenced);
+            entry->errored = true;
+            return NULL;
+          }
+
+          SymbolTableEntry *definition = dereferenced->data.reference.entry;
+          Vector *names = definition->kind == SK_STRUCT
+                              ? &definition->data.structType.fieldNames
+                              : &definition->data.unionType.optionNames;
+          Vector *types = definition->kind == SK_STRUCT
+                              ? &definition->data.structType.fieldTypes
+                              : &definition->data.unionType.optionTypes;
+          char const *fieldName = exp->data.binOpExp.rhs->data.id.id;
+
+          size_t fieldIdx;
+          size_t offset = 0;
+          bool found = false;
+          for (size_t idx = 0; idx < names->size; idx++) {
+            if (strcmp(names->elements[idx], fieldName) == 0) {
+              found = true;
+              fieldIdx = idx;
+              break;
+            } else {
+              offset += typeSizeof(types->elements[idx]);
+            }
+          }
+          if (!found) {
+            fprintf(stderr, "%s:%zu:%zu: error: no such %s",
+                    entry->inputFilename, exp->line, exp->character,
+                    definition->kind == SK_STRUCT ? "field" : "option");
+            typeFree(dereferenced);
+            return NULL;
+          } else {
+            exp->data.binOpExp.type =
+                typeCopyCV(typeCopy(types->elements[fieldIdx]), dereferenced);
+            typeFree(dereferenced);
+            return exp->data.binOpExp.type;
+          }
         }
         case BO_ARRAY: {
           return NULL;  // TODO
@@ -751,6 +917,7 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
       }
     }
     case NT_FUNCALLEXP: {
+      return NULL;  // TODO
     }
     case NT_ID:
     case NT_SCOPEDID: {

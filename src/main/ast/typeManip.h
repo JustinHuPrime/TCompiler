@@ -22,8 +22,8 @@
  * typecheck type predicates
  */
 
-#ifndef TLC_TYPECHECKER_TYPEPREDICATE_H_
-#define TLC_TYPECHECKER_TYPEPREDICATE_H_
+#ifndef TLC_AST_TYPEMANIP_H_
+#define TLC_AST_TYPEMANIP_H_
 
 #include "ast/symbolTable.h"
 
@@ -104,11 +104,57 @@ bool typeIsValuePointer(Type const *t);
 
 /**
  * Produces true if you can compare two values of the given type
- * 
+ *
  * @param lhs lhs type
  * @param rhs rhs type
  * @returns if you can meaninfully compare two values of the given type
  */
 bool typeIsComparable(Type const *lhs, Type const *rhs);
 
-#endif  // TLC_TYPECHECKER_TYPEPREDICATE_H_
+/**
+ * Produces true if the given type can have a '.' applied to it
+ *
+ * @param t type
+ * @returns if type is struct or union, after cv-qualification
+ */
+bool typeIsCompound(Type const *t);
+
+/**
+ * Produce the result of a merging of these two types
+ *
+ * merging only happens for ternary and arithmetic expressions
+ *
+ * @param lhs lhs of op
+ * @param rhs rhs of op
+ * @returns type of op - nullable if no merge is possible
+ */
+Type *typeMerge(Type const *lhs, Type const *rhs);
+
+/**
+ * Produce the result of dereferencing the given type
+ *
+ * expects given type to be a value pointer
+ *
+ * @param t type to dereference
+ * @returns new type from dereferencing given type
+ */
+Type *typeGetDereferenced(Type const *t);
+
+/**
+ * Copy CV-qualification from 'from' onto 'to'
+ *
+ * @param from type to get CV qualfiication from
+ * @param to type write CV qualification to
+ * @returns to, but possibly wrapped with CV qualification
+ */
+Type *typeCopyCV(Type *to, Type const *from);
+
+/**
+ * gets the result of calling sizeof on a type
+ *
+ * @param t type to get size of
+ * @returns size of type
+ */
+size_t typeSizeof(Type const *t);
+
+#endif  // TLC_AST_TYPEMANIP_H_

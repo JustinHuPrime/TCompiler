@@ -17,7 +17,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "typechecker/typePredicate.h"
+#include "ast/typeManip.h"
 
 #include "internalError.h"
 
@@ -992,4 +992,50 @@ bool typeIsValuePointer(Type const *t) {
 
 bool typeIsComparable(Type const *lhs, Type const *rhs) {
   return false;  // TODO
+}
+
+bool typeIsCompound(Type const *t) {
+  switch (t->kind) {
+    case TK_REFERENCE: {
+      switch (t->data.reference.entry->kind) {
+        case SK_STRUCT:
+        case SK_UNION: {
+          return true;
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    case TK_MODIFIED: {
+      switch (t->data.modified.modifier) {
+        case TM_CONST:
+        case TM_VOLATILE: {
+          return typeIsValuePointer(t->data.modified.modified);
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+Type *typeMerge(Type const *lhs, Type const *rhs) {
+  return NULL;  // TODO
+}
+
+Type *typeGetDereferenced(Type const *t) {
+  return NULL;  // TODO
+}
+
+Type *typeCopyCV(Type *to, Type const *from) {
+  return NULL;  // TODO
+}
+
+size_t typeSizeof(Type const *t) {
+  return 0;  // TODO
 }
