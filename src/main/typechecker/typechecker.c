@@ -578,7 +578,29 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
           return exp->data.binOpExp.type = keywordTypeCreate(TK_BOOL);
         }
         case BO_SPACESHIP: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          if (lhs == NULL || rhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (!typeIsComparable(lhs, rhs)) {
+            char *lhsString = typeToString(lhs);
+            char *rhsString = typeToString(rhs);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot compare a value of type '%s' "
+                    "with a value of type '%s'\n",
+                    entry->inputFilename, exp->line, exp->character, lhsString,
+                    rhsString);
+            free(lhsString);
+            free(rhsString);
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type = keywordTypeCreate(TK_BYTE);
         }
         case BO_LSHIFT:
         case BO_LRSHIFT: {
