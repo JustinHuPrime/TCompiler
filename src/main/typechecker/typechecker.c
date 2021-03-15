@@ -38,10 +38,10 @@ static bool expressionIsLvalue(Node *exp) {
   switch (exp->type) {
     case NT_BINOPEXP: {
       switch (exp->data.binOpExp.op) {
-        case BO_ARRAY:
         case BO_PTRFIELD: {
           return true;
         }
+        case BO_ARRAY:
         case BO_FIELD: {
           return expressionIsLvalue(exp->data.binOpExp.lhs);
         }
@@ -857,7 +857,34 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
           }
         }
         case BO_ARRAY: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          bool bad = false;
+
+          if (lhs != NULL && !typeIsValuePointer(lhs) && !typeIsArray(lhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: expected an array or a pointer\n",
+                    entry->inputFilename, exp->line, exp->character);
+            bad = true;
+          }
+
+          if (!typeIsIntegral(rhs)) {
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: attempted to access a non-integral index\n",
+                entry->inputFilename, exp->line, exp->character);
+            bad = true;
+          }
+
+          if (bad || lhs == NULL || rhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type =
+                     (typeIsValuePointer(lhs) ? typeGetDereferenced(lhs)
+                                              : typeGetArrayElement(lhs));
         }
         case BO_CAST: {
           return NULL;  // TODO

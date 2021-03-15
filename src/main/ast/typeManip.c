@@ -1032,6 +1032,10 @@ Type *typeGetDereferenced(Type const *t) {
   return NULL;  // TODO
 }
 
+Type *typeGetArrayElement(Type const *t) {
+  return NULL;  // TODO
+}
+
 Type *typeCopyCV(Type *to, Type const *from) {
   return NULL;  // TODO
 }

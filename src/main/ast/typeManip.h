@@ -141,6 +141,16 @@ Type *typeMerge(Type const *lhs, Type const *rhs);
 Type *typeGetDereferenced(Type const *t);
 
 /**
+ * Produce the result of indexing the given type
+ * 
+ * expects given type to be an array
+ * 
+ * @param t type to index
+ * @returns new type from indexing given type
+ */
+Type *typeGetArrayElement(Type const *t);
+
+/**
  * Copy CV-qualification from 'from' onto 'to'
  *
  * @param from type to get CV qualfiication from
