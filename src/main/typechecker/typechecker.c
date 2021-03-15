@@ -604,10 +604,66 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
         }
         case BO_LSHIFT:
         case BO_LRSHIFT: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          bool bad = false;
+          if (lhs != NULL && !typeIsIntegral(lhs)) {
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: attempted to apply %s shift operator on "
+                "non-integral value\n",
+                entry->inputFilename, exp->data.binOpExp.lhs->line,
+                exp->data.binOpExp.lhs->character,
+                exp->data.binOpExp.op == BO_LSHIFT ? "left" : "logical right");
+            bad = true;
+          }
+          if (rhs != NULL && !typeIsUnsignedIntegral(rhs)) {
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: attempted to apply %s shift operator on "
+                "non-integral value\n",
+                entry->inputFilename, exp->data.binOpExp.rhs->line,
+                exp->data.binOpExp.rhs->character,
+                exp->data.binOpExp.op == BO_LSHIFT ? "left" : "logical right");
+            bad = true;
+          }
+
+          if (bad || lhs == NULL || rhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type = typeCopy(lhs);
         }
         case BO_ARSHIFT: {
-          return NULL;  // TODO
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          bool bad = false;
+          if (lhs != NULL && !typeIsSignedIntegral(lhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to apply arithmetic right "
+                    "shift operator on non-signed integral value\n",
+                    entry->inputFilename, exp->data.binOpExp.lhs->line,
+                    exp->data.binOpExp.lhs->character);
+            bad = true;
+          }
+          if (rhs != NULL && !typeIsUnsignedIntegral(rhs)) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: attempted to apply arithmetic right "
+                    "shift operator on non-integral value\n",
+                    entry->inputFilename, exp->data.binOpExp.rhs->line,
+                    exp->data.binOpExp.rhs->character);
+            bad = true;
+          }
+
+          if (bad || lhs == NULL || rhs == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type = typeCopy(lhs);
         }
         case BO_ADD: {
           return NULL;  // TODO
