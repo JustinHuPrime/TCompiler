@@ -25,7 +25,193 @@
 
 #include "fileList.h"
 #include "internalError.h"
-#include "typechecker/typePredicates.h"
+#include "typechecker/typeManip.h"
+
+/**
+ * produce true of expression has an address
+ *
+ * @param exp expression to check
+ * @returns if expression is an lvalue
+ */
+static bool expressionIsLvalue(Node *exp) {
+  switch (exp->type) {
+    case NT_BINOPEXP: {
+      switch (exp->data.binOpExp.op) {
+        case BO_ARRAY:
+        case BO_PTRFIELD: {
+          return true;
+        }
+        case BO_FIELD: {
+          return expressionIsLvalue(exp->data.binOpExp.lhs);
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    case NT_UNOPEXP: {
+      switch (exp->data.unOpExp.op) {
+        case UO_DEREF: {
+          return true;
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    case NT_ID:
+    case NT_SCOPEDID: {
+      return true;
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+static Type const *typecheckExpression(FileListEntry *, Node *);
+
+/**
+ * type check a plain binary operation
+ * @param expression expression to typecheck
+ * @param lhsReq predicate for lhs validity
+ * @param lhsReqName human-readable name of the lhs predicate
+ * @param rhsReq predicate for rhs validity
+ * @param rhsReqName human-readable name of the rhs predicate
+ * @param opName human-readable name of the operation
+ * @returns resulting type
+ */
+static Type const *typecheckPlainBinOp(FileListEntry *entry, Node *exp,
+                                       bool (*lhsReq)(Type const *),
+                                       char const *lhsReqName,
+                                       bool (*rhsReq)(Type const *),
+                                       char const *rhsReqName,
+                                       char const *opName) {
+  Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+  Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+  bool bad = false;
+  if (lhs != NULL && !lhsReq(lhs)) {
+    fprintf(
+        stderr,
+        "%s:%zu:%zu: error: attempted to apply %s operator on non-%s value\n",
+        entry->inputFilename, exp->data.binOpExp.lhs->line,
+        exp->data.binOpExp.lhs->character, opName, lhsReqName);
+    entry->errored = true;
+    bad = true;
+  }
+  if (rhs != NULL && !rhsReq(rhs)) {
+    fprintf(
+        stderr,
+        "%s:%zu:%zu: error: attempted to apply %s operator on non-%s value\n",
+        entry->inputFilename, exp->data.binOpExp.rhs->line,
+        exp->data.binOpExp.rhs->character, opName, rhsReqName);
+    entry->errored = true;
+    bad = true;
+  }
+
+  if (bad || lhs == NULL || rhs == NULL) return NULL;
+
+  exp->data.binOpExp.type = typeMerge(lhs, rhs);
+  if (exp->data.binOpExp.type == NULL) {
+    char *lhsString = typeToString(lhs);
+    char *rhsString = typeToString(rhs);
+    fprintf(stderr,
+            "%s:%zu:%zu: error: cannot apply %s operator to a value of type "
+            "'%s' with a value of type '%s'\n",
+            entry->inputFilename, exp->line, exp->character, opName, lhsString,
+            rhsString);
+    free(lhsString);
+    free(rhsString);
+    entry->errored = true;
+    return NULL;
+  }
+
+  return exp->data.binOpExp.type;
+}
+
+/**
+ * type check a plain compound assignment operation
+ * @param expression expression to typecheck
+ * @param lhsReq predicate for lhs validity
+ * @param lhsReqName human-readable name of the lhs predicate
+ * @param rhsReq predicate for rhs validity
+ * @param rhsReqName human-readable name of the rhs predicate
+ * @param opName human-readable name of the operation
+ */
+static Type *typecheckPlainAssignBinOp(FileListEntry *entry, Node *expression,
+                                       bool (*lhsReq)(Type const *),
+                                       char const *lhsReqName,
+                                       bool (*rhsReq)(Type const *),
+                                       char const *rhsReqName,
+                                       char const *opName) {
+  Type const *lhs = typecheckExpression(entry, expression->data.binOpExp.lhs);
+  Type const *rhs = typecheckExpression(entry, expression->data.binOpExp.rhs);
+
+  bool bad = false;
+  if (lhs != NULL && !expressionIsLvalue(expression->data.binOpExp.lhs)) {
+    fprintf(stderr,
+            "%s:%zu:%zu: error: cannot assign to a non-lvalue expression\n",
+            entry->inputFilename, expression->data.binOpExp.lhs->line,
+            expression->data.binOpExp.lhs->character);
+    entry->errored = true;
+    bad = true;
+  }
+
+  if (lhs != NULL && !lhsReq(lhs)) {
+    fprintf(
+        stderr,
+        "%s:%zu:%zu: error: attempted to apply %s operator on non-%s value\n",
+        entry->inputFilename, expression->data.binOpExp.lhs->line,
+        expression->data.binOpExp.lhs->character, opName, lhsReqName);
+    entry->errored = true;
+    bad = true;
+  }
+
+  if (rhs != NULL && !rhsReq(rhs)) {
+    fprintf(
+        stderr,
+        "%s:%zu:%zu: error: attempted to apply %s operator on non-%s value\n",
+        entry->inputFilename, expression->data.binOpExp.rhs->line,
+        expression->data.binOpExp.rhs->character, opName, rhsReqName);
+    entry->errored = true;
+    bad = true;
+  }
+
+  if (bad || lhs == NULL || rhs == NULL) return NULL;
+
+  Type *resultType = typeMerge(lhs, rhs);
+  if (resultType == NULL) {
+    char *lhsString = typeToString(lhs);
+    char *rhsString = typeToString(rhs);
+    fprintf(stderr,
+            "%s:%zu:%zu: error: cannot apply %s operator to a value of "
+            "type '%s' with a value of type '%s'\n",
+            entry->inputFilename, expression->line, expression->character,
+            opName, lhsString, rhsString);
+    free(lhsString);
+    free(rhsString);
+    entry->errored = true;
+    return NULL;
+  }
+
+  if (!typeIsAssignable(lhs, resultType)) {
+    char *fromString = typeToString(resultType);
+    char *toString = typeToString(lhs);
+    fprintf(stderr,
+            "%s:%zu:%zu: error: cannot assign a value of type '%s' to a "
+            "value of type '%s'\n",
+            entry->inputFilename, expression->line, expression->character,
+            fromString, toString);
+    free(fromString);
+    free(toString);
+    typeFree(resultType);
+    entry->errored = true;
+    return NULL;
+  }
+
+  return expression->data.binOpExp.type = resultType;
+}
 
 /**
  * type checks an expression
@@ -37,7 +223,264 @@
 static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
   if (exp == NULL) return NULL;
 
-  return NULL;  // TODO
+  switch (exp->type) {
+    case NT_BINOPEXP: {
+      switch (exp->data.binOpExp.op) {
+        case BO_SEQ: {
+          typecheckExpression(entry, exp->data.binOpExp.lhs);
+          return exp->data.binOpExp.type = typeCopy(
+                     typecheckExpression(entry, exp->data.binOpExp.rhs));
+        }
+        case BO_ASSIGN: {
+          Type const *lhs = typecheckExpression(entry, exp->data.binOpExp.lhs);
+          Type const *rhs = typecheckExpression(entry, exp->data.binOpExp.rhs);
+
+          if (lhs != NULL && !expressionIsLvalue(exp->data.binOpExp.lhs)) {
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: cannot assign to a non-lvalue expression\n",
+                entry->inputFilename, exp->data.binOpExp.lhs->line,
+                exp->data.binOpExp.lhs->character);
+            entry->errored = true;
+          }
+
+          if (lhs != NULL && rhs != NULL && !typeIsAssignable(lhs, rhs)) {
+            char *fromString = typeToString(rhs);
+            char *toString = typeToString(lhs);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot assign a value of type '%s' to "
+                    "a value of type '%s'\n",
+                    entry->inputFilename, exp->line, exp->character, fromString,
+                    toString);
+            entry->errored = true;
+            free(toString);
+            free(fromString);
+          }
+          return lhs;
+        }
+        case BO_MULASSIGN: {
+          return typecheckPlainAssignBinOp(
+              entry, exp, typeIsNumeric, "numeric", typeIsNumeric, "numeric",
+              "compound multiplication and assignment");
+        }
+        case BO_DIVASSIGN: {
+          return typecheckPlainAssignBinOp(entry, exp, typeIsNumeric, "numeric",
+                                           typeIsNumeric, "numeric",
+                                           "compound division and assignment");
+        }
+        case BO_MODASSIGN: {
+          return typecheckPlainAssignBinOp(
+              entry, exp, typeIsIntegral, "integral", typeIsIntegral,
+              "integral", "compound modulo and assignment");
+        }
+        case BO_ADDASSIGN:
+        case BO_SUBASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LSHIFTASSIGN:
+        case BO_LRSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_ARSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_BITANDASSIGN: {
+          return typecheckPlainAssignBinOp(
+              entry, exp, typeIsIntegral, "integral", typeIsIntegral,
+              "integral", "compound bitwise and and assignment");
+        }
+        case BO_BITXORASSIGN: {
+          return typecheckPlainAssignBinOp(
+              entry, exp, typeIsIntegral, "integral", typeIsIntegral,
+              "integral", "compound bitwise exclusive or and assignment");
+        }
+        case BO_BITORASSIGN: {
+          return typecheckPlainAssignBinOp(
+              entry, exp, typeIsIntegral, "integral", typeIsIntegral,
+              "integral", "compound bitwise or and assignment");
+        }
+        case BO_LANDASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LORASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LAND: {
+          return NULL;  // TODO
+        }
+        case BO_LOR: {
+          return NULL;  // TODO
+        }
+        case BO_BITAND: {
+          return typecheckPlainBinOp(entry, exp, typeIsIntegral, "integral",
+                                     typeIsIntegral, "integral", "bitwise and");
+        }
+        case BO_BITOR: {
+          return typecheckPlainBinOp(entry, exp, typeIsIntegral, "integral",
+                                     typeIsIntegral, "integral", "bitwise or");
+        }
+        case BO_BITXOR: {
+          return typecheckPlainBinOp(entry, exp, typeIsIntegral, "integral",
+                                     typeIsIntegral, "integral",
+                                     "bitwise exclusive or");
+        }
+        case BO_EQ:
+        case BO_NEQ:
+        case BO_LT:
+        case BO_GT:
+        case BO_LTEQ:
+        case BO_GTEQ: {
+          return NULL;  // TODO
+        }
+        case BO_SPACESHIP: {
+          return NULL;  // TODO
+        }
+        case BO_LSHIFT:
+        case BO_LRSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_ARSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_ADD: {
+          return NULL;  // TODO
+        }
+        case BO_SUB: {
+          return NULL;  // TODO
+        }
+        case BO_MUL: {
+          return typecheckPlainBinOp(entry, exp, typeIsNumeric, "numeric",
+                                     typeIsNumeric, "numeric",
+                                     "multiplication");
+        }
+        case BO_DIV: {
+          return typecheckPlainBinOp(entry, exp, typeIsNumeric, "numeric",
+                                     typeIsNumeric, "numeric", "division");
+        }
+        case BO_MOD: {
+          return typecheckPlainBinOp(entry, exp, typeIsIntegral, "integral",
+                                     typeIsIntegral, "integral", "modulo");
+        }
+        case BO_FIELD: {
+          return NULL;  // TODO
+        }
+        case BO_PTRFIELD: {
+          return NULL;  // TODO
+        }
+        case BO_ARRAY: {
+          return NULL;  // TODO
+        }
+        case BO_CAST: {
+          return NULL;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid binop enum encountered");
+        }
+      }
+    }
+    case NT_TERNARYEXP: {
+      return NULL;  // TODO
+    }
+    case NT_UNOPEXP: {
+      switch (exp->data.unOpExp.op) {
+        case UO_DEREF: {
+          return NULL;  // TODO
+        }
+        case UO_ADDROF: {
+          return NULL;  // TODO
+        }
+        case UO_PREINC:
+        case UO_PREDEC:
+        case UO_POSTINC:
+        case UO_POSTDEC: {
+          return NULL;  // TODO
+        }
+        case UO_NEG: {
+          return NULL;  // TODO
+        }
+        case UO_LNOT: {
+          return NULL;  // TODO
+        }
+        case UO_BITNOT: {
+          return NULL;  // TODO
+        }
+        case UO_NEGASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_LNOTASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_BITNOTASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_SIZEOFEXP: {
+          return NULL;  // TODO
+        }
+        case UO_SIZEOFTYPE: {
+          return NULL;  // TODO
+        }
+        case UO_PARENS: {
+          return typecheckExpression(entry, exp->data.unOpExp.target);
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid unopexp enum encountered");
+        }
+      }
+    }
+    case NT_FUNCALLEXP: {
+    }
+    case NT_ID:
+    case NT_SCOPEDID: {
+      SymbolTableEntry *entry =
+          exp->type == NT_ID ? exp->data.id.entry : exp->data.scopedId.entry;
+      Type *type;
+      switch (entry->kind) {
+        case SK_VARIABLE: {
+          type = typeCopy(entry->data.variable.type);
+          break;
+        }
+        case SK_FUNCTION: {
+          type = funPtrTypeCreate(typeCopy(entry->data.function.returnType));
+          for (size_t idx = 0; idx < entry->data.function.argumentTypes.size;
+               ++idx)
+            vectorInsert(
+                &type->data.funPtr.argTypes,
+                typeCopy(entry->data.function.argumentTypes.elements[idx]));
+          break;
+        }
+        case SK_ENUMCONST: {
+          Node *base = malloc(sizeof(Node));
+          base->type = NT_SCOPEDID;
+          base->line = exp->line;
+          base->character = exp->character;
+          base->data.scopedId.entry = entry->data.enumConst.parent;
+          base->data.scopedId.type = NULL;
+          base->data.scopedId.components->elements =
+              exp->data.scopedId.components->elements;
+          base->data.scopedId.components->capacity = 0;
+          base->data.scopedId.components->size =
+              exp->data.scopedId.components->size - 1;
+          type = referenceTypeCreate(entry->data.enumConst.parent,
+                                     stringifyId(base));
+          free(base);
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "type name given to typecheckExpression - parser should "
+                "prevent this from happening");
+        }
+      }
+      if (exp->type == NT_ID) {
+        return exp->data.id.type = type;
+      } else {
+        return exp->data.scopedId.type = type;
+      }
+    }
+    default: {
+      error(__FILE__, __LINE__, "non-expression given to typecheckExpression");
+    }
+  }
 }
 
 /**
@@ -129,7 +572,7 @@ static void typecheckStmt(FileListEntry *entry, SymbolTableEntry *thisFunction,
       Type const *conditionType =
           typecheckExpression(entry, stmt->data.switchStmt.condition);
       if (conditionType != NULL) {
-        if (!typeIsIntegral(conditionType)) {
+        if (!typeIsSwitchable(conditionType)) {
           fprintf(stderr,
                   "%s:%zu:%zu: error: conditition in a switch statement must "
                   "be an integral type\n",
@@ -166,11 +609,12 @@ static void typecheckStmt(FileListEntry *entry, SymbolTableEntry *thisFunction,
                                  valueType)) {
           char *toString = typeToString(thisFunction->data.function.returnType);
           char *fromString = typeToString(valueType);
-          fprintf(stderr,
-                  "%s:%zu:%zu: error: may not return a value of type %s from a "
-                  "function returning %s\n",
-                  entry->inputFilename, stmt->data.returnStmt.value->line,
-                  stmt->data.returnStmt.value->line, fromString, toString);
+          fprintf(
+              stderr,
+              "%s:%zu:%zu: error: may not return a value of type '%s' from a "
+              "function returning '%s'\n",
+              entry->inputFilename, stmt->data.returnStmt.value->line,
+              stmt->data.returnStmt.value->line, fromString, toString);
           entry->errored = true;
           free(fromString);
           free(toString);
@@ -193,7 +637,7 @@ static void typecheckStmt(FileListEntry *entry, SymbolTableEntry *thisFunction,
             char *fromString = typeToString(initializerType);
             fprintf(stderr,
                     "%s:%zu:%zu: error: may not initialize a variable of type "
-                    "%s using a value of type %s\n",
+                    "'%s' using a value of type '%s'\n",
                     entry->inputFilename, initializer->line, initializer->line,
                     fromString, toString);
             entry->errored = true;

@@ -19,11 +19,11 @@
 
 /**
  * @file
- * abstract syntax tree definition
+ * typecheck type manipulation
  */
 
-#ifndef TLC_TYPECHECKER_TYPEPREDICATES_H_
-#define TLC_TYPECHECKER_TYPEPREDICATES_H_
+#ifndef TLC_TYPECHECKER_TYPEMANIP_H_
+#define TLC_TYPECHECKER_TYPEMANIP_H_
 
 #include "ast/symbolTable.h"
 
@@ -36,8 +36,23 @@
 bool typeIsBoolean(Type const *t);
 
 /**
- * Produces true if given type is integral (bit pattern can be meaningfully
- * interpreted as an integer - excludes pointers)
+ * Produces true if given type may be switched on
+ *
+ * @param t type to query
+ * @returns if type may be switched on
+ */
+bool typeIsSwitchable(Type const *t);
+
+/**
+ * Produces true if given type is numeric (i.e. multiplication is sensible)
+ *
+ * @param t type to query
+ * @returns if type is numeric
+ */
+bool typeIsNumeric(Type const *t);
+
+/**
+ * Produces true if given type is integral (i.e. l/r shift is sensible)
  *
  * @param t type to query
  * @returns if type is integral
@@ -63,4 +78,15 @@ bool typeIsInitializable(Type const *to, Type const *from);
  */
 bool typeIsAssignable(Type const *to, Type const *from);
 
-#endif  // TLC_TYPECHECKER_TYPEPREDICATES_H_
+/**
+ * Produce the result of a merging of these two types
+ *
+ * merging only happens for ternary and arithmetic expressions
+ *
+ * @param lhs lhs of op
+ * @param rhs rhs of op
+ * @returns type of op
+ */
+Type *typeMerge(Type const *lhs, Type const *rhs);
+
+#endif  // TLC_TYPECHECKER_TYPEMANIP_H_

@@ -17,7 +17,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "typechecker/typePredicates.h"
+#include "typechecker/typeManip.h"
 
 #include "internalError.h"
 
@@ -43,7 +43,7 @@ bool typeIsBoolean(Type const *t) {
   }
 }
 
-bool typeIsIntegral(Type const *t) {
+bool typeIsSwitchable(Type const *t) {
   switch (t->kind) {
     case TK_KEYWORD: {
       switch (t->data.keyword.keyword) {
@@ -56,8 +56,7 @@ bool typeIsIntegral(Type const *t) {
         case TK_INT:
         case TK_WCHAR:
         case TK_ULONG:
-        case TK_LONG:
-        case TK_BOOL: {
+        case TK_LONG: {
           return true;
         }
         default: {
@@ -69,7 +68,7 @@ bool typeIsIntegral(Type const *t) {
       switch (t->data.modified.modifier) {
         case TM_CONST:
         case TM_VOLATILE: {
-          return typeIsIntegral(t->data.modified.modified);
+          return typeIsSwitchable(t->data.modified.modified);
         }
         default: {
           return false;
@@ -78,6 +77,80 @@ bool typeIsIntegral(Type const *t) {
     }
     case TK_REFERENCE: {
       return t->data.reference.entry->kind == SK_ENUMCONST;
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+bool typeIsNumeric(Type const *t) {
+  switch (t->kind) {
+    case TK_KEYWORD: {
+      switch (t->data.keyword.keyword) {
+        case TK_UBYTE:
+        case TK_BYTE:
+        case TK_USHORT:
+        case TK_SHORT:
+        case TK_UINT:
+        case TK_INT:
+        case TK_ULONG:
+        case TK_LONG:
+        case TK_FLOAT:
+        case TK_DOUBLE: {
+          return true;
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    case TK_MODIFIED: {
+      switch (t->data.modified.modifier) {
+        case TM_CONST:
+        case TM_VOLATILE: {
+          return typeIsNumeric(t->data.modified.modified);
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+bool typeIsIntegral(Type const *t) {
+  switch (t->kind) {
+    case TK_KEYWORD: {
+      switch (t->data.keyword.keyword) {
+        case TK_UBYTE:
+        case TK_BYTE:
+        case TK_USHORT:
+        case TK_SHORT:
+        case TK_UINT:
+        case TK_INT:
+        case TK_ULONG:
+        case TK_LONG: {
+          return true;
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    case TK_MODIFIED: {
+      switch (t->data.modified.modifier) {
+        case TM_CONST:
+        case TM_VOLATILE: {
+          return typeIsNumeric(t->data.modified.modified);
+        }
+        default: {
+          return false;
+        }
+      }
     }
     default: {
       return false;
@@ -829,4 +902,8 @@ bool typeIsInitializable(Type const *to, Type const *from) {
 bool typeIsAssignable(Type const *to, Type const *from) {
   return (to->kind != TK_MODIFIED || to->data.modified.modifier != TM_CONST) &&
          typeIsInitializable(to, from);
+}
+
+Type *typeMerge(Type const *lhs, Type const *rhs) {
+  return NULL;  // TODO
 }
