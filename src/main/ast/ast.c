@@ -465,12 +465,12 @@ Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs) {
   n->data.binOpExp.type = NULL;
   return n;
 }
-Node *castExpNodeCreate(Token const *opToken, Node *type, Node *target) {
+Node *castExpNodeCreate(Token const *opToken, Node *type, Type *parsedType, Node *target) {
   Node *n = createNode(NT_BINOPEXP, opToken->line, opToken->character);
   n->data.binOpExp.op = BO_CAST;
   n->data.binOpExp.lhs = type;
   n->data.binOpExp.rhs = target;
-  n->data.binOpExp.type = NULL;
+  n->data.binOpExp.type = parsedType;
   return n;
 }
 Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,

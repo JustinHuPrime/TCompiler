@@ -887,7 +887,28 @@ static Type const *typecheckExpression(FileListEntry *entry, Node *exp) {
                                               : typeGetArrayElement(lhs));
         }
         case BO_CAST: {
-          return NULL;  // TODO
+          Type const *targetType =
+              typecheckExpression(entry, exp->data.binOpExp.rhs);
+          if (targetType == NULL) {
+            entry->errored = true;
+            return NULL;
+          }
+
+          if (!typeCastable(exp->data.binOpExp.type, targetType)) {
+            char *toTypeName = typeToString(exp->data.binOpExp.type);
+            char *fromTypeName = typeToString(targetType);
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: cannot perform a cast from '%s' to '%s'\n",
+                entry->inputFilename, exp->line, exp->character, fromTypeName,
+                toTypeName);
+            free(toTypeName);
+            free(fromTypeName);
+            entry->errored = true;
+            return NULL;
+          }
+
+          return exp->data.binOpExp.type;
         }
         default: {
           error(__FILE__, __LINE__, "invalid binop enum encountered");

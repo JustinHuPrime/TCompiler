@@ -457,7 +457,8 @@ Node *switchCaseNodeCreate(Token const *keyword, Vector *values, Node *body,
 Node *switchDefaultNodeCreate(Token const *keyword, Node *body,
                               HashMap *bodyStab);
 Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs);
-Node *castExpNodeCreate(Token const *opToken, Node *type, Node *target);
+Node *castExpNodeCreate(Token const *opToken, Node *type, Type *parsedType,
+                        Node *target);
 Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,
                            Node *alternative);
 Node *prefixUnOpExpNodeCreate(UnOpType op, Token const *opToken, Node *target);

@@ -1024,6 +1024,10 @@ bool typeIsCompound(Type const *t) {
   }
 }
 
+bool typeIsArray(Type const *t) {
+  return false;  // TODO
+}
+
 Type *typeMerge(Type const *lhs, Type const *rhs) {
   return NULL;  // TODO
 }
@@ -1042,4 +1046,8 @@ Type *typeCopyCV(Type *to, Type const *from) {
 
 size_t typeSizeof(Type const *t) {
   return 0;  // TODO
+}
+
+bool typeCastable(Type const *to, Type const *from) {
+  return false;  // TODO
 }

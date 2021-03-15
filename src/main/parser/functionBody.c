@@ -1055,7 +1055,14 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
           return NULL;
         }
 
-        return castExpNodeCreate(&peek, type, target);
+        Type *parsedType = nodeToType(type, env);
+        if (parsedType == NULL) {
+          nodeFree(target);
+          nodeFree(type);
+          return NULL;
+        }
+
+        return castExpNodeCreate(&peek, type, parsedType, target);
       }
       case TT_SIZEOF: {
         Token lparen;

@@ -120,6 +120,14 @@ bool typeIsComparable(Type const *lhs, Type const *rhs);
 bool typeIsCompound(Type const *t);
 
 /**
+ * Produces true if the given type is an array
+ * 
+ * @param t type
+ * @returns if type is an array, after cv-qualification
+ */
+bool typeIsArray(Type const *t);
+
+/**
  * Produce the result of a merging of these two types
  *
  * merging only happens for ternary and arithmetic expressions
@@ -142,9 +150,9 @@ Type *typeGetDereferenced(Type const *t);
 
 /**
  * Produce the result of indexing the given type
- * 
+ *
  * expects given type to be an array
- * 
+ *
  * @param t type to index
  * @returns new type from indexing given type
  */
@@ -166,5 +174,14 @@ Type *typeCopyCV(Type *to, Type const *from);
  * @returns size of type
  */
 size_t typeSizeof(Type const *t);
+
+/**
+ * Produces whether a thing of the second type be cast to a thing of the first
+ * type
+ *
+ * @param to type to cast to
+ * @param from type to cast from
+ */
+bool typeCastable(Type const *to, Type const *from);
 
 #endif  // TLC_AST_TYPEMANIP_H_
