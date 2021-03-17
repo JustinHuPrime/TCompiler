@@ -82,6 +82,7 @@ OPTIONS := -std=c18 -m64 -D_POSIX_C_SOURCE=202002L -I$(SRCDIR) $(WARNINGS)\
 -fPIE -pie
 DEBUGOPTIONS := -Og -ggdb -Wno-unused-parameter
 RELEASEOPTIONS := -O3 -DNDEBUG
+COVERAGEOPTIONS := --coverage
 TOPTIONS := -I$(TSRCDIR)
 LIBS :=
 
@@ -102,6 +103,12 @@ release: $(EXENAME) $(TEXENAME) docs
 	@$(ECHO) "Running tests"
 	@./$(TEXENAME)
 	@$(ECHO) "Done building release!"
+
+coverage: OPTIONS := $(OPTIONS) $(COVERAGEOPTIONS)
+coverage: $(TEXENAME)
+	@$(ECHO) "Running tests"
+	@./$(TEXENAME) 2> /dev/null
+	@$(ECHO) "Test coverage generated!"
 
 docs: $(DOCSDIR)/.timestamp $(STANDARDDIR)/Standard.pdf
 
