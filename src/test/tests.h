@@ -35,5 +35,7 @@ void testCommandLineArgs(void);
 void testLexer(void);
 /** tests the parser */
 void testParser(void);
+/** tests the typechecker */
+void testTypechecker(void);
 
 #endif  // TLC_TEST_TESTS_H_
