@@ -1,0 +1,7 @@
+module foo;
+
+void bar(bool const b) {
+  do {
+    ;
+  } while (b)
+}

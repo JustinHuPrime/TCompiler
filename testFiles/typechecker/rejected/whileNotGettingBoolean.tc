@@ -1,0 +1,7 @@
+module foo;
+
+void bar(void *b) {
+  while (b) {
+    ;
+  }
+}

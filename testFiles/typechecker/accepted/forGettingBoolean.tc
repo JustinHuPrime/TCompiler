@@ -1,0 +1,7 @@
+module foo;
+
+void bar(bool const volatile b) {
+  for (; b; ) {
+    ;
+  }
+}

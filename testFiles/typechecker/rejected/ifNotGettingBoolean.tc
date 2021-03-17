@@ -1,0 +1,7 @@
+module foo;
+
+void bar(char const b) {
+  if (b) {
+    ;
+  }
+}

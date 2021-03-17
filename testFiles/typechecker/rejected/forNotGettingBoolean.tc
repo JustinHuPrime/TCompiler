@@ -1,0 +1,7 @@
+module foo;
+
+void bar(bool *b) {
+  for (; b; ) {
+    ;
+  }
+}
