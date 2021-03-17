@@ -46,4 +46,3 @@ void test(char const *name, bool condition) {
     ++status.numTests;
   }
 }
-void dropLine(void) { fprintf(stderr, "\x1B[1A\x1B[2K"); }

@@ -40,7 +40,7 @@ static bool dumpEqual(FileListEntry *entry, char const *expectedFilename) {
 
   long actualLen = ftell(actualFile);
   if (actualLen < 0) {
-    fprintf(stderr, "couldn't get length of actual for %s\n", expectedFilename);
+    printf("couldn't get length of actual for %s\n", expectedFilename);
 
     fclose(actualFile);
     return false;
@@ -51,7 +51,7 @@ static bool dumpEqual(FileListEntry *entry, char const *expectedFilename) {
   actualBuffer[actualLen] = '\0';
   if (fread(actualBuffer, sizeof(char), (unsigned long)actualLen, actualFile) !=
       (unsigned long)actualLen) {
-    fprintf(stderr, "couldn't read actual for %s\n", expectedFilename);
+    printf("couldn't read actual for %s\n", expectedFilename);
 
     free(actualBuffer);
     fclose(actualFile);
@@ -60,7 +60,7 @@ static bool dumpEqual(FileListEntry *entry, char const *expectedFilename) {
 
   FILE *expectedFile = fopen(expectedFilename, "rb");
   if (expectedFile == NULL) {
-    fprintf(stderr, "couldn't read expected for %s\n", expectedFilename);
+    printf("couldn't read expected for %s\n", expectedFilename);
 
     free(actualBuffer);
     fclose(actualFile);
@@ -70,8 +70,7 @@ static bool dumpEqual(FileListEntry *entry, char const *expectedFilename) {
   fseek(expectedFile, 0, SEEK_END);
   long expectedLen = ftell(expectedFile);
   if (expectedLen < 0) {
-    fprintf(stderr, "couldn't get length of expected for %s\n",
-            expectedFilename);
+    printf("couldn't get length of expected for %s\n", expectedFilename);
 
     fclose(expectedFile);
     free(actualBuffer);
@@ -84,7 +83,7 @@ static bool dumpEqual(FileListEntry *entry, char const *expectedFilename) {
   expectedBuffer[expectedLen] = '\0';
   if (fread(expectedBuffer, sizeof(char), (unsigned long)expectedLen,
             expectedFile) != (unsigned long)expectedLen) {
-    fprintf(stderr, "couldn't read expected for %s\n", expectedFilename);
+    printf("couldn't read expected for %s\n", expectedFilename);
 
     free(expectedBuffer);
     fclose(expectedFile);

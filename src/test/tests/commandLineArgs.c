@@ -91,7 +91,6 @@ static void testOptions(void) {
       "--__BAD_OPTION__",
   };
   retval = parseArgs(argc, argv0, &numFiles);
-  dropLine();
   test("command line with bad option fails", retval != 0);
 
   // // --arch=x86_64-linux

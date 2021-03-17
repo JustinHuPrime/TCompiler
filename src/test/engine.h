@@ -56,7 +56,5 @@ int testStatusStatus(void);
  * @param condition did the test pass?
  */
 void test(char const *name, bool condition);
-/** prints ANSI escape to suppress previous line of output */
-void dropLine(void);
 
 #endif  // TLC_TEST_ENGINE_H_

@@ -251,7 +251,6 @@ static void testAllTokens(void) {
   for (size_t idx = 0; idx < numTokens; ++idx) {
     Token token;
     lex(&entry, &token);
-    if (entry.errored) dropLine();
 
     if (entry.errored) errorFlagOK = false;
     if (token.type != types[idx]) typeOK = false;
@@ -323,7 +322,6 @@ static void testErrors(void) {
   bool additionalDataOK = true;
   for (size_t idx = 0; idx < numTokens; ++idx) {
     lex(&entry, &token);
-    if (entry.errored) dropLine();
 
     if (entry.errored != errors[idx]) errorFlagOK = false;
     if (token.type != types[idx]) typeOK = false;
@@ -351,7 +349,6 @@ static void testErrors(void) {
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
   lex(&entry, &token);
-  if (entry.errored) dropLine();
   test("token is an error", entry.errored == true);
   test("token is bad char", token.type == TT_BAD_CHAR);
   test("token is at expected character", token.character == 1);
@@ -360,7 +357,6 @@ static void testErrors(void) {
   entry.errored = false;
 
   lex(&entry, &token);
-  if (entry.errored) dropLine();
   test("token is accepted", entry.errored == false);
   test("token is eof", token.type == TT_EOF);
   test("token is at expected character", token.character == 2);
@@ -373,7 +369,6 @@ static void testErrors(void) {
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
   lex(&entry, &token);
-  if (entry.errored) dropLine();
   test("token is an error", entry.errored == true);
   test("token is string", token.type == TT_LIT_STRING);
   test("token is at expected character", token.character == 1);
@@ -383,7 +378,6 @@ static void testErrors(void) {
   entry.errored = false;
 
   lex(&entry, &token);
-  if (entry.errored) dropLine();
   test("token is accepted", entry.errored == false);
   test("token is eof", token.type == TT_EOF);
   test("token is at expected character", token.character == 2);
