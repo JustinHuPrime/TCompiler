@@ -24,6 +24,7 @@
 
 #include "parser/parser.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,58 +40,28 @@ static bool dumpEqual(FileListEntry *entry, char const *expectedFilename) {
   fflush(actualFile);
 
   long actualLen = ftell(actualFile);
-  if (actualLen < 0) {
-    printf("couldn't get length of actual for %s\n", expectedFilename);
-
-    fclose(actualFile);
-    return false;
-  }
+  assert("couldn't get length of actual" && actualLen >= 0);
 
   rewind(actualFile);
   char *actualBuffer = malloc((unsigned long)actualLen + 1);
   actualBuffer[actualLen] = '\0';
-  if (fread(actualBuffer, sizeof(char), (unsigned long)actualLen, actualFile) !=
-      (unsigned long)actualLen) {
-    printf("couldn't read actual for %s\n", expectedFilename);
-
-    free(actualBuffer);
-    fclose(actualFile);
-    return false;
-  }
+  unsigned long readLen =
+      fread(actualBuffer, sizeof(char), (unsigned long)actualLen, actualFile);
+  assert("couldn't read actual" && readLen == (unsigned long)actualLen);
 
   FILE *expectedFile = fopen(expectedFilename, "rb");
-  if (expectedFile == NULL) {
-    printf("couldn't read expected for %s\n", expectedFilename);
-
-    free(actualBuffer);
-    fclose(actualFile);
-    return false;
-  }
+  assert("couldn't read expected" && expectedFile != NULL);
 
   fseek(expectedFile, 0, SEEK_END);
   long expectedLen = ftell(expectedFile);
-  if (expectedLen < 0) {
-    printf("couldn't get length of expected for %s\n", expectedFilename);
-
-    fclose(expectedFile);
-    free(actualBuffer);
-    fclose(actualFile);
-    return false;
-  }
+  assert("couldn't get length of expected" && expectedLen >= 0);
 
   rewind(expectedFile);
   char *expectedBuffer = malloc((unsigned long)expectedLen + 1);
   expectedBuffer[expectedLen] = '\0';
-  if (fread(expectedBuffer, sizeof(char), (unsigned long)expectedLen,
-            expectedFile) != (unsigned long)expectedLen) {
-    printf("couldn't read expected for %s\n", expectedFilename);
-
-    free(expectedBuffer);
-    fclose(expectedFile);
-    free(actualBuffer);
-    fclose(actualFile);
-    return false;
-  }
+  readLen = fread(expectedBuffer, sizeof(char), (unsigned long)expectedLen,
+                  expectedFile);
+  assert("couldn't read expected" && readLen == (unsigned long)expectedLen);
 
   bool retval = strcmp(actualBuffer, expectedBuffer) == 0;
 
