@@ -1,0 +1,10 @@
+module foo;
+
+union u {
+  int i;
+  float f;
+};
+
+void bar(u y) {
+  ubyte x = y;
+}

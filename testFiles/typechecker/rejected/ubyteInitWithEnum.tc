@@ -1,0 +1,11 @@
+module foo;
+
+enum e {
+  A,
+  B,
+  C,
+};
+
+void bar(e y) {
+  ubyte x = y;
+}

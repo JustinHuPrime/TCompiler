@@ -1,0 +1,7 @@
+module foo;
+
+opaque o;
+
+void bar(o y) {
+  ubyte x = y;
+}

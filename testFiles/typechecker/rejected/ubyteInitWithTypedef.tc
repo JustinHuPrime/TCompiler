@@ -1,0 +1,7 @@
+module foo;
+
+typedef ubyte t;
+
+void bar(t y) {
+  ubyte x = y;
+}

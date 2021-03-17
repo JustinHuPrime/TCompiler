@@ -1,0 +1,5 @@
+module foo;
+
+void bar(ubyte u1) {
+  ubyte u2 = u1;
+}
