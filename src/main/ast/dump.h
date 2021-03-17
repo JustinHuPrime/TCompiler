@@ -30,7 +30,7 @@
 #include "fileList.h"
 
 /**
- * prints the parsed results of a file to stdout
+ * prints the parsed results of a file
  *
  * @param where standard IO stream to output to
  * @param entry entry to dump

@@ -95,13 +95,13 @@ LIBS :=
 debug: OPTIONS := $(OPTIONS) $(DEBUGOPTIONS)
 debug: $(EXENAME) $(TEXENAME) docs
 	@$(ECHO) "Running tests"
-	@./$(TEXENAME)
+	@./$(TEXENAME) 2> /dev/null
 	@$(ECHO) "Done building debug!"
 
 release: OPTIONS := $(OPTIONS) $(RELEASEOPTIONS)
 release: $(EXENAME) $(TEXENAME) docs
 	@$(ECHO) "Running tests"
-	@./$(TEXENAME)
+	@./$(TEXENAME) 2> /dev/null
 	@$(ECHO) "Done building release!"
 
 coverage: OPTIONS := $(OPTIONS) $(COVERAGEOPTIONS)

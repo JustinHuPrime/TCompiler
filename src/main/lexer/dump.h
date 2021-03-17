@@ -28,7 +28,7 @@
 #include "fileList.h"
 
 /**
- * Prints the lexed results of a file to stdout. Assumes that entry has not been
+ * Prints the lexed results of a file to stderr. Assumes that entry has not been
  * initialized for lexing. The function lexerInitMaps() must be called first.
  *
  * @param entry entry to lex, must not be initialized for lexing already

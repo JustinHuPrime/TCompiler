@@ -138,17 +138,18 @@ static char const *const TOKEN_NAMES[] = {
 };
 
 void lexDump(FileListEntry *entry) {
-  printf("%s:\n", entry->inputFilename);
+  fprintf(stderr, "%s:\n", entry->inputFilename);
   if (lexerStateInit(entry) != 0) return;
 
   Token t;
   do {
     lex(entry, &t);
     if (t.type >= TT_ID && t.type <= TT_LIT_FLOAT)
-      printf("%zu:%zu: %s (%s)\n", t.line, t.character, TOKEN_NAMES[t.type],
-             t.string);
+      fprintf(stderr, "%zu:%zu: %s (%s)\n", t.line, t.character,
+              TOKEN_NAMES[t.type], t.string);
     else
-      printf("%zu:%zu: %s\n", t.line, t.character, TOKEN_NAMES[t.type]);
+      fprintf(stderr, "%zu:%zu: %s\n", t.line, t.character,
+              TOKEN_NAMES[t.type]);
   } while (t.type != TT_EOF);
 
   lexerStateUninit(entry);
