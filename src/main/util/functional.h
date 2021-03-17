@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Justin Hu
+// Copyright 2019-2021 Justin Hu
 //
 // This file is part of the T Language Compiler.
 //
@@ -25,9 +25,11 @@
 #ifndef TLC_UTIL_FUNCTIONAL_H_
 #define TLC_UTIL_FUNCTIONAL_H_
 
+#include <stdnoreturn.h>
+
 /** destructor-like function that does nothing */
 void nullDtor(void *);
 /** reports an invalid function being called, aborts */
-void invalidFunction(void) __attribute__((noreturn));
+noreturn void invalidFunction(void);
 
 #endif  // TLC_UTIL_FUNCTIONAL_H_

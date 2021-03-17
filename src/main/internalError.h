@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Justin Hu
+// Copyright 2019-2021 Justin Hu
 //
 // This file is part of the T Language Compiler.
 //
@@ -26,6 +26,7 @@
 #define TLC_INTERNALERROR_H_
 
 #include <stddef.h>
+#include <stdnoreturn.h>
 
 /**
  * Report an internal compiler error. Error is specified as coming from the
@@ -35,7 +36,6 @@
  * @param line should be the macro \_\_LINE\_\_
  * @param message message to display
  */
-void error(char const *file, size_t line, char const *message)
-    __attribute__((noreturn));
+noreturn void error(char const *file, size_t line, char const *message);
 
 #endif  // TLC_INTERNALERROR_H_
