@@ -317,6 +317,11 @@ void typeFree(Type *t) {
   free(t);
 }
 
+void typeVectorFree(Vector *v) {
+  vectorUninit(v, (void (*)(void *))typeFree);
+  free(v);
+}
+
 static char const *const SYMBOL_KIND_NAMES[] = {
     "a variable",     "a function",
     "an opaque type", "a structure type",

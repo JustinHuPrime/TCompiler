@@ -155,6 +155,12 @@ char *typeToString(Type const *t);
  * @param t type to uninit
  */
 void typeFree(Type *t);
+/**
+ * deinitializes a vector of types
+ *
+ * @param v vector to uninit
+ */
+void typeVectorFree(Vector *v);
 
 /** the kind of a symbol */
 typedef enum {
