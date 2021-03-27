@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
   } else if (versionRequested((size_t)argc, argv)) {
     printf(
         "%s\n"
-        "Copyright 2020 Justin Hu\n"
+        "Copyright 2021 Justin Hu\n"
         "This is free software; see the source for copying conditions. There "
         "is NO\n"
         "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR "
