@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
     testCommandLineArgs();
   if (argc < 2 || strcmp(argv[1], "lexer") == 0) testLexer();
   if (argc < 2 || strcmp(argv[1], "parser") == 0) testParser();
-  if (argc < 2 || strcmp(argv[1], "typechecker") == 0) testTypechecker();
+  // if (argc < 2 || strcmp(argv[1], "typechecker") == 0) testTypechecker();
 
   return testStatusStatus();
 }
