@@ -46,10 +46,16 @@ Type *keywordTypeCreate(TypeKeyword keyword) {
   t->data.keyword.keyword = keyword;
   return t;
 }
-Type *modifiedTypeCreate(TypeModifier modifier, Type *modified) {
-  Type *t = typeCreate(TK_MODIFIED);
-  t->data.modified.modifier = modifier;
-  t->data.modified.modified = modified;
+Type *qualifiedTypeCreate(Type *base, bool constQual, bool volatileQual) {
+  Type *t = typeCreate(TK_QUALIFIED);
+  t->data.qualified.constQual = constQual;
+  t->data.qualified.volatileQual = volatileQual;
+  t->data.qualified.base = base;
+  return t;
+}
+Type *pointerTypeCreate(Type *base) {
+  Type *t = typeCreate(TK_POINTER);
+  t->data.pointer.base = base;
   return t;
 }
 Type *arrayTypeCreate(uint64_t length, Type *type) {
@@ -80,9 +86,13 @@ Type *typeCopy(Type const *t) {
     case TK_KEYWORD: {
       return keywordTypeCreate(t->data.keyword.keyword);
     }
-    case TK_MODIFIED: {
-      return modifiedTypeCreate(t->data.modified.modifier,
-                                typeCopy(t->data.modified.modified));
+    case TK_QUALIFIED: {
+      return qualifiedTypeCreate(typeCopy(t->data.qualified.base),
+                                 t->data.qualified.constQual,
+                                 t->data.qualified.volatileQual);
+    }
+    case TK_POINTER: {
+      return pointerTypeCreate(typeCopy(t->data.pointer.base));
     }
     case TK_ARRAY: {
       return arrayTypeCreate(t->data.array.length,
@@ -118,9 +128,13 @@ bool typeEqual(Type const *a, Type const *b) {
     case TK_KEYWORD: {
       return a->data.keyword.keyword == b->data.keyword.keyword;
     }
-    case TK_MODIFIED: {
-      return a->data.modified.modifier == b->data.modified.modifier &&
-             typeEqual(a->data.modified.modified, b->data.modified.modified);
+    case TK_QUALIFIED: {
+      return a->data.qualified.constQual == b->data.qualified.constQual &&
+             a->data.qualified.volatileQual == b->data.qualified.volatileQual &&
+             typeEqual(a->data.qualified.base, b->data.qualified.base);
+    }
+    case TK_POINTER: {
+      return typeEqual(a->data.pointer.base, b->data.pointer.base);
     }
     case TK_ARRAY: {
       return a->data.array.length == b->data.array.length &&
@@ -231,29 +245,25 @@ char *typeToString(Type const *t) {
         }
       }
     }
-    case TK_MODIFIED: {
-      char *base = typeToString(t->data.modified.modified);
+    case TK_QUALIFIED: {
+      char *base = typeToString(t->data.qualified.base);
       char *retval;
-      switch (t->data.modified.modifier) {
-        case TM_CONST: {
-          retval = format("%s const", base);
-          break;
-        }
-        case TM_VOLATILE: {
-          retval = format("%s volatile", base);
-          break;
-        }
-        case TM_POINTER: {
-          if (base[strlen(base) - 1] == '*')
-            retval = format("%s*", base);
-          else
-            retval = format("%s *", base);
-          break;
-        }
-        default: {
-          error(__FILE__, __LINE__, "invalid type modifier enum given");
-        }
-      }
+      if (t->data.qualified.constQual && t->data.qualified.volatileQual)
+        retval = format("%s volatile const", base);
+      else if (t->data.qualified.constQual)
+        retval = format("%s const", base);
+      else  // at least one of const, volatile must be true
+        retval = format("%s volatile", base);
+      free(base);
+      return retval;
+    }
+    case TK_POINTER: {
+      char *base = typeToString(t->data.pointer.base);
+      char *retval;
+      if (base[strlen(base) - 1] == '*')
+        retval = format("%s*", base);
+      else
+        retval = format("%s *", base);
       free(base);
       return retval;
     }
@@ -289,8 +299,12 @@ void typeFree(Type *t) {
   if (t == NULL) return;
 
   switch (t->kind) {
-    case TK_MODIFIED: {
-      typeFree(t->data.modified.modified);
+    case TK_QUALIFIED: {
+      typeFree(t->data.qualified.base);
+      break;
+    }
+    case TK_POINTER: {
+      typeFree(t->data.pointer.base);
       break;
     }
     case TK_ARRAY: {

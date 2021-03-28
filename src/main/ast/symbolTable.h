@@ -57,17 +57,11 @@ typedef enum {
   TK_BOOL,
 } TypeKeyword;
 
-/** the kind of a simple type modifier */
-typedef enum {
-  TM_CONST,
-  TM_VOLATILE,
-  TM_POINTER,
-} TypeModifier;
-
 /** the kind of a type */
 typedef enum {
   TK_KEYWORD,
-  TK_MODIFIED,
+  TK_QUALIFIED,
+  TK_POINTER,
   TK_ARRAY,
   TK_FUNPTR,
   TK_AGGREGATE,
@@ -83,10 +77,13 @@ typedef struct Type {
       TypeKeyword keyword;
     } keyword;
     struct {
-      TypeModifier modifier;
-      struct Type *modified;
-    } modified; /**< canonical form for CV qualification is constness first,
-                   volatility second */
+      bool constQual;
+      bool volatileQual;
+      struct Type *base;
+    } qualified;
+    struct {
+      struct Type *base;
+    } pointer;
     struct {
       uint64_t length;
       struct Type *type;
@@ -110,9 +107,13 @@ typedef struct Type {
  */
 Type *keywordTypeCreate(TypeKeyword keyword);
 /**
- * create a modified type
+ * create a qualified type
  */
-Type *modifiedTypeCreate(TypeModifier modifier, Type *modified);
+Type *qualifiedTypeCreate(Type *base, bool constQual, bool volatileQual);
+/**
+ * create a pointer type
+ */
+Type *pointerTypeCreate(Type *base);
 /**
  * create an array type
  */

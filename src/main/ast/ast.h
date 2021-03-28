@@ -189,6 +189,13 @@ typedef enum {
   LT_AGGREGATEINIT,
 } LiteralType;
 
+/** type modification kind */
+typedef enum {
+  TMK_CONST,
+  TMK_VOLATILE,
+  TMK_POINTER,
+} TypeModifierKind;
+
 // type modifier list is shared from symbolTable.h
 // type keyword list is shared from symbolTable.h
 
@@ -379,7 +386,7 @@ typedef struct Node {
       TypeKeyword keyword;
     } keywordType;
     struct {
-      TypeModifier modifier;
+      TypeModifierKind modifier;
       struct Node *baseType; /**< type */
     } modifiedType;
     struct {
@@ -471,7 +478,7 @@ Node *stringLiteralNodeCreate(Token *t);
 Node *wstringLiteralNodeCreate(Token *t);
 Node *sizedIntegerLiteralNodeCreate(Token *t, int8_t sign, uint64_t magnitude);
 Node *keywordTypeNodeCreate(TypeKeyword keyword, Token const *keywordToken);
-Node *modifiedTypeNodeCreate(TypeModifier modifier, Node *baseType);
+Node *modifiedTypeNodeCreate(TypeModifierKind modifier, Node *baseType);
 Node *arrayTypeNodeCreate(Node *baseType, Node *size);
 Node *funPtrTypeNodeCreate(Node *returnType, Vector *argTypes,
                            Vector *argNames);

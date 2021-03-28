@@ -465,7 +465,8 @@ Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs) {
   n->data.binOpExp.type = NULL;
   return n;
 }
-Node *castExpNodeCreate(Token const *opToken, Node *type, Type *parsedType, Node *target) {
+Node *castExpNodeCreate(Token const *opToken, Node *type, Type *parsedType,
+                        Node *target) {
   Node *n = createNode(NT_BINOPEXP, opToken->line, opToken->character);
   n->data.binOpExp.op = BO_CAST;
   n->data.binOpExp.lhs = type;
@@ -844,7 +845,7 @@ Node *keywordTypeNodeCreate(TypeKeyword keyword, Token const *keywordToken) {
   n->data.keywordType.keyword = keyword;
   return n;
 }
-Node *modifiedTypeNodeCreate(TypeModifier modifier, Node *baseType) {
+Node *modifiedTypeNodeCreate(TypeModifierKind modifier, Node *baseType) {
   Node *n = createNode(NT_MODIFIEDTYPE, baseType->line, baseType->character);
   n->data.modifiedType.modifier = modifier;
   n->data.modifiedType.baseType = baseType;
@@ -924,7 +925,7 @@ static void errorNotPositive(Node *n, Environment *env) {
  *
  * @returns 0 if an error occurred
  */
-static uint64_t extendedIntLiteralToValue(Node *n, Environment *env) {
+static uint64_t extendedIntLiteralToArrayLength(Node *n, Environment *env) {
   switch (n->type) {
     case NT_LITERAL: {
       switch (n->data.literal.literalType) {
@@ -981,7 +982,7 @@ static uint64_t extendedIntLiteralToValue(Node *n, Environment *env) {
         default: {
           error(__FILE__, __LINE__,
                 "bad extended int literal node given to "
-                "extendedIntLiteralToValue");
+                "extendedIntLiteralToArrayLength");
         }
       }
     }
@@ -1014,7 +1015,7 @@ static uint64_t extendedIntLiteralToValue(Node *n, Environment *env) {
     default: {
       error(__FILE__, __LINE__,
             "bad extended int literal node given to "
-            "extendedIntLiteralToValue");
+            "extendedIntLiteralToArrayLength");
     }
   }
 }
@@ -1024,31 +1025,40 @@ Type *nodeToType(Node *n, Environment *env) {
       return keywordTypeCreate(n->data.keywordType.keyword);
     }
     case NT_MODIFIEDTYPE: {
-      // if it's a volatile type and next thing is a const, produce const
-      // volatile instead
-      if (n->data.modifiedType.modifier == TM_VOLATILE &&
-          n->data.modifiedType.baseType->type == NT_MODIFIEDTYPE &&
-          n->data.modifiedType.baseType->data.modifiedType.modifier ==
-              TM_CONST) {
-        Type *inner = nodeToType(
-            n->data.modifiedType.baseType->data.modifiedType.baseType, env);
-        if (inner != NULL)
-          return modifiedTypeCreate(TM_CONST,
-                                    modifiedTypeCreate(TM_VOLATILE, inner));
-        else
-          return NULL;
-      } else {
-        Type *inner = nodeToType(n->data.modifiedType.baseType, env);
-        if (inner != NULL)
-          return modifiedTypeCreate(n->data.modifiedType.modifier, inner);
-        else
-          return NULL;
+      switch (n->data.modifiedType.modifier) {
+        case TMK_POINTER: {
+          return pointerTypeCreate(
+              nodeToType(n->data.modifiedType.baseType, env));
+        }
+        case TMK_CONST: {
+          Type *inner = nodeToType(n->data.modifiedType.baseType, env);
+          if (inner->kind == TK_QUALIFIED) {
+            inner->data.qualified.constQual = true;
+            return inner;
+          } else {
+            return qualifiedTypeCreate(inner, true, false);
+          }
+        }
+        case TMK_VOLATILE: {
+          Type *inner = nodeToType(n->data.modifiedType.baseType, env);
+          if (inner->kind == TK_QUALIFIED) {
+            inner->data.qualified.volatileQual = true;
+            return inner;
+          } else {
+            return qualifiedTypeCreate(inner, false, true);
+          }
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "invalid type modifier kind given to nodeToType");
+        }
       }
     }
     case NT_ARRAYTYPE: {
       Type *base = nodeToType(n->data.arrayType.baseType, env);
       if (base == NULL) return NULL;
-      uint64_t length = extendedIntLiteralToValue(n->data.arrayType.size, env);
+      uint64_t length =
+          extendedIntLiteralToArrayLength(n->data.arrayType.size, env);
       if (length == 0) {
         typeFree(base);
         return NULL;

@@ -737,11 +737,11 @@ static Node *parseType(FileListEntry *entry, Node *unparsed, Environment *env,
     next(unparsed, &next1);
     switch (next1.type) {
       case TT_CONST: {
-        type = modifiedTypeNodeCreate(TM_CONST, type);
+        type = modifiedTypeNodeCreate(TMK_CONST, type);
         break;
       }
       case TT_VOLATILE: {
-        type = modifiedTypeNodeCreate(TM_VOLATILE, type);
+        type = modifiedTypeNodeCreate(TMK_VOLATILE, type);
         break;
       }
       case TT_LSQUARE: {
@@ -768,7 +768,7 @@ static Node *parseType(FileListEntry *entry, Node *unparsed, Environment *env,
         break;
       }
       case TT_STAR: {
-        type = modifiedTypeNodeCreate(TM_POINTER, type);
+        type = modifiedTypeNodeCreate(TMK_POINTER, type);
         break;
       }
       case TT_LPAREN: {
