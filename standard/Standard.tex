@@ -219,16 +219,142 @@ There are several defined data types. These need to be declared to exist, and ar
 Any data type may form the base of a derived data type.
 
 \begin{itemize}
-	\item \textbf{Constants}: by appending \texttt{const} to a type, a type may be turned into a constant type. A value of a constant type may not be written to directly. If a constant value is written to, a diagnostic message must be issued. If a constant value is written to indirectly (e.g. through a casted pointer), undefined behaviour results, and no diagnostic message is required. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant. A void base type is not allowed.
+	\item \textbf{Constants}: by appending \texttt{const} to a type, a type may be turned into a constant type. A value of a constant type may not be written to directly. If a constant value is written to, a diagnostic message must be issued. If a constant value is written to indirectly (e.g. through a casted pointer), undefined behaviour results, and no diagnostic message is required. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant. A void base type is not allowed unless the type will form a pointer.
 	
-	\item \textbf{Volatiles}: by appending \texttt{volatile} to a type, a type may be turned into a volatile type. Reads and writes from and to a value of volatile type are considered side effects, and must be sequenced. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant. A void base type is not allowed.
+	\item \textbf{Volatiles}: by appending \texttt{volatile} to a type, a type may be turned into a volatile type. Reads and writes from and to a value of volatile type are considered side effects, and must be sequenced. The ordering of \texttt{const} and \texttt{volatile} in a declaration is irrelevant. A similar to \texttt{const} void base type is not allowed unless the type will form a pointer.
 	
-	\item \textbf{Arrays}: by appending a positive or unsigned extended integral constant in square brackets, a type is turned into an array of that many items. An array is guaranteed to be contiguous in memory, such that by adding (without pointer arithmetic, i.e. on the raw integer address) the size of an element, to the address of an element, you get the address of the next element. Arrays of void are not allowed.
+	\item \textbf{Arrays}: by appending a positive or unsigned extended integral constant in square brackets, a type is turned into an array of that many items. An array is guaranteed to be contiguous in memory, such that by adding (without pointer arithmetic, i.e. on the raw integer address) the size of an element, to the address of an element, you get the address of the next element. Arrays of void are not allowed, not even if they form the base of a pointer, nor are zero-length arrays.
 	
-	\item \textbf{Pointers}: by appending \texttt{*} to a type, a type is turned into a pointer to that type. Pointers hold an unsigned integer (width determined by the execution environment) that represents the location in memory 
+	\item \textbf{Pointers}: by appending \texttt{*} to a type, a type is turned into a pointer to that type. Pointers hold an unsigned integer (width determined by the execution environment) that represents the location in memory. A void base type is allowed.
 	
 	\item \textbf{Function Pointers}: by appending a comma separated list of types enclosed in parentheses, with optional and ignored names, a type is turned into a function pointer to a function returning that type (which may be void), and taking the list of types as arguments. Function pointers also hold an unsigned integer (width determined by the execution environment) that represents the location in memory.
+	
+	\item \textbf{Aggregate Initializers}: an aggregate initialzer type cannot be explicitly formed, but it is the type of an aggregate initializer expression. An aggregate initializer's type is the product of the types of its literals.
 \end{itemize}
+
+Data types which are modified with \texttt{const} or \texttt{volatile} at top level are said to be CV-qualfied. A data type is as least as CV qualified as another type if the first type has all of the qualifiers the second type has.
+
+\section{Type Conversions}
+
+A value of one type can be converted into a value of another type in one of two ways - implicitly or explicitly. Syntactically, implcit conversions happen without the program needing to specify a type to convert to, or to explicitly state that a conversion is happening.
+
+\subsection{Implicit Conversions}\label{subsection:Implicit Conversions}
+
+A value of one type may be implicitly converted to a value of another type when, ignoring CV-qualfication, any of the following conditions are met.
+
+\begin{enumerate}
+	\item Both types are exactly the same. No conversion is performed, and the value is directly copied.
+	
+	\item The converted-from type is any integral type and the converted-to type is a float or a double. An integral-to-float or integral-to-double conversion (as appropriate) will be performed.
+	
+	\item The converted-from type is a float and the converted-to type is a double. A float-to-double conversion will be performed.
+	
+	\item The converted-from type is an unsigned integral type, the converted-to type is an integral type, and the converted-to type is wider than the converted-from type. An appropriate zero-extend is performed.
+	
+	\item The converted-from type is a signed integral type, the converted-to type is a signed integral type, and the converted-to type is wider than the converted-from type. An appropriate sign-extend is performed.
+	
+	\item The converted-from type is a char and the converted-to type is a wide character. A character-set appropriate widening is performed.
+
+	\item The converted-from type is an aggregate initializer, the converted-to type is a structure type, and the elements of the aggregate initializer correspond, in order, to fields of the structure whose type the element's type can be implicitly to. The resulting structure is as if it had been elementwise converted from the aggregate initializer.
+
+	\item The converted-from type is an aggregate initializer, the converted-to type is an array, and the elements of the aggregate initializer correspond, in order, to elements of the array whose type the element's type can be implicitly converted to. The resulting structure is as if it had been elementwise converted from the aggregate initializer.
+
+	\item The converted-from type is a pointer, the converted-to type is a pointer, the converted-to type's base type is at least as CV-qualified as the converted-to type, and, for the base types (ignoring CV-qualification) any of the following conditions are met.\label{item:Pointer Rule}
+	\begin{enumerate}
+		\item Both base types are exactly the same.
+		
+		\item The converted-from type's base type is void.
+		
+		\item The converted-to type's base type is void.
+		
+		\item Both base types are pointers and the pointer-conversion rule (rule \ref{item:Pointer Rule}) is satisfied.
+	\end{enumerate}
+	
+	Regardless, no conversion is performed, and the value is directly copied.
+	
+	\item The converted-from type is an array, the converted-to type is a pointer, and the base types of the array and pointer satisfy rule \ref{item:Pointer Rule}. A pointer to the first element of the array is taken and implicitly converted into the converted-to type.
+\end{enumerate}
+
+\subsection{Explicit Conversions}
+
+A value of one type may be explicitly converted to a value of another type when, ignoring CV-qualfication, any of the following conditions are met.
+
+\begin{enumerate}
+	\item The converted-from type could be implicitly converted into the converted-to type. The same conversion as the implicit conversion happens.
+	
+	\item The converted-from type is a character or wide character and the converted-to type is a float or a double. An integral-to-float or integral-to-double (as appropriate) conversion is performed on the integer representation of the character.
+	
+	\item The converted-from type is a double and the converted-to type is a float. A double-to-float narrowing is performed.
+	
+	\item The converted-from type is any unsigned integral type, character, or wide character and the converted-to type is any integral type. A truncation or a zero-extend (as appropriate) is performed.
+	
+	\item The converted-from type is any signed integral type and the converted-to type is any integral type. A truncation or sign-extend (as appropriate) is performed.
+	
+	\item The converted-from type is a wide character and the converted-to type is a character. The character-set appropriate narrowing is performed.
+	
+	\item The converted-from type is a pointer or function pointer and the converted-to type is any integral, character, or floating-point type. The pointer is converted as if it were an unsigned long.
+	
+	\item One type is a type alias of another type. This rules is not applied transitively - if \texttt{A} is an alias of \texttt{B}, which is an alias for \texttt{C}, \texttt{A} cannot be explicitly converted into \texttt{C} in one step.
+	
+	\item The converted-from type is a boolean and the converted-to type is any integral, floating-point, or character type. The converted-to value is one if the boolean is true and zero if the boolean is false.
+	
+	\item The converted-from type is any integral, floating-point, character, or pointer type and the converted-to type is a boolean. The converted-to value is true if the converted-from value is not zero (or null, as appropriate), and false otherwise.
+	
+	\item The converted-from type is a pointer, function pointer, bool, float, double, or any other integral type, and the converted-to type is an enumeration. The converted-from type is converted to an integer with the same size and signedness as the converted-to enumeration's underlying type.
+	
+	\item The converted-from type is an enumeration and the converted-to type is a pointer, function pointer, bool, float, double, or other integral type. The converted-from type is converted to the converted-to type using the enumeration's underlying type.
+	
+	\item The converted-from type is a function pointer or pointer, and the converted-to type is a pointer or function pointer. The pointer is directly copied.
+\end{enumerate}
+
+\subsection{Arithmetic Type Merging}\label{subsection:Arithmetic Type Merging}
+
+When two integral or floating point values are operated on by an arithmetic operator, they are first converted into a common type, using the following rules, and ignoring CV-qualification. The rules take precedence from top to bottom.
+
+\begin{enumerate}
+	\item If both types are the same, the common type is the same as both types, without CV-qualification.
+	
+	\item If one type is a double, the common type is a double.
+	
+	\item If one type is a float, the common type is a float.
+	
+	\item If both types are integral, the common type is the integral type that can hold all values from both the left and right hand sides. If no such type exists, then the two types cannot be combined in an arithmetic expression.
+\end{enumerate}
+
+\subsection{Ternary Type Merging}
+
+When two values are the consequent and the alternative of a ternary operator, they are first converted into a common type. The rules take precedence from top to bottom.
+
+\begin{enumerate}
+	\item The result of two CV-qualified types is the union of the qualifications applied to the result of recursively merging their base types.
+	
+	\item If both types are the same, the common type is the same as both types.
+	
+	\item If both types are numeric, the common type is the one that results from \ref{subsection:Arithmetic Type Merging}.
+	
+	\item If one type is a wide character and the other is a character, the common type is a wide character.
+	
+	\item If both types are pointers, then (in precedence from top to bottom):
+	\begin{enumerate}
+		\item The result of two CV-qualfied base types is the union of the qualifications applied to the result of recursively merging their base types.
+		
+		\item Two identical base types result in the same base type.
+		
+		\item Two different base types result in a void base type.
+	\end{enumerate}
+\end{enumerate}
+
+\subsection{Comparison Type Merging}
+
+When two values are involved in an equality or other comparison, they are sometimes converted into a common type. Since comparisons ignore CV-qualfication, the CV-qualification of the two values is also ignored. The following rules take precedence from top to bottom.
+
+\begin{enumerate}
+	\item Character and numeric types are merged as if in a ternary.
+	
+	\item Booleans and enumerations may only be compared with idential types.
+	
+	\item Pointers may be compared with any other pointer.
+\end{enumerate}
 
 \chapter{Declarations}
 
@@ -375,7 +501,7 @@ A return statement returns from the current function. If an expression is provid
 
 An assembly statement inserts the assembly code into the generated assembly. The string literal respects escape codes, but is otherwise inserted verbatim. It is the responsibility of the user to write valid assembly code and to ensure that said assembly code will interoperate with generated assembly code.
 
-\section{Variable Declaration Statements}
+\section{Variable Declaration Statements}\label{section:Variable Declaration Statements}
 
 \lstinputlisting[breaklines=true, firstline=59, lastline=59]{"Appendix B - Syntax.ebnf"}
 
