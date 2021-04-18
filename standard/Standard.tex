@@ -286,23 +286,23 @@ A value of one type may be explicitly converted to a value of another type when,
 	
 	\item The converted-from type is a double and the converted-to type is a float. A double-to-float narrowing is performed.
 	
-	\item The converted-from type is any unsigned integral type, character, or wide character and the converted-to type is any integral type. A truncation or a zero-extend (as appropriate) is performed.
-	
-	\item The converted-from type is any signed integral type and the converted-to type is any integral type. A truncation or sign-extend (as appropriate) is performed.
-	
 	\item The converted-from type is a wide character and the converted-to type is a character. The character-set appropriate narrowing is performed.
 	
-	\item The converted-from type is a pointer or function pointer and the converted-to type is any integral, character, or floating-point type. The pointer is converted as if it were an unsigned long.
+	\item The converted-from type is any unsigned integral type, character, or wide character and the converted-to type is any integral or character type. A truncation or a zero-extend (as appropriate) is performed.
+	
+	\item The converted-from type is any signed integral type and the converted-to type is any integral or character type. A truncation or sign-extend (as appropriate) is performed.
+	
+	\item The converted-from type is a pointer or function pointer and the converted-to type is any integral type. The pointer is converted as if it were an unsigned long.
 	
 	\item One type is a type alias of another type. This rules is not applied transitively - if \texttt{A} is an alias of \texttt{B}, which is an alias for \texttt{C}, \texttt{A} cannot be explicitly converted into \texttt{C} in one step.
 	
-	\item The converted-from type is a boolean and the converted-to type is any integral, floating-point, or character type. The converted-to value is one if the boolean is true and zero if the boolean is false.
+	\item The converted-from type is a boolean and the converted-to type is any integral or floating-point type. The converted-to value is one if the boolean is true and zero if the boolean is false.
 	
-	\item The converted-from type is any integral, floating-point, character, or pointer type and the converted-to type is a boolean. The converted-to value is true if the converted-from value is not zero (or null, as appropriate), and false otherwise.
+	\item The converted-from type is any integral, floating-point, or pointer type and the converted-to type is a boolean. The converted-to value is true if the converted-from value is not zero (or null, as appropriate), and false otherwise.
 	
-	\item The converted-from type is a pointer, function pointer, bool, float, double, or any other integral type, and the converted-to type is an enumeration. The converted-from type is converted to an integer with the same size and signedness as the converted-to enumeration's underlying type.
+	\item The converted-from type is a floating point or integral type, and the converted-to type is an enumeration. The converted-from type is converted to an integer with the same size and signedness as the converted-to enumeration's underlying type.
 	
-	\item The converted-from type is an enumeration and the converted-to type is a pointer, function pointer, bool, float, double, or other integral type. The converted-from type is converted to the converted-to type using the enumeration's underlying type.
+	\item The converted-from type is an enumeration and the converted-to type is a floating point or integral type. The converted-from type is converted to the converted-to type using the enumeration's underlying type.
 	
 	\item The converted-from type is a function pointer or pointer, and the converted-to type is a pointer or function pointer. The pointer is directly copied.
 \end{enumerate}
@@ -312,8 +312,6 @@ A value of one type may be explicitly converted to a value of another type when,
 When two integral or floating point values are operated on by an arithmetic operator, they are first converted into a common type, using the following rules, and ignoring CV-qualification. The rules take precedence from top to bottom.
 
 \begin{enumerate}
-	\item If both types are the same, the common type is the same as both types, without CV-qualification.
-	
 	\item If one type is a double, the common type is a double.
 	
 	\item If one type is a float, the common type is a float.
@@ -806,5 +804,7 @@ A cast converts the expression to the listed type. See \ref{subsection:Explicit 
 \subsection{Sizeof Expressions}
 
 A size-of expression calculates the size of a type, or the size of an expression, both producing an unsigned long value. Additionally, if an expression is involved in the query, it will not be evaluated.
+
+A size-of expression results in an rvalue ulong.
 
 \end{document}
