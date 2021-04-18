@@ -783,6 +783,22 @@ Scoped identifiers and identifiers name a value, and produce that value as an lv
 
 Literals represent a constant value, either of some type, or of an aggregate initializer. Integer literals may be signed or unsigned. Integer literals are of the smallest type capable of containing their value, preferring unsigned types over signed types. A positive integer literal may be forced into being of a signed type by prefixing it with \texttt{+}.
 
+\subsubsection{Escape Sequences}
+
+A backslash followed by a sequence of characters in a character or string literal forms an escape sequence. The following escape sequences are recognized:
+
+\begin{itemize}
+	\item \texttt{\textbackslash n}: a newline
+	\item \texttt{\textbackslash r}: a carriage return
+	\item \texttt{\textbackslash t}: a tab
+	\item \texttt{\textbackslash 0}: a null character
+	\item \texttt{\textbackslash\textbackslash}: a literal backslash
+	\item \texttt{\textbackslash x} \textit{hex\_digit} \textit{hex\_digit}: constructs a character from two nybbles
+	\item \texttt{\textbackslash u} \textit{hex\_digit} \textit{hex\_digit} \textit{hex\_digit} \textit{hex\_digit} \textit{hex\_digit} \textit{hex\_digit} \textit{hex\_digit} \textit{hex\_digit}: constructs a wide character from eight nybbles - only valid for wchar and wstring literals
+	\item \texttt{\textbackslash '}: a literal single quote - only valid for character literals
+	\item \texttt{\textbackslash "}: a literal double quote - only valid for string literals
+\end{itemize}
+
 \subsection{Cast Expressions}
 
 A cast converts the expression to the listed type. See \ref{subsection:Explicit Conversions} for rules on explicit conversions.
