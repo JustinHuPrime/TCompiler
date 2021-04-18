@@ -275,7 +275,7 @@ A value of one type may be implicitly converted to a value of another type when,
 	\item The converted-from type is an array, the converted-to type is a pointer, and the base types of the array and pointer satisfy rule \ref{item:Pointer Rule}. A pointer to the first element of the array is taken and implicitly converted into the converted-to type.
 \end{enumerate}
 
-\subsection{Explicit Conversions}
+\subsection{Explicit Conversions}\label{subsection:Explicit Conversions}
 
 A value of one type may be explicitly converted to a value of another type when, ignoring CV-qualfication, any of the following conditions are met.
 
@@ -321,7 +321,7 @@ When two integral or floating point values are operated on by an arithmetic oper
 	\item If both types are integral, the common type is the integral type that can hold all values from both the left and right hand sides. If no such type exists, then the two types cannot be combined in an arithmetic expression.
 \end{enumerate}
 
-\subsection{Ternary Type Merging}
+\subsection{Ternary Type Merging}\label{subsection:Ternary Type Merging}
 
 When two values are the consequent and the alternative of a ternary operator, they are first converted into a common type. The rules take precedence from top to bottom.
 
@@ -344,7 +344,7 @@ When two values are the consequent and the alternative of a ternary operator, th
 	\end{enumerate}
 \end{enumerate}
 
-\subsection{Comparison Type Merging}
+\subsection{Comparison Type Merging}\label{subsection:Comparison Type Merging}
 
 When two values are involved in an equality or other comparison, they are sometimes converted into a common type. Since comparisons ignore CV-qualfication, the CV-qualification of the two values is also ignored. The following rules take precedence from top to bottom.
 
@@ -430,6 +430,8 @@ A function definition specifies the code for a function, in the compound stateme
 
 A variable definition creates a variable, and optionally initializes the variable. If the variable is not initialized, then its value is undefined. Access to uninitialized variables is considered undefined behaviour.
 
+A variable may only be initialized by a value if the value is implcitly convertable to the type of the variable.
+
 \chapter{Statements}
 
 \lstinputlisting[breaklines=true, firstline=29, lastline=47]{"Appendix B - Syntax.ebnf"}
@@ -446,24 +448,30 @@ The compound statement introduces a scope, and additionally bundles a set of sta
 
 \lstinputlisting[breaklines=true, firstline=50, lastline=50]{"Appendix B - Syntax.ebnf"}
 
-An if statement dynamically chooses between the execution of two statements, or between executing a statement or not executing a statement. There are two forms to the if statement: the first form where there is no else, and the statement executes the statement if and only if the condition expression is true. The second form is when there is an else. The if statement will execute the first statement if and only if the condition is true, and the second statement otherwise. The condition must result in a boolean value.
+An if statement dynamically chooses between the execution of two statements, or between executing a statement or not executing a statement. There are two forms to the if statement: the first form where there is no else, and the statement executes the statement if and only if the condition expression is true. The second form is when there is an else. The if statement will execute the first statement if and only if the condition is true, and the second statement otherwise.
 
 The construct known as an else-if is a special case of the else statement: an else-if is just an if statement as the only statement in the else of the first if statement. There is no need for additional syntactic support for the else-if construct.
 
 Finally, both the consequent and the optional alternative statements of an if statement introduce their own scopes. Thus it is valid to declare a variable in the consequent statement of an if statement, but that variable will not be visible outside of the if statement.
 
+The condition must be a value implicitly convertable to boolean.
+
 \section{While Loop Statements}
 
 \lstinputlisting[breaklines=true, firstline=51, lastline=51]{"Appendix B - Syntax.ebnf"}
 
-A while loop statement repeatedly executes the statement, checking the condition (must be a boolean expression) beforehand, and leaving the loop without executing the statement if and only if the expression is false. The loop body introduces a scope.
+A while loop statement repeatedly executes the statement, checking the condition beforehand, and leaving the loop without executing the statement if and only if the expression is false. The loop body introduces a scope.
+
+The condition must be a value implicitly convertable to boolean.
 
 \section{Do-While Loop Statements}
 
 \lstinputlisting[breaklines=true, firstline=52, lastline=52]{"Appendix B - Syntax.ebnf"}
 
-A do-while loop statement repeatedly executes the statement, checking the condition (must be a boolean expression) afterwards, and leaving the loop if and only if the expression is false
+A do-while loop statement repeatedly executes the statement, checking the condition afterwards, and leaving the loop if and only if the expression is false
 \footnote{Unlike C, the do-while loop does not expect a semicolon after the while.}. The loop body introduces a scope.
+
+The condition must be a value implicitly convertable to boolean.
 
 \section{For Loop Statements}
 
@@ -471,11 +479,15 @@ A do-while loop statement repeatedly executes the statement, checking the condit
 
 The for loop statement introduces a scope, and within that scope, the variable declaration statement resides. If the initializer is an expression, then the expression is evaluated for side-effect. Next, before each iteration of the loop, the condition is checked, then the loop body runs, then the increment expression is evaluated for side effects. Execution returns to checking for the condition. If the condition is false, the loop ends, and the increment is not run. Additionally, a continue statement will only jump to the increment expression - i.e. the end of the loop body. The loop body also introduces a scope.
 
+The condition must be a value implicitly convertable to boolean, and the initializer and increment must obey their type rules.
+
 \section{Switch Statements}
 
 \lstinputlisting[breaklines=true, linerange={54-54, 61-62}]{"Appendix B - Syntax.ebnf"}
 
 A switch statement selects between several possible cases. The expression is evaluated, and it must be an integral expression. Then, the matching case is selected, and the matching statement is executed. Then, unless execution hits a break, execution proceeds down the following cases. If no case is matched, then the default and its statement is executed, and execution of the switch continues down the remaining cases. It is an error to have multiple cases with the same value. Additionally, despite the curly braces, the switch itself does not introduce a scope.
+
+The condition must be an integral or character type. Additionally, the condition must be comparison-mergable to the type of any case value.
 
 \section{Break Statements}
 
@@ -495,6 +507,8 @@ A continue statement will jump to the end of the body of a loop. Note that in a 
 
 A return statement returns from the current function. If an expression is provided, it must match the return type of the function, and the value of the expression will be the returned value. If a value is not provided, then the function must be void, or the value must have been provided in some other way - almost certainly through inline assembly.
 
+The returned value must be implicitly convertable to the return type of the function.
+
 \section{Assembly Statements}
 
 \lstinputlisting[breaklines=true, firstline=58, lastline=58]{"Appendix B - Syntax.ebnf"}
@@ -506,6 +520,8 @@ An assembly statement inserts the assembly code into the generated assembly. The
 \lstinputlisting[breaklines=true, firstline=59, lastline=59]{"Appendix B - Syntax.ebnf"}
 
 A variable declaration statement creates a variable, and optionally initializes the variable with an expression. If it is not initialized, then its value is undefined. The variable exists in the enclosing scope.
+
+The value a variable is initialized with must be implicitly convertable to the variable's type.
 
 \section{Expression Statement}
 
@@ -641,6 +657,8 @@ Operators combine one or more expressions, and produce a value. See the above fo
 
 The sequencing operator (\texttt{,}), evaluates the left hand side for side-effects, and evaluates the right hand side for a value, and produces that value.
 
+The whole expression has the same type as its right hand side, and is an lvalue if its right hand side is.
+
 \subsection{Assignment Operators}
 
 \lstinputlisting[breaklines=true, firstline=68, lastline=83]{"Appendix B - Syntax.ebnf"}
@@ -649,71 +667,91 @@ The plain assignment operator (\texttt{=}) evaluates the left hand side as a val
 
 The other assignment operators are the compound assignment operators. These evaluate the left hand side as a value to be assigned to, retrieve its value, evaluate the right hand side, perform the operation on the two values, and assign the result to the left hand side. The left hand side will only be evaluated once.
 
-Assignment does not require the types to match, but restrictions are applied on the types of values that may be assigned to one another. When assigning two types that do not exactly match, an implicit cast is performed. Additionally, an aggregate initializer, which has no type, may be used in an assignment as well. See Appendix A - Assignability for a table detailing these rules.
+A plain assignment is only possible to a type that is not const-qualified, and to which the assigned value can be implicitly converted.
+
+A compound assignment is only possible if the left and right hand side values could be used in the corresponding operator, and if the result of the operator is implicitly convertable to the assigned-to value.
+
+A plain or compound assignment produces an lvalue which is the same as its left hand side, which must be an lvalue.
 
 \subsection{Ternary Conditional Operators}
 
 \lstinputlisting[breaklines=true, firstline=84, lastline=86]{"Appendix B - Syntax.ebnf"}
 
-The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated. The resulting value is converted to a type that can hold the type of either branch of the expression. See Appendix C - Expression Type Merging for a table detailing these rules.
+The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated.
+
+A ternary expression produces the type from merging the type of its operands according to \ref{subsection:Ternary Type Merging}.
 
 \subsection{Logical Operators}
 
 \lstinputlisting[breaklines=true, firstline=87, lastline=87]{"Appendix B - Syntax.ebnf"}
 
-Logical operators operate on boolean values. The logical-and operator (\texttt{\&\&}) evaluates the left hand side. If the left hand value is false, it does not evaluate the right hand side, and produces false. If the left hand value is true, it produces the value of the right hand side. The logical-or operator (\texttt{||}) evaluates the left hand side. If the left hand value is true, it does not evaluate the right hand side, and produces true. If the left hand value is false, it produces the value of the right hand side.
+The logical and and logical or operators perform the standard boolean operation on their left and right hand sides.
+
+A logical operator produces an rvalue boolean, and both its inputs must be implicitly convertable to boolean.
 
 \subsection{Bitwise Operators}
 
 \lstinputlisting[breaklines=true, firstline=88, lastline=88]{"Appendix B - Syntax.ebnf"}
 
-Bitwise operators operate on integer values (\texttt{ubyte}, \texttt{byte}, \texttt{ushort}, \texttt{short}, \texttt{uint}, \texttt{int}, \texttt{ulong}, \texttt{long}). Additionally, before performing any bitwise operations, the values are converted according to Appendix C, and then the operation is performed.
+The bitwise operators perform the standard operation on their left and right hand sides.
+
+The two operands are first converted into a common type (see \ref{subsection:Arithmetic Type Merging}) before being operated on, and the common type must be integral. The result of a bitwise operator is the same as the merged type, and is an rvalue.
 
 \subsection{Comparison Operators}
 
 \lstinputlisting[breaklines=true, firstline=89, lastline=90]{"Appendix B - Syntax.ebnf"}
 
-There are two kinds of comparison operators - equality comparison operators (\texttt{==}, \texttt{!=}), and relational comparison operators (\texttt{<}, \texttt{>}, \texttt{<=}, \texttt{>=}). All comparison operators first convert the types into a common type (see Appendix D - Comparison Type Merging for details). These comparisons are only valid on base types that are numeric, characters, booleans, or pointers. The comparisons check for numeric equality, inequality, or numeric relations. The result is a boolean value.
+There are two kinds of comparison operators - equality comparison operators (\texttt{==}, \texttt{!=}), and relational comparison operators (\texttt{<}, \texttt{>}, \texttt{<=}, \texttt{>=}).
+
+Equality comparisons are valid for base types that, after a comparison type merge, are numeric, characters, booleans, or pointers. Relational comparisons are valid for base types that, after a comparison type merge, are numeric or characters. Comparisons result in an rvalue booleans.
 
 \subsection{Three-Way Comparison Operators}
 
 \lstinputlisting[breaklines=true, firstline=91, lastline=91]{"Appendix B - Syntax.ebnf"}
 
-The three-way comparison operator expects its inputs to be numeric, characters, booleans, or pointers. It evaluates both inputs, and converts them to a common type (see Appendix D). Then, it compares these inputs. If the left hand side is less than the right hand side, it produces -1, if they are equal, 0, and if the left hand side is greater than the right hand side, it produces 1. The inputs are only evaluated once, and the output is a \texttt{byte}.
+The three-way comparison operator expects its inputs to be numeric, characters, booleans, or pointers. It evaluates both inputs, and converts them to a common type (see Appendix D). Then, it compares these inputs. If the left hand side is less than the right hand side, it produces -1, if they are equal, 0, and if the left hand side is greater than the right hand side, it produces 1.
+
+The types must, after a comparison type merge, be numeric, characters, booleans, or pointers. The operator checks like comparison operators do, and produces an rvalue byte indicating the relationship.
 
 \subsection{Shift Operators}
 
 \lstinputlisting[breaklines=true, firstline=92, lastline=92]{"Appendix B - Syntax.ebnf"}
 
-The shift operators expect an integral value for their left hand side, and an unsigned integral value for their right hand side. Performing no conversion, the value is bit-shifted by the number of bits given in the right hand side value. This value must be less than the number of bits in the left hand side value. In case of a left-shift operator (\texttt{<<}) or a logical-right-shift operator (\texttt{>>>}), the value is zero-filled. In case of an arithmetic-right-shift operator (\texttt{>>}), the value is sign-filled.
+The left-hand-side value is bit-shifted by the number of bits given in the right-hand-side value. This value must be less than the number of bits in the left hand side value, but this is not statically enforced. In case of a left-shift operator (\texttt{<<}) or a logical-right-shift operator (\texttt{>>>}), the value is zero-filled. In case of an arithmetic-right-shift operator (\texttt{>>}), the value is sign-filled.
+
+The left-hand side must be a signed integral type for arithmetic-right-shift oeprators, and any integral or pointer type for the other shift operators, and the right hand side must be an unsigned integral type. The result is an rvalue of the same type as the left-hand side.
 
 \subsection{Addition Operators}
 
 \lstinputlisting[breaklines=true, firstline=93, lastline=93]{"Appendix B - Syntax.ebnf"}
 
-Addition and subtraction expressions both support two numeric operands, in which case they will evaluate the left hand side, then the right hand side, convert to a common type (see Appendix C), and the result is produced after applying the relevant operator. However, when adding a data pointer and an integer (order irrelevant), both are evaluated, and then the integer is multiplied by the size of the type the pointer points to before being added to the pointer. It is also acceptable to subtract an integer from a data pointer (but not the other way around), and the subtracted value is also first multiplied by the size of what the pointer points to before being subtracted from the pointer. Finally, if two pointers are subtracted, then their difference is divided by the size of the type the pointers point to before being produces. Both pointers must point to the same type.
+Addition and subtraction of two numeric operands performs the standard operation. Adding a pointer and an integer (in any order) or subtracting an integer from a pointer results in a new pointer after performing the standard operation, but with the integer multiplied by the size of the pointed-to type. Subtracting two pointers results in a difference which is then integer divided by the size of the pointed-to type.
+
+Addition and subtraction both support two numeric operands. Addition supports a pointer and any integral operand (in any order). Subtraction supports a pointer on the left hand side and any integral type on the right hand side. Subtraction also supports two pointers which, recursively ignoring the CV-qualfication of their base types, are the same.
 
 \subsection{Multiplication Operators}
 
 \lstinputlisting[breaklines=true, firstline=94, lastline=94]{"Appendix B - Syntax.ebnf"}
 
-Multiplication expressions operate on numeric values. The left hand side, then the right hand side are evaluated, these values are converted to a common type (see Appendix C), and the result is produced after applying the relevant operator.
+Multiplication expressions perform the standard operation on any numeric values. The modulo operator performs the remainder operation - the sign of the result is the same as the sign of the left hand side.
+
+The type after an arithmetic type merge must be numeric, and the result is a rvalue of the same type as the merged type.
 
 \subsection{Prefix Operators}
 
 \lstinputlisting[breaklines=true, firstline=95, lastline=103]{"Appendix B - Syntax.ebnf"}
 
-The dereference operator (\texttt{*}) takes the expression (must be a data pointer), and produces an assignable value from that expression. The result is of the base type of the pointer.
+The dereference operator (\texttt{*}) takes the expression (must be a data pointer), and produces an lvalue from that expression. The result is of the base type of the pointer.
 
-The address-of operator (\texttt{\&}) takes the expression (must be an assignable value), and produces an address from that expression. The resulting type is a pointer whose base type is the type of the assignable value.
+The address-of operator (\texttt{\&}) takes the expression (must be an lvalue), and produces an address from that expression. The resulting type is a pointer whose base type is the type of the assignable value.
 
-The pre-increment and pre-decrement operators (\texttt{++}, \texttt{--}) take the expression (must be an assignable value, and either numeric or a pointer), and if it is numeric, increments or decrements it by one, if it is a data pointer, adds or subtracts the size of the type the pointer points to. The value produces is that after the increment.
+The pre-increment and pre-decrement operators (\texttt{++}, \texttt{--}) take the expression (must be an lvalue, and either numeric or a pointer), and if it is numeric, increments or decrements it by one, if it is a data pointer, adds or subtracts the size of the type the pointer points to. The value produced is that after the increment, and is an lvalue.
 
-The negation operator takes the expression (must be a numeric value and not an unsigned long), and negates it. If a signed integral or floating point value is negated, the resulting type remains the same. If an unsigned integral value is negated, the resulting type is the smallest signed type that can hold the entire range when negated, i.e. the next largest signed type (e.g. a negated \texttt{ubyte} produces a \texttt{short}).
+The negation operator takes the expression (must be a numeric value and not an unsigned long), and negates it. If a signed integral or floating point value is negated, the resulting type remains the same. If an unsigned integral value is negated, the resulting type is the smallest signed type that can hold the entire range when negated, i.e. the next largest signed type (e.g. a negated \texttt{ubyte} produces a \texttt{short}). The result is an rvalue.
 
-The logical-not operator takes the expression (must be a boolean value), and negates it. Its type is unchanged.
+The logical-not operator takes the expression (must be a boolean value), and negates it. Its type is unchanged, and it is an rvalue.
 
-The bitwise-not operator takes the expression (must be an integral value), and flips each bit in the expression. Its type is unchanged.
+The bitwise-not operator takes the expression (must be an integral value), and flips each bit in the expression. Its type is unchanged, and it is an rvalue.
 
 \subsection{Postfix Operators}
 
@@ -723,11 +761,11 @@ The member-access operator (\texttt{.}) takes a value of a type with members (st
 
 The function-call operator (\texttt{()}) takes a value that is either a function pointer or a function name, evaluates it, a comma separated list of assignment expressions (sequencing operators, if used, must be surrounded by parentheses), evaluated in an unspecified order, and calls the function or function pointer with the argument list. The produced type is that of the return value of the function. If the function returns void, then this must have been evaluated for side-effect only.
 
-The array-index operator (\texttt{[]}) takes a value that is either a pointer or an array, evaluates that, and an integral index, evaluates that, and produces either that element in the array, if the value is an array, or the dereference of the sum (with pointer arithmetic as for the addition operator) of the pointer and the index.
+The array-index operator (\texttt{[]}) takes a value that is either a pointer or an array, evaluates that, and an integral index, evaluates that, and produces either that element in the array, if the value is an array, or the dereference of the sum (with pointer arithmetic as for the addition operator) of the pointer and the index. The resulting type is the same as the base type of the pointer or array, and is a lvalue if it was the result of indexing a pointer or an lvalue array.
 
-The post-increment and post-decrement operators (\texttt{++}, \texttt{--}) produce the value, then increment it or decrement it exactly like a pre-increment or pre-decrement operator. The value is only evaluated once.
+The post-increment and post-decrement operators (\texttt{++}, \texttt{--}) produce the value, then increment it or decrement it exactly like a pre-increment or pre-decrement operator. The value is only evaluated once. The result is an rvalue.
 
-The in-place unary operators take the value, performs the unary operation on it, stores it, and produces the result of the unary operation. The in-place negation operator (\texttt{=-}) performs a negation on a numeric value, the in-place logical not operator (\texttt{=!}) performs a logical not on a boolean value, and the in-place bitwise not operator (\texttt{=\~{}}) performs a bitwise not on an integral value.
+The in-place unary operators take the value, performs the unary operation on it, stores it, and produces the result of the unary operation. The in-place negation operator (\texttt{=-}) performs a negation on a signed numeric value, the in-place logical not operator (\texttt{=!}) performs a logical not on a boolean value, and the in-place bitwise not operator (\texttt{=\~{}}) performs a bitwise not on an integral value. In all cases, the resulting value is an lvalue.
 
 \section{Primary Expressions}
 
@@ -737,7 +775,7 @@ A primary expression is a value or expression that is unambiguously bound. These
 
 \subsection{Identifiers}
 
-Scoped identifiers and identifiers name a value, and produce that value as an assignable value.
+Scoped identifiers and identifiers name a value, and produce that value as an lvalue.
 
 \subsection{Literals}
 
@@ -747,7 +785,7 @@ Literals represent a constant value, either of some type, or of an aggregate ini
 
 \subsection{Cast Expressions}
 
-A cast converts the expression to the listed type. See Appendix E - Castability for the rules and actions taken.
+A cast converts the expression to the listed type. See \ref{subsection:Explicit Conversions} for rules on explicit conversions.
 
 \subsection{Sizeof Expressions}
 
