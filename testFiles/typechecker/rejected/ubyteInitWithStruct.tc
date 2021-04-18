@@ -1,9 +1,0 @@
-module foo;
-
-struct s {
-  int x, y;
-};
-
-void bar(s y) {
-  ubyte x = y;
-}

@@ -1,5 +1,0 @@
-module foo;
-
-void bar(ubyte volatile u1) {
-  ubyte u2 = u1;
-}

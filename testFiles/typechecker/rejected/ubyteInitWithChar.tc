@@ -1,5 +1,0 @@
-module foo;
-
-void bar(char y) {
-  ubyte x = y;
-}
