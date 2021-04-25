@@ -36,21 +36,6 @@
 #include "tests.h"
 #include "util/format.h"
 
-// static void testVarInitialization(void) {}
-// static void testAssignmentExprs(void) {}
-// static void testTernaryExprs(void) {}
-// static void testLogicalExprs(void) {}
-// static void testBitwiseExprs(void) {}
-// static void testEqualityExprs(void) {}
-// static void testComparisonExprs(void) {}
-// static void testSpaceshipExprs(void) {}
-// static void testShiftExprs(void) {}
-// static void testAdditionExprs(void) {}
-// static void testMultiplicationExprs(void) {}
-// static void testPrefixExprs(void) {}
-// static void testPostfixExprs(void) {}
-// static void testPrimaryExprs(void) {}
-
 void testTypechecker(void) {
   DIR *accepted = opendir("testFiles/typechecker/accepted");
   assert("couldn't open accepted files dir" && accepted != NULL);
@@ -77,11 +62,13 @@ void testTypechecker(void) {
 
   DIR *rejected = opendir("testFiles/typechecker/rejected");
   assert("couldn't open rejected files dir" && rejected != NULL);
-  for (struct dirent *entry = readdir(accepted); entry != NULL;
-       entry = readdir(accepted)) {
+  for (struct dirent *entry = readdir(rejected); entry != NULL;
+       entry = readdir(rejected)) {
     FileListEntry entries[1];
     fileList.entries = &entries[0];
     fileList.size = 1;
+
+    if (strncmp(entry->d_name, ".", 1) == 0) continue;
 
     char *name = format("testFiles/typechecker/rejected/%s", entry->d_name);
     entries[0].inputFilename = name;

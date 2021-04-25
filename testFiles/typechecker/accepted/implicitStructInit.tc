@@ -1,0 +1,10 @@
+module foo;
+
+struct s {
+  int i;
+  char c;
+};
+
+void bar() {
+  s a = [ 1, 'a' ];
+}

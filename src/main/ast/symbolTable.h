@@ -25,8 +25,7 @@
 #ifndef TLC_AST_SYMBOLTABLE_H_
 #define TLC_AST_SYMBOLTABLE_H_
 
-#include <stdbool.h>
-
+#include "ast/type.h"
 #include "util/container/hashMap.h"
 #include "util/container/vector.h"
 
@@ -38,130 +37,6 @@ typedef struct FileListEntry FileListEntry;
  * @param t table to free
  */
 void stabFree(HashMap *t);
-
-/** A keyword type */
-typedef enum {
-  TK_VOID,
-  TK_UBYTE,
-  TK_BYTE,
-  TK_CHAR,
-  TK_USHORT,
-  TK_SHORT,
-  TK_UINT,
-  TK_INT,
-  TK_WCHAR,
-  TK_ULONG,
-  TK_LONG,
-  TK_FLOAT,
-  TK_DOUBLE,
-  TK_BOOL,
-} TypeKeyword;
-
-/** the kind of a type */
-typedef enum {
-  TK_KEYWORD,
-  TK_QUALIFIED,
-  TK_POINTER,
-  TK_ARRAY,
-  TK_FUNPTR,
-  TK_AGGREGATE,
-  TK_REFERENCE,
-} TypeKind;
-
-struct SymbolTableEntry;
-/** the type of a variable or value */
-typedef struct Type {
-  TypeKind kind;
-  union {
-    struct {
-      TypeKeyword keyword;
-    } keyword;
-    struct {
-      bool constQual;
-      bool volatileQual;
-      struct Type *base;
-    } qualified;
-    struct {
-      struct Type *base;
-    } pointer;
-    struct {
-      uint64_t length;
-      struct Type *type;
-    } array;
-    struct {
-      Vector argTypes; /**< vector of Type */
-      struct Type *returnType;
-    } funPtr;
-    struct {
-      Vector types; /**< vector of Type */
-    } aggregate;
-    struct {
-      struct SymbolTableEntry *entry;
-      char *id;
-    } reference;
-  } data;
-} Type;
-
-/**
- * create a keyword type
- */
-Type *keywordTypeCreate(TypeKeyword keyword);
-/**
- * create a qualified type
- */
-Type *qualifiedTypeCreate(Type *base, bool constQual, bool volatileQual);
-/**
- * create a pointer type
- */
-Type *pointerTypeCreate(Type *base);
-/**
- * create an array type
- */
-Type *arrayTypeCreate(uint64_t length, Type *type);
-/**
- * create a function pointer type
- *
- * argTypes is initialized as the empty vector
- */
-Type *funPtrTypeCreate(Type *returnType);
-/**
- * create a aggregate init type
- *
- * types is initialized as the empty vector
- */
-Type *aggregateTypeCreate(void);
-/**
- * create a reference type
- */
-Type *referenceTypeCreate(struct SymbolTableEntry *entry, char *id);
-/**
- * deep copies a type
- */
-Type *typeCopy(Type const *);
-/**
- * is a equal to b
- */
-bool typeEqual(Type const *a, Type const *b);
-/**
- * format a list of types
- */
-char *typeVectorToString(Vector const *v);
-/**
- * format a type
- */
-char *typeToString(Type const *t);
-/**
- * deinitializes a type
- *
- * @param t type to uninit
- */
-void typeFree(Type *t);
-/**
- * deinitializes a vector of types
- *
- * @param v vector to uninit
- */
-void typeVectorFree(Vector *v);
 
 /** the kind of a symbol */
 typedef enum {
