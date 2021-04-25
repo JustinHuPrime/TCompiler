@@ -1,0 +1,5 @@
+module foo;
+
+void bar() {
+  int[2] a = [ 1, 2 ];
+}
