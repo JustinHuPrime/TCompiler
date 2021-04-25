@@ -272,7 +272,12 @@ A value of one type may be implicitly converted to a value of another type when,
 	
 	Regardless, no conversion is performed, and the value is directly copied.
 	
-	\item The converted-from type is an array, the converted-to type is a pointer, and the base types of the array and pointer satisfy rule \ref{item:Pointer Rule}. A pointer to the first element of the array is taken and implicitly converted into the converted-to type.
+	\item The converted-from type is an array, the converted-to type is a pointer, and the base type of the pointer is at least as CV-qualified as the base type of the array, and, for the base types (ignoring CV-qualification) any of the following conditions are met:
+	\begin{enumerate}
+		\item Both base types are exactly the same.
+		
+		\item The pointer's base type is void.
+	\end{enumerate}
 \end{enumerate}
 
 \subsection{Explicit Conversions}\label{subsection:Explicit Conversions}
