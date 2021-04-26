@@ -259,13 +259,29 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
     // [4]: aggregate initialization of arrays (5.4.1.8) =
     //          aggregate.length == array.length &&
     //          aggregate's types can implicit convert to array elements
-    return false;  // TODO
+    if (from->data.aggregate.types.size != to->data.array.length) return false;
+    for (size_t idx = 0; idx < from->data.aggregate.types.size; ++idx) {
+      if (!typeImplicitlyConvertable(from->data.aggregate.types.elements[idx],
+                                     to->data.array.type))
+        return false;
+    }
+    return true;
   } else if (from->kind == TK_AGGREGATE && to->kind == TK_REFERENCE) {
     // [5]: aggregate initialization of struct (5.4.1.7) =
     //          ref is a struct &&
     //          aggregate.length = struct.length
     //          aggregate's types can implicit convert to struct fields
-    return false;  // TODO
+    SymbolTableEntry *entry = to->data.reference.entry;
+    if (entry->kind != SK_STRUCT || from->data.aggregate.types.size !=
+                                        entry->data.structType.fieldTypes.size)
+      return false;
+    for (size_t idx = 0; idx < from->data.aggregate.types.size; ++idx) {
+      if (!typeImplicitlyConvertable(
+              from->data.aggregate.types.elements[idx],
+              entry->data.structType.fieldTypes.elements[idx]))
+        return false;
+    }
+    return true;
   } else {
     return typeEqual(from, to);
   }
