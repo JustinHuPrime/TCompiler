@@ -264,7 +264,7 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
                from->data.keyword.keyword == TK_BYTE ||
                from->data.keyword.keyword == TK_USHORT ||
                from->data.keyword.keyword == TK_SHORT ||
-               from->data.keyword.keyword == TK_UINT;
+               from->data.keyword.keyword == TK_INT;
       case TK_WCHAR:
         return from->data.keyword.keyword == TK_CHAR ||
                from->data.keyword.keyword == TK_WCHAR;
@@ -312,14 +312,16 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
                                             to->data.pointer.base);
   } else if (from->kind == TK_ARRAY && to->kind == TK_POINTER) {
     // [3]: array to pointer decay (5.4.1.10) =
-    //          same ||
-    //          at least as CV-qualfied && pointer is void
+    //          at least as CV-qualified && (
+    //            same ||
+    //            pointer is void
+    //          )
     Type const *toBase = stripCV(to->data.pointer.base);
-    return typeEqual(from->data.array.type, to->data.pointer.base) ||
-           (atLeastAsCVQualified(to->data.pointer.base,
-                                 from->data.array.type) &&
-            toBase->kind == TK_KEYWORD &&
-            toBase->data.keyword.keyword == TK_VOID);
+    Type const *fromBase = stripCV(from->data.array.type);
+    return atLeastAsCVQualified(to->data.pointer.base, from->data.array.type) &&
+           (typeEqual(fromBase, toBase) ||
+            (toBase->kind == TK_KEYWORD &&
+             toBase->data.keyword.keyword == TK_VOID));
   } else if (from->kind == TK_AGGREGATE && to->kind == TK_ARRAY) {
     // [4]: aggregate initialization of arrays (5.4.1.8) =
     //          aggregate.length == array.length &&
