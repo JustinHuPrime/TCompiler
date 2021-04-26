@@ -67,6 +67,32 @@ static void errorNoOp(FileListEntry *entry, size_t line, size_t character,
   free(lhsString);
   free(rhsString);
 }
+/**
+ * complains about there being no member with the given name
+ */
+static void errorNoMember(FileListEntry *entry, size_t line, size_t character,
+                          char const *member, Type const *type) {
+  char *typeString = typeToString(type);
+  fprintf(stderr,
+          "%s:%zu:%zu: error: no member named '%s' on a value of "
+          "type %s\n",
+          entry->inputFilename, line, character, member, typeString);
+  entry->errored = true;
+  free(typeString);
+}
+/**
+ * complains about there being no members
+ */
+static void errorNoMembers(FileListEntry *entry, size_t line, size_t character,
+                           Type const *type) {
+  char *typeString = typeToString(type);
+  fprintf(stderr,
+          "%s:%zu:%zu: error: cannot access members on a value of "
+          "type %s\n",
+          entry->inputFilename, line, character, typeString);
+  entry->errored = true;
+  free(typeString);
+}
 
 /**
  * is the given expression an lvalue
@@ -723,10 +749,82 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           }
         }
         case BO_FIELD: {
-          return NULL;  // TODO
+          Type const *structType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          if (structType != NULL) {
+            Type const *strippedType = stripCV(structType);
+            if (!(strippedType->kind == TK_REFERENCE &&
+                  (strippedType->data.reference.entry->kind == SK_STRUCT ||
+                   strippedType->data.reference.entry->kind == SK_UNION))) {
+              errorNoMembers(entry, exp->line, exp->character, structType);
+            } else {
+              SymbolTableEntry *ref = strippedType->data.reference.entry;
+              if (ref->kind == SK_STRUCT) {
+                for (size_t idx = 0; idx < ref->data.structType.fieldNames.size;
+                     ++idx) {
+                  if (strcmp(exp->data.binOpExp.rhs->data.id.id,
+                             ref->data.structType.fieldNames.elements[idx]) ==
+                      0) {
+                    return exp->data.binOpExp.type = typeCopy(
+                               ref->data.structType.fieldTypes.elements[idx]);
+                  }
+                }
+              } else {
+                for (size_t idx = 0; idx < ref->data.unionType.optionNames.size;
+                     ++idx) {
+                  if (strcmp(exp->data.binOpExp.rhs->data.id.id,
+                             ref->data.unionType.optionNames.elements[idx]) ==
+                      0) {
+                    return exp->data.binOpExp.type = typeCopy(
+                               ref->data.unionType.optionTypes.elements[idx]);
+                  }
+                }
+              }
+              errorNoMember(entry, exp->line, exp->character,
+                            exp->data.binOpExp.rhs->data.id.id, structType);
+            }
+          }
+
+          return NULL;
         }
         case BO_PTRFIELD: {
-          return NULL;  // TODO
+          Type const *pointerType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          if (pointerType != NULL) {
+            Type const *structType = stripCV(pointerType)->data.pointer.base;
+            Type const *strippedType = stripCV(structType);
+            if (!(strippedType->kind == TK_REFERENCE &&
+                  (strippedType->data.reference.entry->kind == SK_STRUCT ||
+                   strippedType->data.reference.entry->kind == SK_UNION))) {
+              errorNoMembers(entry, exp->line, exp->character, structType);
+            } else {
+              SymbolTableEntry *ref = strippedType->data.reference.entry;
+              if (ref->kind == SK_STRUCT) {
+                for (size_t idx = 0; idx < ref->data.structType.fieldNames.size;
+                     ++idx) {
+                  if (strcmp(exp->data.binOpExp.rhs->data.id.id,
+                             ref->data.structType.fieldNames.elements[idx]) ==
+                      0) {
+                    return exp->data.binOpExp.type = typeCopy(
+                               ref->data.structType.fieldTypes.elements[idx]);
+                  }
+                }
+              } else {
+                for (size_t idx = 0; idx < ref->data.unionType.optionNames.size;
+                     ++idx) {
+                  if (strcmp(exp->data.binOpExp.rhs->data.id.id,
+                             ref->data.unionType.optionNames.elements[idx]) ==
+                      0) {
+                    return exp->data.binOpExp.type = typeCopy(
+                               ref->data.unionType.optionTypes.elements[idx]);
+                  }
+                }
+              }
+              errorNoMember(entry, exp->line, exp->character,
+                            exp->data.binOpExp.rhs->data.id.id, structType);
+            }
+          }
+          return NULL;
         }
         case BO_ARRAY: {
           return NULL;  // TODO

@@ -1,0 +1,10 @@
+
+module foo;
+
+struct s {
+  int i;
+};
+
+void bar(s * a) {
+  int x = a->b;
+}

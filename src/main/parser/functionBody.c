@@ -963,9 +963,10 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
         } else if (stabEntry->kind != SK_ENUMCONST &&
                    stabEntry->kind != SK_FUNCTION &&
                    stabEntry->kind != SK_VARIABLE) {
-          fprintf(stderr, "%s:%zu:%zu: error: cannot use a type as a variable",
+          fprintf(stderr,
+                  "%s:%zu:%zu: error: cannot use a type as a variable\n",
                   entry->inputFilename, n->line, n->character);
-          fprintf(stderr, "%s:%zu:%zu: note: declared here",
+          fprintf(stderr, "%s:%zu:%zu: note: declared here\n",
                   stabEntry->file->inputFilename, stabEntry->line,
                   stabEntry->character);
           entry->errored = true;
