@@ -24,22 +24,27 @@
 #include "engine.h"
 #include "tests.h"
 
-int main(int argc, char *argv[]) {
-  if (argc > 2) {
-    fprintf(stderr, "usage: %s [suite]\n", argv[0]);
-    return -1;
+static bool containsString(size_t argc, char **argv, char const *string) {
+  for (size_t idx = 1; idx < argc; ++idx) {
+    if (strcmp(argv[idx], string) == 0) return true;
   }
+  return false;
+}
 
+int main(int argc, char *argv[]) {
   testStatusInit();
 
-  if (argc < 2 || strcmp(argv[1], "bigInteger") == 0) testBigInteger();
-  if (argc < 2 || strcmp(argv[1], "conversions") == 0) testConversions();
+  if (argc <= 1 || containsString((size_t)argc, argv, "bigInteger"))
+    testBigInteger();
+  if (argc <= 1 || containsString((size_t)argc, argv, "conversions"))
+    testConversions();
 
-  if (argc < 2 || strcmp(argv[1], "commandLineArgs") == 0)
+  if (argc <= 1 || containsString((size_t)argc, argv, "commandLineArgs"))
     testCommandLineArgs();
-  if (argc < 2 || strcmp(argv[1], "lexer") == 0) testLexer();
-  if (argc < 2 || strcmp(argv[1], "parser") == 0) testParser();
-  if (argc < 2 || strcmp(argv[1], "typechecker") == 0) testTypechecker();
+  if (argc <= 1 || containsString((size_t)argc, argv, "lexer")) testLexer();
+  if (argc <= 1 || containsString((size_t)argc, argv, "parser")) testParser();
+  if (argc <= 1 || containsString((size_t)argc, argv, "typechecker"))
+    testTypechecker();
 
   return testStatusStatus();
 }
