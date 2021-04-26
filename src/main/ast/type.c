@@ -284,8 +284,9 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
                from->kind == TK_FLOAT || from->kind == TK_DOUBLE;
       case TK_BOOL:
         return from->kind == TK_DOUBLE;
+      default:
+        error(__FILE__, __LINE__, "invalid keyword type encountered");
     }
-    return false;
   } else if (from->kind == TK_POINTER && to->kind == TK_POINTER) {
     return pointerBaseImplicitlyConvertable(from->data.pointer.base,
                                             to->data.pointer.base);
