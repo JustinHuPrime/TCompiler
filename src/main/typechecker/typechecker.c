@@ -322,14 +322,66 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                                                ? keywordTypeCreate(TK_BYTE)
                                                : keywordTypeCreate(TK_BOOL);
         }
-        case BO_LSHIFT: {
-          return NULL;  // TODO
+        case BO_LSHIFT:
+        case BO_LRSHIFT: {
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && !typeIntegral(lhsType) &&
+              !typePointer(lhsType)) {
+            char *typeString = typeToString(lhsType);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot perform a shift operation on a "
+                    "value of type %s\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            entry->errored = true;
+            free(typeString);
+          }
+          if (rhsType != NULL && !typeUnsignedIntegral(rhsType)) {
+            char *typeString = typeToString(rhsType);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot perform a shift operation on a "
+                    "value of type %s\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            entry->errored = true;
+            free(typeString);
+          }
+
+          return exp->data.binOpExp.type = typeCopy(lhsType);
         }
         case BO_ARSHIFT: {
-          return NULL;  // TODO
-        }
-        case BO_LRSHIFT: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && !typeSignedIntegral(lhsType) &&
+              !typePointer(lhsType)) {
+            char *typeString = typeToString(lhsType);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot perform an arithmetic shift "
+                    "operation on a value of type %s\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            entry->errored = true;
+            free(typeString);
+          }
+          if (rhsType != NULL && !typeUnsignedIntegral(rhsType)) {
+            char *typeString = typeToString(rhsType);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot perform an arithmetic shift "
+                    "operation on a value of type %s\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            entry->errored = true;
+            free(typeString);
+          }
+
+          return exp->data.binOpExp.type = typeCopy(lhsType);
         }
         case BO_ADD: {
           return NULL;  // TODO

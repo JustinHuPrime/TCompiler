@@ -1,0 +1,6 @@
+module foo;
+
+void bar(uint a, ubyte b) {
+  a >>> b;
+  a << b;
+}
