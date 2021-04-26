@@ -63,7 +63,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
     case NT_BINOPEXP: {
       switch (exp->data.binOpExp.op) {
         case BO_SEQ: {
-          return NULL;  // TODO
+          typecheckExpression(exp->data.binOpExp.lhs, entry);
+          return typecheckExpression(exp->data.binOpExp.rhs, entry);
         }
         case BO_ASSIGN: {
           return NULL;  // TODO

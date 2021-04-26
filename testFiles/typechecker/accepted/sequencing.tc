@@ -1,0 +1,5 @@
+module foo;
+
+void bar(int *b, int c) {
+  int a = (b, c);
+}
