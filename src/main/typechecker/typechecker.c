@@ -147,13 +147,13 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                      typecheckExpression(exp->data.binOpExp.rhs, entry));
         }
         case BO_ASSIGN: {
-          Type const *to = typecheckExpression(exp->data.binOpExp.lhs, entry);
-          Type const *from = typecheckExpression(exp->data.binOpExp.rhs, entry);
+          Type const *lhsType = typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType = typecheckExpression(exp->data.binOpExp.rhs, entry);
 
-          if (to != NULL && from != NULL &&
-              !typeImplicitlyConvertable(from, to))
-            errorNoImplicitConversion(entry, exp->line, exp->character, from,
-                                      to);
+          if (lhsType != NULL && rhsType != NULL &&
+              !typeImplicitlyConvertable(rhsType, lhsType))
+            errorNoImplicitConversion(entry, exp->line, exp->character, rhsType,
+                                      lhsType);
 
           if (!isLvalue(exp->data.binOpExp.lhs)) {
             fprintf(
@@ -161,8 +161,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                 "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
                 entry->inputFilename, exp->line, exp->character);
             entry->errored = true;
-          } else if (to != NULL && to->kind == TK_QUALIFIED &&
-                     to->data.qualified.constQual) {
+          } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
+                     lhsType->data.qualified.constQual) {
             fprintf(stderr,
                     "%s:%zu:%zu: error: cannot assign a value to a constant "
                     "variable\n",
@@ -170,16 +170,112 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
             entry->errored = true;
           }
 
-          return exp->data.binOpExp.type = typeCopy(to);
+          return exp->data.binOpExp.type = typeCopy(lhsType);
         }
         case BO_MULASSIGN: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && rhsType != NULL) {
+            Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+            if (merged == NULL) {
+              errorNoOp(entry, exp->line, exp->character,
+                        "a multiplication operation", lhsType, rhsType);
+            }
+
+            if (lhsType != NULL && merged != NULL &&
+                !typeImplicitlyConvertable(merged, lhsType))
+              errorNoImplicitConversion(entry, exp->line, exp->character,
+                                        merged, lhsType);
+
+            if (!isLvalue(exp->data.binOpExp.lhs)) {
+              fprintf(
+                  stderr,
+                  "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
+                  entry->inputFilename, exp->line, exp->character);
+              entry->errored = true;
+            } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
+                       lhsType->data.qualified.constQual) {
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: cannot assign a value to a constant "
+                      "variable\n",
+                      entry->inputFilename, exp->line, exp->character);
+              entry->errored = true;
+            }
+          }
+          return exp->data.binOpExp.type = typeCopy(lhsType);
         }
         case BO_DIVASSIGN: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && rhsType != NULL) {
+            Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+            if (merged == NULL) {
+              errorNoOp(entry, exp->line, exp->character,
+                        "a division operation", lhsType, rhsType);
+            }
+
+            if (lhsType != NULL && merged != NULL &&
+                !typeImplicitlyConvertable(merged, lhsType))
+              errorNoImplicitConversion(entry, exp->line, exp->character,
+                                        merged, lhsType);
+
+            if (!isLvalue(exp->data.binOpExp.lhs)) {
+              fprintf(
+                  stderr,
+                  "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
+                  entry->inputFilename, exp->line, exp->character);
+              entry->errored = true;
+            } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
+                       lhsType->data.qualified.constQual) {
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: cannot assign a value to a constant "
+                      "variable\n",
+                      entry->inputFilename, exp->line, exp->character);
+              entry->errored = true;
+            }
+          }
+          return exp->data.binOpExp.type = typeCopy(lhsType);
         }
         case BO_MODASSIGN: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && rhsType != NULL) {
+            Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+            if (merged == NULL) {
+              errorNoOp(entry, exp->line, exp->character, "a modulo operation",
+                        lhsType, rhsType);
+            }
+
+            if (lhsType != NULL && merged != NULL &&
+                !typeImplicitlyConvertable(merged, lhsType))
+              errorNoImplicitConversion(entry, exp->line, exp->character,
+                                        merged, lhsType);
+
+            if (!isLvalue(exp->data.binOpExp.lhs)) {
+              fprintf(
+                  stderr,
+                  "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
+                  entry->inputFilename, exp->line, exp->character);
+              entry->errored = true;
+            } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
+                       lhsType->data.qualified.constQual) {
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: cannot assign a value to a constant "
+                      "variable\n",
+                      entry->inputFilename, exp->line, exp->character);
+              entry->errored = true;
+            }
+          }
+          return exp->data.binOpExp.type = typeCopy(lhsType);
         }
         case BO_ADDASSIGN: {
           return NULL;  // TODO
