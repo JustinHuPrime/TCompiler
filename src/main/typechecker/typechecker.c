@@ -301,10 +301,12 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
       }
     }
     case NT_SCOPEDID: {
-      return NULL;  // TODO
+      return exp->data.scopedId.type =
+                 typeCopy(exp->data.scopedId.entry->data.variable.type);
     }
     case NT_ID: {
-      return NULL;  // TODO
+      return exp->data.id.type =
+                 typeCopy(exp->data.id.entry->data.variable.type);
     }
     default: {
       // not an expression
