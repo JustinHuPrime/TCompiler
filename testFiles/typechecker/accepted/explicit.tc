@@ -1,0 +1,5 @@
+module foo;
+
+void bar(int a) {
+  short b = cast<short>(a);
+}

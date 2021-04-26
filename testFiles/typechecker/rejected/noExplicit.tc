@@ -1,0 +1,9 @@
+module foo;
+
+struct s {
+  int i;
+};
+
+void bar(s a) {
+  short b = cast<short>(a);
+}

@@ -354,6 +354,37 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
     return typeEqual(from, to);
   }
 }
+bool typeExplicitlyConvertable(Type const *from, Type const *to) {
+  from = stripCV(from);
+  to = stripCV(to);
+
+  if (typeImplicitlyConvertable(from, to)) {
+    return true;
+  } else if ((typeNumeric(from) || typeCharacter(from)) &&
+             (typeNumeric(to) || typeCharacter(to))) {
+    return true;
+  } else if ((typeIntegral(from) || typeAnyPointer(from)) &&
+             (typeIntegral(to) || typeAnyPointer(to))) {
+    return true;
+  } else if ((to->kind == TK_REFERENCE &&
+              to->data.reference.entry->kind == SK_TYPEDEF &&
+              typeEqual(to->data.reference.entry->data.typedefType.actual,
+                        from)) ||
+             (from->kind == TK_REFERENCE &&
+              from->data.reference.entry->kind == SK_TYPEDEF &&
+              typeEqual(from->data.reference.entry->data.typedefType.actual,
+                        to))) {
+    return true;
+  } else if ((typeBoolean(from) && typeNumeric(to)) ||
+             (typeNumeric(from) && typeBoolean(to))) {
+    return true;
+  } else if ((typeNumeric(from) && typeEnum(to)) ||
+             (typeEnum(from) && typeNumeric(to))) {
+    return true;
+  } else {
+    return false;
+  }
+}
 bool typeSignedIntegral(Type const *t) {
   t = stripCV(t);
   return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_BYTE ||
@@ -387,6 +418,10 @@ bool typeBoolean(Type const *t) {
   return t->kind == TK_KEYWORD && t->data.keyword.keyword == TK_BOOL;
 }
 bool typePointer(Type const *t) { return stripCV(t)->kind == TK_POINTER; }
+bool typeAnyPointer(Type const *t) {
+  t = stripCV(t);
+  return t->kind == TK_POINTER || t->kind == TK_FUNPTR;
+}
 bool typeEnum(Type const *t) {
   t = stripCV(t);
   return t->kind == TK_REFERENCE && t->data.reference.entry->kind == SK_ENUM;

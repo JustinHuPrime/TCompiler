@@ -473,7 +473,7 @@ Node *castExpNodeCreate(Token const *opToken, Node *type, Type *parsedType,
   n->data.binOpExp.lhs = type;
   n->data.binOpExp.rhs = target;
   n->data.binOpExp.type = parsedType;
-  n->data.binOpExp.comparisonType = false;
+  n->data.binOpExp.comparisonType = NULL;
   return n;
 }
 Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,

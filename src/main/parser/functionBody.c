@@ -108,6 +108,7 @@ static void panicStmt(Node *unparsed) {
       case TT_UBYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
@@ -194,6 +195,7 @@ static void panicStructOrUnion(Node *unparsed) {
       case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
@@ -1081,6 +1083,7 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
           case TT_BYTE:
           case TT_CHAR:
           case TT_USHORT:
+          case TT_SHORT:
           case TT_UINT:
           case TT_INT:
           case TT_WCHAR:
@@ -2248,6 +2251,7 @@ static Node *parseForInitStmt(FileListEntry *entry, Node *unparsed,
     case TT_BYTE:
     case TT_CHAR:
     case TT_USHORT:
+    case TT_SHORT:
     case TT_UINT:
     case TT_INT:
     case TT_WCHAR:
@@ -2898,6 +2902,7 @@ static Node *parseStructDecl(FileListEntry *entry, Node *unparsed,
       case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
@@ -3025,6 +3030,7 @@ static Node *parseUnionDecl(FileListEntry *entry, Node *unparsed,
       case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
@@ -3399,6 +3405,7 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
     case TT_BYTE:
     case TT_CHAR:
     case TT_USHORT:
+    case TT_SHORT:
     case TT_UINT:
     case TT_INT:
     case TT_WCHAR:

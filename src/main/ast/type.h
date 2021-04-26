@@ -144,6 +144,10 @@ Type const *stripCV(Type const *t);
  */
 bool typeImplicitlyConvertable(Type const *from, Type const *to);
 /**
+ * is from explicitly convertable to to
+ */
+bool typeExplicitlyConvertable(Type const *from, Type const *to);
+/**
  * is the type a signed integer (byte, short, int, long)
  */
 bool typeSignedIntegral(Type const *t);
@@ -172,6 +176,10 @@ bool typeBoolean(Type const *t);
  * is the type a pointer
  */
 bool typePointer(Type const *t);
+/**
+ * is the type a pointer or function pointer
+ */
+bool typeAnyPointer(Type const *t);
 /**
  * is the type an enumeration
  */

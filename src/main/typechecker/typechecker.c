@@ -52,6 +52,25 @@ static void errorNoImplicitConversion(FileListEntry *entry, size_t line,
   entry->errored = true;
 }
 /**
+ * complains about being unable to convert a value explicitly
+ *
+ * @param from from type
+ * @param to to type
+ */
+static void errorNoExplicitConversion(FileListEntry *entry, size_t line,
+                                      size_t character, Type const *from,
+                                      Type const *to) {
+  char *fromString = typeToString(from);
+  char *toString = typeToString(to);
+  fprintf(stderr,
+          "%s:%zu:%zu: error: cannot convert a value of type '%s' to a value "
+          "of type '%s'\n",
+          entry->inputFilename, line, character, fromString, toString);
+  free(fromString);
+  free(toString);
+  entry->errored = true;
+}
+/**
  * complaints about being unable to perform an op on a given operand type
  */
 static void errorNoOp(FileListEntry *entry, size_t line, size_t character,
@@ -60,8 +79,8 @@ static void errorNoOp(FileListEntry *entry, size_t line, size_t character,
   char *lhsString = typeToString(lhsType);
   char *rhsString = typeToString(rhsType);
   fprintf(stderr,
-          "%s:%zu:%zu: error: cannot perform %s on a value of type %s and a "
-          "value of type %s\n",
+          "%s:%zu:%zu: error: cannot perform %s on a value of type '%s' and a "
+          "value of type '%s'\n",
           entry->inputFilename, line, character, op, lhsString, rhsString);
   entry->errored = true;
   free(lhsString);
@@ -75,7 +94,7 @@ static void errorNoMember(FileListEntry *entry, size_t line, size_t character,
   char *typeString = typeToString(type);
   fprintf(stderr,
           "%s:%zu:%zu: error: no member named '%s' on a value of "
-          "type %s\n",
+          "type '%s'\n",
           entry->inputFilename, line, character, member, typeString);
   entry->errored = true;
   free(typeString);
@@ -88,7 +107,7 @@ static void errorNoMembers(FileListEntry *entry, size_t line, size_t character,
   char *typeString = typeToString(type);
   fprintf(stderr,
           "%s:%zu:%zu: error: cannot access members on a value of "
-          "type %s\n",
+          "type '%s'\n",
           entry->inputFilename, line, character, typeString);
   entry->errored = true;
   free(typeString);
@@ -849,7 +868,15 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           }
         }
         case BO_CAST: {
-          return NULL;  // TODO}
+          Type const *target =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (target != NULL &&
+              !typeExplicitlyConvertable(target, exp->data.binOpExp.type))
+            errorNoExplicitConversion(entry, exp->line, exp->character, target,
+                                      exp->data.binOpExp.type);
+
+          return exp->data.binOpExp.type;
         }
         default: {
           error(__FILE__, __LINE__, "invalid binop encountered");

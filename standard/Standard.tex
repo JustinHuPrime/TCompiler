@@ -287,17 +287,9 @@ A value of one type may be explicitly converted to a value of another type when,
 \begin{enumerate}
 	\item The converted-from type could be implicitly converted into the converted-to type. The same conversion as the implicit conversion happens.
 	
-	\item The converted-from type is a character or wide character and the converted-to type is a float or a double. An integral-to-float or integral-to-double (as appropriate) conversion is performed on the integer representation of the character.
+	\item The converted-from type and converted-to type are both numeric or characters. The appropriate integral-to-floating, truncation, or extension is performed.
 	
-	\item The converted-from type is a double and the converted-to type is a float. A double-to-float narrowing is performed.
-	
-	\item The converted-from type is a wide character and the converted-to type is a character. The character-set appropriate narrowing is performed.
-	
-	\item The converted-from type is any unsigned integral type, character, or wide character and the converted-to type is any integral or character type. A truncation or a zero-extend (as appropriate) is performed.
-	
-	\item The converted-from type is any signed integral type and the converted-to type is any integral or character type. A truncation or sign-extend (as appropriate) is performed.
-	
-	\item The converted-from type is a pointer or function pointer and the converted-to type is any integral type. The pointer is converted as if it were an unsigned long.
+	\item The converted-from type is a pointer or function pointer and the converted-to type is any integral type, or vice versa, or both are pointers. The pointer is converted as if it were an unsigned long.
 	
 	\item One type is a type alias of another type. This rules is not applied transitively - if \texttt{A} is an alias of \texttt{B}, which is an alias for \texttt{C}, \texttt{A} cannot be explicitly converted into \texttt{C} in one step.
 	
@@ -308,8 +300,6 @@ A value of one type may be explicitly converted to a value of another type when,
 	\item The converted-from type is a floating point or integral type, and the converted-to type is an enumeration. The converted-from type is converted to an integer with the same size and signedness as the converted-to enumeration's underlying type.
 	
 	\item The converted-from type is an enumeration and the converted-to type is a floating point or integral type. The converted-from type is converted to the converted-to type using the enumeration's underlying type.
-	
-	\item The converted-from type is a function pointer or pointer, and the converted-to type is a pointer or function pointer. The pointer is directly copied.
 \end{enumerate}
 
 \subsection{Arithmetic Type Merging}\label{subsection:Arithmetic Type Merging}
