@@ -303,11 +303,10 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
                from->data.keyword.keyword == TK_FLOAT ||
                from->data.keyword.keyword == TK_DOUBLE;
       case TK_BOOL:
-        return from->data.keyword.keyword == TK_DOUBLE;
+        return from->data.keyword.keyword == TK_BOOL;
       default:
         error(__FILE__, __LINE__, "invalid keyword type encountered");
     }
-    return false;
   } else if (from->kind == TK_POINTER && to->kind == TK_POINTER) {
     return pointerBaseImplicitlyConvertable(from->data.pointer.base,
                                             to->data.pointer.base);
