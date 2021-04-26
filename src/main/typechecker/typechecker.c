@@ -194,11 +194,28 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
         case BO_LORASSIGN: {
           return NULL;  // TODO
         }
-        case BO_LAND: {
-          return NULL;  // TODO
-        }
+        case BO_LAND:
         case BO_LOR: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL &&
+              !typeImplicitlyConvertable(lhsType, boolType)) {
+            errorNoImplicitConversion(entry, exp->data.binOpExp.lhs->line,
+                                      exp->data.binOpExp.lhs->character,
+                                      lhsType, boolType);
+          }
+
+          if (rhsType != NULL &&
+              !typeImplicitlyConvertable(rhsType, boolType)) {
+            errorNoImplicitConversion(entry, exp->data.binOpExp.rhs->line,
+                                      exp->data.binOpExp.rhs->character,
+                                      rhsType, boolType);
+          }
+
+          return exp->data.binOpExp.type = keywordTypeCreate(TK_BOOL);
         }
         case BO_BITAND: {
           return NULL;  // TODO

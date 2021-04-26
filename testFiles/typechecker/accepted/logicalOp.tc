@@ -1,0 +1,6 @@
+module foo;
+
+void bar(bool a, bool b) {
+  a || b;
+  a && b;
+}
