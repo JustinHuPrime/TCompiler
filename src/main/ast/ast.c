@@ -463,6 +463,7 @@ Node *binOpExpNodeCreate(BinOpType op, Node *lhs, Node *rhs) {
   n->data.binOpExp.lhs = lhs;
   n->data.binOpExp.rhs = rhs;
   n->data.binOpExp.type = NULL;
+  n->data.binOpExp.comparisonType = NULL;
   return n;
 }
 Node *castExpNodeCreate(Token const *opToken, Node *type, Type *parsedType,
@@ -472,6 +473,7 @@ Node *castExpNodeCreate(Token const *opToken, Node *type, Type *parsedType,
   n->data.binOpExp.lhs = type;
   n->data.binOpExp.rhs = target;
   n->data.binOpExp.type = parsedType;
+  n->data.binOpExp.comparisonType = false;
   return n;
 }
 Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,
@@ -1332,6 +1334,7 @@ void nodeFree(Node *n) {
       nodeFree(n->data.binOpExp.lhs);
       nodeFree(n->data.binOpExp.rhs);
       typeFree(n->data.binOpExp.type);
+      typeFree(n->data.binOpExp.comparisonType);
       break;
     }
     case NT_TERNARYEXP: {

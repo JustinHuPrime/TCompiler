@@ -1,0 +1,5 @@
+module foo;
+
+void bar(ulong a, int b) {
+  bool x = a == b;
+}

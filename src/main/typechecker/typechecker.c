@@ -252,12 +252,11 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
             if (merged == NULL) {
               char *lhsString = typeToString(lhsType);
               char *rhsString = typeToString(rhsType);
-              fprintf(
-                  stderr,
-                  "%s:%zu:%zu: error: type mismatch in bitwise expression - "
-                  "cannot find common type between %s and %s\n",
-                  entry->inputFilename, exp->line, exp->character, lhsString,
-                  rhsString);
+              fprintf(stderr,
+                      "%s:%zu:%zu: error: cannot perform a bitwise operation "
+                      "with a value of type %s and a value of type %s\n",
+                      entry->inputFilename, exp->line, exp->character,
+                      lhsString, rhsString);
               entry->errored = true;
               free(lhsString);
               free(rhsString);
@@ -267,26 +266,61 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
             return exp->data.binOpExp.type = NULL;
           }
         }
-        case BO_EQ: {
-          return NULL;  // TODO
-        }
-        case BO_NEQ: {
-          return NULL;  // TODO
-        }
-        case BO_LT: {
-          return NULL;  // TODO
-        }
-        case BO_GT: {
-          return NULL;  // TODO
-        }
-        case BO_LTEQ: {
-          return NULL;  // TODO
-        }
-        case BO_GTEQ: {
-          return NULL;  // TODO
-        }
+        case BO_EQ:
+        case BO_NEQ:
+        case BO_LT:
+        case BO_GT:
+        case BO_LTEQ:
+        case BO_GTEQ:
         case BO_SPACESHIP: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          bool bad = false;
+          if (lhsType != NULL && !typeComparable(lhsType)) {
+            char *typeString = typeToString(lhsType);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot perform a comparison operation "
+                    "on a value of type %s\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            bad = entry->errored = true;
+            free(typeString);
+          }
+          if (rhsType != NULL && !typeComparable(rhsType)) {
+            char *typeString = typeToString(rhsType);
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: cannot perform a comparison operation on "
+                "a value of type %s\n",
+                entry->inputFilename, exp->line, exp->character, typeString);
+            bad = entry->errored = true;
+            free(typeString);
+          }
+
+          if (lhsType != NULL && rhsType != NULL && !bad) {
+            Type *merged = comparisonTypeMerge(lhsType, rhsType);
+            if (merged == NULL) {
+              char *lhsString = typeToString(lhsType);
+              char *rhsString = typeToString(rhsType);
+              fprintf(
+                  stderr,
+                  "%s:%zu:%zu: error: cannot perform a comparison operation "
+                  "with a value of type %s and a value of type %s\n",
+                  entry->inputFilename, exp->line, exp->character, lhsString,
+                  rhsString);
+              entry->errored = true;
+              free(lhsString);
+              free(rhsString);
+            }
+            exp->data.binOpExp.comparisonType = merged;
+          }
+
+          return exp->data.binOpExp.type = exp->data.binOpExp.op == BO_SPACESHIP
+                                               ? keywordTypeCreate(TK_BYTE)
+                                               : keywordTypeCreate(TK_BOOL);
         }
         case BO_LSHIFT: {
           return NULL;  // TODO

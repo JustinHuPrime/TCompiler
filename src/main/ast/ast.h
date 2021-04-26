@@ -339,6 +339,7 @@ typedef struct Node {
       struct Node *lhs;
       struct Node *rhs;
       Type *type;
+      Type *comparisonType;
     } binOpExp;
     struct {
       struct Node *predicate;   /**< expression */

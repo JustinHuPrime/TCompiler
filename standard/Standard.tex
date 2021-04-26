@@ -354,9 +354,9 @@ When two values are involved in an equality or other comparison, they are someti
 \begin{enumerate}
 	\item Character and numeric types are merged as if in a ternary.
 	
-	\item Booleans and enumerations may only be compared with idential types.
+	\item Booleans and enumerations may only be compared with identical types, and are compared as themselves.
 	
-	\item Pointers may be compared with any other pointer.
+	\item Pointers may be compared with any other pointer if one can be implicitly converted into another, and are compared as if void pointers.
 \end{enumerate}
 
 \chapter{Declarations}
@@ -704,9 +704,7 @@ The two operands are first converted into a common type (see \ref{subsection:Ari
 
 \lstinputlisting[breaklines=true, firstline=89, lastline=90]{"Appendix B - Syntax.ebnf"}
 
-There are two kinds of comparison operators - equality comparison operators (\texttt{==}, \texttt{!=}), and relational comparison operators (\texttt{<}, \texttt{>}, \texttt{<=}, \texttt{>=}).
-
-Equality comparisons are valid for base types that, after a comparison type merge, are numeric, characters, booleans, or pointers. Relational comparisons are valid for base types that, after a comparison type merge, are numeric or characters. Comparisons result in an rvalue booleans.
+Comparisons are valid for base types can be merged in a comparison type merge, and result in an rvalue boolean.
 
 \subsection{Three-Way Comparison Operators}
 
@@ -714,7 +712,7 @@ Equality comparisons are valid for base types that, after a comparison type merg
 
 The three-way comparison operator expects its inputs to be numeric, characters, booleans, or pointers. It evaluates both inputs, and converts them to a common type (see Appendix D). Then, it compares these inputs. If the left hand side is less than the right hand side, it produces -1, if they are equal, 0, and if the left hand side is greater than the right hand side, it produces 1.
 
-The types must, after a comparison type merge, be numeric, characters, booleans, or pointers. The operator checks like comparison operators do, and produces an rvalue byte indicating the relationship.
+The types must be mergeable in a comparison type merge. The operator checks like comparison operators do, and produces an rvalue byte indicating the relationship.
 
 \subsection{Shift Operators}
 

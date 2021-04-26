@@ -382,6 +382,19 @@ bool typeCharacter(Type const *t) {
   return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_CHAR ||
                                    t->data.keyword.keyword == TK_WCHAR);
 }
+bool typeBoolean(Type const *t) {
+  t = stripCV(t);
+  return t->kind == TK_KEYWORD && t->data.keyword.keyword == TK_BOOL;
+}
+bool typePointer(Type const *t) { return stripCV(t)->kind == TK_POINTER; }
+bool typeEnum(Type const *t) {
+  t = stripCV(t);
+  return t->kind == TK_REFERENCE && t->data.reference.entry->kind == SK_ENUM;
+}
+bool typeComparable(Type const *t) {
+  return typeNumeric(t) || typeCharacter(t) || typeBoolean(t) ||
+         typePointer(t) || typeEnum(t);
+}
 Type *arithmeticTypeMerge(Type const *a, Type const *b) {
   if (a == NULL || b == NULL) return NULL;
   a = stripCV(a);
@@ -558,6 +571,25 @@ Type *ternaryTypeMerge(Type const *a, Type const *b) {
   } else if (a->kind == TK_POINTER && b->kind == TK_POINTER) {
     return pointerTypeCreate(
         ternaryPointerBaseMerge(a->data.pointer.base, b->data.pointer.base));
+  } else {
+    return NULL;
+  }
+}
+Type *comparisonTypeMerge(Type const *a, Type const *b) {
+  a = stripCV(a);
+  b = stripCV(b);
+
+  if ((typeNumeric(a) || typeCharacter(a) || a->kind == TK_POINTER) &&
+      (typeNumeric(b) || typeCharacter(b) || b->kind == TK_POINTER)) {
+    return ternaryTypeMerge(a, b);
+  } else if (typeBoolean(a) && typeBoolean(b)) {
+    return typeCopy(a);
+  } else if (typeEnum(a) && typeEnum(b)) {
+    return typeCopy(a);
+  } else if (typePointer(a) && typePointer(b) &&
+             (typeImplicitlyConvertable(a, b) ||
+              typeImplicitlyConvertable(b, a))) {
+    return pointerTypeCreate(keywordTypeCreate(TK_VOID));
   } else {
     return NULL;
   }

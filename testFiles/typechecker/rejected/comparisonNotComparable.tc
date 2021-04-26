@@ -1,0 +1,5 @@
+module foo;
+
+void bar(int[2] a, uint b) {
+  byte x = a <=> b;
+}

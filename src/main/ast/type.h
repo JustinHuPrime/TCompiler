@@ -161,6 +161,22 @@ bool typeNumeric(Type const *t);
  */
 bool typeCharacter(Type const *t);
 /**
+ * is the type a bool
+ */
+bool typeBoolean(Type const *t);
+/**
+ * is the type a pointer
+ */
+bool typePointer(Type const *t);
+/**
+ * is the type an enumeration
+ */
+bool typeEnum(Type const *t);
+/**
+ * is the type comparable
+ */
+bool typeComparable(Type const *t);
+/**
  * merge types in an arithmetic expression
  *
  * @param a must be numeric
@@ -171,6 +187,10 @@ Type *arithmeticTypeMerge(Type const *a, Type const *b);
  * merge types in a ternary expression
  */
 Type *ternaryTypeMerge(Type const *a, Type const *b);
+/**
+ * merge types in a comparison
+ */
+Type *comparisonTypeMerge(Type const *a, Type const *b);
 /**
  * format a list of types
  */
