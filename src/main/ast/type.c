@@ -354,6 +354,214 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
     return typeEqual(from, to);
   }
 }
+bool typeSignedIntegral(Type const *t) {
+  t = stripCV(t);
+  return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_UBYTE ||
+                                   t->data.keyword.keyword == TK_USHORT ||
+                                   t->data.keyword.keyword == TK_UINT ||
+                                   t->data.keyword.keyword == TK_ULONG);
+}
+bool typeUnsignedIntegral(Type const *t) {
+  t = stripCV(t);
+  return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_BYTE ||
+                                   t->data.keyword.keyword == TK_SHORT ||
+                                   t->data.keyword.keyword == TK_INT ||
+                                   t->data.keyword.keyword == TK_LONG);
+}
+bool typeIntegral(Type const *t) {
+  return typeSignedIntegral(t) || typeUnsignedIntegral(t);
+}
+static bool typeIsFloating(Type const *t) {
+  t = stripCV(t);
+  return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_FLOAT ||
+                                   t->data.keyword.keyword == TK_DOUBLE);
+}
+bool typeNumeric(Type const *t) { return typeIntegral(t) || typeIsFloating(t); }
+bool typeCharacter(Type const *t) {
+  t = stripCV(t);
+  return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_CHAR ||
+                                   t->data.keyword.keyword == TK_WCHAR);
+}
+Type *arithmeticTypeMerge(Type const *a, Type const *b) {
+  if (a == NULL || b == NULL) return NULL;
+  a = stripCV(a);
+  b = stripCV(b);
+
+  if (a->data.keyword.keyword == TK_DOUBLE ||
+      b->data.keyword.keyword == TK_DOUBLE) {
+    return keywordTypeCreate(TK_DOUBLE);
+  } else if (a->data.keyword.keyword == TK_FLOAT ||
+             b->data.keyword.keyword == TK_FLOAT) {
+    return keywordTypeCreate(TK_FLOAT);
+  } else {
+    // 2-one-of table for type keyword merging
+    //    A\B | ub | b | us | s | ui | i | ul | l
+    // ubyte  | A  | s | -----------B------------
+    // byte   | s  | A | i  | B | l  | B | no | B
+    // ushort | A  | i | A  | i | -------B-------
+    // short  | --A--- | i  | A | l  | B | no | B
+    // uint   | A  | l | A  | l | A  | l | B  | l
+    // int    | -------A------- | l  | A | no | l
+    // ulong  | A  | n | A  | n | A  | n | A  | n
+    // long   | -----------A------------ | no | A
+    switch (a->data.keyword.keyword) {
+      case TK_UBYTE: {
+        switch (b->data.keyword.keyword) {
+          case TK_UBYTE: {
+            return typeCopy(a);
+          }
+          case TK_BYTE: {
+            return keywordTypeCreate(TK_SHORT);
+          }
+          default: {
+            return typeCopy(b);
+          }
+        }
+      }
+      case TK_BYTE: {
+        switch (b->data.keyword.keyword) {
+          case TK_UBYTE: {
+            return keywordTypeCreate(TK_SHORT);
+          }
+          case TK_BYTE: {
+            return typeCopy(a);
+          }
+          case TK_USHORT: {
+            return keywordTypeCreate(TK_INT);
+          }
+          case TK_UINT: {
+            return keywordTypeCreate(TK_LONG);
+          }
+          case TK_ULONG: {
+            return NULL;
+          }
+          default: {
+            return typeCopy(b);
+          }
+        }
+      }
+      case TK_USHORT: {
+        switch (b->data.keyword.keyword) {
+          case TK_UBYTE:
+          case TK_USHORT: {
+            return typeCopy(a);
+          }
+          case TK_BYTE:
+          case TK_SHORT: {
+            return keywordTypeCreate(TK_INT);
+          }
+          default: {
+            return typeCopy(b);
+          }
+        }
+      }
+      case TK_SHORT: {
+        switch (b->data.keyword.keyword) {
+          case TK_UBYTE:
+          case TK_BYTE:
+          case TK_SHORT: {
+            return typeCopy(a);
+          }
+          case TK_USHORT: {
+            return keywordTypeCreate(TK_INT);
+          }
+          case TK_UINT: {
+            return keywordTypeCreate(TK_LONG);
+          }
+          case TK_ULONG: {
+            return NULL;
+          }
+          default: {
+            return typeCopy(b);
+          }
+        }
+      }
+      case TK_UINT: {
+        switch (b->data.keyword.keyword) {
+          case TK_UBYTE:
+          case TK_USHORT:
+          case TK_UINT: {
+            return typeCopy(a);
+          }
+          case TK_ULONG: {
+            return NULL;
+          }
+          default: {
+            return keywordTypeCreate(TK_LONG);
+          }
+        }
+      }
+      case TK_INT: {
+        switch (b->data.keyword.keyword) {
+          case TK_UINT:
+          case TK_LONG: {
+            return keywordTypeCreate(TK_LONG);
+          }
+          case TK_ULONG: {
+            return NULL;
+          }
+          default: {
+            return typeCopy(a);
+          }
+        }
+      }
+      case TK_ULONG: {
+        if (typeUnsignedIntegral(b)) {
+          return typeCopy(a);
+        } else {
+          return NULL;
+        }
+      }
+      case TK_LONG: {
+        if (b->data.keyword.keyword != TK_ULONG) {
+          return typeCopy(a);
+        } else {
+          return NULL;
+        }
+      }
+      default: {
+        error(__FILE__, __LINE__, "non-numeric type encountered");
+      }
+    }
+  }
+}
+static Type *ternaryPointerBaseMerge(Type const *a, Type const *b) {
+  if (a->kind == TK_QUALIFIED || b->kind == TK_QUALIFIED) {
+    return qualifiedTypeCreate(
+        ternaryPointerBaseMerge(stripCV(a), stripCV(b)),
+        (a->kind == TK_QUALIFIED && a->data.qualified.constQual) ||
+            (b->kind == TK_QUALIFIED && b->data.qualified.constQual),
+        (a->kind == TK_QUALIFIED && a->data.qualified.volatileQual) ||
+            (b->kind == TK_QUALIFIED && b->data.qualified.volatileQual));
+  } else if (typeEqual(a, b)) {
+    return typeCopy(a);
+  } else {
+    return keywordTypeCreate(TK_VOID);
+  }
+}
+Type *ternaryTypeMerge(Type const *a, Type const *b) {
+  if (a == NULL || b == NULL) return NULL;
+
+  if (a->kind == TK_QUALIFIED || b->kind == TK_QUALIFIED) {
+    return qualifiedTypeCreate(
+        ternaryTypeMerge(stripCV(a), stripCV(b)),
+        (a->kind == TK_QUALIFIED && a->data.qualified.constQual) ||
+            (b->kind == TK_QUALIFIED && b->data.qualified.constQual),
+        (a->kind == TK_QUALIFIED && a->data.qualified.volatileQual) ||
+            (b->kind == TK_QUALIFIED && b->data.qualified.volatileQual));
+  } else if (typeEqual(a, b)) {
+    return typeCopy(a);
+  } else if (typeNumeric(a) && typeNumeric(b)) {
+    return arithmeticTypeMerge(a, b);
+  } else if (typeCharacter(a) && typeCharacter(b)) {
+    return keywordTypeCreate(TK_WCHAR);
+  } else if (a->kind == TK_POINTER && b->kind == TK_POINTER) {
+    return pointerTypeCreate(
+        ternaryPointerBaseMerge(a->data.pointer.base, b->data.pointer.base));
+  } else {
+    return NULL;
+  }
+}
 char *typeVectorToString(Vector const *v) {
   if (v->size == 0) {
     return strdup("");

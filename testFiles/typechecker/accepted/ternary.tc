@@ -1,0 +1,5 @@
+module foo;
+
+void bar(bool b, int c, int d) {
+  int a = b ? c : d;
+}

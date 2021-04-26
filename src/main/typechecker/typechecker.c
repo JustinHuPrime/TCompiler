@@ -272,7 +272,35 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
       }
     }
     case NT_TERNARYEXP: {
-      return NULL;  // TODO
+      Type const *predicateType =
+          typecheckExpression(exp->data.ternaryExp.predicate, entry);
+      if (predicateType != NULL &&
+          !typeImplicitlyConvertable(predicateType, boolType)) {
+        errorNoImplicitConversion(entry, exp->data.ternaryExp.predicate->line,
+                                  exp->data.ternaryExp.predicate->character,
+                                  predicateType, boolType);
+      }
+
+      Type const *consequentType =
+          typecheckExpression(exp->data.ternaryExp.consequent, entry);
+      Type const *alternativeType =
+          typecheckExpression(exp->data.ternaryExp.alternative, entry);
+
+      Type *merged = ternaryTypeMerge(consequentType, alternativeType);
+      if (consequentType != NULL && alternativeType != NULL && merged == NULL) {
+        char *consequentString = typeToString(consequentType);
+        char *alternativeString = typeToString(alternativeType);
+        fprintf(stderr,
+                "%s:%zu:%zu: error: type mismatch in ternary expression - "
+                "cannot find common type between %s and %s\b",
+                entry->inputFilename, exp->line, exp->character,
+                consequentString, alternativeString);
+        entry->errored = true;
+        free(consequentString);
+        free(alternativeString);
+      }
+
+      return exp->data.binOpExp.type = merged;
     }
     case NT_UNOPEXP: {
       switch (exp->data.unOpExp.op) {

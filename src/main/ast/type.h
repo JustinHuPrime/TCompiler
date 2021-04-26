@@ -140,6 +140,38 @@ bool typeEqual(Type const *a, Type const *b);
  */
 bool typeImplicitlyConvertable(Type const *from, Type const *to);
 /**
+ * is the type a signed integer (byte, short, int, long)
+ */
+bool typeSignedIntegral(Type const *t);
+/**
+ * is the type an unsigned integer (ubyte, ushort, uint ulong)
+ */
+bool typeUnsignedIntegral(Type const *t);
+/**
+ * is the type any integer (either ubyte, byte, ushort, short, uint, int, ulong,
+ * or long)
+ */
+bool typeIntegral(Type const *t);
+/**
+ * is the type any number (floating point or integral)
+ */
+bool typeNumeric(Type const *t);
+/**
+ * is the type a wchar or a char
+ */
+bool typeCharacter(Type const *t);
+/**
+ * merge types in an arithmetic expression
+ *
+ * @param a must be numeric
+ * @param b must be numeric
+ */
+Type *arithmeticTypeMerge(Type const *a, Type const *b);
+/**
+ * merge types in a ternary expression
+ */
+Type *ternaryTypeMerge(Type const *a, Type const *b);
+/**
  * format a list of types
  */
 char *typeVectorToString(Vector const *v);

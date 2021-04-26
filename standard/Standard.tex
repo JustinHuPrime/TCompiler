@@ -329,13 +329,13 @@ When two integral or floating point values are operated on by an arithmetic oper
 When two values are the consequent and the alternative of a ternary operator, they are first converted into a common type. The rules take precedence from top to bottom.
 
 \begin{enumerate}
-	\item The result of two CV-qualified types is the union of the qualifications applied to the result of recursively merging their base types.
+	\item The result of two CV-qualified types is the union of the qualifications applied to the result of recursively merging their base types.\label{item:Ternary Same Type}
 	
 	\item If both types are the same, the common type is the same as both types.
 	
 	\item If both types are numeric, the common type is the one that results from \ref{subsection:Arithmetic Type Merging}.
 	
-	\item If one type is a wide character and the other is a character, the common type is a wide character.
+	\item If both types are character types, the common type is a wide character. (Note that the case where both are characters is covered by rule \ref{item:Ternary Same Type}.
 	
 	\item If both types are pointers, then (in precedence from top to bottom):
 	\begin{enumerate}
@@ -682,7 +682,7 @@ A plain or compound assignment produces an lvalue which is the same as its left 
 
 The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated.
 
-A ternary expression produces the type from merging the type of its operands according to \ref{subsection:Ternary Type Merging}. The value is an lvalue if and only if both the cconsequent and the alternative expressions are lvalues.
+A ternary expression produces the type from merging the type of its operands according to \ref{subsection:Ternary Type Merging}. The value is an lvalue if and only if both the cconsequent and the alternative expressions are lvalues. Like an if statement, the predicate must be implicitly convertable to boolean.
 
 \subsection{Logical Operators}
 
