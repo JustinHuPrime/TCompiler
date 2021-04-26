@@ -241,49 +241,71 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
     // float     | -yes-- | n | ------yes------ | no | ---yes---- | --no--
     // double    | -yes-- | n | ------yes------ | no | -----yes------ | n
     // bool      | ------------------------no------------------------ | y
-    switch (to->kind) {
+    switch (to->data.keyword.keyword) {
       case TK_UBYTE:
-        return from->kind == TK_UBYTE;
+        return from->data.keyword.keyword == TK_UBYTE;
       case TK_BYTE:
-        return from->kind == TK_BYTE;
+        return from->data.keyword.keyword == TK_BYTE;
       case TK_CHAR:
-        return from->kind == TK_CHAR;
+        return from->data.keyword.keyword == TK_CHAR;
       case TK_USHORT:
-        return from->kind == TK_UBYTE || from->kind == TK_USHORT;
+        return from->data.keyword.keyword == TK_UBYTE ||
+               from->data.keyword.keyword == TK_USHORT;
       case TK_SHORT:
-        return from->kind == TK_UBYTE || from->kind == TK_BYTE ||
-               from->kind == TK_SHORT;
+        return from->data.keyword.keyword == TK_UBYTE ||
+               from->data.keyword.keyword == TK_BYTE ||
+               from->data.keyword.keyword == TK_SHORT;
       case TK_UINT:
-        return from->kind == TK_UBYTE || from->kind == TK_USHORT ||
-               from->kind == TK_UINT;
+        return from->data.keyword.keyword == TK_UBYTE ||
+               from->data.keyword.keyword == TK_USHORT ||
+               from->data.keyword.keyword == TK_UINT;
       case TK_INT:
-        return from->kind == TK_UBYTE || from->kind == TK_BYTE ||
-               from->kind == TK_USHORT || from->kind == TK_SHORT ||
-               from->kind == TK_UINT;
+        return from->data.keyword.keyword == TK_UBYTE ||
+               from->data.keyword.keyword == TK_BYTE ||
+               from->data.keyword.keyword == TK_USHORT ||
+               from->data.keyword.keyword == TK_SHORT ||
+               from->data.keyword.keyword == TK_UINT;
       case TK_WCHAR:
-        return from->kind == TK_CHAR || from->kind == TK_WCHAR;
+        return from->data.keyword.keyword == TK_CHAR ||
+               from->data.keyword.keyword == TK_WCHAR;
       case TK_ULONG:
-        return from->kind == TK_UBYTE || from->kind == TK_USHORT ||
-               from->kind == TK_UINT || from->kind == TK_ULONG;
+        return from->data.keyword.keyword == TK_UBYTE ||
+               from->data.keyword.keyword == TK_USHORT ||
+               from->data.keyword.keyword == TK_UINT ||
+               from->data.keyword.keyword == TK_ULONG;
       case TK_LONG:
-        return from->kind == TK_UBYTE || from->kind == TK_BYTE ||
-               from->kind == TK_USHORT || from->kind == TK_SHORT ||
-               from->kind == TK_UINT || from->kind == TK_INT ||
-               from->kind == TK_LONG;
+        return from->data.keyword.keyword == TK_UBYTE ||
+               from->data.keyword.keyword == TK_BYTE ||
+               from->data.keyword.keyword == TK_USHORT ||
+               from->data.keyword.keyword == TK_SHORT ||
+               from->data.keyword.keyword == TK_UINT ||
+               from->data.keyword.keyword == TK_INT ||
+               from->data.keyword.keyword == TK_LONG;
       case TK_FLOAT:
-        return from->kind == TK_UBYTE || from->kind == TK_BYTE ||
-               from->kind == TK_USHORT || from->kind == TK_SHORT ||
-               from->kind == TK_UINT || from->kind == TK_INT ||
-               from->kind == TK_ULONG || from->kind == TK_LONG ||
-               from->kind == TK_FLOAT;
+        return from->data.keyword.keyword == TK_UBYTE ||
+               from->data.keyword.keyword == TK_BYTE ||
+               from->data.keyword.keyword == TK_USHORT ||
+               from->data.keyword.keyword == TK_SHORT ||
+               from->data.keyword.keyword == TK_UINT ||
+               from->data.keyword.keyword == TK_INT ||
+               from->data.keyword.keyword == TK_ULONG ||
+               from->data.keyword.keyword == TK_LONG ||
+               from->data.keyword.keyword == TK_FLOAT;
       case TK_DOUBLE:
-        return from->kind == TK_UBYTE || from->kind == TK_BYTE ||
-               from->kind == TK_USHORT || from->kind == TK_SHORT ||
-               from->kind == TK_UINT || from->kind == TK_INT ||
-               from->kind == TK_ULONG || from->kind == TK_LONG ||
-               from->kind == TK_FLOAT || from->kind == TK_DOUBLE;
+        return from->data.keyword.keyword == TK_UBYTE ||
+               from->data.keyword.keyword == TK_BYTE ||
+               from->data.keyword.keyword == TK_USHORT ||
+               from->data.keyword.keyword == TK_SHORT ||
+               from->data.keyword.keyword == TK_UINT ||
+               from->data.keyword.keyword == TK_INT ||
+               from->data.keyword.keyword == TK_ULONG ||
+               from->data.keyword.keyword == TK_LONG ||
+               from->data.keyword.keyword == TK_FLOAT ||
+               from->data.keyword.keyword == TK_DOUBLE;
       case TK_BOOL:
-        return from->kind == TK_DOUBLE;
+        return from->data.keyword.keyword == TK_DOUBLE;
+      default:
+        error(__FILE__, __LINE__, "invalid keyword type encountered");
     }
     return false;
   } else if (from->kind == TK_POINTER && to->kind == TK_POINTER) {
