@@ -1,0 +1,6 @@
+module foo;
+
+void bar(int b) {
+  int a = 1;
+  a + 1 = b;
+}

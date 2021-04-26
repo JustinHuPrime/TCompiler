@@ -53,21 +53,107 @@ static void errorNoImplicitConversion(FileListEntry *entry, size_t line,
 }
 
 /**
+ * is the given expression an lvalue
+ *
+ * @param exp expression to check
+ */
+static bool isLvalue(Node const *exp) {
+  switch (exp->type) {
+    case NT_BINOPEXP: {
+      switch (exp->data.binOpExp.op) {
+        case BO_SEQ: {
+          return isLvalue(exp->data.binOpExp.rhs);
+        }
+        case BO_ASSIGN:
+        case BO_MULASSIGN:
+        case BO_DIVASSIGN:
+        case BO_MODASSIGN:
+        case BO_ADDASSIGN:
+        case BO_SUBASSIGN:
+        case BO_LSHIFTASSIGN:
+        case BO_ARSHIFTASSIGN:
+        case BO_LRSHIFTASSIGN:
+        case BO_BITANDASSIGN:
+        case BO_BITXORASSIGN:
+        case BO_BITORASSIGN:
+        case BO_LANDASSIGN:
+        case BO_LORASSIGN: {
+          return true;
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    case NT_TERNARYEXP: {
+      return isLvalue(exp->data.ternaryExp.consequent) &&
+             isLvalue(exp->data.ternaryExp.alternative);
+    }
+    case NT_UNOPEXP: {
+      switch (exp->data.unOpExp.op) {
+        case UO_DEREF:
+        case UO_PREINC:
+        case UO_PREDEC:
+        case UO_NEGASSIGN:
+        case UO_LNOTASSIGN:
+        case UO_BITNOTASSIGN: {
+          return true;
+        }
+        default: {
+          return false;
+        }
+      }
+    }
+    case NT_ID:
+    case NT_SCOPEDID: {
+      return true;
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+/**
  * typechecks an expression
  *
  * @param exp expression to typecheck
  * @param entry entry containing this expression
  */
 static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
+  if (exp == NULL) return NULL;
   switch (exp->type) {
     case NT_BINOPEXP: {
       switch (exp->data.binOpExp.op) {
         case BO_SEQ: {
           typecheckExpression(exp->data.binOpExp.lhs, entry);
-          return typecheckExpression(exp->data.binOpExp.rhs, entry);
+          return exp->data.binOpExp.type = typeCopy(
+                     typecheckExpression(exp->data.binOpExp.rhs, entry));
         }
         case BO_ASSIGN: {
-          return NULL;  // TODO
+          Type const *to = typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *from = typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (to != NULL && from != NULL &&
+              !typeImplicitlyConvertable(from, to))
+            errorNoImplicitConversion(entry, exp->line, exp->character, from,
+                                      to);
+          if (!isLvalue(exp->data.binOpExp.lhs)) {
+            fprintf(
+                stderr,
+                "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
+                entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+          } else if (to != NULL && to->kind == TK_QUALIFIED &&
+                     to->data.qualified.constQual) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot assign a value to a constant "
+                    "variable\n",
+                    entry->inputFilename, exp->line, exp->character);
+            entry->errored = true;
+          }
+
+          return exp->data.binOpExp.type = typeCopy(to);
         }
         case BO_MULASSIGN: {
           return NULL;  // TODO

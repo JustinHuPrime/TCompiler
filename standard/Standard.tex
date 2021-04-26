@@ -682,7 +682,7 @@ A plain or compound assignment produces an lvalue which is the same as its left 
 
 The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated.
 
-A ternary expression produces the type from merging the type of its operands according to \ref{subsection:Ternary Type Merging}.
+A ternary expression produces the type from merging the type of its operands according to \ref{subsection:Ternary Type Merging}. The value is an lvalue if and only if both the cconsequent and the alternative expressions are lvalues.
 
 \subsection{Logical Operators}
 
@@ -746,7 +746,7 @@ The type after an arithmetic type merge must be numeric, and the result is a rva
 
 The dereference operator (\texttt{*}) takes the expression (must be a data pointer), and produces an lvalue from that expression. The result is of the base type of the pointer.
 
-The address-of operator (\texttt{\&}) takes the expression (must be an lvalue), and produces an address from that expression. The resulting type is a pointer whose base type is the type of the assignable value.
+The address-of operator (\texttt{\&}) takes the expression (must be an lvalue), and produces an address from that expression. The resulting type is a pointer whose base type is the type of the lvalue.
 
 The pre-increment and pre-decrement operators (\texttt{++}, \texttt{--}) take the expression (must be an lvalue, and either numeric or a pointer), and if it is numeric, increments or decrements it by one, if it is a data pointer, adds or subtracts the size of the type the pointer points to. The value produced is that after the increment, and is an lvalue.
 

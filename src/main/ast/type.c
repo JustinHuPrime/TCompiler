@@ -70,6 +70,7 @@ Type *referenceTypeCreate(SymbolTableEntry *entry, char *id) {
   return t;
 }
 Type *typeCopy(Type const *t) {
+  if (t == NULL) return NULL;
   switch (t->kind) {
     case TK_KEYWORD: {
       return keywordTypeCreate(t->data.keyword.keyword);
