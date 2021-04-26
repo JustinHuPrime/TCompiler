@@ -1,0 +1,5 @@
+module foo;
+
+void bar() {
+  ulong x = (1 + 2);
+}

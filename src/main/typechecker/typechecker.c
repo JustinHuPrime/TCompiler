@@ -495,13 +495,15 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           return NULL;  // TODO
         }
         case UO_SIZEOFEXP: {
-          return NULL;  // TODO
+          typecheckExpression(exp->data.unOpExp.target, entry);
+          return exp->data.unOpExp.type = keywordTypeCreate(TK_ULONG);
         }
         case UO_SIZEOFTYPE: {
-          return NULL;  // TODO
+          return exp->data.unOpExp.type = keywordTypeCreate(TK_ULONG);
         }
         case UO_PARENS: {
-          return NULL;  // TODO
+          return exp->data.unOpExp.type = typeCopy(
+                     typecheckExpression(exp->data.unOpExp.target, entry));
         }
         default: {
           error(__FILE__, __LINE__, "invalid unop encountered");
