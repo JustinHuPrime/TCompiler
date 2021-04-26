@@ -2717,6 +2717,7 @@ static Node *parseVarDefnStmt(FileListEntry *entry, Node *unparsed,
       }
       case TT_SEMI: {
         // done
+        vectorInsert(initializers, NULL);
         if (names->size == 0) {
           fprintf(stderr,
                   "%s:%zu:%zu: error: expected at least one name in a variable "
