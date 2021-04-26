@@ -101,28 +101,29 @@ typedef struct SymbolTableEntry {
   FileListEntry *file;
   size_t line; /**< line and character of first declaration */
   size_t character;
+  char const *id;
 } SymbolTableEntry;
 
 /**
  * initialize symbol table entries
  */
 SymbolTableEntry *opaqueStabEntryCreate(FileListEntry *file, size_t line,
-                                        size_t character);
+                                        size_t character, char const *id);
 SymbolTableEntry *structStabEntryCreate(FileListEntry *file, size_t line,
-                                        size_t character);
+                                        size_t character, char const *id);
 SymbolTableEntry *unionStabEntryCreate(FileListEntry *file, size_t line,
-                                       size_t character);
+                                       size_t character, char const *id);
 SymbolTableEntry *enumStabEntryCreate(FileListEntry *file, size_t line,
-                                      size_t character);
+                                      size_t character, char const *id);
 SymbolTableEntry *enumConstStabEntryCreate(FileListEntry *file, size_t line,
-                                           size_t character,
+                                           size_t character, char const *id,
                                            SymbolTableEntry *parent);
 SymbolTableEntry *typedefStabEntryCreate(FileListEntry *file, size_t line,
-                                         size_t character);
+                                         size_t character, char const *id);
 SymbolTableEntry *variableStabEntryCreate(FileListEntry *file, size_t line,
-                                          size_t character);
+                                          size_t character, char const *id);
 SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
-                                          size_t character);
+                                          size_t character, char const *id);
 
 /**
  * find the type associated with a field, or return NULL

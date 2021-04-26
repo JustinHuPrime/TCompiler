@@ -63,10 +63,9 @@ Type *aggregateTypeCreate(void) {
   vectorInit(&t->data.aggregate.types);
   return t;
 }
-Type *referenceTypeCreate(SymbolTableEntry *entry, char *id) {
+Type *referenceTypeCreate(SymbolTableEntry *entry) {
   Type *t = typeCreate(TK_REFERENCE);
   t->data.reference.entry = entry;
-  t->data.reference.id = id;
   return t;
 }
 Type *typeCopy(Type const *t) {
@@ -102,8 +101,7 @@ Type *typeCopy(Type const *t) {
       return copy;
     }
     case TK_REFERENCE: {
-      return referenceTypeCreate(t->data.reference.entry,
-                                 strdup(t->data.reference.id));
+      return referenceTypeCreate(t->data.reference.entry);
     }
     default: {
       error(__FILE__, __LINE__, "bad type given to typeCopy");
@@ -738,7 +736,7 @@ char *typeToString(Type const *t) {
       return retval;
     }
     case TK_REFERENCE: {
-      return strdup(t->data.reference.id);
+      return strdup(t->data.reference.entry->id);
     }
     default: {
       error(__FILE__, __LINE__, "invalid typekind enum encountered");
@@ -768,10 +766,6 @@ void typeFree(Type *t) {
     }
     case TK_AGGREGATE: {
       vectorUninit(&t->data.aggregate.types, (void (*)(void *))typeFree);
-      break;
-    }
-    case TK_REFERENCE: {
-      free(t->data.reference.id);
       break;
     }
     default: {

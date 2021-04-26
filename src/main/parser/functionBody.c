@@ -2764,8 +2764,8 @@ static Node *parseVarDefnStmt(FileListEntry *entry, Node *unparsed,
 
   for (size_t idx = 0; idx < names->size; ++idx) {
     Node *name = names->elements[idx];
-    name->data.id.entry =
-        variableStabEntryCreate(entry, name->line, name->character);
+    name->data.id.entry = variableStabEntryCreate(
+        entry, name->line, name->character, name->data.id.id);
     name->data.id.entry->data.variable.type = typeCopy(type);
 
     SymbolTableEntry *existing =
@@ -2846,8 +2846,8 @@ static Node *parseOpaqueDecl(FileListEntry *entry, Node *unparsed,
     return NULL;
   }
 
-  name->data.id.entry =
-      opaqueStabEntryCreate(entry, start->line, start->character);
+  name->data.id.entry = opaqueStabEntryCreate(
+      entry, start->line, start->character, name->data.id.id);
 
   SymbolTableEntry *existing =
       hashMapGet(environmentTop(env), name->data.id.id);
@@ -2980,8 +2980,8 @@ static Node *parseStructDecl(FileListEntry *entry, Node *unparsed,
     }
   } else {
     // create a new entry
-    name->data.id.entry =
-        structStabEntryCreate(entry, start->line, start->character);
+    name->data.id.entry = structStabEntryCreate(
+        entry, start->line, start->character, name->data.id.id);
     hashMapPut(environmentTop(env), name->data.id.id, name->data.id.entry);
     finishStructStab(entry, body, name->data.id.entry, env);
   }
@@ -3108,8 +3108,8 @@ static Node *parseUnionDecl(FileListEntry *entry, Node *unparsed,
     }
   } else {
     // create a new entry
-    name->data.id.entry =
-        unionStabEntryCreate(entry, start->line, start->character);
+    name->data.id.entry = unionStabEntryCreate(
+        entry, start->line, start->character, name->data.id.id);
     hashMapPut(environmentTop(env), name->data.id.id, name->data.id.entry);
     finishUnionStab(entry, body, name->data.id.entry, env);
   }
@@ -3281,8 +3281,8 @@ static Node *parseEnumDecl(FileListEntry *entry, Node *unparsed,
     }
   } else {
     // create a new entry
-    name->data.id.entry =
-        enumStabEntryCreate(entry, start->line, start->character);
+    name->data.id.entry = enumStabEntryCreate(
+        entry, start->line, start->character, name->data.id.id);
     hashMapPut(environmentTop(env), name->data.id.id, name->data.id.entry);
     finishEnumStab(entry, body, name->data.id.entry, env);
   }
@@ -3346,8 +3346,8 @@ static Node *parseTypedefDecl(FileListEntry *entry, Node *unparsed,
     }
   } else {
     // create a new entry
-    name->data.id.entry =
-        typedefStabEntryCreate(entry, start->line, start->character);
+    name->data.id.entry = typedefStabEntryCreate(
+        entry, start->line, start->character, name->data.id.id);
     hashMapPut(environmentTop(env), name->data.id.id, name->data.id.entry);
     finishTypedefStab(entry, body, name->data.id.entry, env);
   }
@@ -3531,8 +3531,8 @@ void parseFunctionBody(FileListEntry *entry) {
              ++argIdx) {
           Node *argType = body->data.funDefn.argTypes->elements[argIdx];
           Node *argName = body->data.funDefn.argNames->elements[argIdx];
-          SymbolTableEntry *stabEntry =
-              variableStabEntryCreate(entry, argType->line, argType->character);
+          SymbolTableEntry *stabEntry = variableStabEntryCreate(
+              entry, argType->line, argType->character, argName->data.id.id);
           stabEntry->data.variable.type = nodeToType(argType, &env);
           if (stabEntry->data.variable.type == NULL) entry->errored = true;
           SymbolTableEntry *existing = hashMapGet(stab, argName->data.id.id);

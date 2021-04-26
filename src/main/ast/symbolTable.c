@@ -47,64 +47,67 @@ char const *symbolKindToString(SymbolKind kind) {
  * initializes a symbol table entry
  */
 static SymbolTableEntry *stabEntryCreate(FileListEntry *file, size_t line,
-                                         size_t character, SymbolKind kind) {
+                                         size_t character, char const *id,
+                                         SymbolKind kind) {
   SymbolTableEntry *e = malloc(sizeof(SymbolTableEntry));
   e->kind = kind;
   e->file = file;
   e->line = line;
   e->character = character;
+  e->id = id;
   return e;
 }
 
 SymbolTableEntry *opaqueStabEntryCreate(FileListEntry *file, size_t line,
-                                        size_t character) {
-  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_OPAQUE);
+                                        size_t character, char const *id) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, id, SK_OPAQUE);
   e->data.opaqueType.definition = NULL;
   return e;
 }
 SymbolTableEntry *structStabEntryCreate(FileListEntry *file, size_t line,
-                                        size_t character) {
-  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_STRUCT);
+                                        size_t character, char const *id) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, id, SK_STRUCT);
   vectorInit(&e->data.structType.fieldNames);
   vectorInit(&e->data.structType.fieldTypes);
   return e;
 }
 SymbolTableEntry *unionStabEntryCreate(FileListEntry *file, size_t line,
-                                       size_t character) {
-  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_UNION);
+                                       size_t character, char const *id) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, id, SK_UNION);
   vectorInit(&e->data.unionType.optionNames);
   vectorInit(&e->data.unionType.optionTypes);
   return e;
 }
 SymbolTableEntry *enumStabEntryCreate(FileListEntry *file, size_t line,
-                                      size_t character) {
-  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_ENUM);
+                                      size_t character, char const *id) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, id, SK_ENUM);
   vectorInit(&e->data.enumType.constantNames);
   vectorInit(&e->data.enumType.constantValues);
   return e;
 }
 SymbolTableEntry *enumConstStabEntryCreate(FileListEntry *file, size_t line,
-                                           size_t character,
+                                           size_t character, char const *id,
                                            SymbolTableEntry *parent) {
-  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_ENUMCONST);
+  SymbolTableEntry *e =
+      stabEntryCreate(file, line, character, id, SK_ENUMCONST);
   e->data.enumConst.parent = parent;
   return e;
 }
 SymbolTableEntry *typedefStabEntryCreate(FileListEntry *file, size_t line,
-                                         size_t character) {
-  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_TYPEDEF);
+                                         size_t character, char const *id) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, id, SK_TYPEDEF);
   e->data.typedefType.actual = NULL;
   return e;
 }
 SymbolTableEntry *variableStabEntryCreate(FileListEntry *file, size_t line,
-                                          size_t character) {
-  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_VARIABLE);
+                                          size_t character, char const *id) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, id, SK_VARIABLE);
   e->data.variable.type = NULL;
   return e;
 }
 SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
-                                          size_t character) {
-  SymbolTableEntry *e = stabEntryCreate(file, line, character, SK_FUNCTION);
+                                          size_t character, char const *id) {
+  SymbolTableEntry *e = stabEntryCreate(file, line, character, id, SK_FUNCTION);
   e->data.function.returnType = NULL;
   vectorInit(&e->data.function.argumentTypes);
   return e;

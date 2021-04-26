@@ -1095,7 +1095,7 @@ Type *nodeToType(Node *n, Environment *env) {
         case SK_ENUM:
         case SK_TYPEDEF: {
           n->data.scopedId.entry = entry;
-          return referenceTypeCreate(entry, stringifyId(n));
+          return referenceTypeCreate(entry);
         }
         default: {
           char *idString = stringifyId(n);
@@ -1119,7 +1119,7 @@ Type *nodeToType(Node *n, Environment *env) {
         case SK_ENUM:
         case SK_TYPEDEF: {
           n->data.id.entry = entry;
-          return referenceTypeCreate(entry, stringifyId(n));
+          return referenceTypeCreate(entry);
         }
         default: {
           fprintf(stderr, "%s:%zu:%zu: error: '%s' is not a type\n",

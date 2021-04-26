@@ -256,7 +256,8 @@ void startTopLevelStab(FileListEntry *entry) {
         } else {
           // create an entry if it doesn't exist
           body->data.opaqueDecl.name->data.id.entry =
-              opaqueStabEntryCreate(entry, body->line, body->character);
+              opaqueStabEntryCreate(entry, body->line, body->character,
+                                    body->data.opaqueDecl.name->data.id.id);
           hashMapPut(stab, name, body->data.opaqueDecl.name->data.id.entry);
         }
         break;
@@ -275,7 +276,9 @@ void startTopLevelStab(FileListEntry *entry) {
           if (existing->kind == SK_OPAQUE && fromImplicit) {
             existing->data.opaqueType.definition =
                 body->data.structDecl.name->data.id.entry =
-                    structStabEntryCreate(entry, body->line, body->character);
+                    structStabEntryCreate(
+                        entry, body->line, body->character,
+                        body->data.structDecl.name->data.id.id);
             hashMapPut(stab, name, body->data.structDecl.name->data.id.entry);
           } else {
             errorRedeclaration(entry, body->line, body->character, name,
@@ -284,7 +287,8 @@ void startTopLevelStab(FileListEntry *entry) {
           }
         } else {
           body->data.structDecl.name->data.id.entry =
-              structStabEntryCreate(entry, body->line, body->character);
+              structStabEntryCreate(entry, body->line, body->character,
+                                    body->data.structDecl.name->data.id.id);
           hashMapPut(stab, name, body->data.structDecl.name->data.id.entry);
         }
         break;
@@ -303,7 +307,8 @@ void startTopLevelStab(FileListEntry *entry) {
           if (existing->kind == SK_OPAQUE && fromImplicit) {
             existing->data.opaqueType.definition =
                 body->data.unionDecl.name->data.id.entry =
-                    unionStabEntryCreate(entry, body->line, body->character);
+                    unionStabEntryCreate(entry, body->line, body->character,
+                                         body->data.unionDecl.name->data.id.id);
             hashMapPut(stab, name, body->data.unionDecl.name->data.id.entry);
           } else {
             errorRedeclaration(entry, body->line, body->character, name,
@@ -312,7 +317,8 @@ void startTopLevelStab(FileListEntry *entry) {
           }
         } else {
           body->data.unionDecl.name->data.id.entry =
-              unionStabEntryCreate(entry, body->line, body->character);
+              unionStabEntryCreate(entry, body->line, body->character,
+                                   body->data.unionDecl.name->data.id.id);
           hashMapPut(stab, name, body->data.unionDecl.name->data.id.entry);
         }
         break;
@@ -332,7 +338,8 @@ void startTopLevelStab(FileListEntry *entry) {
           if (existing->kind == SK_OPAQUE && fromImplicit) {
             parentEnum = existing->data.opaqueType.definition =
                 body->data.enumDecl.name->data.id.entry =
-                    enumStabEntryCreate(entry, body->line, body->character);
+                    enumStabEntryCreate(entry, body->line, body->character,
+                                        body->data.enumDecl.name->data.id.id);
             hashMapPut(stab, name, body->data.enumDecl.name->data.id.entry);
           } else {
             errorRedeclaration(entry, body->line, body->character, name,
@@ -341,7 +348,8 @@ void startTopLevelStab(FileListEntry *entry) {
           }
         } else {
           parentEnum = body->data.enumDecl.name->data.id.entry =
-              enumStabEntryCreate(entry, body->line, body->character);
+              enumStabEntryCreate(entry, body->line, body->character,
+                                  body->data.enumDecl.name->data.id.id);
           hashMapPut(stab, name, body->data.enumDecl.name->data.id.entry);
         }
 
@@ -363,9 +371,9 @@ void startTopLevelStab(FileListEntry *entry) {
               vectorInsert(&parentEnum->data.enumType.constantNames,
                            constantName->data.id.id);
 
-              constantName->data.id.entry =
-                  enumConstStabEntryCreate(entry, constantName->line,
-                                           constantName->character, parentEnum);
+              constantName->data.id.entry = enumConstStabEntryCreate(
+                  entry, constantName->line, constantName->character,
+                  constantName->data.id.id, parentEnum);
               vectorInsert(&parentEnum->data.enumType.constantValues,
                            constantName->data.id.entry);
             }
@@ -387,7 +395,9 @@ void startTopLevelStab(FileListEntry *entry) {
           if (existing->kind == SK_OPAQUE && fromImplicit) {
             existing->data.opaqueType.definition =
                 body->data.typedefDecl.name->data.id.entry =
-                    typedefStabEntryCreate(entry, body->line, body->character);
+                    typedefStabEntryCreate(
+                        entry, body->line, body->character,
+                        body->data.typedefDecl.name->data.id.id);
             hashMapPut(stab, name, body->data.typedefDecl.name->data.id.entry);
           } else {
             errorRedeclaration(entry, body->line, body->character, name,
@@ -396,7 +406,8 @@ void startTopLevelStab(FileListEntry *entry) {
           }
         } else {
           body->data.typedefDecl.name->data.id.entry =
-              typedefStabEntryCreate(entry, body->line, body->character);
+              typedefStabEntryCreate(entry, body->line, body->character,
+                                     body->data.typedefDecl.name->data.id.id);
           hashMapPut(stab, name, body->data.typedefDecl.name->data.id.entry);
         }
         break;
@@ -415,8 +426,8 @@ void startTopLevelStab(FileListEntry *entry) {
                                existing->file, existing->line,
                                existing->character);
           } else {
-            name->data.id.entry =
-                variableStabEntryCreate(entry, name->line, name->character);
+            name->data.id.entry = variableStabEntryCreate(
+                entry, name->line, name->character, name->data.id.id);
             hashMapPut(stab, nameString, name->data.id.entry);
           }
         }
@@ -438,8 +449,8 @@ void startTopLevelStab(FileListEntry *entry) {
             // may only exist as a varDecl (which means it must be from the
             // implicit)
             if (existing->kind == SK_VARIABLE && fromImplicit) {
-              name->data.id.entry =
-                  variableStabEntryCreate(entry, name->line, name->character);
+              name->data.id.entry = variableStabEntryCreate(
+                  entry, name->line, name->character, name->data.id.id);
               hashMapPut(stab, nameString, name->data.id.entry);
             } else {
               errorRedeclaration(entry, name->line, name->character, nameString,
@@ -447,8 +458,8 @@ void startTopLevelStab(FileListEntry *entry) {
                                  existing->character);
             }
           } else {
-            name->data.id.entry =
-                variableStabEntryCreate(entry, name->line, name->character);
+            name->data.id.entry = variableStabEntryCreate(
+                entry, name->line, name->character, name->data.id.id);
             hashMapPut(stab, nameString, name->data.id.entry);
           }
         }
@@ -466,7 +477,8 @@ void startTopLevelStab(FileListEntry *entry) {
                              existing->character);
         } else {
           body->data.funDecl.name->data.id.entry =
-              functionStabEntryCreate(entry, body->line, body->character);
+              functionStabEntryCreate(entry, body->line, body->character,
+                                      body->data.funDecl.name->data.id.id);
           hashMapPut(stab, name, body->data.funDecl.name->data.id.entry);
         }
         break;
@@ -484,7 +496,8 @@ void startTopLevelStab(FileListEntry *entry) {
           // may only exist as a funDecl (must be from the implicit)
           if (existing->kind == SK_FUNCTION && fromImplicit) {
             body->data.funDefn.name->data.id.entry =
-                functionStabEntryCreate(entry, body->line, body->character);
+                functionStabEntryCreate(entry, body->line, body->character,
+                                        body->data.funDefn.name->data.id.id);
             hashMapPut(stab, name, body->data.funDefn.name->data.id.entry);
           } else {
             errorRedeclaration(entry, body->line, body->character, name,
@@ -493,7 +506,8 @@ void startTopLevelStab(FileListEntry *entry) {
           }
         } else {
           body->data.funDefn.name->data.id.entry =
-              functionStabEntryCreate(entry, body->line, body->character);
+              functionStabEntryCreate(entry, body->line, body->character,
+                                      body->data.funDefn.name->data.id.id);
           hashMapPut(stab, name, body->data.funDefn.name->data.id.entry);
         }
         break;
@@ -1156,7 +1170,8 @@ void finishEnumStab(FileListEntry *entry, Node *body,
       errored = true;
     } else {
       constantName->data.id.entry = enumConstStabEntryCreate(
-          entry, constantName->line, constantName->character, stabEntry);
+          entry, constantName->line, constantName->character,
+          constantName->data.id.id, stabEntry);
 
       vectorInsert(&stabEntry->data.enumType.constantNames,
                    constantName->data.id.id);

@@ -90,7 +90,6 @@ typedef struct Type {
     } aggregate;
     struct {
       struct SymbolTableEntry *entry;
-      char *id;
     } reference;
   } data;
 } Type;
@@ -126,7 +125,7 @@ Type *aggregateTypeCreate(void);
 /**
  * create a reference type
  */
-Type *referenceTypeCreate(struct SymbolTableEntry *entry, char *id);
+Type *referenceTypeCreate(struct SymbolTableEntry *entry);
 /**
  * deep copies a type
  */
