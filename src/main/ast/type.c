@@ -356,17 +356,17 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
 }
 bool typeSignedIntegral(Type const *t) {
   t = stripCV(t);
-  return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_UBYTE ||
-                                   t->data.keyword.keyword == TK_USHORT ||
-                                   t->data.keyword.keyword == TK_UINT ||
-                                   t->data.keyword.keyword == TK_ULONG);
-}
-bool typeUnsignedIntegral(Type const *t) {
-  t = stripCV(t);
   return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_BYTE ||
                                    t->data.keyword.keyword == TK_SHORT ||
                                    t->data.keyword.keyword == TK_INT ||
                                    t->data.keyword.keyword == TK_LONG);
+}
+bool typeUnsignedIntegral(Type const *t) {
+  t = stripCV(t);
+  return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_UBYTE ||
+                                   t->data.keyword.keyword == TK_USHORT ||
+                                   t->data.keyword.keyword == TK_UINT ||
+                                   t->data.keyword.keyword == TK_ULONG);
 }
 bool typeIntegral(Type const *t) {
   return typeSignedIntegral(t) || typeUnsignedIntegral(t);

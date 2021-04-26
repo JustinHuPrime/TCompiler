@@ -217,14 +217,55 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
 
           return exp->data.binOpExp.type = keywordTypeCreate(TK_BOOL);
         }
-        case BO_BITAND: {
-          return NULL;  // TODO
-        }
-        case BO_BITOR: {
-          return NULL;  // TODO
-        }
+        case BO_BITAND:
+        case BO_BITOR:
         case BO_BITXOR: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          bool bad = false;
+          if (lhsType != NULL && !typeIntegral(lhsType)) {
+            char *typeString = typeToString(lhsType);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot perform a bitwise operation on "
+                    "a value of type %s\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            bad = entry->errored = true;
+            free(typeString);
+          }
+          if (rhsType != NULL && !typeIntegral(rhsType)) {
+            char *typeString = typeToString(rhsType);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot perform a bitwise operation on "
+                    "a value of type %s\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    typeString);
+            bad = entry->errored = true;
+            free(typeString);
+          }
+
+          if (lhsType != NULL && rhsType != NULL && !bad) {
+            Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+            if (merged == NULL) {
+              char *lhsString = typeToString(lhsType);
+              char *rhsString = typeToString(rhsType);
+              fprintf(
+                  stderr,
+                  "%s:%zu:%zu: error: type mismatch in bitwise expression - "
+                  "cannot find common type between %s and %s\n",
+                  entry->inputFilename, exp->line, exp->character, lhsString,
+                  rhsString);
+              entry->errored = true;
+              free(lhsString);
+              free(rhsString);
+            }
+            return exp->data.binOpExp.type = merged;
+          } else {
+            return exp->data.binOpExp.type = NULL;
+          }
         }
         case BO_EQ: {
           return NULL;  // TODO
@@ -309,7 +350,7 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
         char *alternativeString = typeToString(alternativeType);
         fprintf(stderr,
                 "%s:%zu:%zu: error: type mismatch in ternary expression - "
-                "cannot find common type between %s and %s\b",
+                "cannot find common type between %s and %s\n",
                 entry->inputFilename, exp->line, exp->character,
                 consequentString, alternativeString);
         entry->errored = true;
