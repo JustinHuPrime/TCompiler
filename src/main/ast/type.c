@@ -198,7 +198,71 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
     // float     | -yes-- | n | ------yes------ | no | ---yes---- | --no--
     // double    | -yes-- | n | ------yes------ | no | -----yes------ | n
     // bool      | ------------------------no------------------------ | y
-    return false;  // TODO
+    switch(to->kind){
+      case TK_UBYTE:
+        return from->kind == TK_UBYTE;
+      case TK_BYTE:
+        return from->kind == TK_BYTE;
+      case TK_CHAR:
+        return from->kind == TK_CHAR;
+      case TK_USHORT:
+        return from->kind == TK_UBYTE  || 
+               from->kind == TK_USHORT;
+      case TK_SHORT:
+        return from->kind == TK_UBYTE  ||
+               from->kind == TK_BYTE   ||
+               from->kind == TK_SHORT;
+      case TK_UINT:
+        return from->kind == TK_UBYTE  ||
+               from->kind == TK_USHORT ||
+               from->kind == TK_UINT;
+      case TK_INT:
+        return from->kind == TK_UBYTE  ||
+               from->kind == TK_BYTE   ||
+               from->kind == TK_USHORT ||
+               from->kind == TK_SHORT  ||
+               from->kind == TK_UINT;
+      case TK_WCHAR:
+        return from->kind == TK_CHAR   ||
+               from->kind == TK_WCHAR;
+      case TK_ULONG:
+        return from->kind == TK_UBYTE  ||
+               from->kind == TK_USHORT ||
+               from->kind == TK_UINT   ||
+               from->kind == TK_ULONG;
+      case TK_LONG:
+        return from->kind == TK_UBYTE  ||
+               from->kind == TK_BYTE   ||
+               from->kind == TK_USHORT ||
+               from->kind == TK_SHORT  ||
+               from->kind == TK_UINT   ||
+               from->kind == TK_INT    ||
+               from->kind == TK_LONG;
+      case TK_FLOAT:
+        return from->kind == TK_UBYTE  ||
+               from->kind == TK_BYTE   ||
+               from->kind == TK_USHORT ||
+               from->kind == TK_SHORT  ||
+               from->kind == TK_UINT   ||
+               from->kind == TK_INT    ||
+               from->kind == TK_ULONG  ||
+               from->kind == TK_LONG   ||
+               from->kind == TK_FLOAT;
+      case TK_DOUBLE:
+        return from->kind == TK_UBYTE  ||
+               from->kind == TK_BYTE   ||
+               from->kind == TK_USHORT ||
+               from->kind == TK_SHORT  ||
+               from->kind == TK_UINT   ||
+               from->kind == TK_INT    ||
+               from->kind == TK_ULONG  ||
+               from->kind == TK_LONG   ||
+               from->kind == TK_FLOAT  ||
+               from->kind == TK_DOUBLE;
+      case TK_BOOL:
+        return from->kind == TK_DOUBLE;
+    }
+    return false;
   } else if (from->kind == TK_POINTER && to->kind == TK_POINTER) {
     // [2]: pointer type conversion (5.4.1.9) =
     //            at least as CV-qualified && (
