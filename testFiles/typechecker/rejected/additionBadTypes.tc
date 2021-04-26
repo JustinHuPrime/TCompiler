@@ -1,0 +1,5 @@
+module foo;
+
+void bar(char a, char b) {
+  a + b;
+}
