@@ -974,55 +974,67 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
     case NT_LITERAL: {
       switch (exp->data.literal.literalType) {
         case LT_UBYTE: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_UBYTE);
         }
         case LT_BYTE: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_BYTE);
         }
         case LT_USHORT: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_USHORT);
         }
         case LT_SHORT: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_SHORT);
         }
         case LT_UINT: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_UINT);
         }
         case LT_INT: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_INT);
         }
         case LT_ULONG: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_ULONG);
         }
         case LT_LONG: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_LONG);
         }
         case LT_FLOAT: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_FLOAT);
         }
         case LT_DOUBLE: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_FLOAT);
         }
         case LT_STRING: {
-          return NULL;  // TODO
+          return exp->data.literal.type =
+                     pointerTypeCreate(keywordTypeCreate(TK_CHAR));
         }
         case LT_CHAR: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_CHAR);
         }
         case LT_WSTRING: {
-          return NULL;  // TODO
+          return exp->data.literal.type =
+                     pointerTypeCreate(keywordTypeCreate(TK_WCHAR));
         }
         case LT_WCHAR: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_WCHAR);
         }
         case LT_BOOL: {
-          return NULL;  // TODO
+          return exp->data.literal.type = keywordTypeCreate(TK_BOOL);
         }
         case LT_NULL: {
-          return NULL;  // TODO
+          return exp->data.literal.type =
+                     pointerTypeCreate(keywordTypeCreate(TK_VOID));
         }
         case LT_AGGREGATEINIT: {
-          return NULL;  // TODO
+          exp->data.literal.type = aggregateTypeCreate();
+          for (size_t idx = 0;
+               idx < exp->data.literal.data.aggregateInitVal->size; ++idx) {
+            vectorInsert(
+                &exp->data.literal.type->data.aggregate.types,
+                typeCopy(typecheckExpression(
+                    exp->data.literal.data.aggregateInitVal->elements[idx],
+                    entry)));
+          }
+          return exp->data.literal.type;
         }
         default: {
           error(__FILE__, __LINE__, "invalid literal type encountered");
