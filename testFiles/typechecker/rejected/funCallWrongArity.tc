@@ -1,0 +1,9 @@
+module foo;
+
+int baz(int i, int j) {
+  return i + j;
+}
+
+void bar(int i) {
+  baz(i);
+}

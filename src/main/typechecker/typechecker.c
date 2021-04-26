@@ -1133,7 +1133,47 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
       }
     }
     case NT_FUNCALLEXP: {
-      return NULL;  // TODO
+      Type const *funType =
+          typecheckExpression(exp->data.funCallExp.function, entry);
+
+      if (funType != NULL) {
+        Type const *stripped = stripCV(funType);
+        if (stripped->kind != TK_FUNPTR) {
+          errorNoUnOp(entry, exp->line, exp->character, "call", funType);
+        } else {
+          if (stripped->data.funPtr.argTypes.size !=
+              exp->data.funCallExp.arguments->size) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: function expects %zu arguments, but "
+                    "was called with %zu\n",
+                    entry->inputFilename, exp->line, exp->character,
+                    stripped->data.funPtr.argTypes.size,
+                    exp->data.funCallExp.arguments->size);
+            entry->errored = true;
+          } else {
+            for (size_t idx = 0; idx < exp->data.funCallExp.arguments->size;
+                 ++idx) {
+              Node *arg = exp->data.funCallExp.arguments->elements[idx];
+              Type const *argType = typecheckExpression(arg, entry);
+              if (argType != NULL &&
+                  !typeImplicitlyConvertable(
+                      argType, stripped->data.funPtr.argTypes.elements[idx])) {
+                errorNoImplicitConversion(
+                    entry, arg->line, arg->character, argType,
+                    stripped->data.funPtr.argTypes.elements[idx]);
+              }
+            }
+          }
+
+          return exp->data.funCallExp.type =
+                     typeCopy(stripped->data.funPtr.returnType);
+        }
+      }
+
+      for (size_t idx = 0; idx < exp->data.funCallExp.arguments->size; ++idx)
+        typecheckExpression(exp->data.funCallExp.arguments->elements[idx],
+                            entry);
+      return NULL;
     }
     case NT_LITERAL: {
       switch (exp->data.literal.literalType) {
@@ -1213,8 +1253,21 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                            exp->data.scopedId.entry->data.enumConst.parent);
     }
     case NT_ID: {
-      return exp->data.id.type =
-                 typeCopy(exp->data.id.entry->data.variable.type);
+      if (exp->data.id.entry->kind == SK_VARIABLE) {
+        return exp->data.id.type =
+                   typeCopy(exp->data.id.entry->data.variable.type);
+      } else {
+        exp->data.id.type = funPtrTypeCreate(
+            typeCopy(exp->data.id.entry->data.function.returnType));
+        for (size_t idx = 0;
+             idx < exp->data.id.entry->data.function.argumentTypes.size;
+             ++idx) {
+          vectorInsert(&exp->data.id.type->data.funPtr.argTypes,
+                       typeCopy(exp->data.id.entry->data.function.argumentTypes
+                                    .elements[idx]));
+        }
+        return exp->data.id.type;
+      }
     }
     default: {
       // not an expression

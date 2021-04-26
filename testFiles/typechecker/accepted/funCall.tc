@@ -1,0 +1,13 @@
+module foo;
+
+int bar() {
+  return 1;
+}
+
+int baz(int i) {
+  return i + 1;
+}
+
+void quux() {
+  int i = baz(bar());
+}
