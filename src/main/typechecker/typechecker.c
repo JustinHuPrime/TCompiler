@@ -827,7 +827,26 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           return NULL;
         }
         case BO_ARRAY: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && rhsType != NULL) {
+            if (typeArray(lhsType) && typeIntegral(rhsType)) {
+              return exp->data.binOpExp.type =
+                         typeCopy(stripCV(lhsType)->data.array.type);
+            } else if (typePointer(lhsType) && typeIntegral(rhsType)) {
+              return exp->data.binOpExp.type =
+                         typeCopy(stripCV(lhsType)->data.pointer.base);
+            } else {
+              errorNoOp(entry, exp->line, exp->character,
+                        "an array index operation", lhsType, rhsType);
+              return NULL;
+            }
+          } else {
+            return NULL;
+          }
         }
         case BO_CAST: {
           return NULL;  // TODO}

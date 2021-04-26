@@ -1,0 +1,5 @@
+module foo;
+
+void bar(int * b, ulong i) {
+  long a = b[i];
+}

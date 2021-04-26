@@ -177,9 +177,9 @@ bool typePointer(Type const *t);
  */
 bool typeEnum(Type const *t);
 /**
- * is the type comparable
+ * is the type an array
  */
-bool typeComparable(Type const *t);
+bool typeArray(Type const *t);
 /**
  * merge types in an arithmetic expression
  */

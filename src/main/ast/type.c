@@ -391,9 +391,9 @@ bool typeEnum(Type const *t) {
   t = stripCV(t);
   return t->kind == TK_REFERENCE && t->data.reference.entry->kind == SK_ENUM;
 }
-bool typeComparable(Type const *t) {
-  return typeNumeric(t) || typeCharacter(t) || typeBoolean(t) ||
-         typePointer(t) || typeEnum(t);
+bool typeArray(Type const *t) {
+  t = stripCV(t);
+  return t->kind == TK_ARRAY;
 }
 Type *arithmeticTypeMerge(Type const *a, Type const *b) {
   if (a == NULL || b == NULL || !typeNumeric(a) || !typeNumeric(b)) return NULL;
