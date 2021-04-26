@@ -29,5 +29,6 @@
 - [ ] I have added tests to cover any new features added.
 - [ ] I have updated the documentation to reflect the current state of the repo.
 - [ ] I have removed or updated comments that are no longer relevant, wherever I saw them.
+- [ ] This included updating the copyright header.
 - [ ] I am aware that I am releasing my code under the GPL Version 3 or later.
 - [ ] I agree to the Developer Certificate of Origin (<https://developercertificate.org/>).

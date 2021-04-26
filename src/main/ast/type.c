@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Justin Hu
+// Copyright 2019-2021 Justin Hu, Kol Crooks
 //
 // This file is part of the T Language Compiler.
 //
