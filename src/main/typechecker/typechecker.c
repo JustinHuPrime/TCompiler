@@ -124,6 +124,15 @@ static void errorNoMembers(FileListEntry *entry, size_t line, size_t character,
   entry->errored = true;
   free(typeString);
 }
+/**
+ * complains about expression not being an lvalue
+ */
+static void errorNotLvalue(FileListEntry *entry, size_t line, size_t character,
+                           char const *op) {
+  fprintf(stderr, "%s:%zu:%zu: error: cannot %s a non-lvalue\n",
+          entry->inputFilename, line, character, op);
+  entry->errored = true;
+}
 
 /**
  * is the given expression an lvalue
@@ -188,6 +197,76 @@ static bool isLvalue(Node const *exp) {
 }
 
 /**
+ * marks the given expression as needing to be stored in memory
+ */
+static void markEscapes(Node *exp) {
+  switch (exp->type) {
+    case NT_BINOPEXP: {
+      switch (exp->data.binOpExp.op) {
+        case BO_SEQ: {
+          markEscapes(exp->data.binOpExp.rhs);
+          break;
+        }
+        case BO_ASSIGN:
+        case BO_MULASSIGN:
+        case BO_DIVASSIGN:
+        case BO_MODASSIGN:
+        case BO_ADDASSIGN:
+        case BO_SUBASSIGN:
+        case BO_LSHIFTASSIGN:
+        case BO_ARSHIFTASSIGN:
+        case BO_LRSHIFTASSIGN:
+        case BO_BITANDASSIGN:
+        case BO_BITXORASSIGN:
+        case BO_BITORASSIGN:
+        case BO_LANDASSIGN:
+        case BO_LORASSIGN: {
+          markEscapes(exp->data.binOpExp.lhs);
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__, "tried to mark a non-lvalue as escaping");
+        }
+      }
+      break;
+    }
+    case NT_TERNARYEXP: {
+      markEscapes(exp->data.ternaryExp.consequent);
+      markEscapes(exp->data.ternaryExp.alternative);
+      break;
+    }
+    case NT_UNOPEXP: {
+      switch (exp->data.unOpExp.op) {
+        case UO_DEREF:
+        case UO_PREINC:
+        case UO_PREDEC:
+        case UO_NEGASSIGN:
+        case UO_LNOTASSIGN:
+        case UO_BITNOTASSIGN: {
+          markEscapes(exp->data.unOpExp.target);
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__, "tried to mark a non-lvalue as escaping");
+        }
+      }
+      break;
+    }
+    case NT_ID: {
+      exp->data.id.escapes = true;
+      break;
+    }
+    case NT_SCOPEDID: {
+      exp->data.scopedId.escapes = true;
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "tried to mark a non-lvalue as escaping");
+    }
+  }
+}
+
+/**
  * typechecks an expression
  *
  * @param exp expression to typecheck
@@ -215,11 +294,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                                       lhsType);
 
           if (!isLvalue(exp->data.binOpExp.lhs)) {
-            fprintf(
-                stderr,
-                "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
-                entry->inputFilename, exp->line, exp->character);
-            entry->errored = true;
+            errorNotLvalue(entry, exp->line, exp->character,
+                           "assign a value to");
           } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                      lhsType->data.qualified.constQual) {
             fprintf(stderr,
@@ -250,11 +326,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                                         merged, lhsType);
 
             if (!isLvalue(exp->data.binOpExp.lhs)) {
-              fprintf(
-                  stderr,
-                  "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
-                  entry->inputFilename, exp->line, exp->character);
-              entry->errored = true;
+              errorNotLvalue(entry, exp->line, exp->character,
+                             "assign a value to");
             } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                        lhsType->data.qualified.constQual) {
               fprintf(stderr,
@@ -285,11 +358,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                                         merged, lhsType);
 
             if (!isLvalue(exp->data.binOpExp.lhs)) {
-              fprintf(
-                  stderr,
-                  "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
-                  entry->inputFilename, exp->line, exp->character);
-              entry->errored = true;
+              errorNotLvalue(entry, exp->line, exp->character,
+                             "assign a value to");
             } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                        lhsType->data.qualified.constQual) {
               fprintf(stderr,
@@ -320,11 +390,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                                         merged, lhsType);
 
             if (!isLvalue(exp->data.binOpExp.lhs)) {
-              fprintf(
-                  stderr,
-                  "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
-                  entry->inputFilename, exp->line, exp->character);
-              entry->errored = true;
+              errorNotLvalue(entry, exp->line, exp->character,
+                             "assign a value to");
             } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                        lhsType->data.qualified.constQual) {
               fprintf(stderr,
@@ -356,11 +423,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                                           merged, lhsType);
 
               if (!isLvalue(exp->data.binOpExp.lhs)) {
-                fprintf(stderr,
-                        "%s:%zu:%zu: error: cannot assign a value to an "
-                        "non-lvalue\n",
-                        entry->inputFilename, exp->line, exp->character);
-                entry->errored = true;
+                errorNotLvalue(entry, exp->line, exp->character,
+                               "assign a value to");
               } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                          lhsType->data.qualified.constQual) {
                 fprintf(
@@ -372,11 +436,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
               }
             } else if (typePointer(lhsType) && typeIntegral(rhsType)) {
               if (!isLvalue(exp->data.binOpExp.lhs)) {
-                fprintf(stderr,
-                        "%s:%zu:%zu: error: cannot assign a value to an "
-                        "non-lvalue\n",
-                        entry->inputFilename, exp->line, exp->character);
-                entry->errored = true;
+                errorNotLvalue(entry, exp->line, exp->character,
+                               "assign a value to");
               } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                          lhsType->data.qualified.constQual) {
                 fprintf(
@@ -414,11 +475,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                                           merged, lhsType);
 
               if (!isLvalue(exp->data.binOpExp.lhs)) {
-                fprintf(stderr,
-                        "%s:%zu:%zu: error: cannot assign a value to an "
-                        "non-lvalue\n",
-                        entry->inputFilename, exp->line, exp->character);
-                entry->errored = true;
+                errorNotLvalue(entry, exp->line, exp->character,
+                               "assign a value to");
               } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                          lhsType->data.qualified.constQual) {
                 fprintf(
@@ -430,11 +488,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
               }
             } else if (typePointer(lhsType) && typeIntegral(rhsType)) {
               if (!isLvalue(exp->data.binOpExp.lhs)) {
-                fprintf(stderr,
-                        "%s:%zu:%zu: error: cannot assign a value to an "
-                        "non-lvalue\n",
-                        entry->inputFilename, exp->line, exp->character);
-                entry->errored = true;
+                errorNotLvalue(entry, exp->line, exp->character,
+                               "assign a value to");
               } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                          lhsType->data.qualified.constQual) {
                 fprintf(
@@ -467,11 +522,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           }
 
           if (!isLvalue(exp->data.binOpExp.lhs)) {
-            fprintf(stderr,
-                    "%s:%zu:%zu: error: cannot assign a value to an "
-                    "non-lvalue\n",
-                    entry->inputFilename, exp->line, exp->character);
-            entry->errored = true;
+            errorNotLvalue(entry, exp->line, exp->character,
+                           "assign a value to");
           } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                      lhsType->data.qualified.constQual) {
             fprintf(stderr,
@@ -497,11 +549,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           }
 
           if (!isLvalue(exp->data.binOpExp.lhs)) {
-            fprintf(stderr,
-                    "%s:%zu:%zu: error: cannot assign a value to an "
-                    "non-lvalue\n",
-                    entry->inputFilename, exp->line, exp->character);
-            entry->errored = true;
+            errorNotLvalue(entry, exp->line, exp->character,
+                           "assign a value to");
           } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                      lhsType->data.qualified.constQual) {
             fprintf(stderr,
@@ -534,11 +583,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                                         merged, lhsType);
 
             if (!isLvalue(exp->data.binOpExp.lhs)) {
-              fprintf(
-                  stderr,
-                  "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
-                  entry->inputFilename, exp->line, exp->character);
-              entry->errored = true;
+              errorNotLvalue(entry, exp->line, exp->character,
+                             "assign a value to");
             } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                        lhsType->data.qualified.constQual) {
               fprintf(stderr,
@@ -566,11 +612,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           }
 
           if (!isLvalue(exp->data.binOpExp.lhs)) {
-            fprintf(
-                stderr,
-                "%s:%zu:%zu: error: cannot assign a value to an non-lvalue\n",
-                entry->inputFilename, exp->line, exp->character);
-            entry->errored = true;
+            errorNotLvalue(entry, exp->line, exp->character,
+                           "assign a value to");
           } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
                      lhsType->data.qualified.constQual) {
             fprintf(stderr,
@@ -929,40 +972,149 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
     case NT_UNOPEXP: {
       switch (exp->data.unOpExp.op) {
         case UO_DEREF: {
-          return NULL;  // TODO
+          Type const *type =
+              typecheckExpression(exp->data.unOpExp.target, entry);
+
+          if (type != NULL) {
+            if (!typePointer(type)) {
+              errorNoUnOp(entry, exp->line, exp->character,
+                          "a pointer dereference", type);
+              return NULL;
+            }
+
+            return exp->data.unOpExp.type =
+                       typeCopy(stripCV(type)->data.pointer.base);
+          } else {
+            return NULL;
+          }
         }
         case UO_ADDROF: {
-          return NULL;  // TODO
+          Type const *type =
+              typecheckExpression(exp->data.unOpExp.target, entry);
+
+          if (!isLvalue(exp->data.unOpExp.target)) {
+            errorNotLvalue(entry, exp->line, exp->character,
+                           "take the address of");
+          } else {
+            markEscapes(exp->data.unOpExp.target);
+          }
+
+          if (type != NULL) {
+            return exp->data.unOpExp.type = pointerTypeCreate(typeCopy(type));
+          } else {
+            return NULL;
+          }
         }
-        case UO_PREINC: {
-          return NULL;  // TODO
+        case UO_PREINC:
+        case UO_POSTINC: {
+          Type const *type =
+              typecheckExpression(exp->data.unOpExp.target, entry);
+
+          if (type != NULL && !typeNumeric(type) && !typePointer(type)) {
+            errorNoUnOp(entry, exp->line, exp->character, "an increment", type);
+          }
+
+          if (!isLvalue(exp->data.unOpExp.target)) {
+            errorNotLvalue(entry, exp->line, exp->character, "increment");
+          }
+
+          return exp->data.unOpExp.type = typeCopy(type);
         }
-        case UO_PREDEC: {
-          return NULL;  // TODO
+        case UO_PREDEC:
+        case UO_POSTDEC: {
+          Type const *type =
+              typecheckExpression(exp->data.unOpExp.target, entry);
+
+          if (type != NULL && !typeNumeric(type) && !typePointer(type)) {
+            errorNoUnOp(entry, exp->line, exp->character, "a decrement", type);
+          }
+
+          if (!isLvalue(exp->data.unOpExp.target)) {
+            errorNotLvalue(entry, exp->line, exp->character, "decrement");
+          }
+
+          return exp->data.unOpExp.type = typeCopy(type);
         }
         case UO_NEG: {
-          return NULL;  // TODO
+          Type const *type =
+              typecheckExpression(exp->data.unOpExp.target, entry);
+
+          if (type != NULL && !typeSignedIntegral(type) &&
+              !typeFloating(type)) {
+            errorNoUnOp(entry, exp->line, exp->character, "a negation", type);
+          }
+
+          return exp->data.unOpExp.type = typeCopy(type);
         }
         case UO_LNOT: {
-          return NULL;  // TODO
+          Type const *type =
+              typecheckExpression(exp->data.unOpExp.target, entry);
+
+          if (type != NULL && !typeBoolean(type)) {
+            errorNoUnOp(entry, exp->line, exp->character, "a logical negation",
+                        type);
+          }
+
+          return exp->data.unOpExp.type = typeCopy(type);
         }
         case UO_BITNOT: {
-          return NULL;  // TODO
-        }
-        case UO_POSTINC: {
-          return NULL;  // TODO
-        }
-        case UO_POSTDEC: {
-          return NULL;  // TODO
+          Type const *type =
+              typecheckExpression(exp->data.unOpExp.target, entry);
+
+          if (type != NULL && !typeIntegral(type)) {
+            errorNoUnOp(entry, exp->line, exp->character, "a bitwise not",
+                        type);
+          }
+
+          return exp->data.unOpExp.type = typeCopy(type);
         }
         case UO_NEGASSIGN: {
-          return NULL;  // TODO
+          Type const *type =
+              typecheckExpression(exp->data.unOpExp.target, entry);
+
+          if (type != NULL && !typeSignedIntegral(type) &&
+              !typeFloating(type)) {
+            errorNoUnOp(entry, exp->line, exp->character, "a negation", type);
+          }
+
+          if (!isLvalue(exp->data.unOpExp.target)) {
+            errorNotLvalue(entry, exp->line, exp->character,
+                           "assign a value to");
+          }
+
+          return exp->data.unOpExp.type = typeCopy(type);
         }
         case UO_LNOTASSIGN: {
-          return NULL;  // TODO
+          Type const *type =
+              typecheckExpression(exp->data.unOpExp.target, entry);
+
+          if (type != NULL && !typeBoolean(type)) {
+            errorNoUnOp(entry, exp->line, exp->character, "a logical negation",
+                        type);
+          }
+
+          if (!isLvalue(exp->data.unOpExp.target)) {
+            errorNotLvalue(entry, exp->line, exp->character,
+                           "assign a value to");
+          }
+
+          return exp->data.unOpExp.type = typeCopy(type);
         }
         case UO_BITNOTASSIGN: {
-          return NULL;  // TODO
+          Type const *type =
+              typecheckExpression(exp->data.unOpExp.target, entry);
+
+          if (type != NULL && !typeIntegral(type)) {
+            errorNoUnOp(entry, exp->line, exp->character, "a bitwise not",
+                        type);
+          }
+
+          if (!isLvalue(exp->data.unOpExp.target)) {
+            errorNotLvalue(entry, exp->line, exp->character,
+                           "assign a value to");
+          }
+
+          return exp->data.unOpExp.type = typeCopy(type);
         }
         case UO_SIZEOFEXP: {
           typecheckExpression(exp->data.unOpExp.target, entry);

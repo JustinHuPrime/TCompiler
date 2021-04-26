@@ -738,7 +738,7 @@ The address-of operator (\texttt{\&}) takes the expression (must be an lvalue), 
 
 The pre-increment and pre-decrement operators (\texttt{++}, \texttt{--}) take the expression (must be an lvalue, and either numeric or a pointer), and if it is numeric, increments or decrements it by one, if it is a data pointer, adds or subtracts the size of the type the pointer points to. The value produced is that after the increment, and is an lvalue.
 
-The negation operator takes the expression (must be a numeric value and not an unsigned long), and negates it. If a signed integral or floating point value is negated, the resulting type remains the same. If an unsigned integral value is negated, the resulting type is the smallest signed type that can hold the entire range when negated, i.e. the next largest signed type (e.g. a negated \texttt{ubyte} produces a \texttt{short}). The result is an rvalue.
+The negation operator takes the expression (must be a signed numeric value), and negates it. The resulting type remains the same, and is an rvalue.
 
 The logical-not operator takes the expression (must be a boolean value), and negates it. Its type is unchanged, and it is an rvalue.
 

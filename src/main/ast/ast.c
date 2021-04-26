@@ -874,6 +874,7 @@ Node *scopedIdNodeCreate(Vector *components) {
   n->data.scopedId.components = components;
   n->data.scopedId.entry = NULL;
   n->data.scopedId.type = NULL;
+  n->data.id.escapes = false;
   return n;
 }
 Node *idNodeCreate(Token *id) {
@@ -881,6 +882,7 @@ Node *idNodeCreate(Token *id) {
   n->data.id.id = id->string;
   n->data.id.entry = NULL;
   n->data.id.type = NULL;
+  n->data.id.escapes = false;
   return n;
 }
 

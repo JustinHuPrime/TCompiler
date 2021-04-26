@@ -160,6 +160,10 @@ bool typeUnsignedIntegral(Type const *t);
  */
 bool typeIntegral(Type const *t);
 /**
+ * is the type a float of any size
+ */
+bool typeFloating(Type const *t);
+/**
  * is the type any number (floating point or integral)
  */
 bool typeNumeric(Type const *t);

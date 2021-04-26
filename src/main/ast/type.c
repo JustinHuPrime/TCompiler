@@ -400,12 +400,12 @@ bool typeUnsignedIntegral(Type const *t) {
 bool typeIntegral(Type const *t) {
   return typeSignedIntegral(t) || typeUnsignedIntegral(t);
 }
-static bool typeIsFloating(Type const *t) {
+bool typeFloating(Type const *t) {
   t = stripCV(t);
   return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_FLOAT ||
                                    t->data.keyword.keyword == TK_DOUBLE);
 }
-bool typeNumeric(Type const *t) { return typeIntegral(t) || typeIsFloating(t); }
+bool typeNumeric(Type const *t) { return typeIntegral(t) || typeFloating(t); }
 bool typeCharacter(Type const *t) {
   t = stripCV(t);
   return t->kind == TK_KEYWORD && (t->data.keyword.keyword == TK_CHAR ||
