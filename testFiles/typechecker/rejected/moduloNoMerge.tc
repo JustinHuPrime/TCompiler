@@ -1,0 +1,5 @@
+module foo;
+
+void bar(ulong a, byte b) {
+  a % b;
+}

@@ -358,13 +358,55 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           }
         }
         case BO_MUL: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && rhsType != NULL) {
+            Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+            if (merged == NULL) {
+              errorNoOp(entry, exp->line, exp->character,
+                        "a multiplication operation", lhsType, rhsType);
+            }
+            return exp->data.binOpExp.type = merged;
+          } else {
+            return NULL;
+          }
         }
         case BO_DIV: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && rhsType != NULL) {
+            Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+            if (merged == NULL) {
+              errorNoOp(entry, exp->line, exp->character,
+                        "a division operation", lhsType, rhsType);
+            }
+            return exp->data.binOpExp.type = merged;
+          } else {
+            return NULL;
+          }
         }
         case BO_MOD: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && rhsType != NULL) {
+            Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+            if (merged == NULL) {
+              errorNoOp(entry, exp->line, exp->character, "a modulo operation",
+                        lhsType, rhsType);
+            }
+            return exp->data.binOpExp.type = merged;
+          } else {
+            return NULL;
+          }
         }
         case BO_FIELD: {
           return NULL;  // TODO

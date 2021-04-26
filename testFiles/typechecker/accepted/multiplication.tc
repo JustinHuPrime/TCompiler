@@ -1,0 +1,5 @@
+module foo;
+
+void bar(uint a, ubyte b) {
+  uint x = a * b;
+}
