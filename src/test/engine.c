@@ -46,3 +46,7 @@ void test(char const *name, bool condition) {
     ++status.numTests;
   }
 }
+void testDynamic(char *name, bool condition) {
+  test(name, condition);
+  free(name);
+}

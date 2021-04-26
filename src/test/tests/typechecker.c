@@ -55,10 +55,12 @@ void testTypechecker(void) {
 
     assert("couldn't parse file in testTypechecker's accepted file list" &&
            parse() == 0);
-    test("type checker accepts the file", typecheck() == 0);
+    testDynamic(format("type checker accepts %s", entries[0].inputFilename),
+                typecheck() == 0);
     nodeFree(entries[0].ast);
     free(name);
   }
+  closedir(accepted);
 
   DIR *rejected = opendir("testFiles/typechecker/rejected");
   assert("couldn't open rejected files dir" && rejected != NULL);
@@ -77,8 +79,10 @@ void testTypechecker(void) {
 
     assert("couldn't parse file in testTypechecker's rejected file list" &&
            parse() == 0);
-    test("type checker rejects the file", typecheck() != 0);
+    testDynamic(format("type checker rejects %s", entries[0].inputFilename),
+                typecheck() != 0);
     nodeFree(entries[0].ast);
     free(name);
   }
+  closedir(rejected);
 }

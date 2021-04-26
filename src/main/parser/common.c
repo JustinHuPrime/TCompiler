@@ -25,7 +25,7 @@
 #include "util/conversions.h"
 
 /** array between token type (as int) and token name */
-static char const *const TOKEN_NAMES[] = {
+static char const *const TOKEN_DESCRIPTORS[] = {
     "the end of file",
     "the keyword 'module'",
     "the keyword 'import'",
@@ -143,12 +143,12 @@ void errorExpectedString(FileListEntry *entry, char const *expected,
                          Token const *actual) {
   fprintf(stderr, "%s:%zu:%zu: error: expected %s, but found %s\n",
           entry->inputFilename, actual->line, actual->character, expected,
-          TOKEN_NAMES[actual->type]);
+          TOKEN_DESCRIPTORS[actual->type]);
   entry->errored = true;
 }
 void errorExpectedToken(FileListEntry *entry, TokenType expected,
                         Token const *actual) {
-  errorExpectedString(entry, TOKEN_NAMES[expected], actual);
+  errorExpectedString(entry, TOKEN_DESCRIPTORS[expected], actual);
 }
 void errorRedeclaration(FileListEntry *file, size_t line, size_t character,
                         char const *name, FileListEntry *collidingFile,

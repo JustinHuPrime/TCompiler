@@ -157,6 +157,7 @@ typedef enum {
   TT_BAD_BIN,
   TT_BAD_HEX,
 } TokenType;
+extern char const *const TOKEN_NAMES[];
 
 /** a token */
 typedef struct {

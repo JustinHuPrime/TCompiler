@@ -56,5 +56,6 @@ int testStatusStatus(void);
  * @param condition did the test pass?
  */
 void test(char const *name, bool condition);
+void testDynamic(char *name, bool condition);
 
 #endif  // TLC_TEST_ENGINE_H_

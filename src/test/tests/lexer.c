@@ -248,28 +248,54 @@ static void testAllTokens(void) {
   bool characterOK = true;
   bool lineOK = true;
   bool additionalDataOK = true;
+  char const *messageString = "everything";
   for (size_t idx = 0; idx < numTokens; ++idx) {
     Token token;
     lex(&entry, &token);
 
-    if (entry.errored) errorFlagOK = false;
-    if (token.type != types[idx]) typeOK = false;
-    if (token.character != characters[idx]) characterOK = false;
-    if (token.line != lines[idx]) lineOK = false;
-    if ((strings[idx] == NULL) != (token.string == NULL))
+    if (entry.errored) {
+      errorFlagOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
+    if (token.type != types[idx]) {
+      typeOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
+    if (token.character != characters[idx]) {
+      characterOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
+    if (token.line != lines[idx]) {
+      lineOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
+    if ((strings[idx] == NULL) != (token.string == NULL)) {
       additionalDataOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
     if (strings[idx] != NULL && token.string != NULL &&
-        strcmp(strings[idx], token.string) != 0)
+        strcmp(strings[idx], token.string) != 0) {
       additionalDataOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
 
     if (token.string != NULL) free(token.string);
     entry.errored = false;
   }
-  test("lex accepts token", errorFlagOK);
-  test("token has expected type", typeOK);
-  test("token is at expected character", characterOK);
-  test("token is at expected line", lineOK);
-  test("token has correct additional data", additionalDataOK);
+  testDynamic(format("lex accepts token for %s", messageString), errorFlagOK);
+  testDynamic(format("token has expected type for %s", messageString), typeOK);
+  testDynamic(format("token is at expected character for %s", messageString),
+              characterOK);
+  testDynamic(format("token is at expected line for %s", messageString),
+              lineOK);
+  testDynamic(format("token has correct additional data for %s", messageString),
+              additionalDataOK);
 
   lexerStateUninit(&entry);
 }
@@ -320,27 +346,54 @@ static void testErrors(void) {
   bool characterOK = true;
   bool lineOK = true;
   bool additionalDataOK = true;
+  char const *messageString = "everything";
   for (size_t idx = 0; idx < numTokens; ++idx) {
     lex(&entry, &token);
 
-    if (entry.errored != errors[idx]) errorFlagOK = false;
-    if (token.type != types[idx]) typeOK = false;
-    if (token.character != characters[idx]) characterOK = false;
-    if (token.line != lines[idx]) lineOK = false;
-    if ((strings[idx] == NULL) != (token.string == NULL))
+    if (entry.errored != errors[idx]) {
+      errorFlagOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
+    if (token.type != types[idx]) {
+      typeOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
+    if (token.character != characters[idx]) {
+      characterOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
+    if (token.line != lines[idx]) {
+      lineOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
+    if ((strings[idx] == NULL) != (token.string == NULL)) {
       additionalDataOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
     if (strings[idx] != NULL && token.string != NULL &&
-        strcmp(strings[idx], token.string) != 0)
+        strcmp(strings[idx], token.string) != 0) {
       additionalDataOK = false;
+      messageString = TOKEN_NAMES[token.type];
+      break;
+    }
 
     if (token.string != NULL) free(token.string);
     entry.errored = false;
   }
-  test("token has expected error flag", errorFlagOK);
-  test("token has expected type", typeOK);
-  test("token is at expected character", characterOK);
-  test("token is at expected line", lineOK);
-  test("token has correct additional data", additionalDataOK);
+  testDynamic(format("token has expected error flag for %s", messageString),
+              errorFlagOK);
+  testDynamic(format("token has expected type for %s", messageString), typeOK);
+  testDynamic(format("token is at expected character for %s", messageString),
+              characterOK);
+  testDynamic(format("token is at expected line for %s", messageString),
+              lineOK);
+  testDynamic(format("token has correct additional data for %s", messageString),
+              additionalDataOK);
 
   lexerStateUninit(&entry);
 
@@ -349,18 +402,23 @@ static void testErrors(void) {
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
   lex(&entry, &token);
-  test("token is an error", entry.errored == true);
-  test("token is bad char", token.type == TT_BAD_CHAR);
-  test("token is at expected character", token.character == 1);
-  test("token is at expected line", token.line == 1);
-  test("token has no additional data", token.string == NULL);
+  test("unterminated char literal is an error", entry.errored == true);
+  test("unterminated char literal is bad char", token.type == TT_BAD_CHAR);
+  test("unterminated char literal is at expected character",
+       token.character == 1);
+  test("unterminated char literal is at expected line", token.line == 1);
+  test("unterminated char literal has no additional data",
+       token.string == NULL);
   entry.errored = false;
 
   lex(&entry, &token);
-  test("token is accepted", entry.errored == false);
-  test("token is eof", token.type == TT_EOF);
-  test("token is at expected character", token.character == 2);
-  test("token is at expected line", token.line == 1);
+  test("token after unterminated char literal is accepted",
+       entry.errored == false);
+  test("token after unterminated char literal is eof", token.type == TT_EOF);
+  test("token after unterminated char literal is at expected character",
+       token.character == 2);
+  test("token after unterminated char literal is at expected line",
+       token.line == 1);
 
   lexerStateUninit(&entry);
 
@@ -369,19 +427,24 @@ static void testErrors(void) {
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
   lex(&entry, &token);
-  test("token is an error", entry.errored == true);
-  test("token is string", token.type == TT_LIT_STRING);
-  test("token is at expected character", token.character == 1);
-  test("token is at expected line", token.line == 1);
-  test("token's additional data is correct", strcmp(token.string, "") == 0);
+  test("unterminated string literal is an error", entry.errored == true);
+  test("unterminated string literal is string", token.type == TT_LIT_STRING);
+  test("unterminated string literal is at expected character",
+       token.character == 1);
+  test("unterminated string literal is at expected line", token.line == 1);
+  test("unterminated string literal's additional data is correct",
+       strcmp(token.string, "") == 0);
   free(token.string);
   entry.errored = false;
 
   lex(&entry, &token);
-  test("token is accepted", entry.errored == false);
-  test("token is eof", token.type == TT_EOF);
-  test("token is at expected character", token.character == 2);
-  test("token is at expected line", token.line == 1);
+  test("token after unterminated string literal is accepted",
+       entry.errored == false);
+  test("token after unterminated string literal is eof", token.type == TT_EOF);
+  test("token after unterminated string literal is at expected character",
+       token.character == 2);
+  test("token after unterminated string literal is at expected line",
+       token.line == 1);
 
   lexerStateUninit(&entry);
 }

@@ -80,20 +80,25 @@ static void testModuleParser(void) {
   entries[0].inputFilename = "testFiles/parser/moduleWithId.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/moduleWithId.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/moduleWithId.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/moduleWithScopedId.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/moduleWithScopedId.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/moduleWithScopedId.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -108,10 +113,13 @@ static void testImportParser(void) {
   entries[1].inputFilename = "testFiles/parser/target.td";
   entries[1].isCode = false;
   entries[1].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/importWithId.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/importWithId.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
@@ -121,11 +129,13 @@ static void testImportParser(void) {
   entries[1].inputFilename = "testFiles/parser/targetWithScope.td";
   entries[1].isCode = false;
   entries[1].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/importWithScopedId.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/importWithScopedId.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
@@ -139,10 +149,13 @@ static void testImportParser(void) {
   entries[2].inputFilename = "testFiles/parser/targetWithScope.td";
   entries[2].isCode = false;
   entries[2].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/multipleImports.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/multipleImports.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
   nodeFree(entries[2].ast);
@@ -156,51 +169,62 @@ static void testFunDefnParser(void) {
   entries[0].inputFilename = "testFiles/parser/funDefnNoBodyNoArgs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/funDefnNoBodyNoArgs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/funDefnNoBodyNoArgs.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/funDefnNoBodyOneArg.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/funDefnNoBodyOneArg.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/funDefnNoBodyOneArg.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/funDefnNoBodyManyArgs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/funDefnNoBodyManyArgs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/funDefnNoBodyManyArgs.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/funDefnOneBodyNoArgs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/funDefnOneBodyNoArgs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/funDefnOneBodyNoArgs.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/funDefnManyBodiesNoArgs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/funDefnManyBodiesNoArgs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/funDefnManyBodiesNoArgs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -212,30 +236,37 @@ static void testVarDefnParser(void) {
   entries[0].inputFilename = "testFiles/parser/varDefnOneIdNoInit.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/varDefnOneIdNoInit.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/varDefnOneIdNoInit.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/varDefnOneIdWithInit.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/varDefnOneIdWithInit.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/varDefnOneIdWithInit.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/varDefnMany.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/varDefnMany.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/varDefnMany.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -250,10 +281,13 @@ static void testFunDeclParser(void) {
   entries[1].inputFilename = "testFiles/parser/empty.tc";
   entries[1].isCode = true;
   entries[1].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/funDeclNoArgs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/funDeclNoArgs.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
@@ -261,10 +295,13 @@ static void testFunDeclParser(void) {
   entries[0].isCode = false;
   entries[0].errored = false;
   entries[1].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/funDeclOneArg.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/funDeclOneArg.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
@@ -272,10 +309,13 @@ static void testFunDeclParser(void) {
   entries[0].isCode = false;
   entries[0].errored = false;
   entries[1].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/funDeclManyArgs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/funDeclManyArgs.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 }
@@ -291,10 +331,13 @@ static void testVarDeclParser(void) {
   entries[1].inputFilename = "testFiles/parser/empty.tc";
   entries[1].isCode = true;
   entries[1].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/varDeclOneId.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/varDeclOneId.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
@@ -302,10 +345,13 @@ static void testVarDeclParser(void) {
   entries[0].isCode = false;
   entries[0].errored = false;
   entries[1].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/varDeclManyIds.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/varDeclManyIds.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 }
@@ -321,10 +367,13 @@ static void testOpaqueDeclParser(void) {
   entries[1].inputFilename = "testFiles/parser/empty.tc";
   entries[1].isCode = true;
   entries[1].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/opaqueNoDefn.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/opaqueNoDefn.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
@@ -334,10 +383,13 @@ static void testOpaqueDeclParser(void) {
   entries[1].inputFilename = "testFiles/parser/opaqueWithDefn.tc";
   entries[1].isCode = true;
   entries[1].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/opaqueWithDefn.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/opaqueWithDefn.txt"));
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 }
@@ -350,19 +402,24 @@ static void testStructDeclParser(void) {
   entries[0].inputFilename = "testFiles/parser/structOneField.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/structOneField.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/structOneField.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/structManyFields.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test(
-      "ast is correct",
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/structManyFields.txt"));
   nodeFree(entries[0].ast);
 }
@@ -375,19 +432,24 @@ static void testUnionDeclParser(void) {
   entries[0].inputFilename = "testFiles/parser/unionOneOption.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/unionOneOption.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/unionOneOption.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/unionManyOptions.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test(
-      "ast is correct",
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/unionManyOptions.txt"));
   nodeFree(entries[0].ast);
 }
@@ -400,38 +462,49 @@ static void testEnumDeclParser(void) {
   entries[0].inputFilename = "testFiles/parser/enumOneConstant.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/enumOneConstant.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/enumOneConstant.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/enumManyConstants.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/enumManyConstants.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/enumManyConstants.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/enumLiteralInit.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/enumLiteralInit.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/enumLiteralInit.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/enumEnumInit.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/enumEnumInit.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/enumEnumInit.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -443,10 +516,12 @@ static void testTypedefDeclParser(void) {
   entries[0].inputFilename = "testFiles/parser/typedef.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/typedef.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0], "testFiles/parser/expected/typedef.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -458,31 +533,38 @@ static void testCompoundStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/compoundStmtOneStmt.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/compoundStmtOneStmt.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/compoundStmtOneStmt.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/compoundStmtManyStmts.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/compoundStmtManyStmts.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/compoundStmtManyStmts.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/compoundStmtNestedStmts.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/compoundStmtNestedStmts.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/compoundStmtNestedStmts.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -494,29 +576,36 @@ static void testIfStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/ifNoElse.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/ifNoElse.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0], "testFiles/parser/expected/ifNoElse.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/ifWithElse.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/ifWithElse.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/ifWithElse.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/ifWithCompoundStmts.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/ifWithCompoundStmts.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/ifWithCompoundStmts.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -528,10 +617,12 @@ static void testWhileStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/while.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/while.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0], "testFiles/parser/expected/while.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -543,10 +634,12 @@ static void testDoWhileStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/doWhile.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/doWhile.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0], "testFiles/parser/expected/doWhile.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -558,41 +651,52 @@ static void testForStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/forNoInitNoIncrement.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/forNoInitNoIncrement.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/forNoInitNoIncrement.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/forWithInitNoIncrement.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/forWithInitNoIncrement.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/forWithInitNoIncrement.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/forNoInitWithIncrement.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/forNoInitWithIncrement.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/forNoInitWithIncrement.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/forWithInitWithIncrement.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/forWithInitWithIncrement.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/forWithInitWithIncrement.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -604,21 +708,25 @@ static void testSwitchStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/switchStmtOneCase.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/switchStmtOneCase.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/switchStmtOneCase.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/switchStmtManyCases.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/switchStmtManyCases.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/switchStmtManyCases.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -630,10 +738,12 @@ static void testBreakStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/break.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/break.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0], "testFiles/parser/expected/break.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -645,10 +755,12 @@ static void testContinueStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/continue.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/continue.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0], "testFiles/parser/expected/continue.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -660,19 +772,25 @@ static void testReturnStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/returnVoid.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/returnVoid.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/returnVoid.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/returnValue.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/returnValue.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/returnValue.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -684,10 +802,12 @@ static void testAsmStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/asm.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/asm.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0], "testFiles/parser/expected/asm.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -699,41 +819,49 @@ static void testVariableDefinitionStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/varDefnStmtOneVar.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/varDefnStmtOneVar.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/varDefnStmtOneVar.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/varDefnStmtManyVars.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/varDefnStmtManyVars.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/varDefnStmtManyVars.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/varDefnStmtExprInit.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/varDefnStmtExprInit.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/varDefnStmtExprInit.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/varDefnStmtMultiInit.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/varDefnStmtMultiInit.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/varDefnStmtMultiInit.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -745,10 +873,13 @@ static void testExpressionStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/expression.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/expression.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/expression.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -760,21 +891,26 @@ static void testOpaqueDeclStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/opaqueDeclStmtNoDefn.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/opaqueDeclStmtNoDefn.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/opaqueDeclStmtNoDefn.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/opaqueDeclStmtWithDefn.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/opaqueDeclStmtWithDefn.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/opaqueDeclStmtWithDefn.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -786,21 +922,27 @@ static void testStructDeclStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/structDeclStmtOneField.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/structDeclStmtOneField.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/structDeclStmtOneField.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/structDeclStmtManyFields.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/structDeclStmtManyFields.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/structDeclStmtManyFields.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -812,21 +954,27 @@ static void testUnionDeclStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/unionDeclStmtOneOption.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/unionDeclStmtOneOption.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/unionDeclStmtOneOption.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/unionDeclStmtManyOptions.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/unionDeclStmtManyOptions.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/unionDeclStmtManyOptions.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -838,21 +986,27 @@ static void testEnumDeclStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/enumDeclStmtOneConstant.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/enumDeclStmtOneConstant.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/enumDeclStmtOneConstant.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/enumDeclStmtManyConstants.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/enumDeclStmtManyConstants.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0],
+                "testFiles/parser/expected/enumDeclStmtManyConstants.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -864,10 +1018,13 @@ static void testTypedefDeclStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/typedefDeclStmt.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/typedefDeclStmt.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/typedefDeclStmt.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -879,10 +1036,12 @@ static void testNullStmtParser(void) {
   entries[0].inputFilename = "testFiles/parser/nullStmt.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/nullStmt.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0], "testFiles/parser/expected/nullStmt.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -894,21 +1053,25 @@ static void testSwitchCaseParser(void) {
   entries[0].inputFilename = "testFiles/parser/switchCaseOneValue.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/switchCaseOneValue.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/switchCaseOneValue.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/switchCaseManyValues.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/switchCaseManyValues.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/switchCaseManyValues.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -920,10 +1083,13 @@ static void testSwitchDefaultParser(void) {
   entries[0].inputFilename = "testFiles/parser/switchDefault.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/switchDefault.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/switchDefault.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -935,19 +1101,25 @@ static void testSeqExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/seqExprOne.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/seqExprOne.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/seqExprOne.txt"));
   nodeFree(entries[0].ast);
 
   entries[0].inputFilename = "testFiles/parser/seqExprMany.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/seqExprMany.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/seqExprMany.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -959,10 +1131,13 @@ static void testAssignmentExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/assignmentExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/assignmentExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/assignmentExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -974,10 +1149,13 @@ static void testTernaryExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/ternaryExpr.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/ternaryExpr.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/ternaryExpr.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -989,10 +1167,13 @@ static void testLogicalExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/logicalExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/logicalExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/logicalExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1004,10 +1185,13 @@ static void testBitwiseExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/bitwiseExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/bitwiseExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/bitwiseExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1019,10 +1203,13 @@ static void testEqualityExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/equalityExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/equalityExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/equalityExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1034,10 +1221,13 @@ static void testComparisonExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/comparisonExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/comparisonExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/comparisonExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1049,10 +1239,13 @@ static void testSpaceshipExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/spaceshipExpr.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/spaceshipExpr.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/spaceshipExpr.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1064,10 +1257,13 @@ static void testShiftExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/shiftExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/shiftExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/shiftExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1079,10 +1275,13 @@ static void testAdditionExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/additionExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/additionExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/additionExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1094,11 +1293,13 @@ static void testMultiplicationExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/multiplicationExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0],
-                 "testFiles/parser/expected/multiplicationExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0],
+                        "testFiles/parser/expected/multiplicationExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1110,10 +1311,13 @@ static void testPrefixExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/prefixExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/prefixExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/prefixExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1125,10 +1329,13 @@ static void testPostfixExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/postfixExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/postfixExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/postfixExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1140,10 +1347,13 @@ static void testPrimaryExprParser(void) {
   entries[0].inputFilename = "testFiles/parser/primaryExprs.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/primaryExprs.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(
+      format("ast of %s is correct", entries[0].inputFilename),
+      dumpEqual(&entries[0], "testFiles/parser/expected/primaryExprs.txt"));
   nodeFree(entries[0].ast);
 }
 
@@ -1155,10 +1365,12 @@ static void testTypeParser(void) {
   entries[0].inputFilename = "testFiles/parser/types.tc";
   entries[0].isCode = true;
   entries[0].errored = false;
-  test("parser accepts the file", parse() == 0);
-  test("file has not errored", entries[0].errored == false);
-  test("ast is correct",
-       dumpEqual(&entries[0], "testFiles/parser/expected/types.txt"));
+  testDynamic(format("parser accepts %s", entries[0].inputFilename),
+              parse() == 0);
+  testDynamic(format("no errors in %s", entries[0].inputFilename),
+              entries[0].errored == false);
+  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
+              dumpEqual(&entries[0], "testFiles/parser/expected/types.txt"));
   nodeFree(entries[0].ast);
 }
 

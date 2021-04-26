@@ -46,6 +46,7 @@ static void testBigIntegerArithmetic(void) {
   srand(0);  // make test deterministic
 
   bool ok = true;
+  uint64_t messageNumber = 0;
   for (size_t count = 0; count < 1000; ++count) {
     BigInteger integer;
     bigIntInit(&integer);
@@ -63,11 +64,17 @@ static void testBigIntegerArithmetic(void) {
     for (uint64_t copy = number; copy != 0; copy >>= 1) ++nbits;
 
     uint64_t fromBigInt = bigIntGetNBits(&integer, nbits);
-    if (number != fromBigInt) ok = false;
+    if (number != fromBigInt) {
+      ok = false;
+      messageNumber = number;
+      break;
+    }
 
     bigIntUninit(&integer);
   }
-  test("bigInteger has the right calculated bits", ok);
+  testDynamic(
+      format("bigInteger has the right calculated bits for %lu", messageNumber),
+      ok);
 }
 
 static size_t countBits(uint64_t n) {
@@ -83,6 +90,7 @@ static void testBigIntegerRounding(void) {
   srand(0);  // deterministic tests
 
   bool ok = true;
+  uint64_t messageNumber = 0;
   for (size_t count = 0; count < 1000; ++count) {
     BigInteger integer;
     bigIntInit(&integer);
@@ -113,11 +121,17 @@ static void testBigIntegerRounding(void) {
     // don't do anything if removed < half
     kept >>= countBits(kept) - roundTo;
 
-    if (bigIntRounded != kept) ok = false;
+    if (bigIntRounded != kept) {
+      ok = false;
+      messageNumber = number;
+      break;
+    }
 
     bigIntUninit(&integer);
   }
-  test("bigInteger has the right rounded bits", ok);
+  testDynamic(
+      format("bigInteger has the right rounded bits for %lu", messageNumber),
+      ok);
 }
 
 void testBigInteger(void) {

@@ -155,7 +155,7 @@ static void testOptions(void) {
   retval = parseArgs(argc, argv5, &numFiles);
 
   test("command line with duplicate-file=error passes", retval == 0);
-  test("duplicate-file option is correctly set",
+  test("duplicate-file error option is correctly set",
        options.duplicateFile == OPTION_W_ERROR);
 
   // -Wduplicate-file=warn
@@ -168,7 +168,7 @@ static void testOptions(void) {
   retval = parseArgs(argc, argv6, &numFiles);
 
   test("command line with duplicate-file=warn passes", retval == 0);
-  test("duplicate-file option is correctly set",
+  test("duplicate-file warn option is correctly set",
        options.duplicateFile == OPTION_W_WARN);
 
   // -Wduplicate-file=ignore
@@ -181,7 +181,7 @@ static void testOptions(void) {
   retval = parseArgs(argc, argv7, &numFiles);
 
   test("command line with duplicate-file=ignore passes", retval == 0);
-  test("duplicate-file option is correctly set",
+  test("duplicate-file ignore option is correctly set",
        options.duplicateFile == OPTION_W_IGNORE);
 
   // -Wunrecognized-file=error
@@ -194,7 +194,7 @@ static void testOptions(void) {
   retval = parseArgs(argc, argv8, &numFiles);
 
   test("command line with unrecognized-file=error passes", retval == 0);
-  test("unrecognized-file option is correctly set",
+  test("unrecognized-file error option is correctly set",
        options.unrecognizedFile == OPTION_W_ERROR);
 
   // -Wunrecognized-file=warn
@@ -207,7 +207,7 @@ static void testOptions(void) {
   retval = parseArgs(argc, argv9, &numFiles);
 
   test("command line with unrecognized-file=warn passes", retval == 0);
-  test("unrecognized-file option is correctly set",
+  test("unrecognized-file warn option is correctly set",
        options.unrecognizedFile == OPTION_W_WARN);
 
   // -Wunrecognized-file=ignore
@@ -220,7 +220,7 @@ static void testOptions(void) {
   retval = parseArgs(argc, argv10, &numFiles);
 
   test("command line with unrecognized-file=ignore passes", retval == 0);
-  test("unrecognized-file option is correctly set",
+  test("unrecognized-file ignore option is correctly set",
        options.unrecognizedFile == OPTION_W_IGNORE);
 
   // --debug-dump=none
@@ -233,7 +233,8 @@ static void testOptions(void) {
   retval = parseArgs(argc, argv11, &numFiles);
 
   test("command line with debug-dump=none passes", retval == 0);
-  test("debug-dump option is correctly set", options.dump == OPTION_DD_NONE);
+  test("debug-dump none option is correctly set",
+       options.dump == OPTION_DD_NONE);
 
   // --debug-dump=lex
   argc = 3;
@@ -245,7 +246,7 @@ static void testOptions(void) {
   retval = parseArgs(argc, argv12, &numFiles);
 
   test("command line with debug-dump=lex passes", retval == 0);
-  test("debug-dump option is correctly set", options.dump == OPTION_DD_LEX);
+  test("debug-dump lex option is correctly set", options.dump == OPTION_DD_LEX);
 
   // --debug-dump=parse-structure
   argc = 3;
@@ -257,7 +258,8 @@ static void testOptions(void) {
   retval = parseArgs(argc, argv13, &numFiles);
 
   test("command line with debug-dump=parse passes", retval == 0);
-  test("debug-dump option is correctly set", options.dump == OPTION_DD_PARSE);
+  test("debug-dump parse option is correctly set",
+       options.dump == OPTION_DD_PARSE);
 }
 
 void testCommandLineArgs(void) {

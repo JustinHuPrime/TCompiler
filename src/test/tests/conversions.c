@@ -40,6 +40,7 @@ static void testNormalFloatConversions(void) {
   srand(0);  // keep tests repeatable
 
   bool floatOK = true;
+  float messageFloat = NAN;
   for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = (uint16_t)(intRand() % 0x100);
@@ -57,16 +58,22 @@ static void testNormalFloatConversions(void) {
     float stdlibValue = strtof(stringValue, &ignored);
     uint32_t stdlibBits = floatToBits(stdlibValue);
     uint32_t conversionBits = floatStringToBits(stringValue);
-    if (stdlibBits != conversionBits) floatOK = false;
+    if (stdlibBits != conversionBits) {
+      floatOK = false;
+      messageFloat = originalValue;
+      break;
+    }
     free(stringValue);
   }
-  test("normal float parsing", floatOK);
+  testDynamic(format("normal float parsing of %.46f", (double)messageFloat),
+              floatOK);
 }
 
 static void testNormalDoubleConversions(void) {
   srand(0);  // keep tests repeatable
 
   bool doubleOK = true;
+  double messageDouble = NAN;
   for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = (uint16_t)(intRand() % 0x800);
@@ -84,16 +91,22 @@ static void testNormalDoubleConversions(void) {
     double stdlibValue = strtod(stringValue, &ignored);
     uint64_t stdlibBits = doubleToBits(stdlibValue);
     uint64_t conversionBits = doubleStringToBits(stringValue);
-    if (stdlibBits != conversionBits) doubleOK = false;
+    if (stdlibBits != conversionBits) {
+      doubleOK = false;
+      messageDouble = originalValue;
+      break;
+    }
     free(stringValue);
   }
-  test("normal double parsing", doubleOK);
+  testDynamic(format("normal double parsing of %.325f", messageDouble),
+              doubleOK);
 }
 
 static void testSubnormalFloatConversions(void) {
   srand(0);
 
   bool floatOK = true;
+  float messageFloat = NAN;
   for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = 0;
@@ -107,16 +120,22 @@ static void testSubnormalFloatConversions(void) {
     float stdlibValue = strtof(stringValue, &ignored);
     uint32_t stdlibBits = floatToBits(stdlibValue);
     uint32_t conversionBits = floatStringToBits(stringValue);
-    if (stdlibBits != conversionBits) floatOK = false;
+    if (stdlibBits != conversionBits) {
+      floatOK = false;
+      messageFloat = originalValue;
+      break;
+    }
 
     free(stringValue);
   }
-  test("subnormal float parsing", floatOK);
+  testDynamic(format("subnormal float parsing of %.46f", (double)messageFloat),
+              floatOK);
 }
 
 static void testSubnormalDoubleConversions(void) {
   srand(0);
   bool doubleOK = true;
+  double messageDouble = NAN;
   for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
     uint16_t exponent = 0;
@@ -130,17 +149,23 @@ static void testSubnormalDoubleConversions(void) {
     double stdlibValue = strtod(stringValue, &ignored);
     uint64_t stdlibBits = doubleToBits(stdlibValue);
     uint64_t conversionBits = doubleStringToBits(stringValue);
-    if (stdlibBits != conversionBits) doubleOK = false;
+    if (stdlibBits != conversionBits) {
+      doubleOK = false;
+      messageDouble = originalValue;
+      break;
+    }
 
     free(stringValue);
   }
-  test("subnormal double parsing", doubleOK);
+  testDynamic(format("subnormal double parsing of %.325f", messageDouble),
+              doubleOK);
 }
 
 static void testOverflowFloatConversions(void) {
   srand(0);
 
   bool floatOK = true;
+  char *messageString = strdup("everything");
   for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
@@ -156,17 +181,23 @@ static void testOverflowFloatConversions(void) {
     float stdlibValue = strtof(stringValue, &ignored);
     uint32_t stdlibBits = floatToBits(stdlibValue);
     uint32_t conversionBits = floatStringToBits(stringValue);
-    if (stdlibBits != conversionBits) floatOK = false;
+    if (stdlibBits != conversionBits) {
+      floatOK = false;
+      messageString = stringValue;
+      break;
+    }
 
     free(stringValue);
   }
-  test("overflow float parsing", floatOK);
+  testDynamic(format("overflow float parsing of %s", messageString), floatOK);
+  free(messageString);
 }
 
 static void testOverflowDoubleConversions(void) {
   srand(0);
 
-  bool floatOK = true;
+  bool doubleOK = true;
+  char *messageString = strdup("everything");
   for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
@@ -182,17 +213,23 @@ static void testOverflowDoubleConversions(void) {
     double stdlibValue = strtod(stringValue, &ignored);
     uint64_t stdlibBits = doubleToBits(stdlibValue);
     uint64_t conversionBits = doubleStringToBits(stringValue);
-    if (stdlibBits != conversionBits) floatOK = false;
+    if (stdlibBits != conversionBits) {
+      doubleOK = false;
+      messageString = stringValue;
+      break;
+    }
 
     free(stringValue);
   }
-  test("overflow double parsing", floatOK);
+  testDynamic(format("overflow double parsing of %s", messageString), doubleOK);
+  free(messageString);
 }
 
 static void testUnderflowFloatConversions(void) {
   srand(0);
 
   bool floatOK = true;
+  char *messageString = strdup("everything");
   for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
@@ -214,17 +251,23 @@ static void testUnderflowFloatConversions(void) {
     float stdlibValue = strtof(stringValue, &ignored);
     uint32_t stdlibBits = floatToBits(stdlibValue);
     uint32_t conversionBits = floatStringToBits(stringValue);
-    if (stdlibBits != conversionBits) floatOK = false;
+    if (stdlibBits != conversionBits) {
+      floatOK = false;
+      messageString = stringValue;
+      break;
+    }
 
     free(stringValue);
   }
-  test("underflow float parsing", floatOK);
+  testDynamic(format("underflow float parsing of %s", messageString), floatOK);
+  free(messageString);
 }
 
 static void testUnderflowDoubleConversions(void) {
   srand(0);
 
   bool doubleOK = true;
+  char *messageString = strdup("everything");
   for (size_t count = 0; count < 1000; ++count) {
     uint8_t sign = (uint8_t)(intRand() % 2);
 
@@ -246,11 +289,17 @@ static void testUnderflowDoubleConversions(void) {
     double stdlibValue = strtod(stringValue, &ignored);
     uint64_t stdlibBits = doubleToBits(stdlibValue);
     uint64_t conversionBits = doubleStringToBits(stringValue);
-    if (stdlibBits != conversionBits) doubleOK = false;
+    if (stdlibBits != conversionBits) {
+      doubleOK = false;
+      messageString = stringValue;
+      break;
+    }
 
     free(stringValue);
   }
-  test("underflow double parsing", doubleOK);
+  testDynamic(format("underflow double parsing of %s", messageString),
+              doubleOK);
+  free(messageString);
 }
 
 void testConversions(void) {
