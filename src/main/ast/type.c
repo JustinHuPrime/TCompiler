@@ -396,7 +396,7 @@ bool typeComparable(Type const *t) {
          typePointer(t) || typeEnum(t);
 }
 Type *arithmeticTypeMerge(Type const *a, Type const *b) {
-  if (a == NULL || b == NULL) return NULL;
+  if (a == NULL || b == NULL || !typeNumeric(a) || !typeNumeric(b)) return NULL;
   a = stripCV(a);
   b = stripCV(b);
 

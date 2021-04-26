@@ -51,6 +51,22 @@ static void errorNoImplicitConversion(FileListEntry *entry, size_t line,
   free(toString);
   entry->errored = true;
 }
+/**
+ * complaints about being unable to perform an op on a given operand type
+ */
+static void errorNoOp(FileListEntry *entry, size_t line, size_t character,
+                      char const *op, Type const *lhsType,
+                      Type const *rhsType) {
+  char *lhsString = typeToString(lhsType);
+  char *rhsString = typeToString(rhsType);
+  fprintf(stderr,
+          "%s:%zu:%zu: error: cannot perform %s on a value of type %s and a "
+          "value of type %s\n",
+          entry->inputFilename, line, character, op, lhsString, rhsString);
+  entry->errored = true;
+  free(lhsString);
+  free(rhsString);
+}
 
 /**
  * is the given expression an lvalue
@@ -138,6 +154,7 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
               !typeImplicitlyConvertable(from, to))
             errorNoImplicitConversion(entry, exp->line, exp->character, from,
                                       to);
+
           if (!isLvalue(exp->data.binOpExp.lhs)) {
             fprintf(
                 stderr,
@@ -201,18 +218,11 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           Type const *rhsType =
               typecheckExpression(exp->data.binOpExp.rhs, entry);
 
-          if (lhsType != NULL &&
-              !typeImplicitlyConvertable(lhsType, boolType)) {
-            errorNoImplicitConversion(entry, exp->data.binOpExp.lhs->line,
-                                      exp->data.binOpExp.lhs->character,
-                                      lhsType, boolType);
-          }
-
-          if (rhsType != NULL &&
-              !typeImplicitlyConvertable(rhsType, boolType)) {
-            errorNoImplicitConversion(entry, exp->data.binOpExp.rhs->line,
-                                      exp->data.binOpExp.rhs->character,
-                                      rhsType, boolType);
+          if (lhsType != NULL && rhsType != NULL &&
+              (!typeImplicitlyConvertable(lhsType, boolType) ||
+               !typeImplicitlyConvertable(rhsType, boolType))) {
+            errorNoOp(entry, exp->line, exp->character, "a logical operation",
+                      lhsType, rhsType);
           }
 
           return exp->data.binOpExp.type = keywordTypeCreate(TK_BOOL);
@@ -225,45 +235,15 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           Type const *rhsType =
               typecheckExpression(exp->data.binOpExp.rhs, entry);
 
-          bool bad = false;
-          if (lhsType != NULL && !typeIntegral(lhsType)) {
-            char *typeString = typeToString(lhsType);
-            fprintf(stderr,
-                    "%s:%zu:%zu: error: cannot perform a bitwise operation on "
-                    "a value of type %s\n",
-                    entry->inputFilename, exp->line, exp->character,
-                    typeString);
-            bad = entry->errored = true;
-            free(typeString);
-          }
-          if (rhsType != NULL && !typeIntegral(rhsType)) {
-            char *typeString = typeToString(rhsType);
-            fprintf(stderr,
-                    "%s:%zu:%zu: error: cannot perform a bitwise operation on "
-                    "a value of type %s\n",
-                    entry->inputFilename, exp->line, exp->character,
-                    typeString);
-            bad = entry->errored = true;
-            free(typeString);
-          }
-
-          if (lhsType != NULL && rhsType != NULL && !bad) {
+          if (lhsType != NULL && rhsType != NULL) {
             Type *merged = arithmeticTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              char *lhsString = typeToString(lhsType);
-              char *rhsString = typeToString(rhsType);
-              fprintf(stderr,
-                      "%s:%zu:%zu: error: cannot perform a bitwise operation "
-                      "with a value of type %s and a value of type %s\n",
-                      entry->inputFilename, exp->line, exp->character,
-                      lhsString, rhsString);
-              entry->errored = true;
-              free(lhsString);
-              free(rhsString);
+              errorNoOp(entry, exp->line, exp->character, "a bitwise operation",
+                        lhsType, rhsType);
             }
             return exp->data.binOpExp.type = merged;
           } else {
-            return exp->data.binOpExp.type = NULL;
+            return NULL;
           }
         }
         case BO_EQ:
@@ -278,42 +258,11 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           Type const *rhsType =
               typecheckExpression(exp->data.binOpExp.rhs, entry);
 
-          bool bad = false;
-          if (lhsType != NULL && !typeComparable(lhsType)) {
-            char *typeString = typeToString(lhsType);
-            fprintf(stderr,
-                    "%s:%zu:%zu: error: cannot perform a comparison operation "
-                    "on a value of type %s\n",
-                    entry->inputFilename, exp->line, exp->character,
-                    typeString);
-            bad = entry->errored = true;
-            free(typeString);
-          }
-          if (rhsType != NULL && !typeComparable(rhsType)) {
-            char *typeString = typeToString(rhsType);
-            fprintf(
-                stderr,
-                "%s:%zu:%zu: error: cannot perform a comparison operation on "
-                "a value of type %s\n",
-                entry->inputFilename, exp->line, exp->character, typeString);
-            bad = entry->errored = true;
-            free(typeString);
-          }
-
-          if (lhsType != NULL && rhsType != NULL && !bad) {
+          if (lhsType != NULL && rhsType != NULL) {
             Type *merged = comparisonTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              char *lhsString = typeToString(lhsType);
-              char *rhsString = typeToString(rhsType);
-              fprintf(
-                  stderr,
-                  "%s:%zu:%zu: error: cannot perform a comparison operation "
-                  "with a value of type %s and a value of type %s\n",
-                  entry->inputFilename, exp->line, exp->character, lhsString,
-                  rhsString);
-              entry->errored = true;
-              free(lhsString);
-              free(rhsString);
+              errorNoOp(entry, exp->line, exp->character,
+                        "a comparison operation", lhsType, rhsType);
             }
             exp->data.binOpExp.comparisonType = merged;
           }
@@ -329,26 +278,11 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           Type const *rhsType =
               typecheckExpression(exp->data.binOpExp.rhs, entry);
 
-          if (lhsType != NULL && !typeIntegral(lhsType) &&
-              !typePointer(lhsType)) {
-            char *typeString = typeToString(lhsType);
-            fprintf(stderr,
-                    "%s:%zu:%zu: error: cannot perform a shift operation on a "
-                    "value of type %s\n",
-                    entry->inputFilename, exp->line, exp->character,
-                    typeString);
-            entry->errored = true;
-            free(typeString);
-          }
-          if (rhsType != NULL && !typeUnsignedIntegral(rhsType)) {
-            char *typeString = typeToString(rhsType);
-            fprintf(stderr,
-                    "%s:%zu:%zu: error: cannot perform a shift operation on a "
-                    "value of type %s\n",
-                    entry->inputFilename, exp->line, exp->character,
-                    typeString);
-            entry->errored = true;
-            free(typeString);
+          if (lhsType != NULL && rhsType != NULL &&
+              ((!typeIntegral(lhsType) && !typePointer(lhsType)) ||
+               !typeUnsignedIntegral(rhsType))) {
+            errorNoOp(entry, exp->line, exp->character, "a shift operation",
+                      lhsType, rhsType);
           }
 
           return exp->data.binOpExp.type = typeCopy(lhsType);
@@ -359,26 +293,11 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           Type const *rhsType =
               typecheckExpression(exp->data.binOpExp.rhs, entry);
 
-          if (lhsType != NULL && !typeSignedIntegral(lhsType) &&
-              !typePointer(lhsType)) {
-            char *typeString = typeToString(lhsType);
-            fprintf(stderr,
-                    "%s:%zu:%zu: error: cannot perform an arithmetic shift "
-                    "operation on a value of type %s\n",
-                    entry->inputFilename, exp->line, exp->character,
-                    typeString);
-            entry->errored = true;
-            free(typeString);
-          }
-          if (rhsType != NULL && !typeUnsignedIntegral(rhsType)) {
-            char *typeString = typeToString(rhsType);
-            fprintf(stderr,
-                    "%s:%zu:%zu: error: cannot perform an arithmetic shift "
-                    "operation on a value of type %s\n",
-                    entry->inputFilename, exp->line, exp->character,
-                    typeString);
-            entry->errored = true;
-            free(typeString);
+          if (lhsType != NULL && rhsType != NULL &&
+              (!typeSignedIntegral(lhsType) ||
+               !typeUnsignedIntegral(rhsType))) {
+            errorNoOp(entry, exp->line, exp->character, "an arithmetic shift operation",
+                      lhsType, rhsType);
           }
 
           return exp->data.binOpExp.type = typeCopy(lhsType);

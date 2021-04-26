@@ -178,9 +178,6 @@ bool typeEnum(Type const *t);
 bool typeComparable(Type const *t);
 /**
  * merge types in an arithmetic expression
- *
- * @param a must be numeric
- * @param b must be numeric
  */
 Type *arithmeticTypeMerge(Type const *a, Type const *b);
 /**
