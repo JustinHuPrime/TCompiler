@@ -71,11 +71,11 @@ static void errorNoExplicitConversion(FileListEntry *entry, size_t line,
   entry->errored = true;
 }
 /**
- * complaints about being unable to perform an op on a given operand type
+ * complaints about being unable to perform a binop
  */
-static void errorNoOp(FileListEntry *entry, size_t line, size_t character,
-                      char const *op, Type const *lhsType,
-                      Type const *rhsType) {
+static void errorNoBinOp(FileListEntry *entry, size_t line, size_t character,
+                         char const *op, Type const *lhsType,
+                         Type const *rhsType) {
   char *lhsString = typeToString(lhsType);
   char *rhsString = typeToString(rhsType);
   fprintf(stderr,
@@ -85,6 +85,18 @@ static void errorNoOp(FileListEntry *entry, size_t line, size_t character,
   entry->errored = true;
   free(lhsString);
   free(rhsString);
+}
+/**
+ * complaints about being unable to perform an unop
+ */
+static void errorNoUnOp(FileListEntry *entry, size_t line, size_t character,
+                        char const *op, Type const *target) {
+  char *typeString = typeToString(target);
+  fprintf(stderr,
+          "%s:%zu:%zu: error: cannot perform %s on a value of type '%s'\n",
+          entry->inputFilename, line, character, op, typeString);
+  entry->errored = true;
+  free(typeString);
 }
 /**
  * complains about there being no member with the given name
@@ -228,8 +240,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL) {
             Type *merged = arithmeticTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              errorNoOp(entry, exp->line, exp->character,
-                        "a multiplication operation", lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a multiplication operation", lhsType, rhsType);
             }
 
             if (lhsType != NULL && merged != NULL &&
@@ -263,8 +275,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL) {
             Type *merged = arithmeticTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              errorNoOp(entry, exp->line, exp->character,
-                        "a division operation", lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a division operation", lhsType, rhsType);
             }
 
             if (lhsType != NULL && merged != NULL &&
@@ -298,8 +310,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL) {
             Type *merged = arithmeticTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              errorNoOp(entry, exp->line, exp->character, "a modulo operation",
-                        lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a modulo operation", lhsType, rhsType);
             }
 
             if (lhsType != NULL && merged != NULL &&
@@ -334,8 +346,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
             if (typeNumeric(lhsType) && typeNumeric(rhsType)) {
               Type *merged = arithmeticTypeMerge(lhsType, rhsType);
               if (merged == NULL) {
-                errorNoOp(entry, exp->line, exp->character,
-                          "an addition operation", lhsType, rhsType);
+                errorNoBinOp(entry, exp->line, exp->character,
+                             "an addition operation", lhsType, rhsType);
               }
 
               if (lhsType != NULL && merged != NULL &&
@@ -375,8 +387,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                 entry->errored = true;
               }
             } else {
-              errorNoOp(entry, exp->line, exp->character,
-                        "an additon operation", lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "an additon operation", lhsType, rhsType);
             }
           }
 
@@ -392,8 +404,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
             if (typeNumeric(lhsType) && typeNumeric(rhsType)) {
               Type *merged = arithmeticTypeMerge(lhsType, rhsType);
               if (merged == NULL) {
-                errorNoOp(entry, exp->line, exp->character,
-                          "a subtraction operation", lhsType, rhsType);
+                errorNoBinOp(entry, exp->line, exp->character,
+                             "a subtraction operation", lhsType, rhsType);
               }
 
               if (lhsType != NULL && merged != NULL &&
@@ -433,8 +445,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                 entry->errored = true;
               }
             } else {
-              errorNoOp(entry, exp->line, exp->character,
-                        "a subtraction operation", lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a subtraction operation", lhsType, rhsType);
             }
           }
 
@@ -450,8 +462,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL &&
               ((!typeIntegral(lhsType) && !typePointer(lhsType)) ||
                !typeUnsignedIntegral(rhsType))) {
-            errorNoOp(entry, exp->line, exp->character, "a shift operation",
-                      lhsType, rhsType);
+            errorNoBinOp(entry, exp->line, exp->character, "a shift operation",
+                         lhsType, rhsType);
           }
 
           if (!isLvalue(exp->data.binOpExp.lhs)) {
@@ -480,8 +492,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL &&
               (!typeSignedIntegral(lhsType) ||
                !typeUnsignedIntegral(rhsType))) {
-            errorNoOp(entry, exp->line, exp->character,
-                      "an arithmetic shift operation", lhsType, rhsType);
+            errorNoBinOp(entry, exp->line, exp->character,
+                         "an arithmetic shift operation", lhsType, rhsType);
           }
 
           if (!isLvalue(exp->data.binOpExp.lhs)) {
@@ -512,8 +524,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL) {
             Type *merged = arithmeticTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              errorNoOp(entry, exp->line, exp->character, "a bitwise operation",
-                        lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a bitwise operation", lhsType, rhsType);
             }
 
             if (lhsType != NULL && merged != NULL &&
@@ -549,8 +561,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL &&
               (!typeImplicitlyConvertable(lhsType, boolType) ||
                !typeImplicitlyConvertable(rhsType, boolType))) {
-            errorNoOp(entry, exp->line, exp->character, "a logical operation",
-                      lhsType, rhsType);
+            errorNoBinOp(entry, exp->line, exp->character,
+                         "a logical operation", lhsType, rhsType);
           }
 
           if (!isLvalue(exp->data.binOpExp.lhs)) {
@@ -580,8 +592,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL &&
               (!typeImplicitlyConvertable(lhsType, boolType) ||
                !typeImplicitlyConvertable(rhsType, boolType))) {
-            errorNoOp(entry, exp->line, exp->character, "a logical operation",
-                      lhsType, rhsType);
+            errorNoBinOp(entry, exp->line, exp->character,
+                         "a logical operation", lhsType, rhsType);
           }
 
           return exp->data.binOpExp.type = keywordTypeCreate(TK_BOOL);
@@ -597,8 +609,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL) {
             Type *merged = arithmeticTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              errorNoOp(entry, exp->line, exp->character, "a bitwise operation",
-                        lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a bitwise operation", lhsType, rhsType);
             }
             return exp->data.binOpExp.type = merged;
           } else {
@@ -620,8 +632,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL) {
             Type *merged = comparisonTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              errorNoOp(entry, exp->line, exp->character,
-                        "a comparison operation", lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a comparison operation", lhsType, rhsType);
             }
             exp->data.binOpExp.comparisonType = merged;
           }
@@ -640,8 +652,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL &&
               ((!typeIntegral(lhsType) && !typePointer(lhsType)) ||
                !typeUnsignedIntegral(rhsType))) {
-            errorNoOp(entry, exp->line, exp->character, "a shift operation",
-                      lhsType, rhsType);
+            errorNoBinOp(entry, exp->line, exp->character, "a shift operation",
+                         lhsType, rhsType);
           }
 
           return exp->data.binOpExp.type = typeCopy(lhsType);
@@ -655,8 +667,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL &&
               (!typeSignedIntegral(lhsType) ||
                !typeUnsignedIntegral(rhsType))) {
-            errorNoOp(entry, exp->line, exp->character,
-                      "an arithmetic shift operation", lhsType, rhsType);
+            errorNoBinOp(entry, exp->line, exp->character,
+                         "an arithmetic shift operation", lhsType, rhsType);
           }
 
           return exp->data.binOpExp.type = typeCopy(lhsType);
@@ -671,8 +683,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
             if (typeNumeric(lhsType) && typeNumeric(rhsType)) {
               Type *merged = arithmeticTypeMerge(lhsType, rhsType);
               if (merged == NULL) {
-                errorNoOp(entry, exp->line, exp->character,
-                          "an addition operation", lhsType, rhsType);
+                errorNoBinOp(entry, exp->line, exp->character,
+                             "an addition operation", lhsType, rhsType);
               }
               return exp->data.binOpExp.type = merged;
             } else if (typePointer(lhsType) && typeIntegral(rhsType)) {
@@ -680,8 +692,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
             } else if (typeIntegral(lhsType) && typePointer(rhsType)) {
               return exp->data.binOpExp.type = typeCopy(rhsType);
             } else {
-              errorNoOp(entry, exp->line, exp->character,
-                        "an additon operation", lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "an additon operation", lhsType, rhsType);
               return NULL;
             }
           } else {
@@ -698,8 +710,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
             if (typeNumeric(lhsType) && typeNumeric(rhsType)) {
               Type *merged = arithmeticTypeMerge(lhsType, rhsType);
               if (merged == NULL) {
-                errorNoOp(entry, exp->line, exp->character,
-                          "a subtraction operation", lhsType, rhsType);
+                errorNoBinOp(entry, exp->line, exp->character,
+                             "a subtraction operation", lhsType, rhsType);
               }
               return exp->data.binOpExp.type = merged;
             } else if (typePointer(lhsType) && typeIntegral(rhsType)) {
@@ -708,8 +720,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                        typeEqual(stripCV(lhsType), stripCV(rhsType))) {
               return exp->data.binOpExp.type = keywordTypeCreate(TK_LONG);
             } else {
-              errorNoOp(entry, exp->line, exp->character,
-                        "a subtraction operation", lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a subtraction operation", lhsType, rhsType);
               return NULL;
             }
           } else {
@@ -725,8 +737,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL) {
             Type *merged = arithmeticTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              errorNoOp(entry, exp->line, exp->character,
-                        "a multiplication operation", lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a multiplication operation", lhsType, rhsType);
             }
             return exp->data.binOpExp.type = merged;
           } else {
@@ -742,8 +754,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL) {
             Type *merged = arithmeticTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              errorNoOp(entry, exp->line, exp->character,
-                        "a division operation", lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a division operation", lhsType, rhsType);
             }
             return exp->data.binOpExp.type = merged;
           } else {
@@ -759,8 +771,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL) {
             Type *merged = arithmeticTypeMerge(lhsType, rhsType);
             if (merged == NULL) {
-              errorNoOp(entry, exp->line, exp->character, "a modulo operation",
-                        lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "a modulo operation", lhsType, rhsType);
             }
             return exp->data.binOpExp.type = merged;
           } else {
@@ -859,8 +871,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
               return exp->data.binOpExp.type =
                          typeCopy(stripCV(lhsType)->data.pointer.base);
             } else {
-              errorNoOp(entry, exp->line, exp->character,
-                        "an array index operation", lhsType, rhsType);
+              errorNoBinOp(entry, exp->line, exp->character,
+                           "an array index operation", lhsType, rhsType);
               return NULL;
             }
           } else {
