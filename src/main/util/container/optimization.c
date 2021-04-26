@@ -19,7 +19,7 @@
 
 // Values of container optimization constants
 
-#include "optimization.h"
+#include "util/container/optimization.h"
 
 // vectors of pointers start with 64 bytes allocated to reduce memory churn
 size_t const PTR_VECTOR_INIT_CAPACITY = 8;

@@ -22,7 +22,7 @@
  * tests for bigInteger
  */
 
-#include "util/bigInteger.h"
+#include "util/container/bigInteger.h"
 
 #include <stdlib.h>
 

@@ -22,8 +22,8 @@
  * big integers - used for string to double conversions
  */
 
-#ifndef TLC_UTIL_BIGNUM_H_
-#define TLC_UTIL_BIGNUM_H_
+#ifndef TLC_UTIL_CONTAINER_BIGNUM_H_
+#define TLC_UTIL_CONTAINER_BIGNUM_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -104,4 +104,4 @@ bool bigIntIsZero(BigInteger *integer);
  */
 void bigIntUninit(BigInteger *integer);
 
-#endif  // TLC_UTIL_BIGNUM_H_
+#endif  // TLC_UTIL_CONTAINER_BIGNUM_H_

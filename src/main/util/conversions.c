@@ -24,9 +24,8 @@
 
 #include "internalError.h"
 #include "numericSizing.h"
-#include "optimization.h"
-#include "util/bigInteger.h"
-#include "util/digitChain.h"
+#include "util/container/bigInteger.h"
+#include "util/container/digitChain.h"
 
 uint8_t charToU8(char c) {
   union {

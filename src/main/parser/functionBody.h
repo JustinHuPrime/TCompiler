@@ -29,7 +29,7 @@
 
 /**
  * parses all of the function bodies (unparsed nodes)
- * 
+ *
  * @param entry entry to read
  */
 void parseFunctionBody(FileListEntry *entry);

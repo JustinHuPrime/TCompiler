@@ -22,8 +22,8 @@
  * decimal digit chain - used for string to double conversions
  */
 
-#ifndef TLC_UTIL_DIGITCHAIN_H_
-#define TLC_UTIL_DIGITCHAIN_H_
+#ifndef TLC_UTIL_CONTAINER_DIGITCHAIN_H_
+#define TLC_UTIL_CONTAINER_DIGITCHAIN_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -74,4 +74,4 @@ bool digitChainIsZero(DigitChain *chain);
  */
 void digitChainUninit(DigitChain *chain);
 
-#endif  // TLC_UTIL_DIGITCHAIN_H_
+#endif  // TLC_UTIL_CONTAINER_DIGITCHAIN_H_

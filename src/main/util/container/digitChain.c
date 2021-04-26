@@ -17,7 +17,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "util/digitChain.h"
+#include "util/container/digitChain.h"
 
 #include <stdlib.h>
 #include <string.h>

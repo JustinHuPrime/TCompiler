@@ -17,7 +17,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "util/bigInteger.h"
+#include "util/container/bigInteger.h"
 
 #include <stdlib.h>
 
