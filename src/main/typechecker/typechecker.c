@@ -1031,7 +1031,10 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
     }
     case NT_SCOPEDID: {
       return exp->data.scopedId.type =
-                 typeCopy(exp->data.scopedId.entry->data.variable.type);
+                 exp->data.scopedId.entry->kind == SK_VARIABLE
+                     ? typeCopy(exp->data.scopedId.entry->data.variable.type)
+                     : referenceTypeCreate(
+                           exp->data.scopedId.entry->data.enumConst.parent);
     }
     case NT_ID: {
       return exp->data.id.type =
