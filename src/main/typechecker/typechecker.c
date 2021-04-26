@@ -147,8 +147,10 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                      typecheckExpression(exp->data.binOpExp.rhs, entry));
         }
         case BO_ASSIGN: {
-          Type const *lhsType = typecheckExpression(exp->data.binOpExp.lhs, entry);
-          Type const *rhsType = typecheckExpression(exp->data.binOpExp.rhs, entry);
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
 
           if (lhsType != NULL && rhsType != NULL &&
               !typeImplicitlyConvertable(rhsType, lhsType))
@@ -278,10 +280,120 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           return exp->data.binOpExp.type = typeCopy(lhsType);
         }
         case BO_ADDASSIGN: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && rhsType != NULL) {
+            if (typeNumeric(lhsType) && typeNumeric(rhsType)) {
+              Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+              if (merged == NULL) {
+                errorNoOp(entry, exp->line, exp->character,
+                          "an addition operation", lhsType, rhsType);
+              }
+
+              if (lhsType != NULL && merged != NULL &&
+                  !typeImplicitlyConvertable(merged, lhsType))
+                errorNoImplicitConversion(entry, exp->line, exp->character,
+                                          merged, lhsType);
+
+              if (!isLvalue(exp->data.binOpExp.lhs)) {
+                fprintf(stderr,
+                        "%s:%zu:%zu: error: cannot assign a value to an "
+                        "non-lvalue\n",
+                        entry->inputFilename, exp->line, exp->character);
+                entry->errored = true;
+              } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
+                         lhsType->data.qualified.constQual) {
+                fprintf(
+                    stderr,
+                    "%s:%zu:%zu: error: cannot assign a value to a constant "
+                    "variable\n",
+                    entry->inputFilename, exp->line, exp->character);
+                entry->errored = true;
+              }
+            } else if (typePointer(lhsType) && typeIntegral(rhsType)) {
+              if (!isLvalue(exp->data.binOpExp.lhs)) {
+                fprintf(stderr,
+                        "%s:%zu:%zu: error: cannot assign a value to an "
+                        "non-lvalue\n",
+                        entry->inputFilename, exp->line, exp->character);
+                entry->errored = true;
+              } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
+                         lhsType->data.qualified.constQual) {
+                fprintf(
+                    stderr,
+                    "%s:%zu:%zu: error: cannot assign a value to a constant "
+                    "variable\n",
+                    entry->inputFilename, exp->line, exp->character);
+                entry->errored = true;
+              }
+            } else {
+              errorNoOp(entry, exp->line, exp->character,
+                        "an additon operation", lhsType, rhsType);
+            }
+          }
+
+          return exp->data.binOpExp.type = typeCopy(lhsType);
         }
         case BO_SUBASSIGN: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && rhsType != NULL) {
+            if (typeNumeric(lhsType) && typeNumeric(rhsType)) {
+              Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+              if (merged == NULL) {
+                errorNoOp(entry, exp->line, exp->character,
+                          "a subtraction operation", lhsType, rhsType);
+              }
+
+              if (lhsType != NULL && merged != NULL &&
+                  !typeImplicitlyConvertable(merged, lhsType))
+                errorNoImplicitConversion(entry, exp->line, exp->character,
+                                          merged, lhsType);
+
+              if (!isLvalue(exp->data.binOpExp.lhs)) {
+                fprintf(stderr,
+                        "%s:%zu:%zu: error: cannot assign a value to an "
+                        "non-lvalue\n",
+                        entry->inputFilename, exp->line, exp->character);
+                entry->errored = true;
+              } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
+                         lhsType->data.qualified.constQual) {
+                fprintf(
+                    stderr,
+                    "%s:%zu:%zu: error: cannot assign a value to a constant "
+                    "variable\n",
+                    entry->inputFilename, exp->line, exp->character);
+                entry->errored = true;
+              }
+            } else if (typePointer(lhsType) && typeIntegral(rhsType)) {
+              if (!isLvalue(exp->data.binOpExp.lhs)) {
+                fprintf(stderr,
+                        "%s:%zu:%zu: error: cannot assign a value to an "
+                        "non-lvalue\n",
+                        entry->inputFilename, exp->line, exp->character);
+                entry->errored = true;
+              } else if (lhsType != NULL && lhsType->kind == TK_QUALIFIED &&
+                         lhsType->data.qualified.constQual) {
+                fprintf(
+                    stderr,
+                    "%s:%zu:%zu: error: cannot assign a value to a constant "
+                    "variable\n",
+                    entry->inputFilename, exp->line, exp->character);
+                entry->errored = true;
+              }
+            } else {
+              errorNoOp(entry, exp->line, exp->character,
+                        "a subtraction operation", lhsType, rhsType);
+            }
+          }
+
+          return exp->data.binOpExp.type = typeCopy(lhsType);
         }
         case BO_LSHIFTASSIGN: {
           return NULL;  // TODO
