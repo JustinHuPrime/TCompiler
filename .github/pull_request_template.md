@@ -1,11 +1,3 @@
----
-name: Pull request
-about: Contribute to the repository
-title: ''
-assignees: JustinHuPrime
-
----
-
 <!--- Provide a general summary of your changes in the Title above -->
 
 ## Description
