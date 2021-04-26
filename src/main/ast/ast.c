@@ -23,12 +23,12 @@
 #include <string.h>
 
 #include "fileList.h"
-#include "internalError.h"
 #include "lexer/lexer.h"
-#include "numericSizing.h"
 #include "util/container/stringBuilder.h"
 #include "util/conversions.h"
 #include "util/format.h"
+#include "util/internalError.h"
+#include "util/numericSizing.h"
 
 BinOpType assignmentTokenToBinop(TokenType token) {
   switch (token) {

@@ -26,12 +26,12 @@
 
 #include "ast/dump.h"
 #include "fileList.h"
-#include "internalError.h"
 #include "lexer/dump.h"
 #include "lexer/lexer.h"
 #include "options.h"
 #include "parser/parser.h"
 #include "typechecker/typechecker.h"
+#include "util/internalError.h"
 #include "version.h"
 
 /**

@@ -27,14 +27,14 @@
 #include "ast/environment.h"
 #include "common.h"
 #include "fileList.h"
-#include "internalError.h"
-#include "numericSizing.h"
 #include "options.h"
 #include "util/container/hashMap.h"
 #include "util/container/hashSet.h"
 #include "util/container/vector.h"
 #include "util/format.h"
 #include "util/functional.h"
+#include "util/internalError.h"
+#include "util/numericSizing.h"
 
 static bool fileListEntryArrayContains(FileListEntry **arry, size_t size,
                                        FileListEntry *f) {

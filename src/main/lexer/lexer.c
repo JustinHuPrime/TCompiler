@@ -30,11 +30,11 @@
 #include <unistd.h>
 
 #include "fileList.h"
-#include "internalError.h"
 #include "util/container/stringBuilder.h"
 #include "util/conversions.h"
 #include "util/format.h"
 #include "util/functional.h"
+#include "util/internalError.h"
 #include "util/string.h"
 #include "version.h"
 

@@ -25,9 +25,9 @@
 
 #include "buildStab.h"
 #include "fileList.h"
-#include "internalError.h"
 #include "parser/common.h"
 #include "util/conversions.h"
+#include "util/internalError.h"
 
 // token stuff
 

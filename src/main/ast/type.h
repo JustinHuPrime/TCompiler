@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "internalError.h"
 #include "util/container/vector.h"
 #include "util/format.h"
 

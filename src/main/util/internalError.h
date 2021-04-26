@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Justin Hu
+// Copyright 2019-2021 Justin Hu
 //
 // This file is part of the T Language Compiler.
 //
@@ -17,16 +17,25 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// implementation of internal compiler error handling
+/**
+ * @file
+ * reports and aborts on interal compiler errors
+ */
 
-#include "internalError.h"
+#ifndef TLC_UTIL_INTERNALERROR_H_
+#define TLC_UTIL_INTERNALERROR_H_
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stddef.h>
+#include <stdnoreturn.h>
 
-void error(char const *file, size_t line, char const *message) {
-  fprintf(stderr, "tlc: internal compiler error: %s:%zu: %s\n", file, line,
-          message);
-  fflush(stderr);
-  abort();
-}
+/**
+ * Report an internal compiler error. Error is specified as coming from the
+ * given file and line, with the given message
+ *
+ * @param file should be the macro \_\_FILE\_\_
+ * @param line should be the macro \_\_LINE\_\_
+ * @param message message to display
+ */
+noreturn void error(char const *file, size_t line, char const *message);
+
+#endif  // TLC_INTERNALERROR_H_

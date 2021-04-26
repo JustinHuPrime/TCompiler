@@ -22,6 +22,7 @@
 #include "ast/type.h"
 
 #include "ast/symbolTable.h"
+#include "util/internalError.h"
 
 static Type *typeCreate(TypeKind kind) {
   Type *t = malloc(sizeof(Type));
@@ -167,6 +168,51 @@ bool typeEqual(Type const *a, Type const *b) {
   }
 }
 bool typeImplicitlyConvertable(Type const *from, Type const *to) {
+  // strip CV qualification
+  if (from->kind == TK_QUALIFIED) from = from->data.qualified.base;
+  if (to->kind == TK_QUALIFIED) to = to->data.qualified.base;
+  // 2-one-of table - this implements 5.4.1
+  // to \ from + kwd | ptr | arry | funPtr | aggregate | ref
+  // kwd       | [1] | -----------------no------------------
+  // ptr       | no  | [2] | [3]  | -----------no-----------
+  // arry      | ---no---  | same | no     | [4]       | no
+  // funPtr    | -------no------- | same   | ------no-------
+  // ref       | -----------no------------ | [5]       | same
+
+  // [1]: keyword type conversions (5.4.1.1-6)
+  // to \ from + ub | b | c | us | s | ui | i | wc | ul | l | f | d | b
+  // ubyte     | y  | ------------------------no------------------------
+  // byte      | no | y | ----------------------no----------------------
+  // char      | --no-- | y | --------------------no--------------------
+  // ushort    | y  | -no-- | y  | -----------------no------------------
+  // short     | -yes-- | --no-- | y | ---------------no----------------
+  // uint      | y  | -no-- | y  | n | y  | -------------no-------------
+  // int       | -yes-- | n | -yes-- | n  | y | -----------no-----------
+  // wchar     | --no-- | y | ------no------- | y  | --------no---------
+  // ulong     | y  | -no-- | y  | n | y  | --no-- | y  | ------no------
+  // long      | -yes-- | n | ------yes------ | --no--- | y | ----no----
+  // float     | -yes-- | n | ------yes------ | no | ---yes---- | --no--
+  // double    | -yes-- | n | ------yes------ | no | -----yes------ | n
+  // bool      | ------------------------no------------------------ | y
+
+  // [2]: pointer type conversion (5.4.1.9) =
+  //          at least one is void ||
+  //          same ||
+  //          (both pointers && recurse)
+
+  // [3]: array to pointer decay (5.4.1.10) =
+  //          same ||
+  //          pointer is void
+
+  // [4]: aggregate initialization of arrays (5.4.1.8) =
+  //          aggregate.length == array.length &&
+  //          aggregate's types can implicit convert to array elements
+
+  // [5]: aggregate initialization of struct (5.4.1.7) =
+  //          ref is a struct &&
+  //          aggregate.length = struct.length
+  //          aggregate's types can implicit convert to struct fields
+
   return false;  // TODO
 }
 char *typeVectorToString(Vector const *v) {

@@ -22,8 +22,8 @@
  * numeric size and limit constants
  */
 
-#ifndef TLC_NUMERICSIZING_H_
-#define TLC_NUMERICSIZING_H_
+#ifndef TLC_UTIL_NUMERICSIZING_H_
+#define TLC_UTIL_NUMERICSIZING_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -64,4 +64,4 @@ extern int64_t const DOUBLE_EXPONENT_MAX;
 extern int64_t const DOUBLE_EXPONENT_MIN;
 extern int64_t const DOUBLE_EXPONENT_MIN_SUBNORMAL;
 
-#endif  // TLC_NUMERICSIZING_H_
+#endif  // TLC_UTIL_NUMERICSIZING_H_

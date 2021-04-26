@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "fileList.h"
-#include "internalError.h"
+#include "util/internalError.h"
 
 /**
  * static bool type to compare with for conditionals

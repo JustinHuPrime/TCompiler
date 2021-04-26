@@ -19,7 +19,7 @@
 
 // global constants
 
-#include "numericSizing.h"
+#include "util/numericSizing.h"
 
 size_t const BYTE_WIDTH = 1;
 size_t const SHORT_WIDTH = 2;

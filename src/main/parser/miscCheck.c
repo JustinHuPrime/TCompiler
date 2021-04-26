@@ -22,7 +22,7 @@
 #include <stdio.h>
 
 #include "fileList.h"
-#include "internalError.h"
+#include "util/internalError.h"
 
 /**
  * performs misc checks on a stmt
