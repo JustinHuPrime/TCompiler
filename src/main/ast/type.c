@@ -170,6 +170,49 @@ bool typeEqual(Type const *a, Type const *b) {
 static Type const *stripCV(Type const *t) {
   return t->kind == TK_QUALIFIED ? t->data.qualified.base : t;
 }
+/**
+ * is lhs at least as CV-qualfied as RHS?
+ */
+static bool atLeastAsCVQualified(Type const *lhs, Type const *rhs) {
+  if (rhs->kind != TK_QUALIFIED)
+    return true;  // none -> anything
+  else if (lhs->kind != TK_QUALIFIED)
+    return false;  // !(something -> none)
+  else
+    return (!rhs->data.qualified.constQual || lhs->data.qualified.constQual) &&
+           (!rhs->data.qualified.volatileQual ||
+            lhs->data.qualified.volatileQual);
+}
+/**
+ * implements pointer base implicit convertability @see
+ * typeImplicitlyConvertable
+ *
+ * [2]: pointer type conversion (5.4.1.9) =
+ *        at least as CV-qualified && (
+ *          from is void ||
+ *          to is void ||
+ *          same ||
+ *          (both pointers && recurse)
+ *        )
+ *
+ * @param from base type of the converted-from pointer type
+ * @param to base type of the converted-to pointer type
+ * @returns whether the converted-from type can be implicitly converted to the
+ * converted-to type
+ */
+static bool pointerBaseImplicitlyConvertable(Type const *from, Type const *to) {
+  Type const *fromBase = stripCV(from);
+  Type const *toBase = stripCV(to);
+  return atLeastAsCVQualified(to, from) &&
+         ((fromBase->kind == TK_KEYWORD &&
+           fromBase->data.keyword.keyword == TK_VOID) ||
+          (toBase->kind == TK_KEYWORD &&
+           toBase->data.keyword.keyword == TK_VOID) ||
+          typeEqual(fromBase, toBase) ||
+          (fromBase->kind == TK_POINTER && toBase->kind == TK_POINTER &&
+           pointerBaseImplicitlyConvertable(fromBase->data.pointer.base,
+                                            toBase->data.pointer.base)));
+}
 bool typeImplicitlyConvertable(Type const *from, Type const *to) {
   // strip CV qualification
   from = stripCV(from);
@@ -264,29 +307,45 @@ bool typeImplicitlyConvertable(Type const *from, Type const *to) {
     }
     return false;
   } else if (from->kind == TK_POINTER && to->kind == TK_POINTER) {
-    // [2]: pointer type conversion (5.4.1.9) =
-    //            at least as CV-qualified && (
-    //            at least one is void ||
-    //            same ||
-    //            (both pointers && recurse)
-    //          )
-    return false;  // TODO
+    return pointerBaseImplicitlyConvertable(from->data.pointer.base,
+                                            to->data.pointer.base);
   } else if (from->kind == TK_ARRAY && to->kind == TK_POINTER) {
     // [3]: array to pointer decay (5.4.1.10) =
     //          same ||
     //          at least as CV-qualfied && pointer is void
-    return false;  // TODO
+    Type const *toBase = stripCV(to->data.pointer.base);
+    return typeEqual(from->data.array.type, to->data.pointer.base) ||
+           (atLeastAsCVQualified(to->data.pointer.base,
+                                 from->data.array.type) &&
+            toBase->kind == TK_KEYWORD &&
+            toBase->data.keyword.keyword == TK_VOID);
   } else if (from->kind == TK_AGGREGATE && to->kind == TK_ARRAY) {
     // [4]: aggregate initialization of arrays (5.4.1.8) =
     //          aggregate.length == array.length &&
     //          aggregate's types can implicit convert to array elements
-    return false;  // TODO
+    if (from->data.aggregate.types.size != to->data.array.length) return false;
+    for (size_t idx = 0; idx < from->data.aggregate.types.size; ++idx) {
+      if (!typeImplicitlyConvertable(from->data.aggregate.types.elements[idx],
+                                     to->data.array.type))
+        return false;
+    }
+    return true;
   } else if (from->kind == TK_AGGREGATE && to->kind == TK_REFERENCE) {
     // [5]: aggregate initialization of struct (5.4.1.7) =
     //          ref is a struct &&
     //          aggregate.length = struct.length
     //          aggregate's types can implicit convert to struct fields
-    return false;  // TODO
+    SymbolTableEntry *entry = to->data.reference.entry;
+    if (entry->kind != SK_STRUCT || from->data.aggregate.types.size !=
+                                        entry->data.structType.fieldTypes.size)
+      return false;
+    for (size_t idx = 0; idx < from->data.aggregate.types.size; ++idx) {
+      if (!typeImplicitlyConvertable(
+              from->data.aggregate.types.elements[idx],
+              entry->data.structType.fieldTypes.elements[idx]))
+        return false;
+    }
+    return true;
   } else {
     return typeEqual(from, to);
   }
