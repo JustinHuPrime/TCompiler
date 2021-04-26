@@ -59,7 +59,258 @@ static void errorNoImplicitConversion(FileListEntry *entry, size_t line,
  * @param entry entry containing this expression
  */
 static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
-  return NULL;  // TODO
+  switch (exp->type) {
+    case NT_BINOPEXP: {
+      switch (exp->data.binOpExp.op) {
+        case BO_SEQ: {
+          return NULL;  // TODO
+        }
+        case BO_ASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_MULASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_DIVASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_MODASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_ADDASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_SUBASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_ARSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LRSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_BITANDASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_BITXORASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_BITORASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LANDASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LORASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LAND: {
+          return NULL;  // TODO
+        }
+        case BO_LOR: {
+          return NULL;  // TODO
+        }
+        case BO_BITAND: {
+          return NULL;  // TODO
+        }
+        case BO_BITOR: {
+          return NULL;  // TODO
+        }
+        case BO_BITXOR: {
+          return NULL;  // TODO
+        }
+        case BO_EQ: {
+          return NULL;  // TODO
+        }
+        case BO_NEQ: {
+          return NULL;  // TODO
+        }
+        case BO_LT: {
+          return NULL;  // TODO
+        }
+        case BO_GT: {
+          return NULL;  // TODO
+        }
+        case BO_LTEQ: {
+          return NULL;  // TODO
+        }
+        case BO_GTEQ: {
+          return NULL;  // TODO
+        }
+        case BO_SPACESHIP: {
+          return NULL;  // TODO
+        }
+        case BO_LSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_ARSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_LRSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_ADD: {
+          return NULL;  // TODO
+        }
+        case BO_SUB: {
+          return NULL;  // TODO
+        }
+        case BO_MUL: {
+          return NULL;  // TODO
+        }
+        case BO_DIV: {
+          return NULL;  // TODO
+        }
+        case BO_MOD: {
+          return NULL;  // TODO
+        }
+        case BO_FIELD: {
+          return NULL;  // TODO
+        }
+        case BO_PTRFIELD: {
+          return NULL;  // TODO
+        }
+        case BO_ARRAY: {
+          return NULL;  // TODO
+        }
+        case BO_CAST: {
+          return NULL;  // TODO}
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid binop encountered");
+        }
+      }
+    }
+    case NT_TERNARYEXP: {
+      return NULL;  // TODO
+    }
+    case NT_UNOPEXP: {
+      switch (exp->data.unOpExp.op) {
+        case UO_DEREF: {
+          return NULL;  // TODO
+        }
+        case UO_ADDROF: {
+          return NULL;  // TODO
+        }
+        case UO_PREINC: {
+          return NULL;  // TODO
+        }
+        case UO_PREDEC: {
+          return NULL;  // TODO
+        }
+        case UO_NEG: {
+          return NULL;  // TODO
+        }
+        case UO_LNOT: {
+          return NULL;  // TODO
+        }
+        case UO_BITNOT: {
+          return NULL;  // TODO
+        }
+        case UO_POSTINC: {
+          return NULL;  // TODO
+        }
+        case UO_POSTDEC: {
+          return NULL;  // TODO
+        }
+        case UO_NEGASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_LNOTASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_BITNOTASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_SIZEOFEXP: {
+          return NULL;  // TODO
+        }
+        case UO_SIZEOFTYPE: {
+          return NULL;  // TODO
+        }
+        case UO_PARENS: {
+          return NULL;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid unop encountered");
+        }
+      }
+    }
+    case NT_FUNCALLEXP: {
+      return NULL;  // TODO
+    }
+    case NT_LITERAL: {
+      switch (exp->data.literal.literalType) {
+        case LT_UBYTE: {
+          return NULL;  // TODO
+        }
+        case LT_BYTE: {
+          return NULL;  // TODO
+        }
+        case LT_USHORT: {
+          return NULL;  // TODO
+        }
+        case LT_SHORT: {
+          return NULL;  // TODO
+        }
+        case LT_UINT: {
+          return NULL;  // TODO
+        }
+        case LT_INT: {
+          return NULL;  // TODO
+        }
+        case LT_ULONG: {
+          return NULL;  // TODO
+        }
+        case LT_LONG: {
+          return NULL;  // TODO
+        }
+        case LT_FLOAT: {
+          return NULL;  // TODO
+        }
+        case LT_DOUBLE: {
+          return NULL;  // TODO
+        }
+        case LT_STRING: {
+          return NULL;  // TODO
+        }
+        case LT_CHAR: {
+          return NULL;  // TODO
+        }
+        case LT_WSTRING: {
+          return NULL;  // TODO
+        }
+        case LT_WCHAR: {
+          return NULL;  // TODO
+        }
+        case LT_BOOL: {
+          return NULL;  // TODO
+        }
+        case LT_NULL: {
+          return NULL;  // TODO
+        }
+        case LT_AGGREGATEINIT: {
+          return NULL;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid literal type encountered");
+        }
+      }
+    }
+    case NT_SCOPEDID: {
+      return NULL;  // TODO
+    }
+    case NT_ID: {
+      return NULL;  // TODO
+    }
+    default: {
+      // not an expression
+      error(__FILE__, __LINE__, "invalid expression encountered");
+    }
+  }
 }
 
 /**
