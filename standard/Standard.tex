@@ -728,7 +728,7 @@ The left-hand side must be a signed integral type for arithmetic-right-shift oep
 
 Addition and subtraction of two numeric operands performs the standard operation. Adding a pointer and an integer (in any order) or subtracting an integer from a pointer results in a new pointer after performing the standard operation, but with the integer multiplied by the size of the pointed-to type. Subtracting two pointers results in a difference which is then integer divided by the size of the pointed-to type.
 
-Addition and subtraction both support two numeric operands. Addition supports a pointer and any integral operand (in any order). Subtraction supports a pointer on the left hand side and any integral type on the right hand side. Subtraction also supports two pointers which, recursively ignoring the CV-qualfication of their base types, are the same.
+Addition and subtraction both support two numeric operands, producing the arithmetic type merge of their operands. Addition supports a pointer and any integral operand (in any order). Subtraction supports a pointer on the left hand side and any integral type on the right hand side. Both of those cases produce the pointer. Subtraction also supports two pointers which, ignoring the CV-qualfication of their base types, are the same, producing the longest signed integer type possible. In any case, a rvalue is produced.
 
 \subsection{Multiplication Operators}
 

@@ -168,7 +168,7 @@ bool typeEqual(Type const *a, Type const *b) {
     }
   }
 }
-static Type const *stripCV(Type const *t) {
+Type const *stripCV(Type const *t) {
   return t->kind == TK_QUALIFIED ? t->data.qualified.base : t;
 }
 /**

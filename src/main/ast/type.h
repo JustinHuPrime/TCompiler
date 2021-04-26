@@ -136,6 +136,10 @@ Type *typeCopy(Type const *);
  */
 bool typeEqual(Type const *a, Type const *b);
 /**
+ * remove any top-level CV-qualification
+ */
+Type const *stripCV(Type const *t);
+/**
  * is from implicitly convertable to to
  */
 bool typeImplicitlyConvertable(Type const *from, Type const *to);

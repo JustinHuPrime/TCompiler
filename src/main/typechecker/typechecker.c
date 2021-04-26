@@ -296,8 +296,8 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           if (lhsType != NULL && rhsType != NULL &&
               (!typeSignedIntegral(lhsType) ||
                !typeUnsignedIntegral(rhsType))) {
-            errorNoOp(entry, exp->line, exp->character, "an arithmetic shift operation",
-                      lhsType, rhsType);
+            errorNoOp(entry, exp->line, exp->character,
+                      "an arithmetic shift operation", lhsType, rhsType);
           }
 
           return exp->data.binOpExp.type = typeCopy(lhsType);
@@ -330,7 +330,32 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           }
         }
         case BO_SUB: {
-          return NULL;  // TODO
+          Type const *lhsType =
+              typecheckExpression(exp->data.binOpExp.lhs, entry);
+          Type const *rhsType =
+              typecheckExpression(exp->data.binOpExp.rhs, entry);
+
+          if (lhsType != NULL && rhsType != NULL) {
+            if (typeNumeric(lhsType) && typeNumeric(rhsType)) {
+              Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+              if (merged == NULL) {
+                errorNoOp(entry, exp->line, exp->character,
+                          "a subtraction operation", lhsType, rhsType);
+              }
+              return exp->data.binOpExp.type = merged;
+            } else if (typePointer(lhsType) && typeIntegral(rhsType)) {
+              return exp->data.binOpExp.type = typeCopy(lhsType);
+            } else if (typePointer(lhsType) && typePointer(rhsType) &&
+                       typeEqual(stripCV(lhsType), stripCV(rhsType))) {
+              return exp->data.binOpExp.type = keywordTypeCreate(TK_LONG);
+            } else {
+              errorNoOp(entry, exp->line, exp->character,
+                        "a subtraction operation", lhsType, rhsType);
+              return NULL;
+            }
+          } else {
+            return NULL;
+          }
         }
         case BO_MUL: {
           return NULL;  // TODO
