@@ -23,10 +23,8 @@
 #include <string.h>
 
 Options options = {
-    OPTION_W_ERROR,
-    OPTION_W_ERROR,
-    OPTION_W_ERROR,
-    OPTION_DD_NONE,
+    OPTION_W_ERROR, OPTION_W_ERROR,        OPTION_W_ERROR,
+    OPTION_DD_NONE, OPTION_A_X86_64_LINUX,
 };
 
 int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
@@ -64,6 +62,8 @@ int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
       options.dump = OPTION_DD_LEX;
     } else if (strcmp(argv[idx], "--debug-dump=parse") == 0) {
       options.dump = OPTION_DD_PARSE;
+    } else if (strcmp(argv[idx], "--arch=x86_64-linux") == 0) {
+      options.arch = OPTION_A_X86_64_LINUX;
     } else {
       fprintf(stderr, "tlc: error: options '%s' not recognized\n", argv[idx]);
       return -1;

@@ -93,18 +93,18 @@ static void testOptions(void) {
   retval = parseArgs(argc, argv0, &numFiles);
   test("command line with bad option fails", retval != 0);
 
-  // // --arch=x86_64-linux
-  // argc = 3;
-  // char const *const argv1[] = {
-  //     "./tlc",
-  //     "--arch=x86_64-linux",
-  //     "foo.tc",
-  // };
-  // retval = parseArgs(argc, argv1, &numFiles);
+  // --arch=x86_64-linux
+  argc = 3;
+  char const *const argv1[] = {
+      "./tlc",
+      "--arch=x86_64-linux",
+      "foo.tc",
+  };
+  retval = parseArgs(argc, argv1, &numFiles);
 
-  // test("command line with arch=x86_64-linux passes", retval == 0);
-  // test("arch=x86_64-linux option is correctly set",
-  //      options.arch == OPTION_A_X86_64_LINUX);
+  test("command line with arch=x86_64-linux passes", retval == 0);
+  test("arch=x86_64-linux option is correctly set",
+       options.arch == OPTION_A_X86_64_LINUX);
 
   // // -fPDC
   // argc = 3;

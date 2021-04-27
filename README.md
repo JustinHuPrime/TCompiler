@@ -23,11 +23,11 @@ Note that if a later option conflicts with an earlier option, the later option w
 
 * `--version`: overrides all other options, except for `--help` and its abbreviations, displays version and copyright information, and causes the compiler to immediately exit normally.
 
-<!-- #### Architecture
+#### Architecture
 
-* `--arch=x86_64-linux`: sets the target architecture to x86_64 on Linux (ELF w/ System V ABI). Default.
+* `--arch=x86_64-linux`: sets the target architecture to x86_64 Linux (ELF w/ System V ABI). Default.
 
-#### Code Generation
+<!-- #### Code Generation
 
 * `-fPDC`: generate fixed-position code. Default.
 

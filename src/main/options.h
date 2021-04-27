@@ -39,12 +39,17 @@ typedef enum {
   OPTION_DD_LEX,
   OPTION_DD_PARSE,
 } DebugDumpOption;
+/** Architecture options */
+typedef enum {
+  OPTION_A_X86_64_LINUX,
+} ArchOption;
 /** Holds options */
 typedef struct {
   WarningOption duplicateFile;
   WarningOption duplicateImport;
   WarningOption unrecognizedFile;
   DebugDumpOption dump;
+  ArchOption arch;
 } Options;
 
 /**

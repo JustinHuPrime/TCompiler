@@ -26,8 +26,10 @@ The compiler follows the standard pass structure, modified to support context-se
 - `src` contains the source code for the compiler and its tests
   - `main` contains the compiler
     - `ast` contains the definition of the abstract syntax tree, environments, symbol tables, and types
+    - `ir` contains the definition of the intermediate representation
     - `lexer` contains the lexer - while this could be a subfolder of `parser`, it's usable on its own, so it remains separate
     - `parser` contains the parser and symbol table builder
+    - `translation` contains the translation to IR
     - `typechecker` contains the type checker
     - `util` contains various utility functions
       - `container` contains data structures

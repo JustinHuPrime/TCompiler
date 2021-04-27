@@ -30,6 +30,7 @@
 #include "lexer/lexer.h"
 #include "options.h"
 #include "parser/parser.h"
+#include "translation/translation.h"
 #include "typechecker/typechecker.h"
 #include "util/internalError.h"
 #include "version.h"
@@ -137,10 +138,16 @@ int main(int argc, char **argv) {
   // typecheck
   if (typecheck() != 0) return CODE_TYPECHECK_ERROR;
 
+  // debug-dump stop for typechecking
+  // TODO: write this
+
   // source code optimization
   // TODO: write this
 
   // translate to IR
+  translate();
+
+  // debug-dump stop for IR
   // TODO: write this
 
   // middle-end
@@ -149,22 +156,25 @@ int main(int argc, char **argv) {
   // TODO: write this
 
   // back-end
-  // switch (options.arch) {
-  //   case OPTION_A_X86_64_LINUX: {
-  //     // assembly generation
+  switch (options.arch) {
+    case OPTION_A_X86_64_LINUX: {
+      // assembly generation
 
-  //     // assembly optimization part 1
-  //     // TODO: write this
+      // assembly optimization part 1
+      // TODO: write this
 
-  //     // register allocation
+      // register allocation
 
-  //     // assembly optimization part 2
-  //     // TODO: write this
+      // assembly optimization part 2
+      // TODO: write this
 
-  //     // write out
-  //     break;
-  //   }
-  // }
+      // write out
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "unrecognized architecture specified");
+    }
+  }
 
   return CODE_SUCCESS;
 }
