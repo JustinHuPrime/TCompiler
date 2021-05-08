@@ -1,4 +1,4 @@
-// Copyright 2021 Justin Hu
+// Copyright 2019, 2021 Justin Hu
 //
 // This file is part of the T Language Compiler.
 //
@@ -28,6 +28,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "util/container/vector.h"
+
 /** the type of a fragment */
 typedef enum {
   FT_BSS,
@@ -38,16 +40,108 @@ typedef enum {
 /** a fragment */
 typedef struct {
   FragmentType type;
+  char *name;
   union {
     struct {
       size_t alignment;
-      size_t length;
-      uint8_t *bytes;
+      Vector data; /**< Vector of IRDatum */
     } data;
     struct {
-      void *todo;  // TODO
+      Vector instructions; /**< vector of IRInstruction */
     } text;
   } data;
-} Fragment;
+} IRFrag;
+
+/** ctors */
+IRFrag *dataFragCreate(FragmentType type, char *name, size_t alignment);
+IRFrag *textFragCreate(char *name);
+
+/** the type of a datum */
+typedef enum {
+  DT_BYTE,
+  DT_SHORT,
+  DT_INT,
+  DT_LONG,
+  DT_PADDING,
+  DT_STRING,
+  DT_WSTRING,
+  DT_LABEL,
+} DatumType;
+/** a data element - handles endianness */
+typedef struct {
+  DatumType type;
+  union {
+    uint8_t byteVal;
+    uint16_t shortVal;
+    uint32_t intVal;
+    uint64_t longVal;
+    size_t paddingLength;
+    uint8_t *string;
+    uint32_t *wstring;
+    size_t label; /** gets formatted as ".L%zu" */
+  } data;
+} IRDatum;
+
+/** ctors */
+IRDatum *byteDatumCreate(uint8_t val);
+IRDatum *shortDatumCreate(uint16_t val);
+IRDatum *intDatumCreate(uint32_t val);
+IRDatum *longDatumCreate(uint64_t val);
+IRDatum *paddingDatumCreate(size_t len);
+IRDatum *stringDatumCreate(uint8_t *string);
+IRDatum *wstringDatumCreate(uint32_t *wstring);
+IRDatum *labelDatumCreate(size_t label);
+
+/** allocation hints for temps */
+typedef enum {
+  AH_GP,  /** integer-like things */
+  AH_MEM, /** structs, arrays, unions */
+  AH_FP,  /** floating-points */
+} AllocHint;
+/** the kind of an operand */
+typedef enum {
+  OK_TEMP,
+  OK_REG,
+  OK_CONSTANT,
+  OK_LABEL,
+  OK_ASM,
+} OperandKind;
+/** an operand in an IR entry */
+typedef struct IROperand {
+  OperandKind kind;
+  union {
+    struct {
+      size_t name;
+      size_t alignment;
+      size_t size;
+      AllocHint kind;
+    } temp;
+    struct {
+      size_t name;  // specific to the target architecture
+    } reg;
+    struct {
+      IRDatum *value;
+    } constant;
+    struct {
+      char *assembly;
+    } assembly;
+  } data;
+} IROperand;
+
+/** an ir operator */
+typedef enum IROperator {
+  IO_ASM,    // inline assembly: arg1 = assembly (constant)
+  IO_LABEL,  // label the next entry: arg1 = label name (constant)
+  IO_MOVE,   // move to temp or reg: opSize = sizeof(target), dest = target reg
+             // or temp, arg1 = source
+} IROperator;
+/** ir instruction */
+typedef struct {
+  IROperator op;
+  size_t opSize;
+  IROperand *dest;
+  IROperand *arg1;
+  IROperand *arg2;
+} IRInstruction;
 
 #endif  // TLC_IR_IR_H_
