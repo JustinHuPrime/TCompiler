@@ -627,6 +627,12 @@ Type *comparisonTypeMerge(Type const *a, Type const *b) {
     return NULL;
   }
 }
+size_t typeSizeof(Type const *t) {
+  return 0;  // TODO
+}
+size_t typeAlignof(Type const *t) {
+  return 0;  // TODO
+}
 char *typeVectorToString(Vector const *v) {
   if (v->size == 0) {
     return strdup("");

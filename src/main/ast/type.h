@@ -204,6 +204,14 @@ Type *ternaryTypeMerge(Type const *a, Type const *b);
  */
 Type *comparisonTypeMerge(Type const *a, Type const *b);
 /**
+ * produce the size of a type
+ */
+size_t typeSizeof(Type const *t);
+/**
+ * produce the alignment of a type
+ */
+size_t typeAlignof(Type const *t);
+/**
  * format a list of types
  */
 char *typeVectorToString(Vector const *v);
