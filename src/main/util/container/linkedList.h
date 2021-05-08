@@ -45,7 +45,7 @@ typedef struct {
 /**
  * ctor
  */
-LinkedList *linkedListCreate(void);
+void linkedListInit(LinkedList *l);
 /**
  * insertions
  */
@@ -60,6 +60,6 @@ void *remove(ListNode *n);
 /**
  * dtor
  */
-void linkedListFree(LinkedList *l, void (*dtor)(void *));
+void linkedListUninit(LinkedList *l, void (*dtor)(void *));
 
 #endif  // TLC_UTIL_CONTAINER_LINKEDLIST_H_

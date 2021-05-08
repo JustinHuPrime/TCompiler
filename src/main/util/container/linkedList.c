@@ -21,8 +21,7 @@
 
 #include <stdlib.h>
 
-LinkedList *linkedListCreate(void) {
-  LinkedList *l = malloc(sizeof(LinkedList));
+void linkedListInit(LinkedList *l) {
   l->head = malloc(sizeof(ListNode));
   l->tail = malloc(sizeof(ListNode));
   l->head->next = l->tail;
@@ -31,7 +30,6 @@ LinkedList *linkedListCreate(void) {
   l->tail->next = NULL;
   l->tail->prev = l->head;
   l->tail->data = NULL;
-  return l;
 }
 void insertAfter(ListNode *n, void *data) {
   ListNode *newNode = malloc(sizeof(ListNode));
@@ -54,11 +52,10 @@ void *remove(ListNode *n) {
   free(n);
   return retval;
 }
-void linkedListFree(LinkedList *l, void (*dtor)(void *)) {
+void linkedListUninit(LinkedList *l, void (*dtor)(void *)) {
   while (l->head->next != l->tail) {
     dtor(remove(l->head->next));
   }
   free(l->head);
   free(l->tail);
-  free(l);
 }
