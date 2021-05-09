@@ -62,6 +62,8 @@ int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
       options.dump = OPTION_DD_LEX;
     } else if (strcmp(argv[idx], "--debug-dump=parse") == 0) {
       options.dump = OPTION_DD_PARSE;
+    } else if (strcmp(argv[idx], "--debug-dump=ir") == 0) {
+      options.dump = OPTION_DD_IR;
     } else if (strcmp(argv[idx], "--arch=x86_64-linux") == 0) {
       options.arch = OPTION_A_X86_64_LINUX;
     } else {

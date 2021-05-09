@@ -26,6 +26,7 @@
 
 #include "ast/dump.h"
 #include "fileList.h"
+#include "ir/dump.h"
 #include "lexer/dump.h"
 #include "lexer/lexer.h"
 #include "options.h"
@@ -148,7 +149,13 @@ int main(int argc, char **argv) {
   translate();
 
   // debug-dump stop for IR
-  // TODO: write this
+  if (options.dump == OPTION_DD_IR) {
+    for (size_t idx = 0; idx < fileList.size; ++idx) {
+      if (fileList.entries[idx].isCode) {
+        irDump(stderr, &fileList.entries[idx]);
+      }
+    }
+  }
 
   // middle-end
 

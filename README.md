@@ -65,7 +65,7 @@ The option `--debug-dump` can be set to 3 values:
 
 * `--debug-dump=parse`: dumps the results of the parse phase
 
-<!-- * `--debug-dump=ir`: dumps the results of the translate to IR phase -->
+* `--debug-dump=ir`: dumps the results of the translate to IR phase
 
 <!-- * `--debug-dump=asm-1`: dumps the results of phase one assembly translation (note that phases are architecture specific)
 

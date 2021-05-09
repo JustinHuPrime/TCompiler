@@ -248,7 +248,7 @@ static void testOptions(void) {
   test("command line with debug-dump=lex passes", retval == 0);
   test("debug-dump lex option is correctly set", options.dump == OPTION_DD_LEX);
 
-  // --debug-dump=parse-structure
+  // --debug-dump=parse
   argc = 3;
   char const *const argv13[] = {
       "./tlc",
@@ -260,6 +260,18 @@ static void testOptions(void) {
   test("command line with debug-dump=parse passes", retval == 0);
   test("debug-dump parse option is correctly set",
        options.dump == OPTION_DD_PARSE);
+
+  // --debug-dump=ir
+  argc = 3;
+  char const *const argv14[] = {
+      "./tlc",
+      "--debug-dump=ir",
+      "foo.tc",
+  };
+  retval = parseArgs(argc, argv14, &numFiles);
+
+  test("command line with debug-dump=ir passes", retval == 0);
+  test("debug-dump ir option is correctly set", options.dump == OPTION_DD_IR);
 }
 
 void testCommandLineArgs(void) {
