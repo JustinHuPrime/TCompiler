@@ -103,7 +103,6 @@ typedef enum {
   OK_TEMP,
   OK_REG,
   OK_CONSTANT,
-  OK_LABEL,
   OK_ASM,
 } OperandKind;
 /** an operand in an IR entry */
@@ -132,13 +131,11 @@ typedef struct IROperand {
 typedef enum IROperator {
   IO_ASM,    // inline assembly: arg1 = assembly (constant)
   IO_LABEL,  // label the next entry: arg1 = label name (constant)
-  IO_MOVE,   // move to temp or reg: opSize = sizeof(target), dest = target reg
-             // or temp, arg1 = source
+  IO_MOVE,   // move to temp or reg: dest = target reg or temp, arg1 = source
 } IROperator;
 /** ir instruction */
 typedef struct {
   IROperator op;
-  size_t opSize;
   IROperand *dest;
   IROperand *arg1;
   IROperand *arg2;

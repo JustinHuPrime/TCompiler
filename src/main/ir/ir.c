@@ -21,7 +21,7 @@
 
 #include <stdlib.h>
 
-IRFrag *fragCreate(FragmentType type, char *name) {
+static IRFrag *fragCreate(FragmentType type, char *name) {
   IRFrag *df = malloc(sizeof(IRFrag));
   df->type = type;
   df->name = name;
