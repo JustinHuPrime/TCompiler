@@ -45,6 +45,8 @@ int main(int argc, char *argv[]) {
   if (argc <= 1 || containsString((size_t)argc, argv, "parser")) testParser();
   if (argc <= 1 || containsString((size_t)argc, argv, "typechecker"))
     testTypechecker();
+  if (argc <= 1 || containsString((size_t)argc, argv, "translation"))
+    testTranslation();
 
   return testStatusStatus();
 }

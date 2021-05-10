@@ -37,5 +37,7 @@ void testLexer(void);
 void testParser(void);
 /** tests the typechecker */
 void testTypechecker(void);
+/** tests translation */
+void testTranslation(void);
 
 #endif  // TLC_TEST_TESTS_H_

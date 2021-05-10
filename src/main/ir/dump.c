@@ -40,7 +40,7 @@ static void datumDump(FILE *where, IRDatum *datum) {
       break;
     }
     case DT_INT: {
-      fprintf(where, "INT(%hu)", datum->data.intVal);
+      fprintf(where, "INT(%u)", datum->data.intVal);
       break;
     }
     case DT_LONG: {
@@ -127,11 +127,12 @@ static void instructionDump(FILE *where, IRInstruction *i) {
 static void fragDump(FILE *where, IRFrag *frag) {
   switch (frag->type) {
     case FT_BSS: {
-      fprintf(where, "BSS(%zu)\n", frag->data.data.alignment);
+      fprintf(where, "BSS(%s, %zu)\n", frag->name, frag->data.data.alignment);
       break;
     }
     case FT_RODATA: {
-      fprintf(where, "RODATA(%zu\n", frag->data.data.alignment);
+      fprintf(where, "RODATA(%s, %zu,\n", frag->name,
+              frag->data.data.alignment);
       for (size_t idx = 0; idx < frag->data.data.data.size; ++idx) {
         fprintf(where, "  ");
         datumDump(where, frag->data.data.data.elements[idx]);
@@ -141,7 +142,7 @@ static void fragDump(FILE *where, IRFrag *frag) {
       break;
     }
     case FT_DATA: {
-      fprintf(where, "DATA(%zu\n", frag->data.data.alignment);
+      fprintf(where, "DATA(%s, %zu,\n", frag->name, frag->data.data.alignment);
       for (size_t idx = 0; idx < frag->data.data.data.size; ++idx) {
         fprintf(where, "  ");
         datumDump(where, frag->data.data.data.elements[idx]);
@@ -151,7 +152,7 @@ static void fragDump(FILE *where, IRFrag *frag) {
       break;
     }
     case FT_TEXT: {
-      fprintf(where, "TEXT(\n");
+      fprintf(where, "TEXT(%s,\n", frag->name);
       for (size_t idx = 0; idx < frag->data.text.instructions.size; ++idx) {
         fprintf(where, "  ");
         instructionDump(where, frag->data.text.instructions.elements[idx]);
