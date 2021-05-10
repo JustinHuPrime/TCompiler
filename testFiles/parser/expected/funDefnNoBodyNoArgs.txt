@@ -1,2 +1,2 @@
-testFiles/parser/funDefnNoBodyNoArgs.tc (code):
-FILE(1, 1, STAB(ENTRY(bar, FUNCTION(testFiles/parser/funDefnNoBodyNoArgs.tc, 3, 1, void()))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), FUNDEFN(3, 1, KEYWORDTYPE(3, 1, void), ID(3, 6, bar, REFERENCES(testFiles/parser/funDefnNoBodyNoArgs.tc, 3, 1)), STAB(), COMPOUNDSTMT(3, 12, STAB())))
+testFiles/parser/input/funDefnNoBodyNoArgs.tc (code):
+FILE(1, 1, STAB(ENTRY(bar, FUNCTION(testFiles/parser/input/funDefnNoBodyNoArgs.tc, 3, 1, void()))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), FUNDEFN(3, 1, KEYWORDTYPE(3, 1, void), ID(3, 6, bar, REFERENCES(testFiles/parser/input/funDefnNoBodyNoArgs.tc, 3, 1)), STAB(), COMPOUNDSTMT(3, 12, STAB())))

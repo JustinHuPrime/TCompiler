@@ -1,2 +1,2 @@
-testFiles/parser/varDefnOneIdNoInit.tc (code):
-FILE(1, 1, STAB(ENTRY(bar, VARIABLE(testFiles/parser/varDefnOneIdNoInit.tc, 3, 5, int))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), VARDEFN(3, 1, KEYWORDTYPE(3, 1, int), ID(3, 5, bar, REFERENCES(testFiles/parser/varDefnOneIdNoInit.tc, 3, 5)), (null)))
+testFiles/parser/input/varDefnOneIdNoInit.tc (code):
+FILE(1, 1, STAB(ENTRY(bar, VARIABLE(testFiles/parser/input/varDefnOneIdNoInit.tc, 3, 5, int))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), VARDEFN(3, 1, KEYWORDTYPE(3, 1, int), ID(3, 5, bar, REFERENCES(testFiles/parser/input/varDefnOneIdNoInit.tc, 3, 5)), (null)))

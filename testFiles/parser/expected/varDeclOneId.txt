@@ -1,2 +1,2 @@
-testFiles/parser/varDeclOneId.td (declaration):
-FILE(1, 1, STAB(ENTRY(bar, VARIABLE(testFiles/parser/varDeclOneId.td, 3, 5, int))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), VARDECL(3, 1, KEYWORDTYPE(3, 1, int), ID(3, 5, bar, REFERENCES(testFiles/parser/varDeclOneId.td, 3, 5))))
+testFiles/parser/input/varDeclOneId.td (declaration):
+FILE(1, 1, STAB(ENTRY(bar, VARIABLE(testFiles/parser/input/varDeclOneId.td, 3, 5, int))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), VARDECL(3, 1, KEYWORDTYPE(3, 1, int), ID(3, 5, bar, REFERENCES(testFiles/parser/input/varDeclOneId.td, 3, 5))))

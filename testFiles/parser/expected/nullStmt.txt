@@ -1,2 +1,2 @@
-testFiles/parser/nullStmt.tc (code):
-FILE(1, 1, STAB(ENTRY(bar, FUNCTION(testFiles/parser/nullStmt.tc, 3, 1, void()))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), FUNDEFN(3, 1, KEYWORDTYPE(3, 1, void), ID(3, 6, bar, REFERENCES(testFiles/parser/nullStmt.tc, 3, 1)), STAB(), COMPOUNDSTMT(3, 12, STAB(), NULLSTMT(4, 3))))
+testFiles/parser/input/nullStmt.tc (code):
+FILE(1, 1, STAB(ENTRY(bar, FUNCTION(testFiles/parser/input/nullStmt.tc, 3, 1, void()))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), FUNDEFN(3, 1, KEYWORDTYPE(3, 1, void), ID(3, 6, bar, REFERENCES(testFiles/parser/input/nullStmt.tc, 3, 1)), STAB(), COMPOUNDSTMT(3, 12, STAB(), NULLSTMT(4, 3))))

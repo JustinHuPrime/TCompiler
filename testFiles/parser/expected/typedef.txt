@@ -1,2 +1,2 @@
-testFiles/parser/typedef.tc (code):
-FILE(1, 1, STAB(ENTRY(bar, TYEPDEF(testFiles/parser/typedef.tc, 3, 1, char **))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), TYPEDEFDECL(3, 1, ID(3, 16, bar, REFERENCES(testFiles/parser/typedef.tc, 3, 1)), MODIFIEDTYPE(3, 9, POINTER, MODIFIEDTYPE(3, 9, POINTER, KEYWORDTYPE(3, 9, char)))))
+testFiles/parser/input/typedef.tc (code):
+FILE(1, 1, STAB(ENTRY(bar, TYEPDEF(testFiles/parser/input/typedef.tc, 3, 1, char **))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), TYPEDEFDECL(3, 1, ID(3, 16, bar, REFERENCES(testFiles/parser/input/typedef.tc, 3, 1)), MODIFIEDTYPE(3, 9, POINTER, MODIFIEDTYPE(3, 9, POINTER, KEYWORDTYPE(3, 9, char)))))

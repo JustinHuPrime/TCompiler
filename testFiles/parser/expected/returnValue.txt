@@ -1,2 +1,2 @@
-testFiles/parser/returnValue.tc (code):
-FILE(1, 1, STAB(ENTRY(bar, FUNCTION(testFiles/parser/returnValue.tc, 3, 1, int()))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), FUNDEFN(3, 1, KEYWORDTYPE(3, 1, int), ID(3, 5, bar, REFERENCES(testFiles/parser/returnValue.tc, 3, 1)), STAB(), COMPOUNDSTMT(3, 11, STAB(), RETURNSTMT(4, 3, LITERAL(4, 10, UBYTE(27))))))
+testFiles/parser/input/returnValue.tc (code):
+FILE(1, 1, STAB(ENTRY(bar, FUNCTION(testFiles/parser/input/returnValue.tc, 3, 1, int()))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), FUNDEFN(3, 1, KEYWORDTYPE(3, 1, int), ID(3, 5, bar, REFERENCES(testFiles/parser/input/returnValue.tc, 3, 1)), STAB(), COMPOUNDSTMT(3, 11, STAB(), RETURNSTMT(4, 3, LITERAL(4, 10, UBYTE(27))))))

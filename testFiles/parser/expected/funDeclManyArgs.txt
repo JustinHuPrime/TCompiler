@@ -1,2 +1,2 @@
-testFiles/parser/funDeclManyArgs.td (declaration):
-FILE(1, 1, STAB(ENTRY(bar, FUNCTION(testFiles/parser/funDeclManyArgs.td, 3, 1, void(int, char *)))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), FUNDECL(3, 1, KEYWORDTYPE(3, 1, void), ID(3, 6, bar, REFERENCES(testFiles/parser/funDeclManyArgs.td, 3, 1)), KEYWORDTYPE(3, 10, int), MODIFIEDTYPE(3, 15, POINTER, KEYWORDTYPE(3, 15, char)), (null), ID(3, 21, arg2, REFERENCES())))
+testFiles/parser/input/funDeclManyArgs.td (declaration):
+FILE(1, 1, STAB(ENTRY(bar, FUNCTION(testFiles/parser/input/funDeclManyArgs.td, 3, 1, void(int, char *)))), MODULE(1, 1, ID(1, 8, foo, REFERENCES())), FUNDECL(3, 1, KEYWORDTYPE(3, 1, void), ID(3, 6, bar, REFERENCES(testFiles/parser/input/funDeclManyArgs.td, 3, 1)), KEYWORDTYPE(3, 10, int), MODIFIEDTYPE(3, 15, POINTER, KEYWORDTYPE(3, 15, char)), (null), ID(3, 21, arg2, REFERENCES())))
