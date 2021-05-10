@@ -77,9 +77,8 @@ static void testModuleParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/moduleWithId.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/moduleWithId.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -89,9 +88,8 @@ static void testModuleParser(void) {
       dumpEqual(&entries[0], "testFiles/parser/expected/moduleWithId.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/moduleWithScopedId.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/moduleWithScopedId.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -107,12 +105,9 @@ static void testImportParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 2;
 
-  entries[0].inputFilename = "testFiles/parser/input/importWithId.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
-  entries[1].inputFilename = "testFiles/parser/input/target.td";
-  entries[1].isCode = false;
-  entries[1].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/importWithId.tc",
+                    true);
+  fileListEntryInit(&entries[1], "testFiles/parser/input/target.td", false);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -123,12 +118,10 @@ static void testImportParser(void) {
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/importWithScopedId.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
-  entries[1].inputFilename = "testFiles/parser/input/targetWithScope.td";
-  entries[1].isCode = false;
-  entries[1].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/importWithScopedId.tc",
+                    true);
+  fileListEntryInit(&entries[1], "testFiles/parser/input/targetWithScope.td",
+                    false);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -140,15 +133,11 @@ static void testImportParser(void) {
   nodeFree(entries[1].ast);
 
   fileList.size = 3;
-  entries[0].inputFilename = "testFiles/parser/input/multipleImports.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
-  entries[1].inputFilename = "testFiles/parser/input/target.td";
-  entries[1].isCode = false;
-  entries[1].errored = false;
-  entries[2].inputFilename = "testFiles/parser/input/targetWithScope.td";
-  entries[2].isCode = false;
-  entries[2].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/multipleImports.tc",
+                    true);
+  fileListEntryInit(&entries[1], "testFiles/parser/input/target.td", false);
+  fileListEntryInit(&entries[2], "testFiles/parser/input/targetWithScope.td",
+                    false);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -166,9 +155,8 @@ static void testFunDefnParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/funDefnNoBodyNoArgs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/funDefnNoBodyNoArgs.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -178,9 +166,8 @@ static void testFunDefnParser(void) {
                         "testFiles/parser/expected/funDefnNoBodyNoArgs.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/funDefnNoBodyOneArg.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/funDefnNoBodyOneArg.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -190,9 +177,8 @@ static void testFunDefnParser(void) {
                         "testFiles/parser/expected/funDefnNoBodyOneArg.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/funDefnNoBodyManyArgs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/funDefnNoBodyManyArgs.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -202,9 +188,8 @@ static void testFunDefnParser(void) {
                         "testFiles/parser/expected/funDefnNoBodyManyArgs.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/funDefnOneBodyNoArgs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/funDefnOneBodyNoArgs.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -214,10 +199,8 @@ static void testFunDefnParser(void) {
                         "testFiles/parser/expected/funDefnOneBodyNoArgs.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename =
-      "testFiles/parser/input/funDefnManyBodiesNoArgs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/funDefnManyBodiesNoArgs.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -234,9 +217,8 @@ static void testVarDefnParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/varDefnOneIdNoInit.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/varDefnOneIdNoInit.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -246,9 +228,8 @@ static void testVarDefnParser(void) {
                         "testFiles/parser/expected/varDefnOneIdNoInit.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/varDefnOneIdWithInit.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/varDefnOneIdWithInit.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -258,9 +239,7 @@ static void testVarDefnParser(void) {
                         "testFiles/parser/expected/varDefnOneIdWithInit.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/varDefnMany.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/varDefnMany.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -276,12 +255,9 @@ static void testFunDeclParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 2;
 
-  entries[0].inputFilename = "testFiles/parser/input/funDeclNoArgs.td";
-  entries[0].isCode = false;
-  entries[0].errored = false;
-  entries[1].inputFilename = "testFiles/parser/input/empty.tc";
-  entries[1].isCode = true;
-  entries[1].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/funDeclNoArgs.td",
+                    false);
+  fileListEntryInit(&entries[1], "testFiles/parser/input/empty.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -292,10 +268,8 @@ static void testFunDeclParser(void) {
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/funDeclOneArg.td";
-  entries[0].isCode = false;
-  entries[0].errored = false;
-  entries[1].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/funDeclOneArg.td",
+                    false);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -306,10 +280,8 @@ static void testFunDeclParser(void) {
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/funDeclManyArgs.td";
-  entries[0].isCode = false;
-  entries[0].errored = false;
-  entries[1].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/funDeclManyArgs.td",
+                    false);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -326,12 +298,9 @@ static void testVarDeclParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 2;
 
-  entries[0].inputFilename = "testFiles/parser/input/varDeclOneId.td";
-  entries[0].isCode = false;
-  entries[0].errored = false;
-  entries[1].inputFilename = "testFiles/parser/input/empty.tc";
-  entries[1].isCode = true;
-  entries[1].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/varDeclOneId.td",
+                    false);
+  fileListEntryInit(&entries[1], "testFiles/parser/input/empty.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -342,10 +311,8 @@ static void testVarDeclParser(void) {
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/varDeclManyIds.td";
-  entries[0].isCode = false;
-  entries[0].errored = false;
-  entries[1].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/varDeclManyIds.td",
+                    false);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -362,12 +329,9 @@ static void testOpaqueDeclParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 2;
 
-  entries[0].inputFilename = "testFiles/parser/input/opaqueNoDefn.td";
-  entries[0].isCode = false;
-  entries[0].errored = false;
-  entries[1].inputFilename = "testFiles/parser/input/empty.tc";
-  entries[1].isCode = true;
-  entries[1].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/opaqueNoDefn.td",
+                    false);
+  fileListEntryInit(&entries[1], "testFiles/parser/input/empty.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -378,12 +342,10 @@ static void testOpaqueDeclParser(void) {
   nodeFree(entries[0].ast);
   nodeFree(entries[1].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/opaqueWithDefn.td";
-  entries[0].isCode = false;
-  entries[0].errored = false;
-  entries[1].inputFilename = "testFiles/parser/input/opaqueWithDefn.tc";
-  entries[1].isCode = true;
-  entries[1].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/opaqueWithDefn.td",
+                    false);
+  fileListEntryInit(&entries[1], "testFiles/parser/input/opaqueWithDefn.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -400,9 +362,8 @@ static void testStructDeclParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/structOneField.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/structOneField.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -412,9 +373,8 @@ static void testStructDeclParser(void) {
       dumpEqual(&entries[0], "testFiles/parser/expected/structOneField.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/structManyFields.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/structManyFields.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -430,9 +390,8 @@ static void testUnionDeclParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/unionOneOption.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/unionOneOption.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -442,9 +401,8 @@ static void testUnionDeclParser(void) {
       dumpEqual(&entries[0], "testFiles/parser/expected/unionOneOption.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/unionManyOptions.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/unionManyOptions.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -460,9 +418,8 @@ static void testEnumDeclParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/enumOneConstant.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/enumOneConstant.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -472,9 +429,8 @@ static void testEnumDeclParser(void) {
       dumpEqual(&entries[0], "testFiles/parser/expected/enumOneConstant.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/enumManyConstants.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/enumManyConstants.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -484,9 +440,8 @@ static void testEnumDeclParser(void) {
                         "testFiles/parser/expected/enumManyConstants.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/enumLiteralInit.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/enumLiteralInit.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -496,9 +451,8 @@ static void testEnumDeclParser(void) {
       dumpEqual(&entries[0], "testFiles/parser/expected/enumLiteralInit.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/enumEnumInit.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/enumEnumInit.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -514,9 +468,7 @@ static void testTypedefDeclParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/typedef.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/typedef.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -531,9 +483,8 @@ static void testCompoundStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/compoundStmtOneStmt.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/compoundStmtOneStmt.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -543,9 +494,8 @@ static void testCompoundStmtParser(void) {
                         "testFiles/parser/expected/compoundStmtOneStmt.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/compoundStmtManyStmts.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/compoundStmtManyStmts.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -555,10 +505,8 @@ static void testCompoundStmtParser(void) {
                         "testFiles/parser/expected/compoundStmtManyStmts.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename =
-      "testFiles/parser/input/compoundStmtNestedStmts.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/compoundStmtNestedStmts.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -575,9 +523,7 @@ static void testIfStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/ifNoElse.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/ifNoElse.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -586,9 +532,7 @@ static void testIfStmtParser(void) {
               dumpEqual(&entries[0], "testFiles/parser/expected/ifNoElse.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/ifWithElse.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/ifWithElse.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -598,9 +542,8 @@ static void testIfStmtParser(void) {
       dumpEqual(&entries[0], "testFiles/parser/expected/ifWithElse.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/ifWithCompoundStmts.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/ifWithCompoundStmts.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -616,9 +559,7 @@ static void testWhileStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/while.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/while.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -633,9 +574,7 @@ static void testDoWhileStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/doWhile.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/doWhile.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -650,9 +589,8 @@ static void testForStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/forNoInitNoIncrement.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/forNoInitNoIncrement.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -662,9 +600,8 @@ static void testForStmtParser(void) {
                         "testFiles/parser/expected/forNoInitNoIncrement.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/forWithInitNoIncrement.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/forWithInitNoIncrement.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -675,9 +612,8 @@ static void testForStmtParser(void) {
                 "testFiles/parser/expected/forWithInitNoIncrement.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/forNoInitWithIncrement.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/forNoInitWithIncrement.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -688,10 +624,8 @@ static void testForStmtParser(void) {
                 "testFiles/parser/expected/forNoInitWithIncrement.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename =
-      "testFiles/parser/input/forWithInitWithIncrement.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/forWithInitWithIncrement.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -708,9 +642,8 @@ static void testSwitchStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/switchStmtOneCase.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/switchStmtOneCase.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -720,9 +653,8 @@ static void testSwitchStmtParser(void) {
                         "testFiles/parser/expected/switchStmtOneCase.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/switchStmtManyCases.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/switchStmtManyCases.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -738,9 +670,7 @@ static void testBreakStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/break.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/break.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -755,9 +685,7 @@ static void testContinueStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/continue.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/continue.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -772,9 +700,7 @@ static void testReturnStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/returnVoid.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/returnVoid.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -784,9 +710,7 @@ static void testReturnStmtParser(void) {
       dumpEqual(&entries[0], "testFiles/parser/expected/returnVoid.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/returnValue.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/returnValue.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -802,9 +726,7 @@ static void testAsmStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/asm.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/asm.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -819,9 +741,8 @@ static void testVariableDefinitionStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/varDefnStmtOneVar.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/varDefnStmtOneVar.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -831,9 +752,8 @@ static void testVariableDefinitionStmtParser(void) {
                         "testFiles/parser/expected/varDefnStmtOneVar.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/varDefnStmtManyVars.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/varDefnStmtManyVars.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -843,9 +763,8 @@ static void testVariableDefinitionStmtParser(void) {
                         "testFiles/parser/expected/varDefnStmtManyVars.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/varDefnStmtExprInit.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/varDefnStmtExprInit.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -855,9 +774,8 @@ static void testVariableDefinitionStmtParser(void) {
                         "testFiles/parser/expected/varDefnStmtExprInit.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/varDefnStmtMultiInit.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/varDefnStmtMultiInit.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -873,9 +791,7 @@ static void testExpressionStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/expression.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/expression.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -891,9 +807,8 @@ static void testOpaqueDeclStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/opaqueDeclStmtNoDefn.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/opaqueDeclStmtNoDefn.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -903,9 +818,8 @@ static void testOpaqueDeclStmtParser(void) {
                         "testFiles/parser/expected/opaqueDeclStmtNoDefn.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/opaqueDeclStmtWithDefn.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/opaqueDeclStmtWithDefn.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -922,9 +836,8 @@ static void testStructDeclStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/structDeclStmtOneField.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/structDeclStmtOneField.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -935,10 +848,8 @@ static void testStructDeclStmtParser(void) {
                 "testFiles/parser/expected/structDeclStmtOneField.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename =
-      "testFiles/parser/input/structDeclStmtManyFields.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/structDeclStmtManyFields.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -955,9 +866,8 @@ static void testUnionDeclStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/unionDeclStmtOneOption.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/unionDeclStmtOneOption.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -968,10 +878,8 @@ static void testUnionDeclStmtParser(void) {
                 "testFiles/parser/expected/unionDeclStmtOneOption.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename =
-      "testFiles/parser/input/unionDeclStmtManyOptions.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/unionDeclStmtManyOptions.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -988,10 +896,8 @@ static void testEnumDeclStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename =
-      "testFiles/parser/input/enumDeclStmtOneConstant.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/enumDeclStmtOneConstant.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1002,10 +908,8 @@ static void testEnumDeclStmtParser(void) {
                 "testFiles/parser/expected/enumDeclStmtOneConstant.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename =
-      "testFiles/parser/input/enumDeclStmtManyConstants.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(
+      &entries[0], "testFiles/parser/input/enumDeclStmtManyConstants.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1022,9 +926,8 @@ static void testTypedefDeclStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/typedefDeclStmt.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/typedefDeclStmt.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1040,9 +943,7 @@ static void testNullStmtParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/nullStmt.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/nullStmt.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1057,9 +958,8 @@ static void testSwitchCaseParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/switchCaseOneValue.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/switchCaseOneValue.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1069,9 +969,8 @@ static void testSwitchCaseParser(void) {
                         "testFiles/parser/expected/switchCaseOneValue.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/switchCaseManyValues.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/switchCaseManyValues.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1087,9 +986,8 @@ static void testSwitchDefaultParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/switchDefault.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/switchDefault.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1105,9 +1003,7 @@ static void testSeqExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/seqExprOne.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/seqExprOne.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1117,9 +1013,7 @@ static void testSeqExprParser(void) {
       dumpEqual(&entries[0], "testFiles/parser/expected/seqExprOne.txt"));
   nodeFree(entries[0].ast);
 
-  entries[0].inputFilename = "testFiles/parser/input/seqExprMany.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/seqExprMany.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1135,9 +1029,8 @@ static void testAssignmentExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/assignmentExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/assignmentExprs.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1153,9 +1046,7 @@ static void testTernaryExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/ternaryExpr.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/ternaryExpr.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1171,9 +1062,8 @@ static void testLogicalExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/logicalExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/logicalExprs.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1189,9 +1079,8 @@ static void testBitwiseExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/bitwiseExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/bitwiseExprs.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1207,9 +1096,8 @@ static void testEqualityExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/equalityExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/equalityExprs.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1225,9 +1113,8 @@ static void testComparisonExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/comparisonExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/comparisonExprs.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1243,9 +1130,8 @@ static void testSpaceshipExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/spaceshipExpr.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/spaceshipExpr.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1261,9 +1147,7 @@ static void testShiftExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/shiftExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/shiftExprs.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1279,9 +1163,8 @@ static void testAdditionExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/additionExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/additionExprs.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1297,9 +1180,8 @@ static void testMultiplicationExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/multiplicationExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0],
+                    "testFiles/parser/input/multiplicationExprs.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1315,9 +1197,7 @@ static void testPrefixExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/prefixExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/prefixExprs.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1333,9 +1213,8 @@ static void testPostfixExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/postfixExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/postfixExprs.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1351,9 +1230,8 @@ static void testPrimaryExprParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/primaryExprs.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/primaryExprs.tc",
+                    true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
@@ -1369,9 +1247,7 @@ static void testTypeParser(void) {
   fileList.entries = &entries[0];
   fileList.size = 1;
 
-  entries[0].inputFilename = "testFiles/parser/input/types.tc";
-  entries[0].isCode = true;
-  entries[0].errored = false;
+  fileListEntryInit(&entries[0], "testFiles/parser/input/types.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
               parse() == 0);
   testDynamic(format("no errors in %s", entries[0].inputFilename),
