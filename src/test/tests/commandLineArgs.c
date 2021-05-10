@@ -275,6 +275,11 @@ static void testOptions(void) {
 }
 
 void testCommandLineArgs(void) {
+  Options original;
+  memcpy(&original, &options, sizeof(Options));
+
   testNumFilesCounting();
   testOptions();
+
+  memcpy(&options, &original, sizeof(Options));
 }
