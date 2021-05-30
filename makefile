@@ -87,7 +87,7 @@ TOPTIONS := -I$(TSRCDIR)
 LIBS :=
 
 
-.PHONY: debug release clean diagnose docs
+.PHONY: debug release coverage clean diagnose docs
 .SECONDEXPANSION:
 .SUFFIXES:
 
