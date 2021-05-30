@@ -1,0 +1,5 @@
+module foo;
+
+opaque bar;
+
+bar baz;
