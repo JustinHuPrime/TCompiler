@@ -22,6 +22,17 @@
 #include "fileList.h"
 #include "ir/ir.h"
 #include "util/internalError.h"
+#include "util/numericSizing.h"
+#include "util/string.h"
+
+/**
+ * next id returned by fresh
+ */
+static size_t nextId = 1;
+/**
+ * generate a fresh numeric identifier
+ */
+static size_t fresh(void) { return nextId++; }
 
 /**
  * generate the name prefix for the file
@@ -72,17 +83,29 @@ static void translateInitializer(Vector *out, Type const *type,
       break;
     }
     case TK_QUALIFIED: {
-      translateInitializer(out, type->data.qualified.base, initializer);
+      translateInitializer(data, irFrags, type->data.qualified.base,
+                           initializer);
       break;
     }
     case TK_POINTER: {
-      // initializer's gotta be a literal
       if (initializer->data.literal.literalType == LT_NULL) {
-        // TODO
-      } else if (initializer->data.literal.literalType == LT_CHAR) {
-        // TODO
+        vectorInsert(data, longDatumCreate(0));
+      } else if (initializer->data.literal.literalType == LT_STRING) {
+        size_t label = fresh();
+        vectorInsert(data, labelDatumCreate(label));
+        IRFrag *df =
+            dataFragCreate(FT_RODATA, format(".LC%zu", label), CHAR_WIDTH);
+        vectorInsert(&df->data.data.data,
+                     stringDatumCreate(
+                         tstrdup(initializer->data.literal.data.stringVal)));
       } else {
-        // TODO
+        size_t label = fresh();
+        vectorInsert(data, labelDatumCreate(label));
+        IRFrag *df =
+            dataFragCreate(FT_RODATA, format(".LC%zu", label), WCHAR_WIDTH);
+        vectorInsert(&df->data.data.data,
+                     wstringDatumCreate(
+                         twstrdup(initializer->data.literal.data.wstringVal)));
       }
       break;
     }
@@ -121,7 +144,7 @@ static void translateLiteral(Node const *name, Node const *initializer,
         format("%s%zu%s", namePrefix, strlen(name->data.id.id),
                name->data.id.id),
         typeAlignof(type));
-    translateInitializer(&df->data.data.data, type, initializer);
+    translateInitializer(&df->data.data.data, irFrags, type, initializer);
   }
   vectorInsert(irFrags, df);
 }

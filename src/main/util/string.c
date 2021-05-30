@@ -19,6 +19,7 @@
 
 #include "util/string.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "util/container/stringBuilder.h"
@@ -307,4 +308,31 @@ char *escapeTWString(uint32_t const *input) {
   char *retval = stringBuilderData(&sb);
   stringBuilderUninit(&sb);
   return retval;
+}
+
+size_t tstrlen(uint8_t const *s) {
+  size_t counter = 0;
+  while (*s++ != 0) counter++;
+  return counter;
+}
+size_t twstrlen(uint32_t const *s) {
+  size_t counter = 0;
+  while (*s++ != 0) counter++;
+  return counter;
+}
+
+uint8_t *tstrdup(uint8_t const *s) {
+  uint8_t *copy = malloc(sizeof(uint8_t) * (tstrlen(s) + 1));
+  uint8_t *curr = copy;
+  while (*s != 0) *curr++ = *s++;
+  *curr++ = *s++;
+  return copy;
+}
+
+uint32_t *twstrdup(uint32_t const *s) {
+  uint32_t *copy = malloc(sizeof(uint32_t) * (twstrlen(s) + 1));
+  uint32_t *curr = copy;
+  while (*s != 0) *curr++ = *s++;
+  *curr++ = *s++;
+  return copy;
 }

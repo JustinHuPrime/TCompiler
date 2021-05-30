@@ -26,6 +26,7 @@
 #define TLC_UTIL_STRING_H_
 
 #include <stdint.h>
+#include <stddef.h>
 
 /**
  * produces a character escape sequence for a character
@@ -68,5 +69,31 @@ char *escapeTWChar(uint32_t c);
  * @param s string to escape
  */
 char *escapeTWString(uint32_t const *s);
+
+/**
+ * length of a T string
+ *
+ * @param s string to query
+ */
+size_t tstrlen(uint8_t const *s);
+/**
+ * length of a wide T string
+ *
+ * @param s string to query
+ */
+size_t twstrlen(uint32_t const *s);
+
+/**
+ * duplicate a T string
+ *
+ * @param s string to duplciate
+ */
+uint8_t *tstrdup(uint8_t const *s);
+/**
+ * duplicate a wide T string
+ *
+ * @param s string to duplciate
+ */
+uint32_t *twstrdup(uint32_t const *s);
 
 #endif  // TLC_UTIL_STRING_H_
