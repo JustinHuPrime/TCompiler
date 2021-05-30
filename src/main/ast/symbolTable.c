@@ -83,6 +83,7 @@ SymbolTableEntry *enumStabEntryCreate(FileListEntry *file, size_t line,
   SymbolTableEntry *e = stabEntryCreate(file, line, character, id, SK_ENUM);
   vectorInit(&e->data.enumType.constantNames);
   vectorInit(&e->data.enumType.constantValues);
+  e->data.enumType.backingType = NULL;
   return e;
 }
 SymbolTableEntry *enumConstStabEntryCreate(FileListEntry *file, size_t line,
@@ -157,20 +158,19 @@ void stabEntryFree(SymbolTableEntry *e) {
       vectorUninit(&e->data.enumType.constantNames, nullDtor);
       vectorUninit(&e->data.enumType.constantValues,
                    (void (*)(void *))stabEntryFree);
+      typeFree(e->data.enumType.backingType);
       break;
     }
     case SK_TYPEDEF: {
-      if (e->data.typedefType.actual != NULL)
-        typeFree(e->data.typedefType.actual);
+      typeFree(e->data.typedefType.actual);
       break;
     }
     case SK_VARIABLE: {
-      if (e->data.variable.type != NULL) typeFree(e->data.variable.type);
+      typeFree(e->data.variable.type);
       break;
     }
     case SK_FUNCTION: {
-      if (e->data.function.returnType != NULL)
-        typeFree(e->data.function.returnType);
+      typeFree(e->data.function.returnType);
       vectorUninit(&e->data.function.argumentTypes, (void (*)(void *))typeFree);
       break;
     }

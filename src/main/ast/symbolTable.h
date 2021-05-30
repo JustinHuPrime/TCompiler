@@ -75,6 +75,7 @@ typedef struct SymbolTableEntry {
     struct {
       Vector constantNames;  /**< vector of char * (non-owning) */
       Vector constantValues; /**< vector of SymbolTableEntry (enum consts) */
+      Type *backingType;     /**< type used to store this enum */
     } enumType;
     struct {
       struct SymbolTableEntry

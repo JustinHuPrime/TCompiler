@@ -947,6 +947,65 @@ int buildTopLevelEnumStab(void) {
 
   if (errored) return -1;
 
+  // find backing type
+  // for each file
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
+    FileListEntry *fileEntry = &fileList.entries[fileIdx];
+    Vector *bodies = fileEntry->ast->data.file.bodies;
+
+    // for each top level enum
+    for (size_t bodyIdx = 0; bodyIdx < bodies->size; ++bodyIdx) {
+      Node *body = bodies->elements[bodyIdx];
+      // if it's an enum
+      if (body->type == NT_ENUMDECL) {
+        SymbolTableEntry *thisEnum = body->data.enumDecl.name->data.id.entry;
+        Vector *constantValues = &thisEnum->data.enumType.constantValues;
+
+        uint64_t max = 0;
+        int64_t min = 0;
+        for (size_t constIdx = 0; constIdx < constantValues->size; ++constIdx) {
+          SymbolTableEntry *constEntry = constantValues->elements[constIdx];
+
+          if (constEntry->data.enumConst.signedness) {
+            if (constEntry->data.enumConst.data.signedValue < min) {
+              min = constEntry->data.enumConst.data.signedValue;
+            } else if (constEntry->data.enumConst.data.signedValue > 0 &&
+                       (uint64_t)constEntry->data.enumConst.data.signedValue >
+                           max) {
+              max = (uint64_t)constEntry->data.enumConst.data.signedValue;
+            }
+          } else {
+            if (constEntry->data.enumConst.data.unsignedValue > max) {
+              max = constEntry->data.enumConst.data.unsignedValue;
+            }
+          }
+        }
+
+        if (min == 0) {
+          if (max <= UBYTE_MAX) {
+            thisEnum->data.enumType.backingType = keywordTypeCreate(TK_UBYTE);
+          } else if (max <= USHORT_MAX) {
+            thisEnum->data.enumType.backingType = keywordTypeCreate(TK_USHORT);
+          } else if (max <= UINT_MAX) {
+            thisEnum->data.enumType.backingType = keywordTypeCreate(TK_UINT);
+          } else {
+            thisEnum->data.enumType.backingType = keywordTypeCreate(TK_ULONG);
+          }
+        } else {
+          if (max <= BYTE_MAX && min >= -(int64_t)BYTE_MIN) {
+            thisEnum->data.enumType.backingType = keywordTypeCreate(TK_BYTE);
+          } else if (max <= SHORT_MAX && min >= -(int64_t)SHORT_MIN) {
+            thisEnum->data.enumType.backingType = keywordTypeCreate(TK_SHORT);
+          } else if (max <= INT_MAX && min >= -(int64_t)INT_MIN) {
+            thisEnum->data.enumType.backingType = keywordTypeCreate(TK_INT);
+          } else {
+            thisEnum->data.enumType.backingType = keywordTypeCreate(TK_LONG);
+          }
+        }
+      }
+    }
+  }
+
   return 0;
 }
 
@@ -1468,11 +1527,12 @@ void finishEnumStab(FileListEntry *entry, Node *body,
   }
   free(processed);
 
-  vectorUninit(&enumConstants, nullDtor);
-  vectorUninit(&dependencies, nullDtor);
-  vectorUninit(&enumValues, nullDtor);
-
-  return;
+  if (errored) {
+    vectorUninit(&enumConstants, nullDtor);
+    vectorUninit(&dependencies, nullDtor);
+    vectorUninit(&enumValues, nullDtor);
+    return;
+  }
 
   // 0 = no particular signedness required
   // 1 = must be unsigned (there's something larger than LONG_MAX)
@@ -1527,6 +1587,50 @@ void finishEnumStab(FileListEntry *entry, Node *body,
         constEntry->data.enumConst.data.signedValue =
             (int64_t)constEntry->data.enumConst.data.unsignedValue;
       }
+    }
+  }
+
+  if (errored) return;
+
+  // find backing type
+  uint64_t max = 0;
+  int64_t min = 0;
+  for (size_t constIdx = 0; constIdx < constantValues->size; ++constIdx) {
+    SymbolTableEntry *constEntry = constantValues->elements[constIdx];
+
+    if (constEntry->data.enumConst.signedness) {
+      if (constEntry->data.enumConst.data.signedValue < min) {
+        min = constEntry->data.enumConst.data.signedValue;
+      } else if (constEntry->data.enumConst.data.signedValue > 0 &&
+                 (uint64_t)constEntry->data.enumConst.data.signedValue > max) {
+        max = (uint64_t)constEntry->data.enumConst.data.signedValue;
+      }
+    } else {
+      if (constEntry->data.enumConst.data.unsignedValue > max) {
+        max = constEntry->data.enumConst.data.unsignedValue;
+      }
+    }
+  }
+
+  if (min == 0) {
+    if (max <= UBYTE_MAX) {
+      stabEntry->data.enumType.backingType = keywordTypeCreate(TK_UBYTE);
+    } else if (max <= USHORT_MAX) {
+      stabEntry->data.enumType.backingType = keywordTypeCreate(TK_USHORT);
+    } else if (max <= UINT_MAX) {
+      stabEntry->data.enumType.backingType = keywordTypeCreate(TK_UINT);
+    } else {
+      stabEntry->data.enumType.backingType = keywordTypeCreate(TK_ULONG);
+    }
+  } else {
+    if (max <= BYTE_MAX && min >= -(int64_t)BYTE_MIN) {
+      stabEntry->data.enumType.backingType = keywordTypeCreate(TK_BYTE);
+    } else if (max <= SHORT_MAX && min >= -(int64_t)SHORT_MIN) {
+      stabEntry->data.enumType.backingType = keywordTypeCreate(TK_SHORT);
+    } else if (max <= INT_MAX && min >= -(int64_t)INT_MIN) {
+      stabEntry->data.enumType.backingType = keywordTypeCreate(TK_INT);
+    } else {
+      stabEntry->data.enumType.backingType = keywordTypeCreate(TK_LONG);
     }
   }
 }
