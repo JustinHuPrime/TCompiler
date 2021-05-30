@@ -143,4 +143,25 @@ uint32_t floatStringToBits(char const *string);
  */
 uint64_t doubleStringToBits(char const *string);
 
+/**
+ * converts signed values to their unsigned counterparts
+ */
+uint8_t s8ToU8(int8_t);
+uint16_t s16ToU16(int16_t);
+uint32_t s32ToU32(int32_t);
+uint64_t s64ToU64(int64_t);
+
+/**
+ * int to float conversions
+ */
+uint32_t uintToFloatBits(uint64_t);
+uint32_t intToFloatBits(int64_t);
+uint64_t uintToDoubleBits(uint64_t);
+uint64_t intToDoubleBits(int64_t);
+
+/**
+ * float to double
+ */
+uint64_t floatBitsToDoubleBits(uint32_t);
+
 #endif  // TLC_UTIL_CONVERSIONS_H_

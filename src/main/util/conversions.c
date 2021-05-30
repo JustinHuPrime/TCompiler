@@ -26,6 +26,7 @@
 #include "numericSizing.h"
 #include "util/container/bigInteger.h"
 #include "util/container/digitChain.h"
+#include "util/format.h"
 
 uint8_t charToU8(char c) {
   union {
@@ -270,7 +271,7 @@ int hexadecimalToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut) {
 
 static uint64_t floatOrDoubleStringToBits(
     char const *string, size_t mantissaBits, int64_t maxExponent,
-    int64_t minNormalExponent, int64_t minSubnormalExponent, uint64_t minusZero,
+    int64_t minNormalExponent, int64_t minSubnormalExponent, uint64_t signMask,
     uint64_t plusInfinity, uint64_t minusInfinity, uint64_t mantissaMask) {
   int8_t sign;
   // check sign
@@ -303,7 +304,7 @@ static uint64_t floatOrDoubleStringToBits(
       break;
     }
   }
-  if (isZero) return sign == -1 ? minusZero : 0x0;
+  if (isZero) return sign == -1 ? signMask : 0x0;
 
   // exponent
   int64_t exponent;
@@ -416,7 +417,7 @@ static uint64_t floatOrDoubleStringToBits(
     return sign == 1 ? plusInfinity : minusInfinity;
   } else if (exponent < minNormalExponent && exponent >= minSubnormalExponent) {
     // subnormal
-    uint64_t bits = sign == -1 ? minusZero : 0x0;
+    uint64_t bits = sign == -1 ? signMask : 0x0;
     size_t ndigits = mantissaBits - (size_t)(minNormalExponent - exponent) + 1;
     size_t sigBitsBefore = bigIntCountSigBits(&mantissa);
     bigIntRoundToN(&mantissa, ndigits);
@@ -435,10 +436,10 @@ static uint64_t floatOrDoubleStringToBits(
   } else if (exponent < minSubnormalExponent) {
     // rounds down to zero
     bigIntUninit(&mantissa);
-    return sign == -1 ? minusZero : 0x0;
+    return sign == -1 ? signMask : 0x0;
   } else {
     // normal
-    uint64_t bits = sign == -1 ? minusZero : 0x0;
+    uint64_t bits = sign == -1 ? signMask : 0x0;
     bits |= (uint64_t)(exponent + maxExponent) << mantissaBits;
     bits |= roundedMantissa & mantissaMask;
     bigIntUninit(&mantissa);
@@ -449,13 +450,91 @@ static uint64_t floatOrDoubleStringToBits(
 uint32_t floatStringToBits(char const *string) {
   return (uint32_t)floatOrDoubleStringToBits(
       string, FLOAT_MANTISSA_BITS, FLOAT_EXPONENT_MAX, FLOAT_EXPONENT_MIN,
-      FLOAT_EXPONENT_MIN_SUBNORMAL, 0x80000000, 0x7f800000, 0xff800000,
-      0x7fffff);
+      FLOAT_EXPONENT_MIN_SUBNORMAL, FLOAT_SIGN_MASK, FLOAT_EXPONENT_MASK,
+      FLOAT_SIGN_MASK | FLOAT_EXPONENT_MASK, FLOAT_MANTISSA_MASK);
 }
 
 uint64_t doubleStringToBits(char const *string) {
   return floatOrDoubleStringToBits(
       string, DOUBLE_MANTISSA_BITS, DOUBLE_EXPONENT_MAX, DOUBLE_EXPONENT_MIN,
-      DOUBLE_EXPONENT_MIN_SUBNORMAL, 0x8000000000000000, 0x7ff0000000000000,
-      0xfff0000000000000, 0xfffffffffffff);
+      DOUBLE_EXPONENT_MIN_SUBNORMAL, DOUBLE_SIGN_MASK, DOUBLE_EXPONENT_MASK,
+      DOUBLE_SIGN_MASK | DOUBLE_EXPONENT_MASK, DOUBLE_MANTISSA_MASK);
+}
+
+uint8_t s8ToU8(int8_t s) {
+  union {
+    uint8_t u;
+    int8_t s;
+  } u;
+  u.s = s;
+  return u.u;
+}
+uint16_t s16ToU16(int16_t s) {
+  union {
+    uint16_t u;
+    int16_t s;
+  } u;
+  u.s = s;
+  return u.u;
+}
+uint32_t s32ToU32(int32_t s) {
+  union {
+    uint32_t u;
+    int32_t s;
+  } u;
+  u.s = s;
+  return u.u;
+}
+uint64_t s64ToU64(int64_t s) {
+  union {
+    uint64_t u;
+    int64_t s;
+  } u;
+  u.s = s;
+  return u.u;
+}
+
+uint32_t uintToFloatBits(uint64_t i) {
+  char *s = format("%lu", i);
+  uint32_t bits = floatStringToBits(s);
+  free(s);
+  return bits;
+}
+uint32_t intToFloatBits(int64_t i) {
+  char *s = format("%ld", i);
+  uint32_t bits = floatStringToBits(s);
+  free(s);
+  return bits;
+}
+uint64_t uintToDoubleBits(uint64_t i) {
+  char *s = format("%lu", i);
+  uint64_t bits = doubleStringToBits(s);
+  free(s);
+  return bits;
+}
+uint64_t intToDoubleBits(int64_t i) {
+  char *s = format("%ld", i);
+  uint64_t bits = doubleStringToBits(s);
+  free(s);
+  return bits;
+}
+
+uint64_t floatBitsToDoubleBits(uint32_t f) {
+  bool positive = (f & FLOAT_SIGN_MASK) == 0;
+  int64_t exponent =
+      ((f & FLOAT_EXPONENT_MASK) >> FLOAT_MANTISSA_BITS) - FLOAT_EXPONENT_MAX;
+  uint64_t mantissa = f & FLOAT_MANTISSA_MASK;
+
+  if (exponent < FLOAT_EXPONENT_MIN) {
+    // renormalize
+    while (mantissa == (mantissa & DOUBLE_MANTISSA_MASK)) {
+      exponent--;
+      mantissa <<= 1;
+    }
+  }
+
+  uint64_t bits = positive ? 0 : DOUBLE_SIGN_MASK;
+  bits |= (uint64_t)(exponent + DOUBLE_EXPONENT_MAX) << DOUBLE_MANTISSA_BITS;
+  bits |= mantissa << (DOUBLE_MANTISSA_BITS - FLOAT_MANTISSA_BITS);
+  return bits;
 }
