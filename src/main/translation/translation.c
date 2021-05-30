@@ -585,7 +585,25 @@ static void translateInitializer(Vector *data, Vector *irFrags,
           break;
         }
         case SK_STRUCT: {
-          // TODO
+          size_t pos = 0;
+          for (size_t idx = 0; idx < entry->data.structType.fieldTypes.size;
+               ++idx) {
+            translateInitializer(
+                data, irFrags, entry->data.structType.fieldTypes.elements[idx],
+                initializer->data.literal.data.aggregateInitVal->elements[idx]);
+            pos += typeSizeof(entry->data.structType.fieldTypes.elements[idx]);
+            size_t padded;
+            if (idx < entry->data.structType.fieldTypes.size - 1) {
+              padded = incrementToMultiple(
+                  pos,
+                  typeAlignof(
+                      entry->data.structType.fieldTypes.elements[idx + 1]));
+            } else {
+              padded = incrementToMultiple(pos, typeAlignof(type));
+            }
+            vectorInsert(data, paddingDatumCreate(padded - pos));
+            pos = padded;
+          }
           break;
         }
         default: {

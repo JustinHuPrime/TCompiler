@@ -70,4 +70,11 @@ extern uint64_t const DOUBLE_SIGN_MASK;
 extern uint64_t const DOUBLE_EXPONENT_MASK;
 extern uint64_t const DOUBLE_MANTISSA_MASK;
 
+/**
+ * moves n to the largest multiple equal to or larger than itself
+ * @param n number to make a multiple
+ * @param multiple number to make n a multiple of
+ */
+size_t incrementToMultiple(size_t n, size_t multiple);
+
 #endif  // TLC_UTIL_NUMERICSIZING_H_

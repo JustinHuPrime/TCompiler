@@ -59,3 +59,12 @@ int64_t const DOUBLE_EXPONENT_MIN_SUBNORMAL = -1075;
 uint64_t const DOUBLE_SIGN_MASK = 0x8000000000000000;
 uint64_t const DOUBLE_EXPONENT_MASK = 0x7ff0000000000000;
 uint64_t const DOUBLE_MANTISSA_MASK = 0x000fffffffffffff;
+
+/**
+ * moves n to the largest multiple equal to or larger than itself
+ * @param n number to make a multiple
+ * @param multiple number to make n a multiple of
+ */
+size_t incrementToMultiple(size_t n, size_t multiple) {
+  return n % multiple == 0 ? n : n + multiple - n % multiple;
+}

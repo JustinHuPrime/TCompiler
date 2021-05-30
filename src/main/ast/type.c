@@ -629,14 +629,6 @@ Type *comparisonTypeMerge(Type const *a, Type const *b) {
   }
 }
 
-/**
- * moves n to the largest multiple equal to or larger than itself
- * @param n number to make a multiple
- * @param multiple number to make n a multiple of
- */
-static size_t incrementToMultiple(size_t n, size_t multiple) {
-  return n % multiple == 0 ? n : n + multiple - n % multiple;
-}
 size_t typeSizeof(Type const *t) {
   switch (t->kind) {
     case TK_KEYWORD: {
