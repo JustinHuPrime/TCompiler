@@ -514,7 +514,10 @@ static void translateInitializer(Vector *data, Vector *irFrags,
       break;
     }
     case TK_ARRAY: {
-      // TODO
+      Vector *initializers = initializer->data.literal.data.aggregateInitVal;
+      for (size_t idx = 0; idx < initializers->size; ++idx)
+        translateInitializer(data, irFrags, type->data.array.type,
+                             initializers->elements[idx]);
       break;
     }
     case TK_REFERENCE: {
