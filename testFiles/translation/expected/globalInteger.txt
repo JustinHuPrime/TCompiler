@@ -1,4 +1,4 @@
-testFiles/translation/expected/globalInteger.tc:
-DATA(_T3foo3bar, 4
+testFiles/translation/input/globalInteger.tc:
+DATA(_T3foo3bar, 4,
   INT(12),
 )
