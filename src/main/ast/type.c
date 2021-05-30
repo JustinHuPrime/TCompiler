@@ -23,6 +23,7 @@
 
 #include "ast/symbolTable.h"
 #include "util/internalError.h"
+#include "util/numericSizing.h"
 
 static Type *typeCreate(TypeKind kind) {
   Type *t = malloc(sizeof(Type));
@@ -627,11 +628,174 @@ Type *comparisonTypeMerge(Type const *a, Type const *b) {
     return NULL;
   }
 }
+
+/**
+ * moves n to the largest multiple equal to or larger than itself
+ * @param n number to make a multiple
+ * @param multiple number to make n a multiple of
+ */
+static size_t incrementToMultiple(size_t n, size_t multiple) {
+  return n % multiple == 0 ? n : n + multiple - n % multiple;
+}
 size_t typeSizeof(Type const *t) {
-  return 0;  // TODO
+  switch (t->kind) {
+    case TK_KEYWORD: {
+      switch (t->data.keyword.keyword) {
+        case TK_VOID:  // for void pointer arithmetic
+        case TK_UBYTE:
+        case TK_BYTE:
+        case TK_CHAR:
+        case TK_BOOL: {
+          return 1;
+        }
+        case TK_USHORT:
+        case TK_SHORT: {
+          return 2;
+        }
+        case TK_UINT:
+        case TK_INT:
+        case TK_WCHAR:
+        case TK_FLOAT: {
+          return 4;
+        }
+        case TK_ULONG:
+        case TK_LONG:
+        case TK_DOUBLE: {
+          return 8;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid keyword type");
+        }
+      }
+    }
+    case TK_QUALIFIED: {
+      return typeSizeof(t->data.qualified.base);
+    }
+    case TK_POINTER:
+    case TK_FUNPTR: {
+      return POINTER_WIDTH;
+    }
+    case TK_ARRAY: {
+      return typeSizeof(t->data.array.type) * t->data.array.length;
+    }
+    case TK_AGGREGATE: {
+      size_t size = 0;
+      for (size_t idx = 0; idx < t->data.aggregate.types.size; ++idx) {
+        size += typeSizeof(t->data.aggregate.types.elements[idx]);
+        if (idx < t->data.aggregate.types.size - 1) {
+          size = incrementToMultiple(
+              size, typeAlignof(t->data.aggregate.types.elements[idx + 1]));
+        } else {
+          size = incrementToMultiple(size, typeAlignof(t));
+        }
+      }
+      return size;
+    }
+    case TK_REFERENCE: {
+      SymbolTableEntry *entry = t->data.reference.entry;
+      switch (entry->kind) {
+        case SK_STRUCT: {
+          size_t size = 0;
+          for (size_t idx = 0; idx < entry->data.structType.fieldTypes.size;
+               ++idx) {
+            size += typeSizeof(entry->data.structType.fieldTypes.elements[idx]);
+            if (idx < entry->data.structType.fieldTypes.size - 1) {
+              size = incrementToMultiple(
+                  size,
+                  typeAlignof(
+                      entry->data.structType.fieldTypes.elements[idx + 1]));
+            } else {
+              size = incrementToMultiple(size, typeAlignof(t));
+            }
+          }
+          return size;
+        }
+        case SK_UNION: {
+          size_t size = 0;
+          for (size_t idx = 0; idx < entry->data.unionType.optionTypes.size;
+               ++idx) {
+            size_t compare =
+                typeSizeof(entry->data.unionType.optionTypes.elements[idx]);
+            if (compare > size) size = compare;
+          }
+          return size;
+        }
+        case SK_ENUM: {
+          return typeSizeof(entry->data.enumType.backingType);
+        }
+        case SK_TYPEDEF: {
+          return typeSizeof(entry->data.typedefType.actual);
+        }
+        default: {
+          error(__FILE__, __LINE__, "can't take the size of an unsized symbol");
+        }
+      }
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid type kind");
+    }
+  }
 }
 size_t typeAlignof(Type const *t) {
-  return 0;  // TODO
+  switch (t->kind) {
+    case TK_KEYWORD:
+    case TK_POINTER:
+    case TK_FUNPTR: {
+      return typeSizeof(t);
+    }
+    case TK_QUALIFIED: {
+      return typeAlignof(t->data.qualified.base);
+    }
+    case TK_ARRAY: {
+      return typeAlignof(t->data.array.type);
+    }
+    case TK_AGGREGATE: {
+      size_t alignment = 0;
+      for (size_t idx = 0; idx < t->data.aggregate.types.size; ++idx) {
+        size_t compare = typeAlignof(t->data.aggregate.types.elements[idx]);
+        if (compare > alignment) alignment = compare;
+      }
+      return alignment;
+    }
+    case TK_REFERENCE: {
+      SymbolTableEntry *entry = t->data.reference.entry;
+      switch (entry->kind) {
+        case SK_STRUCT: {
+          size_t alignment = 0;
+          for (size_t idx = 0; idx < entry->data.structType.fieldTypes.size;
+               ++idx) {
+            size_t compare =
+                typeAlignof(entry->data.structType.fieldTypes.elements[idx]);
+            if (compare > alignment) alignment = compare;
+          }
+          return alignment;
+        }
+        case SK_UNION: {
+          size_t alignment = 0;
+          for (size_t idx = 0; idx < entry->data.unionType.optionTypes.size;
+               ++idx) {
+            size_t compare =
+                typeAlignof(entry->data.unionType.optionTypes.elements[idx]);
+            if (compare > alignment) alignment = compare;
+          }
+          return alignment;
+        }
+        case SK_ENUM: {
+          return typeAlignof(entry->data.enumType.backingType);
+        }
+        case SK_TYPEDEF: {
+          return typeAlignof(entry->data.typedefType.actual);
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "can't take the alignment of an unsized symbol");
+        }
+      }
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid type kind");
+    }
+  }
 }
 char *typeVectorToString(Vector const *v) {
   if (v->size == 0) {
