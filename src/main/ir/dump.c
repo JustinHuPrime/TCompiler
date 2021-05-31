@@ -127,6 +127,17 @@ static void instructionDump(FILE *where, IRInstruction *i) {
   }
 }
 
+static void blockDump(FILE *where, IRBlock *b) {
+  fprintf(where, "  BLOCK(%zu,\n", b->label);
+  for (ListNode *curr = b->instructions.head->next;
+       curr != b->instructions.tail; curr = curr->next) {
+    fprintf(where, "    ");
+    instructionDump(where, curr->data);
+    fprintf(where, ",\n");
+  }
+  fprintf(where, "  ),\n");
+}
+
 static void fragDump(FILE *where, IRFrag *frag) {
   switch (frag->type) {
     case FT_BSS: {
@@ -156,11 +167,8 @@ static void fragDump(FILE *where, IRFrag *frag) {
     }
     case FT_TEXT: {
       fprintf(where, "TEXT(%s,\n", frag->name);
-      for (size_t idx = 0; idx < frag->data.text.instructions.size; ++idx) {
-        fprintf(where, "  ");
-        instructionDump(where, frag->data.text.instructions.elements[idx]);
-        fprintf(where, ",\n");
-      }
+      for (size_t idx = 0; idx < frag->data.text.blocks.size; ++idx)
+        blockDump(where, frag->data.text.blocks.elements[idx]);
       fprintf(where, ")\n");
       break;
     }

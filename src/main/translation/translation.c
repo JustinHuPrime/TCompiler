@@ -659,6 +659,8 @@ static void translateFile(FileListEntry *entry) {
     switch (body->type) {
       case NT_FUNDEFN: {
         // TODO
+        // generate basic block for the entry
+        // generate basic block for the exit
         break;
       }
       case NT_VARDEFN: {

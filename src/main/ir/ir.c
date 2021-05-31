@@ -35,7 +35,7 @@ IRFrag *dataFragCreate(FragmentType type, char *name, size_t alignment) {
 }
 IRFrag *textFragCreate(char *name) {
   IRFrag *df = fragCreate(FT_TEXT, name);
-  vectorInit(&df->data.text.instructions);
+  vectorInit(&df->data.text.blocks);
   return df;
 }
 
@@ -94,8 +94,7 @@ void irFragFree(IRFrag *f) {
       break;
     }
     case FT_TEXT: {
-      vectorUninit(&f->data.text.instructions,
-                   (void (*)(void *))irInstructionFree);
+      vectorUninit(&f->data.text.blocks, (void (*)(void *))irBlockFree);
       break;
     }
   }
@@ -121,11 +120,24 @@ void irDatumFree(IRDatum *d) {
   }
   free(d);
 }
+
 void irOperandFree(IROperand *o) {
   // TODO
   free(o);
 }
+
 void irInstructionFree(IRInstruction *i) {
   // TODO
   free(i);
+}
+
+IRBlock *irBlockCreate(size_t label) {
+  IRBlock *b = malloc(sizeof(IRBlock));
+  b->label = label;
+  linkedListInit(&b->instructions);
+  return b;
+}
+void irBlockFree(IRBlock *b) {
+  linkedListUninit(&b->instructions, (void (*)(void *))irInstructionFree);
+  free(b);
 }

@@ -31,21 +31,21 @@ void linkedListInit(LinkedList *l) {
   l->tail->prev = l->head;
   l->tail->data = NULL;
 }
-void insertAfter(ListNode *n, void *data) {
+void insertNodeAfter(ListNode *n, void *data) {
   ListNode *newNode = malloc(sizeof(ListNode));
   newNode->data = data;
   newNode->prev = n;
   newNode->next = n->next;
   newNode->next->prev = newNode->prev->next = newNode;
 }
-void insertBefore(ListNode *n, void *data) {
+void insertNodeBefore(ListNode *n, void *data) {
   ListNode *newNode = malloc(sizeof(ListNode));
   newNode->data = data;
   newNode->prev = n->prev;
   newNode->next = n;
   newNode->next->prev = newNode->prev->next = newNode;
 }
-void *remove(ListNode *n) {
+void *removeNode(ListNode *n) {
   n->next->prev = n->prev;
   n->prev->next = n->next;
   void *retval = n->data;
@@ -54,7 +54,7 @@ void *remove(ListNode *n) {
 }
 void linkedListUninit(LinkedList *l, void (*dtor)(void *)) {
   while (l->head->next != l->tail) {
-    dtor(remove(l->head->next));
+    dtor(removeNode(l->head->next));
   }
   free(l->head);
   free(l->tail);

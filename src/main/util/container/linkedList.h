@@ -35,7 +35,7 @@ typedef struct ListNode {
 /**
  * a doubly linked list
  *
- * uses dummy nodes
+ * uses dummy nodes at head and tail
  */
 typedef struct {
   struct ListNode *head;
@@ -49,14 +49,14 @@ void linkedListInit(LinkedList *l);
 /**
  * insertions
  */
-void insertAfter(ListNode *n, void *data);
-void insertBefore(ListNode *n, void *data);
+void insertNodeAfter(ListNode *n, void *data);
+void insertNodeBefore(ListNode *n, void *data);
 /**
  * deletion
  *
  * @returns data of deleted node
  */
-void *remove(ListNode *n);
+void *removeNode(ListNode *n);
 /**
  * dtor
  */

@@ -28,6 +28,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "util/container/linkedList.h"
 #include "util/container/vector.h"
 
 /** the type of a fragment */
@@ -47,7 +48,7 @@ typedef struct {
       Vector data; /**< Vector of IRDatum */
     } data;
     struct {
-      Vector instructions; /**< vector of IRInstruction */
+      Vector blocks; /**< vector of IRBlock - first one is the entry block */
     } text;
   } data;
 } IRFrag;
@@ -81,7 +82,7 @@ typedef struct {
     size_t paddingLength;
     uint8_t *string;
     uint32_t *wstring;
-    size_t label; /** gets formatted as ".L%zu" */
+    size_t label;
   } data;
 } IRDatum;
 
@@ -151,5 +152,15 @@ typedef struct {
 
 /** dtor */
 void irInstructionFree(IRInstruction *);
+
+typedef struct {
+  size_t label;
+  LinkedList instructions;
+} IRBlock;
+
+/** ctor */
+IRBlock *irBlockCreate(size_t label);
+/** dtor */
+void irBlockFree(IRBlock *);
 
 #endif  // TLC_IR_IR_H_
