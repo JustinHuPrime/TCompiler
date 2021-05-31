@@ -1,0 +1,4 @@
+testFiles/translation/input/globalQualified.tc:
+RODATA(_T3foo3bar, 4,
+  INT(12),
+)

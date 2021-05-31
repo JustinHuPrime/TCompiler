@@ -1,0 +1,2 @@
+testFiles/translation/input/nullPointer.tc:
+BSS(_T3foo3bar, 8)

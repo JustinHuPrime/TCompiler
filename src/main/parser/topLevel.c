@@ -397,6 +397,28 @@ static Node *parseAggregateInitializer(FileListEntry *entry, Token *start) {
           return NULL;
         }
         vectorInsert(literals, literal);
+
+        lex(entry, &peek);
+        switch (peek.type) {
+          case TT_RSQUARE: {
+            // end of the init
+            Node *n = literalNodeCreate(LT_AGGREGATEINIT, start);
+            n->data.literal.data.aggregateInitVal = literals;
+            return n;
+          }
+          case TT_COMMA: {
+            break;  // continue on
+          }
+          default: {
+            errorExpectedString(entry, "a comma or a right square bracket",
+                                &peek);
+
+            unLex(entry, &peek);
+
+            nodeVectorFree(literals);
+            return NULL;
+          }
+        }
         break;
       }
       case TT_RSQUARE: {

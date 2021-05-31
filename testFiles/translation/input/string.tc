@@ -1,0 +1,3 @@
+module foo;
+
+char const * bar = "Hello, world!\n";

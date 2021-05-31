@@ -1,0 +1,3 @@
+module foo;
+
+int[3] bar = [31, 41, 59];
