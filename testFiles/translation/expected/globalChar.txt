@@ -1,0 +1,4 @@
+testFiles/translation/input/globalChar.tc:
+DATA(_T3foo3bar, 1,
+  BYTE(65),
+)

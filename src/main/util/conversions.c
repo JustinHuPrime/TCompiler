@@ -495,25 +495,25 @@ uint64_t s64ToU64(int64_t s) {
 }
 
 uint32_t uintToFloatBits(uint64_t i) {
-  char *s = format("%lu", i);
+  char *s = format("%lu.0", i);
   uint32_t bits = floatStringToBits(s);
   free(s);
   return bits;
 }
 uint32_t intToFloatBits(int64_t i) {
-  char *s = format("%ld", i);
+  char *s = format("%ld.0", i);
   uint32_t bits = floatStringToBits(s);
   free(s);
   return bits;
 }
 uint64_t uintToDoubleBits(uint64_t i) {
-  char *s = format("%lu", i);
+  char *s = format("%lu.0", i);
   uint64_t bits = doubleStringToBits(s);
   free(s);
   return bits;
 }
 uint64_t intToDoubleBits(int64_t i) {
-  char *s = format("%ld", i);
+  char *s = format("%ld.0", i);
   uint64_t bits = doubleStringToBits(s);
   free(s);
   return bits;

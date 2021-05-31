@@ -25,6 +25,14 @@
 #ifndef TLC_TRANSLATION_TRANSLATION_H_
 #define TLC_TRANSLATION_TRANSLATION_H_
 
+#include <stddef.h>
+
+/**
+ * generate a fresh numeric identifier
+ * note - these are unique within a translation unit, and should only be called
+ * within the dynamic extent of a translate call
+ */
+size_t fresh(void);
 /**
  * translates all of the files in the file list into IR
  *

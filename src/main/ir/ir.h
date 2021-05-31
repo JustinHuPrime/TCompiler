@@ -55,6 +55,9 @@ typedef struct {
 /** ctors */
 IRFrag *dataFragCreate(FragmentType type, char *name, size_t alignment);
 IRFrag *textFragCreate(char *name);
+/** dtor */
+void irFragFree(IRFrag *);
+void irFragVectorUninit(Vector *);
 
 /** the type of a datum */
 typedef enum {
@@ -91,6 +94,8 @@ IRDatum *paddingDatumCreate(size_t len);
 IRDatum *stringDatumCreate(uint8_t *string);
 IRDatum *wstringDatumCreate(uint32_t *wstring);
 IRDatum *labelDatumCreate(size_t label);
+/** dtor */
+void irDatumFree(IRDatum *);
 
 /** allocation hints for temps */
 typedef enum {
@@ -127,6 +132,9 @@ typedef struct IROperand {
   } data;
 } IROperand;
 
+/** dtor */
+void irOperandFree(IROperand *);
+
 /** an ir operator */
 typedef enum IROperator {
   IO_ASM,    // inline assembly: arg1 = assembly (constant)
@@ -140,5 +148,8 @@ typedef struct {
   IROperand *arg1;
   IROperand *arg2;
 } IRInstruction;
+
+/** dtor */
+void irInstructionFree(IRInstruction *);
 
 #endif  // TLC_IR_IR_H_

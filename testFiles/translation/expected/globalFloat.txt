@@ -1,0 +1,4 @@
+testFiles/translation/input/globalFloat.tc:
+DATA(_T3foo3bar, 4,
+  INT(1077936128),
+)

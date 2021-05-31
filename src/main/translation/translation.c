@@ -26,14 +26,8 @@
 #include "util/numericSizing.h"
 #include "util/string.h"
 
-/**
- * next id returned by fresh
- */
 static size_t nextId = 1;
-/**
- * generate a fresh numeric identifier
- */
-static size_t fresh(void) { return nextId++; }
+size_t fresh(void) { return nextId++; }
 
 /**
  * generate the name prefix for the file
@@ -649,6 +643,7 @@ static void translateLiteral(Node const *name, Node const *initializer,
  * translate the given file
  */
 static void translateFile(FileListEntry *entry) {
+  nextId = 1;
   char *namePrefix =
       generatePrefix(entry->ast->data.file.module->data.module.id);
   Vector *bodies = entry->ast->data.file.bodies;

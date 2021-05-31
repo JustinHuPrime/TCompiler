@@ -84,3 +84,48 @@ IRDatum *labelDatumCreate(size_t label) {
   d->data.label = label;
   return d;
 }
+void irFragFree(IRFrag *f) {
+  free(f->name);
+  switch (f->type) {
+    case FT_BSS:
+    case FT_RODATA:
+    case FT_DATA: {
+      vectorUninit(&f->data.data.data, (void (*)(void *))irDatumFree);
+      break;
+    }
+    case FT_TEXT: {
+      vectorUninit(&f->data.text.instructions,
+                   (void (*)(void *))irInstructionFree);
+      break;
+    }
+  }
+  free(f);
+}
+void irFragVectorUninit(Vector *v) {
+  vectorUninit(v, (void (*)(void *))irFragFree);
+}
+
+void irDatumFree(IRDatum *d) {
+  switch (d->type) {
+    case DT_STRING: {
+      free(d->data.string);
+      break;
+    }
+    case DT_WSTRING: {
+      free(d->data.wstring);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  free(d);
+}
+void irOperandFree(IROperand *o) {
+  // TODO
+  free(o);
+}
+void irInstructionFree(IRInstruction *i) {
+  // TODO
+  free(i);
+}

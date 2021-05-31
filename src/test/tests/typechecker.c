@@ -53,8 +53,9 @@ void testTypechecker(void) {
     entries[0].isCode = true;
     entries[0].errored = false;
 
+    int parseStatus = parse();
     assert("couldn't parse file in testTypechecker's accepted file list" &&
-           parse() == 0);
+           parseStatus == 0);
     testDynamic(format("type checker accepts %s", entries[0].inputFilename),
                 typecheck() == 0);
     nodeFree(entries[0].ast);
@@ -77,8 +78,9 @@ void testTypechecker(void) {
     entries[0].isCode = true;
     entries[0].errored = false;
 
+    int parseStatus = parse();
     assert("couldn't parse file in testTypechecker's rejected file list" &&
-           parse() == 0);
+           parseStatus == 0);
     testDynamic(format("type checker rejects %s", entries[0].inputFilename),
                 typecheck() != 0);
     nodeFree(entries[0].ast);
