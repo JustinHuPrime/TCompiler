@@ -27,11 +27,13 @@
 #include <assert.h>
 #include <dirent.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "engine.h"
 #include "fileList.h"
 #include "ir/dump.h"
 #include "ir/ir.h"
+#include "options.h"
 #include "parser/parser.h"
 #include "tests.h"
 #include "typechecker/typechecker.h"
@@ -78,53 +80,78 @@ static int noHiddenFilter(struct dirent const *entry) {
   return strncmp(entry->d_name, ".", 1) != 0;
 }
 void testTranslation(void) {
-  // TODO: architecture-specific tests - use testFiles/translation/<arch>/input
-  // and .../expected
-  struct dirent **input;
-  int inputLen =
-      scandir("testFiles/translation/input", &input, noHiddenFilter, alphasort);
-  assert("couldn't open input files dir" && inputLen != -1);
+  Options original;
+  memcpy(&original, &options, sizeof(Options));
 
-  struct dirent **expected;
-  int expectedLen = scandir("testFiles/translation/expected", &expected,
-                            noHiddenFilter, alphasort);
-  assert("couldn't open expected files dir" && expectedLen != -1);
-  assert("different numbers of files in input and expected dirs" &&
-         inputLen == expectedLen);
+  DIR *archs = opendir("testFiles/translation");
+  assert("couldn't open arch dir" && archs != NULL);
 
-  for (int idx = 0; idx < inputLen; ++idx) {
-    struct dirent *entry = input[idx];
-    struct dirent *expectedEntry = expected[idx];
-    FileListEntry entries[1];
-    fileList.entries = &entries[0];
-    fileList.size = 1;
+  for (struct dirent *arch = readdir(archs); arch != NULL;
+       arch = readdir(archs)) {
+    if (strncmp(arch->d_name, ".", 1) == 0) continue;
 
-    if (strncmp(entry->d_name, ".", 1) == 0) continue;
+    if (strcmp(arch->d_name, "x86_64-linux") == 0) {
+      options.arch = OPTION_A_X86_64_LINUX;
+    } else {
+      assert("unrecognized arch folder name" && false);
+    }
 
-    char *name = format("testFiles/translation/input/%s", entry->d_name);
-    fileListEntryInit(&entries[0], name, true);
+    char *inputFolder = format("testFiles/translation/%s/input", arch->d_name);
+    char *expectedFolder =
+        format("testFiles/translation/%s/expected", arch->d_name);
 
-    int parseStatus = parse();
-    assert("couldn't parse file in testTranslation's accepted file list" &&
-           parseStatus == 0);
-    int typecheckStatus = typecheck();
-    assert("couldn't typecheck file in testTranslation's accepted file list" &&
-           typecheckStatus == 0);
-    translate();
+    struct dirent **input;
+    int inputLen = scandir(inputFolder, &input, noHiddenFilter, alphasort);
+    assert("couldn't open input files dir" && inputLen != -1);
 
-    char *expectedName =
-        format("testFiles/translation/expected/%s", expectedEntry->d_name);
+    struct dirent **expected;
+    int expectedLen =
+        scandir(expectedFolder, &expected, noHiddenFilter, alphasort);
+    assert("couldn't open expected files dir" && expectedLen != -1);
+    assert("different numbers of files in input and expected dirs" &&
+           inputLen == expectedLen);
 
-    testDynamic(format("ir of %s is correct", entries[0].inputFilename),
-                dumpEqual(&entries[0], expectedName));
+    for (int idx = 0; idx < inputLen; ++idx) {
+      struct dirent *entry = input[idx];
+      struct dirent *expectedEntry = expected[idx];
+      FileListEntry entries[1];
+      fileList.entries = &entries[0];
+      fileList.size = 1;
 
-    free(name);
-    free(expectedName);
-    irFragVectorUninit(&entries[0].irFrags);
-    nodeFree(entries[0].ast);
-    free(entry);
-    free(expectedEntry);
+      if (strncmp(entry->d_name, ".", 1) == 0) continue;
+
+      char *name = format("testFiles/translation/%s/input/%s", arch->d_name,
+                          entry->d_name);
+      fileListEntryInit(&entries[0], name, true);
+
+      int parseStatus = parse();
+      assert("couldn't parse file in testTranslation's accepted file list" &&
+             parseStatus == 0);
+      int typecheckStatus = typecheck();
+      assert(
+          "couldn't typecheck file in testTranslation's accepted file list" &&
+          typecheckStatus == 0);
+      translate();
+
+      char *expectedName = format("testFiles/translation/%s/expected/%s",
+                                  arch->d_name, expectedEntry->d_name);
+
+      testDynamic(format("ir of %s is correct", entries[0].inputFilename),
+                  dumpEqual(&entries[0], expectedName));
+
+      free(name);
+      free(expectedName);
+      irFragVectorUninit(&entries[0].irFrags);
+      nodeFree(entries[0].ast);
+      free(entry);
+      free(expectedEntry);
+    }
+    free(input);
+    free(expected);
+    free(inputFolder);
+    free(expectedFolder);
   }
-  free(input);
-  free(expected);
+  closedir(archs);
+
+  memcpy(&options, &original, sizeof(Options));
 }

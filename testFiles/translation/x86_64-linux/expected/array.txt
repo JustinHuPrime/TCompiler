@@ -1,4 +1,4 @@
-testFiles/translation/input/array.tc:
+testFiles/translation/x86_64-linux/input/array.tc:
 DATA(_T3foo3bar, 4,
   INT(31),
   INT(41),

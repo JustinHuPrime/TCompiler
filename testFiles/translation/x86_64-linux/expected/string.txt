@@ -1,4 +1,4 @@
-testFiles/translation/input/string.tc:
+testFiles/translation/x86_64-linux/input/string.tc:
 RODATA(.L1, 1,
   STRING(48656C6C6F2C20776F726C64210A),
 )
