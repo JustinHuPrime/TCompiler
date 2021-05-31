@@ -1,0 +1,8 @@
+module foo;
+
+enum bar {
+  A,
+  B,
+};
+
+bar baz = bar::B;

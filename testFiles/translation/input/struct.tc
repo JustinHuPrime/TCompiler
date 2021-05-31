@@ -1,0 +1,8 @@
+module foo;
+
+struct bar {
+  int i;
+  long l;
+};
+
+bar baz = [1, 2];

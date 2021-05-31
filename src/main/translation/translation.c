@@ -520,58 +520,58 @@ static void translateInitializer(Vector *data, Vector *irFrags,
       SymbolTableEntry *entry = type->data.reference.entry;
       switch (entry->kind) {
         case SK_ENUM: {
-          SymbolTableEntry *entry = initializer->data.scopedId.entry;
-          switch (entry->data.enumConst.parent->data.enumType.backingType->data
+          SymbolTableEntry *constEntry = initializer->data.scopedId.entry;
+          switch (constEntry->data.enumConst.parent->data.enumType.backingType->data
                       .keyword.keyword) {
             case TK_UBYTE: {
               vectorInsert(
                   data, byteDatumCreate(
-                            (uint8_t)entry->data.enumConst.data.unsignedValue));
+                            (uint8_t)constEntry->data.enumConst.data.unsignedValue));
               break;
             }
             case TK_BYTE: {
               vectorInsert(
                   data, byteDatumCreate(s8ToU8(
-                            (int8_t)entry->data.enumConst.data.signedValue)));
+                            (int8_t)constEntry->data.enumConst.data.signedValue)));
               break;
             }
             case TK_USHORT: {
               vectorInsert(
                   data,
                   shortDatumCreate(
-                      (uint16_t)entry->data.enumConst.data.unsignedValue));
+                      (uint16_t)constEntry->data.enumConst.data.unsignedValue));
               break;
             }
             case TK_SHORT: {
               vectorInsert(
                   data, shortDatumCreate(s16ToU16(
-                            (int16_t)entry->data.enumConst.data.signedValue)));
+                            (int16_t)constEntry->data.enumConst.data.signedValue)));
               break;
             }
             case TK_UINT: {
               vectorInsert(
                   data,
                   intDatumCreate(
-                      (uint32_t)entry->data.enumConst.data.unsignedValue));
+                      (uint32_t)constEntry->data.enumConst.data.unsignedValue));
               break;
             }
             case TK_INT: {
               vectorInsert(
                   data, intDatumCreate(s32ToU32(
-                            (int32_t)entry->data.enumConst.data.signedValue)));
+                            (int32_t)constEntry->data.enumConst.data.signedValue)));
               break;
             }
             case TK_ULONG: {
               vectorInsert(
                   data,
                   longDatumCreate(
-                      (uint64_t)entry->data.enumConst.data.unsignedValue));
+                      (uint64_t)constEntry->data.enumConst.data.unsignedValue));
               break;
             }
             case TK_LONG: {
               vectorInsert(
                   data, longDatumCreate(s64ToU64(
-                            (int64_t)entry->data.enumConst.data.signedValue)));
+                            (int64_t)constEntry->data.enumConst.data.signedValue)));
               break;
             }
             default: {
@@ -597,7 +597,8 @@ static void translateInitializer(Vector *data, Vector *irFrags,
             } else {
               padded = incrementToMultiple(pos, typeAlignof(type));
             }
-            vectorInsert(data, paddingDatumCreate(padded - pos));
+            if (padded != pos)
+              vectorInsert(data, paddingDatumCreate(padded - pos));
             pos = padded;
           }
           break;

@@ -45,7 +45,7 @@ static void datumDump(FILE *where, IRDatum *datum) {
       break;
     }
     case DT_LONG: {
-      fprintf(where, "SHORT(%lu)", datum->data.longVal);
+      fprintf(where, "LONG(%lu)", datum->data.longVal);
       break;
     }
     case DT_PADDING: {

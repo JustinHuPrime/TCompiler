@@ -122,5 +122,9 @@ void testTranslation(void) {
     free(expectedName);
     irFragVectorUninit(&entries[0].irFrags);
     nodeFree(entries[0].ast);
+    free(entry);
+    free(expectedEntry);
   }
+  free(input);
+  free(expected);
 }

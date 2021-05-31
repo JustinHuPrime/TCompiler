@@ -1724,6 +1724,7 @@ void finishTopLevelStab(FileListEntry *entry) {
                       symbolKindToString(enumConst->kind));
               entry->errored = true;
             }
+            initializer->data.scopedId.entry = enumConst;
           }
         }
 
