@@ -789,6 +789,71 @@ size_t typeAlignof(Type const *t) {
     }
   }
 }
+bool typeComplete(Type const *t) {
+  switch (t->kind) {
+    case TK_KEYWORD: {
+      return t->data.keyword.keyword != TK_VOID;
+    }
+    case TK_QUALIFIED: {
+      return typeComplete(t->data.qualified.base);
+    }
+    case TK_POINTER:
+    case TK_FUNPTR: {
+      return true;
+    }
+    case TK_ARRAY: {
+      return t->data.array.length != 0 && typeComplete(t->data.array.type);
+    }
+    case TK_REFERENCE: {
+      return t->data.reference.entry->kind != SK_OPAQUE;
+    }
+    default: {
+      error(__FILE__, __LINE__, "can't have a symbol of that type anyways");
+    }
+  }
+}
+/**
+ * does the given type directly reference the entry
+ * i.e. sizeof(type) is related to sizeof(e)
+ */
+static bool typeDirectlyReferences(Type const *t, SymbolTableEntry const *e) {
+  switch (t->kind) {
+    case TK_KEYWORD:
+    case TK_POINTER:
+    case TK_FUNPTR: {
+      return false;
+    }
+    case TK_QUALIFIED: {
+      return typeDirectlyReferences(t->data.qualified.base, e);
+    }
+    case TK_ARRAY: {
+      return typeDirectlyReferences(t->data.array.type, e);
+    }
+    case TK_REFERENCE: {
+      return t->data.reference.entry == e;
+    }
+    default: {
+      error(__FILE__, __LINE__, "can't have a symbol of that type anyways");
+    }
+  }
+}
+bool structRecursive(SymbolTableEntry const *e) {
+  for (size_t idx = 0; idx < e->data.structType.fieldTypes.size; ++idx) {
+    Type const *t = e->data.structType.fieldTypes.elements[idx];
+    if (typeDirectlyReferences(t, e)) return true;
+  }
+  return false;
+}
+bool unionRecursive(SymbolTableEntry const *e) {
+  for (size_t idx = 0; idx < e->data.unionType.optionTypes.size; ++idx) {
+    Type const *t = e->data.unionType.optionTypes.elements[idx];
+    if (typeDirectlyReferences(t, e)) return true;
+  }
+  return false;
+}
+bool typedefRecursive(SymbolTableEntry const *e) {
+  return typeDirectlyReferences(e->data.typedefType.actual, e);
+}
 char *typeVectorToString(Vector const *v) {
   if (v->size == 0) {
     return strdup("");

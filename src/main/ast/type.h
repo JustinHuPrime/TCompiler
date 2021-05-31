@@ -212,6 +212,25 @@ size_t typeSizeof(Type const *t);
  */
 size_t typeAlignof(Type const *t);
 /**
+ * is a type complete? (recursive types are considered complete)
+ */
+bool typeComplete(Type const *t);
+/**
+ * is a struct infinitely recursive?
+ * i.e. has a size of unconstrained or infinity
+ */
+bool structRecursive(struct SymbolTableEntry const *e);
+/**
+ * is a union infinitely recursive?
+ * i.e. has a size of unconstrained or infinity
+ */
+bool unionRecursive(struct SymbolTableEntry const *e);
+/**
+ * is a struct infinitely recursive?
+ * i.e. has a size of unconstrained or infinity
+ */
+bool typedefRecursive(struct SymbolTableEntry const *e);
+/**
  * format a list of types
  */
 char *typeVectorToString(Vector const *v);

@@ -133,6 +133,33 @@ static void errorNotLvalue(FileListEntry *entry, size_t line, size_t character,
           entry->inputFilename, line, character, op);
   entry->errored = true;
 }
+/**
+ * complains about a type being incomplete
+ *
+ * @param t incomplete type
+ */
+static void errorIncompleteType(FileListEntry *entry, size_t line,
+                                size_t character, Type const *t) {
+  char *typeString = typeToString(t);
+  fprintf(stderr,
+          "%s:%zu:%zu: error: value of type '%s' do not exist; the type is "
+          "incomplete\n",
+          entry->inputFilename, line, character, typeString);
+  free(typeString);
+  entry->errored = true;
+}
+/**
+ * complains about a type being recursive
+ *
+ * @param t recursive type
+ */
+static void errorRecursiveDecl(FileListEntry *entry, size_t line,
+                               size_t character, char const *what,
+                               char const *name) {
+  fprintf(stderr, "%s:%zu:%zu: error: the %s '%s' may not contain itself\n",
+          entry->inputFilename, line, character, what, name);
+  entry->errored = true;
+}
 
 /**
  * is the given expression an lvalue
@@ -1395,6 +1422,11 @@ static void typecheckStmt(Node *stmt, Type const *returnType,
     case NT_VARDEFNSTMT: {
       Vector *names = stmt->data.varDefnStmt.names;
       Vector *initializers = stmt->data.varDefnStmt.initializers;
+      Node *firstName = names->elements[0];
+      if (!typeComplete(firstName->data.id.entry->data.variable.type))
+        errorIncompleteType(entry, stmt->data.varDefnStmt.type->line,
+                            stmt->data.varDefnStmt.type->character,
+                            firstName->data.id.entry->data.variable.type);
       for (size_t idx = 0; idx < names->size; ++idx) {
         Node *name = names->elements[idx];
         Node *initializer = initializers->elements[idx];
@@ -1415,6 +1447,27 @@ static void typecheckStmt(Node *stmt, Type const *returnType,
       typecheckExpression(stmt->data.expressionStmt.expression, entry);
       break;
     }
+    case NT_STRUCTDECL: {
+      if (structRecursive(stmt->data.structDecl.name->data.id.entry)) {
+        errorRecursiveDecl(entry, stmt->line, stmt->character, "struct",
+                           stmt->data.structDecl.name->data.id.id);
+      }
+      break;
+    }
+    case NT_UNIONDECL: {
+      if (unionRecursive(stmt->data.unionDecl.name->data.id.entry)) {
+        errorRecursiveDecl(entry, stmt->line, stmt->character, "union",
+                           stmt->data.unionDecl.name->data.id.id);
+      }
+      break;
+    }
+    case NT_TYPEDEFDECL: {
+      if (typedefRecursive(stmt->data.typedefDecl.name->data.id.entry)) {
+        errorRecursiveDecl(entry, stmt->line, stmt->character, "typedef",
+                           stmt->data.typedefDecl.name->data.id.id);
+      }
+      break;
+    }
     default: {
       break;  // nothing to check
     }
@@ -1422,7 +1475,7 @@ static void typecheckStmt(Node *stmt, Type const *returnType,
 }
 
 /**
- * typechecks a code file
+ * typechecks a file
  *
  * @param entry entry to typecheck
  */
@@ -1434,6 +1487,11 @@ static void typecheckFile(FileListEntry *entry) {
       case NT_VARDEFN: {
         Vector *names = body->data.varDefn.names;
         Vector *initializers = body->data.varDefn.initializers;
+        Node *firstName = names->elements[0];
+        if (!typeComplete(firstName->data.id.entry->data.variable.type))
+          errorIncompleteType(entry, body->data.varDefn.type->line,
+                              body->data.varDefn.type->character,
+                              firstName->data.id.entry->data.variable.type);
         for (size_t idx = 0; idx < names->size; ++idx) {
           Node *name = names->elements[idx];
           Node *initializer = initializers->elements[idx];
@@ -1451,11 +1509,75 @@ static void typecheckFile(FileListEntry *entry) {
         }
         break;
       }
+      case NT_VARDECL: {
+        Vector *names = body->data.varDecl.names;
+        Node *firstName = names->elements[0];
+        if (!typeComplete(firstName->data.id.entry->data.variable.type))
+          errorIncompleteType(entry, body->data.varDecl.type->line,
+                              body->data.varDecl.type->character,
+                              firstName->data.id.entry->data.variable.type);
+        break;
+      }
       case NT_FUNDEFN: {
-        typecheckStmt(
-            body->data.funDefn.body,
-            body->data.funDefn.name->data.id.entry->data.function.returnType,
-            entry);
+        Type const *returnType =
+            body->data.funDefn.name->data.id.entry->data.function.returnType;
+        if (!((returnType->kind == TK_KEYWORD &&
+               returnType->data.keyword.keyword == TK_VOID) ||
+              typeComplete(returnType)))
+          errorIncompleteType(entry, body->data.funDefn.returnType->line,
+                              body->data.funDefn.returnType->character,
+                              returnType);
+        Vector *argTypes = &body->data.funDefn.name->data.id.entry->data
+                                .function.argumentTypes;
+        for (size_t idx = 0; idx < argTypes->size; ++idx) {
+          if (!typeComplete(argTypes->elements[idx])) {
+            Node *typeNode = body->data.funDefn.argTypes->elements[idx];
+            errorIncompleteType(entry, typeNode->line, typeNode->character,
+                                argTypes->elements[idx]);
+          }
+        }
+        typecheckStmt(body->data.funDefn.body, returnType, entry);
+        break;
+      }
+      case NT_FUNDECL: {
+        Type const *returnType =
+            body->data.funDecl.name->data.id.entry->data.function.returnType;
+        if (!((returnType->kind == TK_KEYWORD &&
+               returnType->data.keyword.keyword == TK_VOID) ||
+              typeComplete(returnType)))
+          errorIncompleteType(entry, body->data.funDecl.returnType->line,
+                              body->data.funDecl.returnType->character,
+                              returnType);
+        Vector *argTypes = &body->data.funDecl.name->data.id.entry->data
+                                .function.argumentTypes;
+        for (size_t idx = 0; idx < argTypes->size; ++idx) {
+          if (!typeComplete(argTypes->elements[idx])) {
+            Node *typeNode = body->data.funDecl.argTypes->elements[idx];
+            errorIncompleteType(entry, typeNode->line, typeNode->character,
+                                argTypes->elements[idx]);
+          }
+        }
+        break;
+      }
+      case NT_STRUCTDECL: {
+        if (structRecursive(body->data.structDecl.name->data.id.entry)) {
+          errorRecursiveDecl(entry, body->line, body->character, "struct",
+                             body->data.structDecl.name->data.id.id);
+        }
+        break;
+      }
+      case NT_UNIONDECL: {
+        if (unionRecursive(body->data.unionDecl.name->data.id.entry)) {
+          errorRecursiveDecl(entry, body->line, body->character, "union",
+                             body->data.unionDecl.name->data.id.id);
+        }
+        break;
+      }
+      case NT_TYPEDEFDECL: {
+        if (typedefRecursive(body->data.typedefDecl.name->data.id.entry)) {
+          errorRecursiveDecl(entry, body->line, body->character, "typedef",
+                             body->data.typedefDecl.name->data.id.id);
+        }
         break;
       }
       default: {
@@ -1472,7 +1594,7 @@ int typecheck(void) {
 
   // for each code file, type check it
   for (size_t idx = 0; idx < fileList.size; ++idx) {
-    if (fileList.entries[idx].isCode) typecheckFile(&fileList.entries[idx]);
+    typecheckFile(&fileList.entries[idx]);
     errored = errored || fileList.entries[idx].errored;
   }
 

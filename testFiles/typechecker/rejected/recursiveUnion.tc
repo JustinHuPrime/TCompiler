@@ -1,0 +1,5 @@
+module foo;
+
+union bar {
+  bar a;
+};

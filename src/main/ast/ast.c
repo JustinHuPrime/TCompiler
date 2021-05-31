@@ -1063,10 +1063,6 @@ Type *nodeToType(Node *n, Environment *env) {
       if (base == NULL) return NULL;
       uint64_t length =
           extendedIntLiteralToArrayLength(n->data.arrayType.size, env);
-      if (length == 0) {
-        typeFree(base);
-        return NULL;
-      }
       return arrayTypeCreate(length, base);
     }
     case NT_FUNPTRTYPE: {

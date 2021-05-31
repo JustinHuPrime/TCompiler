@@ -1,0 +1,7 @@
+module foo;
+
+void bar() {
+  struct baz {
+    baz a;
+  };
+}
