@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 
+#include "arch/interface.h"
 #include "ir/ir.h"
 
 static char const *const ALLOCHINT_NAMES[] = {
@@ -68,7 +69,9 @@ static void datumDump(FILE *where, IRDatum *datum) {
       break;
     }
     case DT_LABEL: {
-      fprintf(where, "LABEL(.L%zu)", datum->data.label);
+      fprintf(where, "LABEL(");
+      fprintf(where, localLabelFormat(), datum->data.label);
+      fprintf(where, ")");
       break;
     }
   }

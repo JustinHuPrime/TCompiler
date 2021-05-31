@@ -78,6 +78,8 @@ static int noHiddenFilter(struct dirent const *entry) {
   return strncmp(entry->d_name, ".", 1) != 0;
 }
 void testTranslation(void) {
+  // TODO: architecture-specific tests - use testFiles/translation/<arch>/input
+  // and .../expected
   struct dirent **input;
   int inputLen =
       scandir("testFiles/translation/input", &input, noHiddenFilter, alphasort);

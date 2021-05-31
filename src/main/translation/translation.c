@@ -19,6 +19,7 @@
 
 #include "translation/translation.h"
 
+#include "arch/interface.h"
 #include "fileList.h"
 #include "ir/ir.h"
 #include "util/conversions.h"
@@ -486,24 +487,25 @@ static void translateInitializer(Vector *data, Vector *irFrags,
       break;
     }
     case TK_POINTER: {
-      if (initializer->data.literal.literalType == LT_NULL) {
-        vectorInsert(data, longDatumCreate(0));
-      } else if (initializer->data.literal.literalType == LT_STRING) {
+      // note - null pointers handled as bss blocks
+      if (initializer->data.literal.literalType == LT_STRING) {
         size_t label = fresh();
         vectorInsert(data, labelDatumCreate(label));
-        IRFrag *df =
-            dataFragCreate(FT_RODATA, format(".LC%zu", label), CHAR_WIDTH);
+        IRFrag *df = dataFragCreate(
+            FT_RODATA, format(localLabelFormat(), label), CHAR_WIDTH);
         vectorInsert(&df->data.data.data,
                      stringDatumCreate(
                          tstrdup(initializer->data.literal.data.stringVal)));
+        vectorInsert(irFrags, df);
       } else {
         size_t label = fresh();
         vectorInsert(data, labelDatumCreate(label));
-        IRFrag *df =
-            dataFragCreate(FT_RODATA, format(".LC%zu", label), WCHAR_WIDTH);
+        IRFrag *df = dataFragCreate(
+            FT_RODATA, format(localLabelFormat(), label), WCHAR_WIDTH);
         vectorInsert(&df->data.data.data,
                      wstringDatumCreate(
                          twstrdup(initializer->data.literal.data.wstringVal)));
+        vectorInsert(irFrags, df);
       }
       break;
     }
@@ -626,7 +628,6 @@ static void translateLiteral(Node const *name, Node const *initializer,
                                name->data.id.id),
                         typeAlignof(type));
     vectorInsert(&df->data.data.data, paddingDatumCreate(typeSizeof(type)));
-    vectorInsert(irFrags, df);
   } else {
     df = dataFragCreate(
         type->kind == TK_QUALIFIED && type->data.qualified.constQual ? FT_RODATA
