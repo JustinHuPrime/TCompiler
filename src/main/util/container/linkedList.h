@@ -51,6 +51,7 @@ void linkedListInit(LinkedList *l);
  */
 void insertNodeAfter(ListNode *n, void *data);
 void insertNodeBefore(ListNode *n, void *data);
+void insertNodeEnd(LinkedList *l, void *data);
 /**
  * deletion
  *

@@ -30,9 +30,7 @@
 size_t fresh(FileListEntry *file) { return file->nextId++; }
 
 /**
- * generate the name prefix for the file
- *
- * @param id module id
+ * generate the name prefix of a module id
  */
 static char *generatePrefix(Node *id) {
   char *suffix;
@@ -53,6 +51,13 @@ static char *generatePrefix(Node *id) {
 
   char *retval = format("_T%s", suffix);
   free(suffix);
+  return retval;
+}
+char *getMangledName(SymbolTableEntry *entry) {
+  char *prefix =
+      generatePrefix(entry->file->ast->data.file.module->data.module.id);
+  char *retval = format("%s%zu%s", prefix, strlen(entry->id), entry->id);
+  free(prefix);
   return retval;
 }
 

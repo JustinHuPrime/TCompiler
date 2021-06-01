@@ -27,6 +27,8 @@
 
 #include <stddef.h>
 
+#include "ast/symbolTable.h"
+
 typedef struct FileListEntry FileListEntry;
 
 /**
@@ -35,6 +37,10 @@ typedef struct FileListEntry FileListEntry;
  * @param file numeric IDs are unique within files
  */
 size_t fresh(FileListEntry *file);
+/**
+ * get the mangled identifier for a global symbol
+ */
+char *getMangledName(SymbolTableEntry *entry);
 /**
  * translates all of the files in the file list into IR
  *

@@ -38,6 +38,25 @@ IRFrag *textFragCreate(char *name) {
   vectorInit(&df->data.text.blocks);
   return df;
 }
+void irFragFree(IRFrag *f) {
+  free(f->name);
+  switch (f->type) {
+    case FT_BSS:
+    case FT_RODATA:
+    case FT_DATA: {
+      vectorUninit(&f->data.data.data, (void (*)(void *))irDatumFree);
+      break;
+    }
+    case FT_TEXT: {
+      vectorUninit(&f->data.text.blocks, (void (*)(void *))irBlockFree);
+      break;
+    }
+  }
+  free(f);
+}
+void irFragVectorUninit(Vector *v) {
+  vectorUninit(v, (void (*)(void *))irFragFree);
+}
 
 static IRDatum *datumCreate(DatumType type) {
   IRDatum *d = malloc(sizeof(IRDatum));
@@ -84,26 +103,6 @@ IRDatum *labelDatumCreate(size_t label) {
   d->data.label = label;
   return d;
 }
-void irFragFree(IRFrag *f) {
-  free(f->name);
-  switch (f->type) {
-    case FT_BSS:
-    case FT_RODATA:
-    case FT_DATA: {
-      vectorUninit(&f->data.data.data, (void (*)(void *))irDatumFree);
-      break;
-    }
-    case FT_TEXT: {
-      vectorUninit(&f->data.text.blocks, (void (*)(void *))irBlockFree);
-      break;
-    }
-  }
-  free(f);
-}
-void irFragVectorUninit(Vector *v) {
-  vectorUninit(v, (void (*)(void *))irFragFree);
-}
-
 void irDatumFree(IRDatum *d) {
   switch (d->type) {
     case DT_STRING: {
@@ -140,15 +139,36 @@ IROperand *regOperandCreate(size_t name) {
   o->data.reg.name = name;
   return o;
 }
-IROperand *constantOperandCreate(IRDatum *value) {}
-IROperand *labelOperandCreate(char *name) {}
-IROperand *assemblyOperandCreate(char *name) {}
+IROperand *constantOperandCreate(size_t alignment) {
+  IROperand *o = irOperandCreate(OK_CONSTANT);
+  o->data.constant.alignment = alignment;
+  vectorInit(&o->data.constant.data);
+  return o;
+}
+IROperand *labelOperandCreate(char *name) {
+  IROperand *o = irOperandCreate(OK_LABEL);
+  o->data.label.name = name;
+  return o;
+}
+IROperand *offsetOperandCreate(int64_t offset) {
+  IROperand *o = irOperandCreate(OK_OFFSET);
+  o->data.offset.offset = offset;
+  return o;
+}
+IROperand *assemblyOperandCreate(char *assembly) {
+  IROperand *o = irOperandCreate(OK_ASM);
+  o->data.assembly.assembly = assembly;
+  return o;
+}
+IROperand *stackFrameSizeOperandCreate(void) {
+  return irOperandCreate(OK_STACK_FRAME_SIZE);
+}
 void irOperandFree(IROperand *o) {
   if (o == NULL) return;
 
   switch (o->kind) {
     case OK_CONSTANT: {
-      irDatumFree(o->data.constant.value);
+      vectorUninit(&o->data.constant.data, (void (*)(void *))irDatumFree);
       break;
     }
     case OK_LABEL: {

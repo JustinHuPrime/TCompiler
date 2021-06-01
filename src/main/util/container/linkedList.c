@@ -45,6 +45,9 @@ void insertNodeBefore(ListNode *n, void *data) {
   newNode->next = n;
   newNode->next->prev = newNode->prev->next = newNode;
 }
+void insertNodeEnd(LinkedList *l, void *data) {
+  insertNodeBefore(l->tail, data);
+}
 void *removeNode(ListNode *n) {
   n->next->prev = n->prev;
   n->prev->next = n->next;

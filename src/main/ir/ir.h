@@ -110,7 +110,9 @@ typedef enum {
   OK_REG,
   OK_CONSTANT,
   OK_LABEL,
+  OK_OFFSET,
   OK_ASM,
+  OK_STACK_FRAME_SIZE,
 } OperandKind;
 /** an operand in an IR entry */
 typedef struct IROperand {
@@ -126,14 +128,23 @@ typedef struct IROperand {
       size_t name;  // specific to the target architecture
     } reg;
     struct {
-      IRDatum *value;
+      size_t alignment;
+      Vector data; /**< Vector of IRDatum */
     } constant;
     struct {
       char *name;
     } label;
     struct {
+      int64_t offset;
+    } offset;
+    struct {
       char *assembly;
     } assembly;
+    // struct {
+    //   no data
+    //   represents the size of the stack frame to allocate - a 8-byte (64 bit)
+    //   unsigned integer
+    // } stackFrameSize;
   } data;
 } IROperand;
 
@@ -141,9 +152,11 @@ typedef struct IROperand {
 IROperand *tempOperandCreate(size_t name, size_t alignment, size_t size,
                              AllocHint kind);
 IROperand *regOperandCreate(size_t name);
-IROperand *constantOperandCreate(IRDatum *value);
+IROperand *constantOperandCreate(size_t alignment);
 IROperand *labelOperandCreate(char *name);
-IROperand *assemblyOperandCreate(char *name);
+IROperand *offsetOperandCreate(int64_t offset);
+IROperand *assemblyOperandCreate(char *assembly);
+IROperand *stackFrameSizeOperandCreate(void);
 /** dtor */
 void irOperandFree(IROperand *);
 
@@ -182,7 +195,7 @@ typedef enum IROperator {
   // bit-twiddling
   IO_SLL,
   IO_SLR,
-  OP_SAR,
+  IO_SAR,
   IO_AND,
   IO_XOR,
   IO_OR,
@@ -193,8 +206,8 @@ typedef enum IROperator {
   IO_LE,
   IO_E,
   IO_NE,
-  IO_GE,
   IO_G,
+  IO_GE,
   IO_A,
   IO_AE,
   IO_B,
@@ -203,8 +216,8 @@ typedef enum IROperator {
   IO_FLE,
   IO_FE,
   IO_FNE,
-  IO_FGE,
   IO_FG,
+  IO_FGE,
   IO_LNOT,
 
   // conversion
@@ -234,8 +247,8 @@ typedef enum IROperator {
   IO_JLE,
   IO_JE,
   IO_JNE,
-  IO_JGE,
   IO_JG,
+  IO_JGE,
   IO_JA,
   IO_JAE,
   IO_JB,
@@ -244,8 +257,8 @@ typedef enum IROperator {
   IO_JFLE,
   IO_JFE,
   IO_JFNE,
-  IO_JFGE,
   IO_JFG,
+  IO_JFGE,
 
   // function calling
   IO_CALL,
