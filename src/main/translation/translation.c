@@ -27,8 +27,7 @@
 #include "util/numericSizing.h"
 #include "util/string.h"
 
-static size_t nextId = 1;
-size_t fresh(void) { return nextId++; }
+size_t fresh(FileListEntry *file) { return file->nextId++; }
 
 /**
  * generate the name prefix for the file
@@ -147,7 +146,8 @@ static bool initializerAllZero(Node const *initializer) {
  * @param initializer initializer to translate
  */
 static void translateInitializer(Vector *data, Vector *irFrags,
-                                 Type const *type, Node const *initializer) {
+                                 Type const *type, Node const *initializer,
+                                 FileListEntry *file) {
   switch (type->kind) {
     case TK_KEYWORD: {
       switch (type->data.keyword.keyword) {
@@ -483,13 +483,13 @@ static void translateInitializer(Vector *data, Vector *irFrags,
     }
     case TK_QUALIFIED: {
       translateInitializer(data, irFrags, type->data.qualified.base,
-                           initializer);
+                           initializer, file);
       break;
     }
     case TK_POINTER: {
       // note - null pointers handled as bss blocks
       if (initializer->data.literal.literalType == LT_STRING) {
-        size_t label = fresh();
+        size_t label = fresh(file);
         vectorInsert(data, labelDatumCreate(label));
         IRFrag *df = dataFragCreate(
             FT_RODATA, format(localLabelFormat(), label), CHAR_WIDTH);
@@ -498,7 +498,7 @@ static void translateInitializer(Vector *data, Vector *irFrags,
                          tstrdup(initializer->data.literal.data.stringVal)));
         vectorInsert(irFrags, df);
       } else {
-        size_t label = fresh();
+        size_t label = fresh(file);
         vectorInsert(data, labelDatumCreate(label));
         IRFrag *df = dataFragCreate(
             FT_RODATA, format(localLabelFormat(), label), WCHAR_WIDTH);
@@ -513,7 +513,7 @@ static void translateInitializer(Vector *data, Vector *irFrags,
       Vector *initializers = initializer->data.literal.data.aggregateInitVal;
       for (size_t idx = 0; idx < initializers->size; ++idx)
         translateInitializer(data, irFrags, type->data.array.type,
-                             initializers->elements[idx]);
+                             initializers->elements[idx], file);
       break;
     }
     case TK_REFERENCE: {
@@ -591,7 +591,8 @@ static void translateInitializer(Vector *data, Vector *irFrags,
                ++idx) {
             translateInitializer(
                 data, irFrags, entry->data.structType.fieldTypes.elements[idx],
-                initializer->data.literal.data.aggregateInitVal->elements[idx]);
+                initializer->data.literal.data.aggregateInitVal->elements[idx],
+                file);
             pos += typeSizeof(entry->data.structType.fieldTypes.elements[idx]);
             size_t padded;
             if (idx < entry->data.structType.fieldTypes.size - 1) {
@@ -625,7 +626,8 @@ static void translateInitializer(Vector *data, Vector *irFrags,
  * translate a constant into a fragment
  */
 static void translateLiteral(Node const *name, Node const *initializer,
-                             char const *namePrefix, Vector *irFrags) {
+                             char const *namePrefix, Vector *irFrags,
+                             FileListEntry *file) {
   Type const *type = name->data.id.entry->data.variable.type;
   IRFrag *df;
   if (initializer == NULL || initializerAllZero(initializer)) {
@@ -641,7 +643,7 @@ static void translateLiteral(Node const *name, Node const *initializer,
         format("%s%zu%s", namePrefix, strlen(name->data.id.id),
                name->data.id.id),
         typeAlignof(type));
-    translateInitializer(&df->data.data.data, irFrags, type, initializer);
+    translateInitializer(&df->data.data.data, irFrags, type, initializer, file);
   }
   vectorInsert(irFrags, df);
 }
@@ -649,11 +651,10 @@ static void translateLiteral(Node const *name, Node const *initializer,
 /**
  * translate the given file
  */
-static void translateFile(FileListEntry *entry) {
-  nextId = 1;
+static void translateFile(FileListEntry *file) {
   char *namePrefix =
-      generatePrefix(entry->ast->data.file.module->data.module.id);
-  Vector *bodies = entry->ast->data.file.bodies;
+      generatePrefix(file->ast->data.file.module->data.module.id);
+  Vector *bodies = file->ast->data.file.bodies;
   for (size_t idx = 0; idx < bodies->size; ++idx) {
     Node *body = bodies->elements[idx];
     switch (body->type) {
@@ -668,7 +669,7 @@ static void translateFile(FileListEntry *entry) {
         Vector *initializers = body->data.varDefn.initializers;
         for (size_t idx = 0; idx < names->size; ++idx)
           translateLiteral(names->elements[idx], initializers->elements[idx],
-                           namePrefix, &entry->irFrags);
+                           namePrefix, &file->irFrags, file);
         break;
       }
       default: {

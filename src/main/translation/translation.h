@@ -27,12 +27,14 @@
 
 #include <stddef.h>
 
+typedef struct FileListEntry FileListEntry;
+
 /**
  * generate a fresh numeric identifier
- * note - these are unique within a translation unit, and should only be called
- * within the dynamic extent of a translate call
+ *
+ * @param file numeric IDs are unique within files
  */
-size_t fresh(void);
+size_t fresh(FileListEntry *file);
 /**
  * translates all of the files in the file list into IR
  *

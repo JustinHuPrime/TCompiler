@@ -39,6 +39,7 @@ typedef struct FileListEntry {
   bool isCode;           /**< does the input file path point to a code file */
   LexerState lexerState; /**< state of the lexer */
   Node *ast;             /**< AST for this file */
+  size_t nextId;         /**< next IR id for this file */
   Vector irFrags;        /**< vector of IRFrag - translated IR fragments */
 } FileListEntry;
 

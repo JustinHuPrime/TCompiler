@@ -33,6 +33,7 @@ void fileListEntryInit(FileListEntry *entry, char const *inputName,
   entry->isCode = isCode;
   entry->errored = false;
   entry->ast = NULL;
+  entry->nextId = 1;
   vectorInit(&entry->irFrags);
 }
 
