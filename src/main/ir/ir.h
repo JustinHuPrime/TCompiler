@@ -109,6 +109,7 @@ typedef enum {
   OK_TEMP,
   OK_REG,
   OK_CONSTANT,
+  OK_LABEL,
   OK_ASM,
 } OperandKind;
 /** an operand in an IR entry */
@@ -128,28 +129,140 @@ typedef struct IROperand {
       IRDatum *value;
     } constant;
     struct {
+      char *name;
+    } label;
+    struct {
       char *assembly;
     } assembly;
   } data;
 } IROperand;
 
+/** ctors */
+IROperand *tempOperandCreate(size_t name, size_t alignment, size_t size,
+                             AllocHint kind);
+IROperand *regOperandCreate(size_t name);
+IROperand *constantOperandCreate(IRDatum *value);
+IROperand *labelOperandCreate(char *name);
+IROperand *assemblyOperandCreate(char *name);
 /** dtor */
 void irOperandFree(IROperand *);
 
 /** an ir operator */
 typedef enum IROperator {
-  IO_ASM,    // inline assembly: arg1 = assembly (constant)
-  IO_LABEL,  // label the next entry: arg1 = label name (constant)
-  IO_MOVE,   // move to temp or reg: dest = target reg or temp, arg1 = source
+  // miscellaneous
+  IO_ASM,    // inline asm
+  IO_LABEL,  // label
+
+  // data transfer
+  IO_MOVE,
+  IO_MEM_STORE,
+  IO_MEM_LOAD,
+  IO_STK_STORE,
+  IO_STK_LOAD,
+  IO_OFFSET_STORE,
+  IO_OFFSET_LOAD,
+
+  // arithmetic
+  IO_ADD,
+  IO_FADD,
+  IO_SUB,
+  IO_FSUB,
+  IO_SMUL,
+  IO_UMUL,
+  IO_FMUL,
+  IO_SDIV,
+  IO_UDIV,
+  IO_FDIV,
+  IO_SMOD,
+  IO_UMOD,
+  IO_FMOD,
+  IO_NEG,
+  IO_FNEG,
+
+  // bit-twiddling
+  IO_SLL,
+  IO_SLR,
+  OP_SAR,
+  IO_AND,
+  IO_XOR,
+  IO_OR,
+  IO_NOT,
+
+  // comparisons, logic
+  IO_L,
+  IO_LE,
+  IO_E,
+  IO_NE,
+  IO_GE,
+  IO_G,
+  IO_A,
+  IO_AE,
+  IO_B,
+  IO_BE,
+  IO_FL,
+  IO_FLE,
+  IO_FE,
+  IO_FNE,
+  IO_FGE,
+  IO_FG,
+  IO_LNOT,
+
+  // conversion
+  IO_SX_SHORT,
+  IO_SX_INT,
+  IO_SX_LONG,
+  IO_ZX_SHORT,
+  IO_ZX_INT,
+  IO_ZX_LONG,
+  IO_TRUNC_BYTE,
+  IO_TRUNC_SHORT,
+  IO_TRUNC_INT,
+  IO_U2FLOAT,
+  IO_U2DOUBLE,
+  IO_S2FLOAT,
+  IO_S2DOUBLE,
+  IO_F2FLOAT,
+  IO_F2DOUBLE,
+  IO_F2BYTE,
+  IO_F2SHORT,
+  IO_F2INT,
+  IO_F2LONG,
+
+  // jumps
+  IO_JUMP,
+  IO_JL,
+  IO_JLE,
+  IO_JE,
+  IO_JNE,
+  IO_JGE,
+  IO_JG,
+  IO_JA,
+  IO_JAE,
+  IO_JB,
+  IO_JBE,
+  IO_JFL,
+  IO_JFLE,
+  IO_JFE,
+  IO_JFNE,
+  IO_JFGE,
+  IO_JFG,
+
+  // function calling
+  IO_CALL,
+  IO_RETURN,  // no args
 } IROperator;
 /** ir instruction */
 typedef struct {
   IROperator op;
+  size_t size;
   IROperand *dest;
   IROperand *arg1;
   IROperand *arg2;
 } IRInstruction;
 
+/** generic ctor */
+IRInstruction *irInstructionCreate(IROperator op, size_t size, IROperand *dest,
+                                   IROperand *arg1, IROperand *arg2);
 /** dtor */
 void irInstructionFree(IRInstruction *);
 

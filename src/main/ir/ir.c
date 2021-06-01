@@ -121,13 +121,65 @@ void irDatumFree(IRDatum *d) {
   free(d);
 }
 
+static IROperand *irOperandCreate(OperandKind kind) {
+  IROperand *o = malloc(sizeof(IROperand));
+  o->kind = kind;
+  return o;
+}
+IROperand *tempOperandCreate(size_t name, size_t alignment, size_t size,
+                             AllocHint kind) {
+  IROperand *o = irOperandCreate(OK_TEMP);
+  o->data.temp.name = name;
+  o->data.temp.alignment = alignment;
+  o->data.temp.size = size;
+  o->data.temp.kind = kind;
+  return o;
+}
+IROperand *regOperandCreate(size_t name) {
+  IROperand *o = irOperandCreate(OK_REG);
+  o->data.reg.name = name;
+  return o;
+}
+IROperand *constantOperandCreate(IRDatum *value) {}
+IROperand *labelOperandCreate(char *name) {}
+IROperand *assemblyOperandCreate(char *name) {}
 void irOperandFree(IROperand *o) {
-  // TODO
+  if (o == NULL) return;
+
+  switch (o->kind) {
+    case OK_CONSTANT: {
+      irDatumFree(o->data.constant.value);
+      break;
+    }
+    case OK_LABEL: {
+      free(o->data.label.name);
+      break;
+    }
+    case OK_ASM: {
+      free(o->data.assembly.assembly);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
   free(o);
 }
 
+IRInstruction *irInstructionCreate(IROperator op, size_t size, IROperand *dest,
+                                   IROperand *arg1, IROperand *arg2) {
+  IRInstruction *i = malloc(sizeof(IRInstruction));
+  i->op = op;
+  i->size = size;
+  i->dest = dest;
+  i->arg1 = arg1;
+  i->arg2 = arg2;
+  return i;
+}
 void irInstructionFree(IRInstruction *i) {
-  // TODO
+  irOperandFree(i->dest);
+  irOperandFree(i->arg1);
+  irOperandFree(i->arg2);
   free(i);
 }
 
