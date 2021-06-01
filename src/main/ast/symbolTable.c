@@ -104,6 +104,7 @@ SymbolTableEntry *variableStabEntryCreate(FileListEntry *file, size_t line,
                                           size_t character, char const *id) {
   SymbolTableEntry *e = stabEntryCreate(file, line, character, id, SK_VARIABLE);
   e->data.variable.type = NULL;
+  e->data.variable.temp = 0;
   return e;
 }
 SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,

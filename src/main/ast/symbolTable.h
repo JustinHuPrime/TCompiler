@@ -92,7 +92,8 @@ typedef struct SymbolTableEntry {
 
     // non-types
     struct {
-      Type *type;
+      Type *type;  /**< type of the variable */
+      size_t temp; /**< IR temp in which it's stored */
     } variable;
     struct {
       Type *returnType;

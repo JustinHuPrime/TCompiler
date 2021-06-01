@@ -21,12 +21,36 @@
 
 #include "options.h"
 #include "util/internalError.h"
+#include "x86_64-linux/abi.h"
 #include "x86_64-linux/asm.h"
 
 char const *localLabelFormat(void) {
   switch (options.arch) {
     case OPTION_A_X86_64_LINUX: {
       return X86_64_LINUX_LOCAL_LABEL_FORMAT;
+    }
+    default: {
+      error(__FILE__, __LINE__, "unrecognized architecture");
+    }
+  }
+}
+
+IRBlock *generateFunctionEntry(SymbolTableEntry const *entry,
+                               FileListEntry *file) {
+  switch (options.arch) {
+    case OPTION_A_X86_64_LINUX: {
+      return x86_64LinuxGenerateFunctionEntry(entry, file);
+    }
+    default: {
+      error(__FILE__, __LINE__, "unrecognized architecture");
+    }
+  }
+}
+IRBlock *generateFunctionExit(SymbolTableEntry const *entry,
+                              size_t returnValueTemp, FileListEntry *file) {
+  switch (options.arch) {
+    case OPTION_A_X86_64_LINUX: {
+      return x86_64LinuxGenerateFunctionExit(entry, returnValueTemp, file);
     }
     default: {
       error(__FILE__, __LINE__, "unrecognized architecture");

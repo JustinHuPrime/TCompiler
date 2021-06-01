@@ -25,6 +25,34 @@
 #ifndef TLC_ARCH_INTERFACE_H_
 #define TLC_ARCH_INTERFACE_H_
 
+#include "ast/symbolTable.h"
+#include "ir/ir.h"
+
+/**
+ * get the format string to format local (numeric) labels
+ * turns a size_t into an assembly label string
+ */
 char const *localLabelFormat(void);
+
+/**
+ * generate a function entry sequence
+ *
+ * @param entry who to generate the sequence for
+ * @param file file this is going to be in
+ * @returns basic block containing entry sequence (but no jump to next block)
+ */
+IRBlock *generateFunctionEntry(SymbolTableEntry const *entry,
+                               FileListEntry *file);
+/**
+ * generate a function exit sequence
+ *
+ * @param entry who to generate the sequence for
+ * @param returnValueTemp temp to get return value from (unused if function
+ * returns void)
+ * @param file file this is going to be in
+ * @returns basic block containing exit sequence
+ */
+IRBlock *generateFunctionExit(SymbolTableEntry const *entry,
+                              size_t returnValueTemp, FileListEntry *file);
 
 #endif  // TLC_ARCH_INTERFACE_H_
