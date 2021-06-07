@@ -25,7 +25,7 @@ Note that if a later option conflicts with an earlier option, the later option w
 
 #### Architecture
 
-* `--arch=x86_64-linux`: sets the target architecture to x86_64 Linux (ELF w/ System V ABI). Default.
+* `--arch=x86_64-linux`: sets the target architecture to x86_64 Linux (ELF w/ System V ABI, SSE2 required). Default.
 
 <!-- #### Code Generation
 
