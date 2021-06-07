@@ -48,7 +48,7 @@ IROperand *LOCAL(size_t name);
  */
 IROperand *GLOBAL(char *name);
 /**
- * stack offset
+ * constant offset
  */
 IROperand *OFFSET(int64_t offset);
 
@@ -85,8 +85,9 @@ IRInstruction *MEM_LOAD(size_t size, IROperand *dest, IROperand *addr);
 /**
  * store to stack
  * @param size sizeof op
- * @param offset destination stack offset (relative to rsp on function entry - 0
- * = return address, -ve = my data, +ve = caller's data)
+ * @param offset destination stack offset as offset (0 == return address; stack
+ * pointer changes due to temps will tweak the offset anyways) (interpretation
+ * of signedness is architecture-specific)
  * @param src source temp, reg, constant, or label
  */
 IRInstruction *STK_STORE(size_t size, IROperand *offset, IROperand *src);
@@ -94,7 +95,7 @@ IRInstruction *STK_STORE(size_t size, IROperand *offset, IROperand *src);
  * load from stack
  * @param size sizeof op
  * @param dest destination temp or reg
- * @param offset source stack offset
+ * @param offset source stack offset as offset
  */
 IRInstruction *STK_LOAD(size_t size, IROperand *dest, IROperand *offset);
 /**
@@ -102,7 +103,7 @@ IRInstruction *STK_LOAD(size_t size, IROperand *dest, IROperand *offset);
  * @param size sizeof op
  * @param dest destination temp
  * @param src source temp, reg, constant, or label
- * @param offset offset as an offset
+ * @param offset offset as an offset or temp
  */
 IRInstruction *OFFSET_STORE(size_t size, IROperand *dest, IROperand *src,
                             IROperand *offset);
@@ -111,7 +112,7 @@ IRInstruction *OFFSET_STORE(size_t size, IROperand *dest, IROperand *src,
  * @param size sizeof op
  * @param dest destination temp or reg
  * @param src source temp
- * @param offset offset as an offset
+ * @param offset offset as an offset or temp
  */
 IRInstruction *OFFSET_LOAD(size_t size, IROperand *dest, IROperand *src,
                            IROperand *offset);

@@ -28,6 +28,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "ast/type.h"
 #include "util/container/linkedList.h"
 #include "util/container/vector.h"
 
@@ -98,12 +99,6 @@ IRDatum *labelDatumCreate(size_t label);
 /** dtor */
 void irDatumFree(IRDatum *);
 
-/** allocation hints for temps */
-typedef enum {
-  AH_GP,  /** integer-like things */
-  AH_MEM, /** structs, arrays, unions */
-  AH_FP,  /** floating-points */
-} AllocHint;
 /** the kind of an operand */
 typedef enum {
   OK_TEMP,

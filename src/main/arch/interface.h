@@ -38,21 +38,27 @@ char const *localLabelFormat(void);
  * generate a function entry sequence
  *
  * @param entry who to generate the sequence for
+ * @param returnValueAddressTemp temp to store return value's address in (unused
+ * if function doesn't return a value via memory)
  * @param file file this is going to be in
  * @returns basic block containing entry sequence (but no jump to next block)
  */
-IRBlock *generateFunctionEntry(SymbolTableEntry const *entry,
+IRBlock *generateFunctionEntry(SymbolTableEntry *entry,
+                               size_t returnValueAddressTemp,
                                FileListEntry *file);
 /**
  * generate a function exit sequence
  *
  * @param entry who to generate the sequence for
+ * @param returnValueAddressTemp temp to get return value's address from (unused
+ * if function doesn't return a value via memory)
  * @param returnValueTemp temp to get return value from (unused if function
  * returns void)
  * @param file file this is going to be in
  * @returns basic block containing exit sequence
  */
 IRBlock *generateFunctionExit(SymbolTableEntry const *entry,
+                              size_t returnValueAddressTemp,
                               size_t returnValueTemp, FileListEntry *file);
 
 #endif  // TLC_ARCH_INTERFACE_H_

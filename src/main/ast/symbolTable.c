@@ -112,6 +112,7 @@ SymbolTableEntry *functionStabEntryCreate(FileListEntry *file, size_t line,
   SymbolTableEntry *e = stabEntryCreate(file, line, character, id, SK_FUNCTION);
   e->data.function.returnType = NULL;
   vectorInit(&e->data.function.argumentTypes);
+  vectorInit(&e->data.function.argumentEntries);
   return e;
 }
 
@@ -173,6 +174,7 @@ void stabEntryFree(SymbolTableEntry *e) {
     case SK_FUNCTION: {
       typeFree(e->data.function.returnType);
       vectorUninit(&e->data.function.argumentTypes, (void (*)(void *))typeFree);
+      vectorUninit(&e->data.function.argumentEntries, nullDtor);
       break;
     }
     default: {

@@ -3523,6 +3523,8 @@ void parseFunctionBody(FileListEntry *entry) {
     switch (body->type) {
       // if it's a funDefn
       case NT_FUNDEFN: {
+        SymbolTableEntry *functionEntry =
+            body->data.funDefn.name->data.id.entry;
         // setup stab for arguments
         HashMap *stab = body->data.funDefn.argStab;
         environmentPush(&env, stab);
@@ -3543,6 +3545,8 @@ void parseFunctionBody(FileListEntry *entry) {
                                existing->line, existing->character);
           } else {
             hashMapPut(stab, argName->data.id.id, stabEntry);
+            vectorInsert(&functionEntry->data.function.argumentEntries,
+                         stabEntry);
           }
         }
 

@@ -94,6 +94,13 @@ typedef struct Type {
   } data;
 } Type;
 
+/** allocation hints for temps */
+typedef enum {
+  AH_GP,  /** integer-like things */
+  AH_MEM, /** structs, arrays, unions */
+  AH_FP,  /** floating-points */
+} AllocHint;
+
 /**
  * create a keyword type
  */
@@ -230,6 +237,10 @@ bool unionRecursive(struct SymbolTableEntry const *e);
  * i.e. has a size of unconstrained or infinity
  */
 bool typedefRecursive(struct SymbolTableEntry const *e);
+/**
+ * produce the allocation hint of a type
+ */
+AllocHint typeAllocation(Type const *t);
 /**
  * format a list of types
  */

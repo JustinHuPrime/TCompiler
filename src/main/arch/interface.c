@@ -35,11 +35,13 @@ char const *localLabelFormat(void) {
   }
 }
 
-IRBlock *generateFunctionEntry(SymbolTableEntry const *entry,
+IRBlock *generateFunctionEntry(SymbolTableEntry *entry,
+                               size_t returnValueAddressTemp,
                                FileListEntry *file) {
   switch (options.arch) {
     case OPTION_A_X86_64_LINUX: {
-      return x86_64LinuxGenerateFunctionEntry(entry, file);
+      return x86_64LinuxGenerateFunctionEntry(entry, returnValueAddressTemp,
+                                              file);
     }
     default: {
       error(__FILE__, __LINE__, "unrecognized architecture");
@@ -47,10 +49,12 @@ IRBlock *generateFunctionEntry(SymbolTableEntry const *entry,
   }
 }
 IRBlock *generateFunctionExit(SymbolTableEntry const *entry,
+                              size_t returnValueAddressTemp,
                               size_t returnValueTemp, FileListEntry *file) {
   switch (options.arch) {
     case OPTION_A_X86_64_LINUX: {
-      return x86_64LinuxGenerateFunctionExit(entry, returnValueTemp, file);
+      return x86_64LinuxGenerateFunctionExit(entry, returnValueAddressTemp,
+                                             returnValueTemp, file);
     }
     default: {
       error(__FILE__, __LINE__, "unrecognized architecture");

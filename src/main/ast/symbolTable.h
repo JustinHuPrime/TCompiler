@@ -98,6 +98,7 @@ typedef struct SymbolTableEntry {
     struct {
       Type *returnType;
       Vector argumentTypes; /**< vector of Type */
+      Vector argumentEntries;    /**< vector of SymbolTableEntry (non-owning) */
     } function;
   } data;
   FileListEntry *file;

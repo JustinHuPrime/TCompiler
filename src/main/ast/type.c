@@ -854,6 +854,48 @@ bool unionRecursive(SymbolTableEntry const *e) {
 bool typedefRecursive(SymbolTableEntry const *e) {
   return typeDirectlyReferences(e->data.typedefType.actual, e);
 }
+AllocHint typeAllocation(Type const *t) {
+  switch (t->kind) {
+    case TK_KEYWORD: {
+      return t->data.keyword.keyword == TK_FLOAT ||
+                     t->data.keyword.keyword == TK_DOUBLE
+                 ? AH_FP
+                 : AH_GP;
+    }
+    case TK_QUALIFIED: {
+      return typeAllocation(t->data.qualified.base);
+    }
+    case TK_POINTER:
+    case TK_FUNPTR: {
+      return AH_GP;
+    }
+    case TK_ARRAY:
+    case TK_AGGREGATE: {
+      return AH_MEM;
+    }
+    case TK_REFERENCE: {
+      SymbolTableEntry const *entry = t->data.reference.entry;
+      switch (entry->kind) {
+        case SK_STRUCT:
+        case SK_UNION: {
+          return AH_MEM;
+        }
+        case SK_ENUM: {
+          return AH_GP;
+        }
+        case SK_TYPEDEF: {
+          return typeAllocation(entry->data.typedefType.actual);
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid symbol kind");
+        }
+      }
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid type kind");
+    }
+  }
+}
 char *typeVectorToString(Vector const *v) {
   if (v->size == 0) {
     return strdup("");

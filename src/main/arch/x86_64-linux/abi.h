@@ -28,9 +28,11 @@
 #include "ast/symbolTable.h"
 #include "ir/ir.h"
 
-IRBlock *x86_64LinuxGenerateFunctionEntry(SymbolTableEntry const *entry,
+IRBlock *x86_64LinuxGenerateFunctionEntry(SymbolTableEntry *entry,
+                                          size_t returnValueAddressTemp,
                                           FileListEntry *file);
 IRBlock *x86_64LinuxGenerateFunctionExit(SymbolTableEntry const *entry,
+                                         size_t returnValueAddressTemp,
                                          size_t returnValueTemp,
                                          FileListEntry *file);
 
