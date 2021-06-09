@@ -1,0 +1,16 @@
+testFiles/translation/x86_64-linux/input/parameterPassingIntOverflow.tc:
+TEXT(_T3foo3bar,
+  BLOCK(3,
+    MOVE(1, REG(rdi), TEMP(temp4, 1, 1, GP)),
+    MOVE(2, REG(rsi), TEMP(temp5, 2, 2, GP)),
+    MOVE(4, REG(rdx), TEMP(temp6, 4, 4, GP)),
+    MOVE(8, REG(rcx), TEMP(temp7, 8, 8, GP)),
+    MOVE(1, REG(r8), TEMP(temp8, 1, 1, GP)),
+    MOVE(1, REG(r9), TEMP(temp9, 1, 1, GP)),
+    STK_LOAD(2, TEMP(temp10, 2, 2, GP), OFFSET(8)),
+    JUMP(0, LABEL(.L11)),
+  ),
+  BLOCK(11,
+    RETURN(0),
+  ),
+)

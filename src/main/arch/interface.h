@@ -35,6 +35,11 @@
 char const *localLabelFormat(void);
 
 /**
+ * pretty print a register number
+ */
+char const *prettyPrintRegister(size_t reg);
+
+/**
  * generate a function entry sequence
  *
  * @param entry who to generate the sequence for

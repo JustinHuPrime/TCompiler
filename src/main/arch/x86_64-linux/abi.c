@@ -45,6 +45,11 @@ static TypeClass *layout(Type const *t) {
   switch (t->kind) {
     case TK_KEYWORD: {
       switch (t->data.keyword.keyword) {
+        case TK_VOID: {
+          for (size_t idx = 0; idx < size; ++idx)
+            retval[idx] = X86_64_LINUX_TC_NO_CLASS;
+          return retval;
+        }
         case TK_UBYTE:
         case TK_BYTE:
         case TK_CHAR:
@@ -67,7 +72,7 @@ static TypeClass *layout(Type const *t) {
           return retval;
         }
         default: {
-          error(__FILE__, __LINE__, "can't have a parameter of that type");
+          error(__FILE__, __LINE__, "invalid typeKeyword");
         }
       }
       break;
@@ -252,9 +257,9 @@ IRBlock *x86_64LinuxGenerateFunctionEntry(SymbolTableEntry *entry,
   Vector *argumentEntries = &entry->data.function.argumentEntries;
   for (size_t idx = 0; idx < argumentTypes->size; ++idx) {
     Type const *argType = argumentTypes->elements[idx];
-    size_t size = typeSizeof(returnType);
-    size_t alignment = typeAlignof(returnType);
-    AllocHint allocation = typeAllocation(returnType);
+    size_t size = typeSizeof(argType);
+    size_t alignment = typeAlignof(argType);
+    AllocHint allocation = typeAllocation(argType);
     SymbolTableEntry *argumentEntry = argumentEntries->elements[idx];
 
     TypeClass argTypeClass[2];
@@ -279,14 +284,14 @@ IRBlock *x86_64LinuxGenerateFunctionEntry(SymbolTableEntry *entry,
       size_t temp = (argumentEntry->data.variable.temp = fresh(file));
       if (argTypeClass[0] == X86_64_LINUX_TC_GP &&
           argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
-        IR(b, MOVE(POINTER_WIDTH, REG(GP_ARG_REGS[gpArgIdx++]),
+        IR(b, MOVE(size, REG(GP_ARG_REGS[gpArgIdx++]),
                    TEMP(temp, alignment, size, allocation)));
       } else if (argTypeClass[0] == X86_64_LINUX_TC_GP) {
         IR(b, OFFSET_LOAD(8, REG(GP_ARG_REGS[gpArgIdx++]),
                           TEMP(temp, alignment, size, allocation), OFFSET(0)));
       } else if (argTypeClass[0] == X86_64_LINUX_TC_SSE &&
                  argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
-        IR(b, MOVE(POINTER_WIDTH, REG(SSE_ARG_REGS[sseArgIdx++]),
+        IR(b, MOVE(size, REG(SSE_ARG_REGS[sseArgIdx++]),
                    TEMP(temp, alignment, size, allocation)));
       } else if (argTypeClass[0] == X86_64_LINUX_TC_SSE) {
         IR(b, OFFSET_LOAD(8, REG(SSE_ARG_REGS[sseArgIdx++]),

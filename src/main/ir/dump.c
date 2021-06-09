@@ -86,7 +86,7 @@ static void operandDump(FILE *where, IROperand *o) {
       break;
     }
     case OK_REG: {
-      fprintf(where, "REG(%zu)", o->data.reg.name);
+      fprintf(where, "REG(%s)", prettyPrintRegister(o->data.reg.name));
       break;
     }
     case OK_CONSTANT: {
@@ -119,17 +119,17 @@ static void operandDump(FILE *where, IROperand *o) {
 
 static void zeroOperandInstructionDump(FILE *where, char const *name,
                                        IRInstruction *i) {
-  fprintf(where, "%s()", name);
+  fprintf(where, "%s(%zu)", name, i->size);
 }
 static void oneOperandInstructionDump(FILE *where, char const *name,
                                       IRInstruction *i) {
-  fprintf(where, "%s(", name);
+  fprintf(where, "%s(%zu, ", name, i->size);
   operandDump(where, i->arg1);
   fprintf(where, ")");
 }
 static void twoOperandInstructionDump(FILE *where, char const *name,
                                       IRInstruction *i) {
-  fprintf(where, "%s(", name);
+  fprintf(where, "%s(%zu, ", name, i->size);
   operandDump(where, i->dest);
   fprintf(where, ", ");
   operandDump(where, i->arg1);
@@ -137,7 +137,7 @@ static void twoOperandInstructionDump(FILE *where, char const *name,
 }
 static void threeOperandInstructionDump(FILE *where, char const *name,
                                         IRInstruction *i) {
-  fprintf(where, "%s(", name);
+  fprintf(where, "%s(%zu, ", name, i->size);
   operandDump(where, i->dest);
   fprintf(where, ", ");
   operandDump(where, i->arg1);
@@ -416,7 +416,10 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       break;
     }
     case IO_JUMP: {
-      oneOperandInstructionDump(where, "JUMP", i);
+      // note - jump is one operand, but the dest is the one operand
+      fprintf(where, "JUMP(%zu, ", i->size);
+      operandDump(where, i->dest);
+      fprintf(where, ")");
       break;
     }
     case IO_JL: {

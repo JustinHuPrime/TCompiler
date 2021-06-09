@@ -1,0 +1,5 @@
+module foo;
+
+void bar(float fa, double fb, float fc, float fd,
+         double fe, float ff, double fg, double fh,
+         float inMemory) {}

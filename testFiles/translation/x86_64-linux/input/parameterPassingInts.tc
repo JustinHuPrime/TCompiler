@@ -1,0 +1,3 @@
+module foo;
+
+void bar(ubyte a, short b, uint c, long d, char e, bool f) {}

@@ -35,6 +35,17 @@ char const *localLabelFormat(void) {
   }
 }
 
+char const *prettyPrintRegister(size_t reg) {
+  switch (options.arch) {
+    case OPTION_A_X86_64_LINUX: {
+      return x86_64LinuxPrettyPrintRegister(reg);
+    }
+    default: {
+      error(__FILE__, __LINE__, "unrecognized architecture");
+    }
+  }
+}
+
 IRBlock *generateFunctionEntry(SymbolTableEntry *entry,
                                size_t returnValueAddressTemp,
                                FileListEntry *file) {

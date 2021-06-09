@@ -22,6 +22,7 @@
 #include "arch/interface.h"
 #include "fileList.h"
 #include "ir/ir.h"
+#include "ir/shorthand.h"
 #include "util/conversions.h"
 #include "util/internalError.h"
 #include "util/numericSizing.h"
@@ -29,6 +30,12 @@
 
 size_t fresh(FileListEntry *file) { return file->nextId++; }
 
+/**
+ * form a name from a prefix and an id
+ */
+static char *suffixName(char const *prefix, char const *id) {
+  return format("%s%zu%s", prefix, strlen(id), id);
+}
 /**
  * generate the name prefix of a module id
  */
@@ -43,8 +50,7 @@ static char *generatePrefix(Node *id) {
     for (size_t idx = 0; idx < components->size; ++idx) {
       Node *component = components->elements[idx];
       char *old = suffix;
-      suffix = format("%s%zu%s", old, strlen(component->data.id.id),
-                      component->data.id.id);
+      suffix = suffixName(old, component->data.id.id);
       free(old);
     }
   }
@@ -56,7 +62,7 @@ static char *generatePrefix(Node *id) {
 char *getMangledName(SymbolTableEntry *entry) {
   char *prefix =
       generatePrefix(entry->file->ast->data.file.module->data.module.id);
-  char *retval = format("%s%zu%s", prefix, strlen(entry->id), entry->id);
+  char *retval = suffixName(prefix, entry->id);
   free(prefix);
   return retval;
 }
@@ -636,21 +642,24 @@ static void translateLiteral(Node const *name, Node const *initializer,
   Type const *type = name->data.id.entry->data.variable.type;
   IRFrag *df;
   if (initializer == NULL || initializerAllZero(initializer)) {
-    df = dataFragCreate(FT_BSS,
-                        format("%s%zu%s", namePrefix, strlen(name->data.id.id),
-                               name->data.id.id),
+    df = dataFragCreate(FT_BSS, suffixName(namePrefix, name->data.id.id),
                         typeAlignof(type));
     vectorInsert(&df->data.data.data, paddingDatumCreate(typeSizeof(type)));
   } else {
     df = dataFragCreate(
         type->kind == TK_QUALIFIED && type->data.qualified.constQual ? FT_RODATA
                                                                      : FT_DATA,
-        format("%s%zu%s", namePrefix, strlen(name->data.id.id),
-               name->data.id.id),
-        typeAlignof(type));
+        suffixName(namePrefix, name->data.id.id), typeAlignof(type));
     translateInitializer(&df->data.data.data, irFrags, type, initializer, file);
   }
   vectorInsert(irFrags, df);
+}
+
+/**
+ * translate a statement
+ */
+static void translateStmt(Node *stmt, FileListEntry *file) {
+  // TODO
 }
 
 /**
@@ -664,9 +673,26 @@ static void translateFile(FileListEntry *file) {
     Node *body = bodies->elements[idx];
     switch (body->type) {
       case NT_FUNDEFN: {
-        // TODO
-        // generate basic block for the entry
-        // generate basic block for the exit
+        SymbolTableEntry *entry = body->data.funDefn.name->data.id.entry;
+        IRFrag *frag = textFragCreate(
+            suffixName(namePrefix, body->data.funDefn.name->data.id.id));
+        vectorInsert(&file->irFrags, frag);
+
+        size_t returnValueAddressTemp = fresh(file);
+        size_t returnValueTemp = fresh(file);
+
+        IRBlock *functionEntry =
+            generateFunctionEntry(entry, returnValueAddressTemp, file);
+        vectorInsert(&frag->data.text.blocks, functionEntry);
+
+        translateStmt(body->data.funDefn.body, file);
+
+        IRBlock *functionExit = generateFunctionExit(
+            entry, returnValueAddressTemp, returnValueTemp, file);
+        vectorInsert(&frag->data.text.blocks, functionExit);
+
+        IRBlock *nextBlock = frag->data.text.blocks.elements[1];
+        IR(functionEntry, JUMP(nextBlock->label));
         break;
       }
       case NT_VARDEFN: {

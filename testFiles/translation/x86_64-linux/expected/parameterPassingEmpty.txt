@@ -1,0 +1,9 @@
+testFiles/translation/x86_64-linux/input/parameterPassingEmpty.tc:
+TEXT(_T3foo3bar,
+  BLOCK(3,
+    JUMP(0, LABEL(.L4)),
+  ),
+  BLOCK(4,
+    RETURN(0),
+  ),
+)

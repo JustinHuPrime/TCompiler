@@ -25,6 +25,8 @@
 #ifndef TLC_ARCH_X86_64_LINUX_ASM_H_
 #define TLC_ARCH_X86_64_LINUX_ASM_H_
 
+#include <stddef.h>
+
 extern char const *const X86_64_LINUX_LOCAL_LABEL_FORMAT;
 
 typedef enum {
@@ -61,5 +63,7 @@ typedef enum {
   X86_64_XMM14,
   X86_64_XMM15,
 } X86_64_Register;
+
+char const *x86_64LinuxPrettyPrintRegister(size_t reg);
 
 #endif  // TLC_ARCH_X86_64_LINUX_ASM_H_

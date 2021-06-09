@@ -19,4 +19,17 @@
 
 #include "arch/x86_64-linux/asm.h"
 
+#include "util/internalError.h"
+
 char const *const X86_64_LINUX_LOCAL_LABEL_FORMAT = ".L%zu";
+
+static char const *const REGISTER_NAMES[] = {
+    "rax",  "rbx",  "rcx",   "rdx",   "rsi",   "rdi",   "rsp",   "rbp",
+    "r8",   "r9",   "r10",   "r11",   "r12",   "r13",   "r14",   "r15",
+    "xmm0", "xmm1", "xmm2",  "xmm3",  "xmm4",  "xmm5",  "xmm6",  "xmm7",
+    "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15",
+};
+
+char const *x86_64LinuxPrettyPrintRegister(size_t reg) {
+  return REGISTER_NAMES[reg];
+}

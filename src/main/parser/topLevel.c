@@ -51,6 +51,7 @@ static void panicTopLevel(FileListEntry *entry) {
       case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
@@ -97,6 +98,7 @@ static void panicStructOrUnion(FileListEntry *entry) {
       case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
@@ -960,6 +962,7 @@ static Node *finishFunDecl(FileListEntry *entry, Node *returnType, Node *name) {
       case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
@@ -1334,6 +1337,7 @@ static Node *finishFunDefn(FileListEntry *entry, Node *returnType, Node *name) {
       case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
@@ -1594,6 +1598,7 @@ static Node *parseStructDecl(FileListEntry *entry, Token *start) {
       case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
@@ -1694,6 +1699,7 @@ static Node *parseUnionDecl(FileListEntry *entry, Token *start) {
       case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
@@ -1962,6 +1968,7 @@ static Vector *parseBodies(FileListEntry *entry) {
       case TT_BYTE:
       case TT_CHAR:
       case TT_USHORT:
+      case TT_SHORT:
       case TT_UINT:
       case TT_INT:
       case TT_WCHAR:
