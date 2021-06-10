@@ -68,6 +68,38 @@ char *getMangledName(SymbolTableEntry *entry) {
 }
 
 /**
+ * get the type of an expression
+ */
+static Type const *expressionTypeof(Node const *e) {
+  switch (e->type) {
+    case NT_BINOPEXP: {
+      return e->data.binOpExp.type;
+    }
+    case NT_TERNARYEXP: {
+      return e->data.ternaryExp.type;
+    }
+    case NT_UNOPEXP: {
+      return e->data.unOpExp.type;
+    }
+    case NT_FUNCALLEXP: {
+      return e->data.funCallExp.type;
+    }
+    case NT_LITERAL: {
+      return e->data.literal.type;
+    }
+    case NT_SCOPEDID: {
+      return e->data.literal.type;
+    }
+    case NT_ID: {
+      return e->data.id.type;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid expression type");
+    }
+  }
+}
+
+/**
  * produce true if given initializer results in all-zeroes
  */
 static bool initializerAllZero(Node const *initializer) {
@@ -656,16 +688,66 @@ static void translateLiteral(Node const *name, Node const *initializer,
 }
 
 /**
+ * translate a cast
+ *
+ * @param blocks vector to put new blocks in
+ * @param src source temp
+ * @param fromType type of the input temp
+ * @param toType type of the output temp
+ * @param label this block's label
+ * @param nextLabel next block's label
+ * @param file file the expression is in
+ * @returns temp with produced value
+ */
+static IROperand *translateCast(Vector *blocks, IROperand *src,
+                                Type const *fromType, Type const *toType,
+                                size_t label, size_t nextLabel,
+                                FileListEntry *file) {
+  return NULL;  // TODO
+}
+
+/**
+ * translate a predicate
+ *
+ * @param block vector to put new blocks in
+ * @param e expression to translate
+ * @param label this block's label
+ * @param trueLabel label to go to if true
+ * @param falseLabel label to go to if false
+ * @param file file the statement is in
+ */
+static void translateExpressionPredicate(Vector *blocks, Node const *e,
+                                         size_t label, size_t trueLabel,
+                                         size_t falseLabel,
+                                         FileListEntry *file) {
+  // TODO
+}
+
+/**
+ * translate an expression for effect
+ *
+ * @param block vector to put new blocks in
+ * @param e statement to translate
+ * @param label this block's label
+ * @param nextLabel label the next block is at
+ * @param file file the statement is in
+ */
+static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
+                                    size_t nextLabel, FileListEntry *file) {
+  // TODO
+}
+
+/**
  * translate an expression for its value
  *
  * @param block vector to put new blocks in
- * @param stmt statement to translate
+ * @param e statement to translate
  * @param label this block's label
  * @param nextLabel label the next block is at
  * @param file file the statement is in
  * @returns temp with produced value
  */
-static IROperand *translateExpressionValue(Vector *blocks, Node *stmt,
+static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
                                            size_t label, size_t nextLabel,
                                            FileListEntry *file) {
   return NULL;  // TODO
@@ -686,6 +768,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node *stmt,
 static void translateStmt(Vector *blocks, Node *stmt, size_t label,
                           size_t nextLabel, size_t returnLabel,
                           size_t breakLabel, size_t continueLabel,
+                          size_t returnValueTemp, Type const *returnType,
                           FileListEntry *file) {
   switch (stmt->type) {
     case NT_COMPOUNDSTMT: {
@@ -697,7 +780,8 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
       } else if (stmts->size == 1) {
         // case: single element compound - treat it as if there were no compound
         translateStmt(blocks, stmts->elements[0], label, nextLabel, returnLabel,
-                      breakLabel, continueLabel, file);
+                      breakLabel, continueLabel, returnValueTemp, returnType,
+                      file);
       } else {
         // case: multi element compound
         size_t curr = label;
@@ -705,11 +789,13 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
           if (idx == stmts->size - 1) {
             // last element
             translateStmt(blocks, stmts->elements[idx], curr, nextLabel,
-                          returnLabel, breakLabel, continueLabel, file);
+                          returnLabel, breakLabel, continueLabel,
+                          returnValueTemp, returnType, file);
           } else {
             size_t next = fresh(file);
             translateStmt(blocks, stmts->elements[idx], curr, next, returnLabel,
-                          breakLabel, continueLabel, file);
+                          breakLabel, continueLabel, returnValueTemp,
+                          returnType, file);
             curr = next;
           }
         }
@@ -717,19 +803,85 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
       break;
     }
     case NT_IFSTMT: {
-      // TODO
+      if (stmt->data.ifStmt.alternative == NULL) {
+        // if -> consequent -> next
+        //    \----------------^
+
+        size_t trueLabel = fresh(file);
+        translateExpressionPredicate(blocks, stmt->data.ifStmt.predicate, label,
+                                     trueLabel, nextLabel, file);
+        translateStmt(blocks, stmt->data.ifStmt.consequent, trueLabel,
+                      nextLabel, returnLabel, breakLabel, continueLabel,
+                      returnValueTemp, returnType, file);
+      } else {
+        // if -> consequent -> next
+        //    \> alternative --^
+
+        size_t trueLabel = fresh(file);
+        size_t falseLabel = fresh(file);
+        translateExpressionPredicate(blocks, stmt->data.ifStmt.predicate, label,
+                                     trueLabel, falseLabel, file);
+        translateStmt(blocks, stmt->data.ifStmt.consequent, trueLabel,
+                      nextLabel, returnLabel, breakLabel, continueLabel,
+                      returnValueTemp, returnType, file);
+        translateStmt(blocks, stmt->data.ifStmt.alternative, falseLabel,
+                      nextLabel, returnLabel, breakLabel, continueLabel,
+                      returnValueTemp, returnType, file);
+      }
       break;
     }
     case NT_WHILESTMT: {
-      // TODO
+      //               /------------v
+      // condition check -> body -| next
+      //               ^----------/
+
+      size_t bodyLabel = fresh(file);
+      translateExpressionPredicate(blocks, stmt->data.whileStmt.condition,
+                                   label, bodyLabel, nextLabel, file);
+      translateStmt(blocks, stmt->data.whileStmt.body, bodyLabel, label,
+                    returnLabel, nextLabel, label, returnValueTemp, returnType,
+                    file);
       break;
     }
     case NT_DOWHILESTMT: {
-      // TODO
+      // body -> condition check -> next
+      //    ^------------------|
+
+      size_t conditionLabel = fresh(file);
+      translateStmt(blocks, stmt->data.doWhileStmt.body, label, conditionLabel,
+                    returnLabel, nextLabel, conditionLabel, returnValueTemp,
+                    returnType, file);
+      translateExpressionPredicate(blocks, stmt->data.doWhileStmt.condition,
+                                   conditionLabel, label, nextLabel, file);
       break;
     }
     case NT_FORSTMT: {
-      // TODO
+      size_t conditionLabel = fresh(file);
+      translateStmt(blocks, stmt->data.forStmt.initializer, label,
+                    conditionLabel, 0, 0, 0, returnValueTemp, returnType, file);
+      size_t bodyLabel = fresh(file);
+      translateExpressionPredicate(blocks, stmt->data.forStmt.condition,
+                                   conditionLabel, bodyLabel, nextLabel, file);
+      if (stmt->data.forStmt.increment != NULL) {
+        //                       /----------------------v
+        // init -> condition check -> body -> increment next
+        //                       ^------------|
+
+        size_t incrementLabel = fresh(file);
+        translateStmt(blocks, stmt->data.forStmt.body, bodyLabel,
+                      incrementLabel, returnLabel, nextLabel, incrementLabel,
+                      returnValueTemp, returnType, file);
+        translateExpressionVoid(blocks, stmt->data.forStmt.increment,
+                                incrementLabel, conditionLabel, file);
+      } else {
+        //                       /---------v
+        // init -> condition check -> body next
+        //                       ^-------|
+
+        translateStmt(blocks, stmt->data.forStmt.body, bodyLabel,
+                      conditionLabel, returnLabel, nextLabel, conditionLabel,
+                      returnValueTemp, returnType, file);
+      }
       break;
     }
     case NT_SWITCHSTMT: {
@@ -737,27 +889,79 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
       break;
     }
     case NT_BREAKSTMT: {
-      // TODO
+      IRBlock *b = BLOCK(label, blocks);
+      IR(b, JUMP(breakLabel));
       break;
     }
     case NT_CONTINUESTMT: {
-      // TODO
+      IRBlock *b = BLOCK(label, blocks);
+      IR(b, JUMP(continueLabel));
       break;
     }
     case NT_RETURNSTMT: {
-      // TODO
+      if (stmt->data.returnStmt.value != NULL) {
+        size_t returnCast = fresh(file);
+        IROperand *value = translateExpressionValue(
+            blocks, stmt->data.returnStmt.value, label, returnCast, file);
+        size_t returnMove = fresh(file);
+        IROperand *casted = translateCast(
+            blocks, value, expressionTypeof(stmt->data.returnStmt.value),
+            returnType, returnCast, returnMove, file);
+        IRBlock *b = BLOCK(returnMove, blocks);
+        IR(b, MOVE(casted->data.temp.size,
+                   TEMP(returnValueTemp, casted->data.temp.alignment,
+                        casted->data.temp.size, casted->data.temp.kind),
+                   casted));
+        IR(b, JUMP(returnLabel));
+      } else {
+        IRBlock *b = BLOCK(label, blocks);
+        IR(b, JUMP(returnLabel));
+      }
       break;
     }
     case NT_ASMSTMT: {
-      // TODO
+      IRBlock *b = BLOCK(label, blocks);
+      IR(b, ASM(stmt->data.asmStmt.assembly));
+      IR(b, JUMP(nextLabel));
       break;
     }
     case NT_VARDEFNSTMT: {
-      // TODO
+      Vector *names = stmt->data.varDefnStmt.names;
+      Vector *initializers = stmt->data.varDefnStmt.initializers;
+
+      size_t curr = label;
+      for (size_t idx = 0; idx < names->size; ++idx) {
+        Node *name = names->elements[idx];
+        Node const *initializer = initializers->elements[idx];
+        if (idx == names->size - 1) {
+          if (initializer == NULL) {
+            IRBlock *b = BLOCK(curr, blocks);
+            IR(b, JUMP(nextLabel));
+            name->data.id.entry->data.variable.temp = fresh(file);
+          } else {
+            IROperand *o = translateExpressionValue(blocks, initializer, curr,
+                                                    nextLabel, file);
+            name->data.id.entry->data.variable.temp = o->data.temp.name;
+            irOperandFree(o);
+          }
+        } else {
+          if (initializer == NULL) {
+            name->data.id.entry->data.variable.temp = fresh(file);
+          } else {
+            size_t next = fresh(file);
+            IROperand *o =
+                translateExpressionValue(blocks, initializer, curr, next, file);
+            name->data.id.entry->data.variable.temp = o->data.temp.name;
+            irOperandFree(o);
+            curr = next;
+          }
+        }
+      }
       break;
     }
     case NT_EXPRESSIONSTMT: {
-      // TODO
+      translateExpressionVoid(blocks, stmt->data.expressionStmt.expression,
+                              label, nextLabel, file);
       break;
     }
     default: {
@@ -794,7 +998,8 @@ static void translateFile(FileListEntry *file) {
                               file);
 
         translateStmt(&frag->data.text.blocks, body->data.funDefn.body,
-                      toBodyLink, toExitLink, toExitLink, 0, 0, file);
+                      toBodyLink, toExitLink, toExitLink, 0, 0, returnValueTemp,
+                      entry->data.function.returnType, file);
 
         generateFunctionExit(blocks, entry, returnValueAddressTemp,
                              returnValueTemp, toExitLink, file);
