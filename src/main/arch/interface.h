@@ -42,13 +42,14 @@ char const *prettyPrintRegister(size_t reg);
 /**
  * generate a function entry sequence
  *
+ * @param linkOut output pointer to label for next block
  * @param entry who to generate the sequence for
  * @param returnValueAddressTemp temp to store return value's address in (unused
  * if function doesn't return a value via memory)
  * @param file file this is going to be in
- * @returns basic block containing entry sequence (but no jump to next block)
+ * @returns basic block containing entry sequence
  */
-IRBlock *generateFunctionEntry(SymbolTableEntry *entry,
+IRBlock *generateFunctionEntry(size_t *linkOut, SymbolTableEntry *entry,
                                size_t returnValueAddressTemp,
                                FileListEntry *file);
 /**
@@ -59,11 +60,13 @@ IRBlock *generateFunctionEntry(SymbolTableEntry *entry,
  * if function doesn't return a value via memory)
  * @param returnValueTemp temp to get return value from (unused if function
  * returns void)
+ * @param prevLink id that the previous block jumps to
  * @param file file this is going to be in
  * @returns basic block containing exit sequence
  */
 IRBlock *generateFunctionExit(SymbolTableEntry const *entry,
                               size_t returnValueAddressTemp,
-                              size_t returnValueTemp, FileListEntry *file);
+                              size_t returnValueTemp, size_t prevLink,
+                              FileListEntry *file);
 
 #endif  // TLC_ARCH_INTERFACE_H_

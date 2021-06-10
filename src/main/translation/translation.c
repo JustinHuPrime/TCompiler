@@ -657,8 +657,17 @@ static void translateLiteral(Node const *name, Node const *initializer,
 
 /**
  * translate a statement
+ *
+ * @param blocks vector of basic block
+ * @param stmt statement to translate
+ * @param prevLink label the previous block jumps to
+ * @param file file the statement is in
+ * @returns id for block after this one (may be prevLink, if no block is
+ * created)
  */
-static void translateStmt(Node *stmt, FileListEntry *file) {
+static size_t translateStmt(Vector *blocks, Node *stmt, size_t prevLink,
+                            FileListEntry *file) {
+  return prevLink;
   // TODO
 }
 
@@ -681,18 +690,18 @@ static void translateFile(FileListEntry *file) {
         size_t returnValueAddressTemp = fresh(file);
         size_t returnValueTemp = fresh(file);
 
-        IRBlock *functionEntry =
-            generateFunctionEntry(entry, returnValueAddressTemp, file);
+        size_t toBodyLink;
+        IRBlock *functionEntry = generateFunctionEntry(
+            &toBodyLink, entry, returnValueAddressTemp, file);
         vectorInsert(&frag->data.text.blocks, functionEntry);
 
-        translateStmt(body->data.funDefn.body, file);
+        size_t toExitLink = translateStmt(
+            &frag->data.text.blocks, body->data.funDefn.body, toBodyLink, file);
 
         IRBlock *functionExit = generateFunctionExit(
-            entry, returnValueAddressTemp, returnValueTemp, file);
+            entry, returnValueAddressTemp, returnValueTemp, toExitLink, file);
         vectorInsert(&frag->data.text.blocks, functionExit);
 
-        IRBlock *nextBlock = frag->data.text.blocks.elements[1];
-        IR(functionEntry, JUMP(nextBlock->label));
         break;
       }
       case NT_VARDEFN: {

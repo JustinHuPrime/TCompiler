@@ -28,12 +28,13 @@
 #include "ast/symbolTable.h"
 #include "ir/ir.h"
 
-IRBlock *x86_64LinuxGenerateFunctionEntry(SymbolTableEntry *entry,
+IRBlock *x86_64LinuxGenerateFunctionEntry(size_t *linkOut,
+                                          SymbolTableEntry *entry,
                                           size_t returnValueAddressTemp,
                                           FileListEntry *file);
 IRBlock *x86_64LinuxGenerateFunctionExit(SymbolTableEntry const *entry,
                                          size_t returnValueAddressTemp,
                                          size_t returnValueTemp,
-                                         FileListEntry *file);
+                                         size_t prevLink, FileListEntry *file);
 
 #endif  // TLC_ARCH_X86_64_LINUX_ABI_H_

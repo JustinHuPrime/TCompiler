@@ -46,13 +46,14 @@ char const *prettyPrintRegister(size_t reg) {
   }
 }
 
-IRBlock *generateFunctionEntry(SymbolTableEntry *entry,
+IRBlock *generateFunctionEntry(size_t *linkOut, SymbolTableEntry *entry,
                                size_t returnValueAddressTemp,
                                FileListEntry *file) {
   switch (options.arch) {
     case OPTION_A_X86_64_LINUX: {
-      return x86_64LinuxGenerateFunctionEntry(entry, returnValueAddressTemp,
-                                              file);
+      return x86_64LinuxGenerateFunctionEntry(linkOut, entry,
+                                              returnValueAddressTemp, file);
+      break;
     }
     default: {
       error(__FILE__, __LINE__, "unrecognized architecture");
@@ -61,11 +62,12 @@ IRBlock *generateFunctionEntry(SymbolTableEntry *entry,
 }
 IRBlock *generateFunctionExit(SymbolTableEntry const *entry,
                               size_t returnValueAddressTemp,
-                              size_t returnValueTemp, FileListEntry *file) {
+                              size_t returnValueTemp, size_t prevLink,
+                              FileListEntry *file) {
   switch (options.arch) {
     case OPTION_A_X86_64_LINUX: {
       return x86_64LinuxGenerateFunctionExit(entry, returnValueAddressTemp,
-                                             returnValueTemp, file);
+                                             returnValueTemp, prevLink, file);
     }
     default: {
       error(__FILE__, __LINE__, "unrecognized architecture");

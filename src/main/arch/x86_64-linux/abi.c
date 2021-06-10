@@ -232,7 +232,8 @@ static X86_64_Register SSE_RETURN_REGS[] = {
     X86_64_XMM1,
 };
 
-IRBlock *x86_64LinuxGenerateFunctionEntry(SymbolTableEntry *entry,
+IRBlock *x86_64LinuxGenerateFunctionEntry(size_t *linkOut,
+                                          SymbolTableEntry *entry,
                                           size_t returnValueAddressTemp,
                                           FileListEntry *file) {
   IRBlock *b = irBlockCreate(fresh(file));
@@ -308,13 +309,14 @@ IRBlock *x86_64LinuxGenerateFunctionEntry(SymbolTableEntry *entry,
     }
   }
 
+  IR(b, JUMP(*linkOut = fresh(file)));
   return b;
 }
 IRBlock *x86_64LinuxGenerateFunctionExit(SymbolTableEntry const *entry,
                                          size_t returnValueAddressTemp,
                                          size_t returnValueTemp,
-                                         FileListEntry *file) {
-  IRBlock *b = irBlockCreate(fresh(file));
+                                         size_t prevLink, FileListEntry *file) {
+  IRBlock *b = irBlockCreate(prevLink);
   Type const *returnType = entry->data.function.returnType;
 
   // is it a void function?
