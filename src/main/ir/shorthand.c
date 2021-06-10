@@ -40,9 +40,6 @@ IRInstruction *ASM(char const *assembly) {
   return irInstructionCreate(IO_ASM, 0, NULL,
                              assemblyOperandCreate(strdup(assembly)), NULL);
 }
-IRInstruction *LABEL(size_t name) {
-  return irInstructionCreate(IO_LABEL, 0, NULL, LOCAL(name), NULL);
-}
 IRInstruction *MOVE(size_t size, IROperand *dest, IROperand *src) {
   return irInstructionCreate(IO_MOVE, size, dest, src, NULL);
 }

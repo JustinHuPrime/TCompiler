@@ -57,11 +57,6 @@ IROperand *OFFSET(int64_t offset);
  */
 IRInstruction *ASM(char const *assembly);
 /**
- * label
- * @param name unique label number
- */
-IRInstruction *LABEL(size_t name);
-/**
  * simple move
  * @param size sizeof op
  * @param dest destination temp or reg
