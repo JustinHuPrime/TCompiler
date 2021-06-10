@@ -199,6 +199,10 @@ bool typeEnum(Type const *t);
  */
 bool typeArray(Type const *t);
 /**
+ * can you switch on this type
+ */
+bool typeSwitchable(Type const *t);
+/**
  * merge types in an arithmetic expression
  */
 Type *arithmeticTypeMerge(Type const *a, Type const *b);

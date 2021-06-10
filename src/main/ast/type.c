@@ -429,6 +429,9 @@ bool typeArray(Type const *t) {
   t = stripCV(t);
   return t->kind == TK_ARRAY;
 }
+bool typeSwitchable(Type const *t) {
+  return typeIntegral(t) || typeCharacter(t) || typeEnum(t);
+}
 Type *arithmeticTypeMerge(Type const *a, Type const *b) {
   if (a == NULL || b == NULL || !typeNumeric(a) || !typeNumeric(b)) return NULL;
   a = stripCV(a);

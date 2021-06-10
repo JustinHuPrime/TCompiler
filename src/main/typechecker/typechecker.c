@@ -135,14 +135,12 @@ static void errorNotLvalue(FileListEntry *entry, size_t line, size_t character,
 }
 /**
  * complains about a type being incomplete
- *
- * @param t incomplete type
  */
 static void errorIncompleteType(FileListEntry *entry, size_t line,
                                 size_t character, Type const *t) {
   char *typeString = typeToString(t);
   fprintf(stderr,
-          "%s:%zu:%zu: error: value of type '%s' do not exist; the type is "
+          "%s:%zu:%zu: error: values of type '%s' do not exist; the type is "
           "incomplete\n",
           entry->inputFilename, line, character, typeString);
   free(typeString);
@@ -150,14 +148,23 @@ static void errorIncompleteType(FileListEntry *entry, size_t line,
 }
 /**
  * complains about a type being recursive
- *
- * @param t recursive type
  */
 static void errorRecursiveDecl(FileListEntry *entry, size_t line,
                                size_t character, char const *what,
                                char const *name) {
   fprintf(stderr, "%s:%zu:%zu: error: the %s '%s' may not contain itself\n",
           entry->inputFilename, line, character, what, name);
+  entry->errored = true;
+}
+/**
+ * complains about being unable to switch on a value
+ */
+static void errorNotSwitchable(FileListEntry *entry, size_t line,
+                               size_t character, Type const *conditionType) {
+  char *typeString = typeToString(conditionType);
+  fprintf(stderr, "%s:%zu:%zu: error: cannot switch on values of type '%s'\n",
+          entry->inputFilename, line, character, typeString);
+  free(typeString);
   entry->errored = true;
 }
 
@@ -1382,6 +1389,10 @@ static void typecheckStmt(Node *stmt, Type const *returnType,
     case NT_SWITCHSTMT: {
       Type const *conditionType =
           typecheckExpression(stmt->data.switchStmt.condition, entry);
+      if (!typeSwitchable(conditionType))
+        errorNotSwitchable(entry, stmt->data.switchStmt.condition->line,
+                           stmt->data.switchStmt.condition->character,
+                           conditionType);
 
       Vector *cases = stmt->data.switchStmt.cases;
       for (size_t caseIdx = 0; caseIdx < cases->size; ++caseIdx) {
