@@ -1,0 +1,9 @@
+module foo;
+
+enum e {
+  A,
+  B,
+  C,
+};
+
+void bar(e a) {}

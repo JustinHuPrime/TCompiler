@@ -1,0 +1,10 @@
+testFiles/translation/x86_64-linux/input/parameterPassingUnion.tc:
+TEXT(_T3foo3bar,
+  BLOCK(3,
+    MOVE(4, TEMP(temp4, 4, 4, MEM), REG(rdi)),
+    JUMP(0, LABEL(.L5)),
+  ),
+  BLOCK(5,
+    RETURN(0),
+  ),
+)

@@ -1,0 +1,8 @@
+module foo;
+
+struct s {
+  int i;
+  float f;
+};
+
+void bar(s a) {}

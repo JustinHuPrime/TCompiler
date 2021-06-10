@@ -284,26 +284,26 @@ IRBlock *x86_64LinuxGenerateFunctionEntry(SymbolTableEntry *entry,
       size_t temp = (argumentEntry->data.variable.temp = fresh(file));
       if (argTypeClass[0] == X86_64_LINUX_TC_GP &&
           argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
-        IR(b, MOVE(size, REG(GP_ARG_REGS[gpArgIdx++]),
-                   TEMP(temp, alignment, size, allocation)));
+        IR(b, MOVE(size, TEMP(temp, alignment, size, allocation),
+                   REG(GP_ARG_REGS[gpArgIdx++])));
       } else if (argTypeClass[0] == X86_64_LINUX_TC_GP) {
-        IR(b, OFFSET_LOAD(8, REG(GP_ARG_REGS[gpArgIdx++]),
-                          TEMP(temp, alignment, size, allocation), OFFSET(0)));
+        IR(b, OFFSET_LOAD(8, TEMP(temp, alignment, size, allocation),
+                          REG(GP_ARG_REGS[gpArgIdx++]), OFFSET(0)));
       } else if (argTypeClass[0] == X86_64_LINUX_TC_SSE &&
                  argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
-        IR(b, MOVE(size, REG(SSE_ARG_REGS[sseArgIdx++]),
-                   TEMP(temp, alignment, size, allocation)));
+        IR(b, MOVE(size, TEMP(temp, alignment, size, allocation),
+                   REG(SSE_ARG_REGS[sseArgIdx++])));
       } else if (argTypeClass[0] == X86_64_LINUX_TC_SSE) {
-        IR(b, OFFSET_LOAD(8, REG(SSE_ARG_REGS[sseArgIdx++]),
-                          TEMP(temp, alignment, size, allocation), OFFSET(0)));
+        IR(b, OFFSET_LOAD(8, TEMP(temp, alignment, size, allocation),
+                          REG(SSE_ARG_REGS[sseArgIdx++]), OFFSET(0)));
       }
 
       if (argTypeClass[1] == X86_64_LINUX_TC_GP) {
-        IR(b, OFFSET_LOAD(size - 8, REG(GP_ARG_REGS[gpArgIdx++]),
-                          TEMP(temp, alignment, size, allocation), OFFSET(8)));
+        IR(b, OFFSET_LOAD(size - 8, TEMP(temp, alignment, size, allocation),
+                          REG(GP_ARG_REGS[gpArgIdx++]), OFFSET(8)));
       } else if (argTypeClass[1] == X86_64_LINUX_TC_SSE) {
-        IR(b, OFFSET_LOAD(size - 8, REG(SSE_ARG_REGS[sseArgIdx++]),
-                          TEMP(temp, alignment, size, allocation), OFFSET(8)));
+        IR(b, OFFSET_LOAD(size - 8, TEMP(temp, alignment, size, allocation),
+                          REG(SSE_ARG_REGS[sseArgIdx++]), OFFSET(8)));
       }
     }
   }
