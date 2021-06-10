@@ -35,13 +35,14 @@
 typedef struct {
   size_t numTests;
   size_t numPassed;
+  bool bless;
 } TestStatus;
 
 /** global status object */
 extern TestStatus status;
 
 /** initializes status */
-void testStatusInit(void);
+void testStatusInit(bool bless);
 /**
  * return status for the testing process.
  * @returns status: 0 = OK, -1 = failed

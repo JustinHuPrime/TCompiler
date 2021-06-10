@@ -24,6 +24,7 @@
 
 #include "util/conversions.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -303,6 +304,8 @@ static void testUnderflowDoubleConversions(void) {
 }
 
 void testConversions(void) {
+  assert("can't bless conversion tests" && !status.bless);
+
   testNormalFloatConversions();
   testNormalDoubleConversions();
   testSubnormalFloatConversions();

@@ -24,6 +24,7 @@
 
 #include "lexer/lexer.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -450,6 +451,8 @@ static void testErrors(void) {
 }
 
 void testLexer(void) {
+  assert("can't bless lexer tests" && !status.bless);
+
   lexerInitMaps();
 
   testAllTokens();

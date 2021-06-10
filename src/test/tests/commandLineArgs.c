@@ -21,6 +21,7 @@
  * @file
  * tests for command line arguments
  */
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -275,6 +276,8 @@ static void testOptions(void) {
 }
 
 void testCommandLineArgs(void) {
+  assert("can't bless commandLineArgs tests" && !status.bless);
+
   Options original;
   memcpy(&original, &options, sizeof(Options));
 

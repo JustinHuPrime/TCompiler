@@ -32,7 +32,7 @@ static bool containsString(size_t argc, char **argv, char const *string) {
 }
 
 int main(int argc, char *argv[]) {
-  testStatusInit();
+  testStatusInit(containsString((size_t)argc, argv, "--bless"));
 
   if (argc <= 1 || containsString((size_t)argc, argv, "bigInteger"))
     testBigInteger();

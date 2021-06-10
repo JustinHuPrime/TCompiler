@@ -25,9 +25,10 @@
 
 TestStatus status;
 
-void testStatusInit(void) {
+void testStatusInit(bool bless) {
   status.numTests = 0;
   status.numPassed = 0;
+  status.bless = bless;
 }
 int testStatusStatus(void) {
   if (status.numTests == status.numPassed)

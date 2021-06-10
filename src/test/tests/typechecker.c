@@ -37,6 +37,8 @@
 #include "util/format.h"
 
 void testTypechecker(void) {
+  assert("can't bless typechecker tests" && !status.bless);
+
   DIR *accepted = opendir("testFiles/typechecker/accepted");
   assert("couldn't open accepted files dir" && accepted != NULL);
 

@@ -24,6 +24,7 @@
 
 #include "util/container/bigInteger.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "engine.h"
@@ -135,6 +136,7 @@ static void testBigIntegerRounding(void) {
 }
 
 void testBigInteger(void) {
+  assert("can't bless bigInteger tests" && !status.bless);
   testBigIntegerInit();
   testBigIntegerArithmetic();
   testBigIntegerRounding();
