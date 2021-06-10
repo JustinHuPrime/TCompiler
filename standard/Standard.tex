@@ -480,7 +480,7 @@ The condition must be a value implicitly convertable to boolean, and the initial
 
 A switch statement selects between several possible cases. The expression is evaluated, and it must be an integral expression. Then, the matching case is selected, and the matching statement is executed. Then, unless execution hits a break, execution proceeds down the following cases. If no case is matched, then the default and its statement is executed, and execution of the switch continues down the remaining cases. It is an error to have multiple cases with the same value. Additionally, despite the curly braces, the switch itself does not introduce a scope.
 
-The condition must be an integral or character type. Additionally, the condition must be comparison-mergable to the type of any case value.
+The condition must be an integral or character type. Additionally, all case values must be implicitly convertable to the type of the condition.
 
 \section{Break Statements}
 
