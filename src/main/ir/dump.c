@@ -110,10 +110,6 @@ static void operandDump(FILE *where, IROperand *o) {
       fprintf(where, "ASM(%s)", o->data.assembly.assembly);
       break;
     }
-    case OK_STACK_FRAME_SIZE: {
-      fprintf(where, "STACK_FRAME_OFFSET()");
-      break;
-    }
   }
 }
 

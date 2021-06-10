@@ -96,6 +96,8 @@ IRDatum *paddingDatumCreate(size_t len);
 IRDatum *stringDatumCreate(uint8_t *string);
 IRDatum *wstringDatumCreate(uint32_t *wstring);
 IRDatum *labelDatumCreate(size_t label);
+/** copy */
+IRDatum *irDatumCopy(IRDatum const *d);
 /** dtor */
 void irDatumFree(IRDatum *);
 
@@ -107,7 +109,6 @@ typedef enum {
   OK_LABEL,
   OK_OFFSET,
   OK_ASM,
-  OK_STACK_FRAME_SIZE,
 } OperandKind;
 /** an operand in an IR entry */
 typedef struct IROperand {
@@ -135,11 +136,6 @@ typedef struct IROperand {
     struct {
       char *assembly;
     } assembly;
-    // struct {
-    //   no data
-    //   represents the size of the stack frame to allocate - a 8-byte (64 bit)
-    //   unsigned integer
-    // } stackFrameSize;
   } data;
 } IROperand;
 
@@ -151,7 +147,8 @@ IROperand *constantOperandCreate(size_t alignment);
 IROperand *labelOperandCreate(char *name);
 IROperand *offsetOperandCreate(int64_t offset);
 IROperand *assemblyOperandCreate(char *assembly);
-IROperand *stackFrameSizeOperandCreate(void);
+/** copy */
+IROperand *irOperandCopy(IROperand const *o);
 /** dtor */
 void irOperandFree(IROperand *);
 

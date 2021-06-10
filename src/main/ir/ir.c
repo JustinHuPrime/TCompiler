@@ -21,6 +21,9 @@
 
 #include <stdlib.h>
 
+#include "util/internalError.h"
+#include "util/string.h"
+
 static IRFrag *fragCreate(FragmentType type, char *name) {
   IRFrag *df = malloc(sizeof(IRFrag));
   df->type = type;
@@ -119,6 +122,37 @@ void irDatumFree(IRDatum *d) {
   }
   free(d);
 }
+IRDatum *irDatumCopy(IRDatum const *d) {
+  switch (d->type) {
+    case DT_BYTE: {
+      return byteDatumCreate(d->data.byteVal);
+    }
+    case DT_SHORT: {
+      return shortDatumCreate(d->data.shortVal);
+    }
+    case DT_INT: {
+      return intDatumCreate(d->data.intVal);
+    }
+    case DT_LONG: {
+      return longDatumCreate(d->data.longVal);
+    }
+    case DT_PADDING: {
+      return paddingDatumCreate(d->data.paddingLength);
+    }
+    case DT_STRING: {
+      return stringDatumCreate(tstrdup(d->data.string));
+    }
+    case DT_WSTRING: {
+      return wstringDatumCreate(twstrdup(d->data.wstring));
+    }
+    case DT_LABEL: {
+      return labelDatumCreate(d->data.label);
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid DatumType");
+    }
+  }
+}
 
 static IROperand *irOperandCreate(OperandKind kind) {
   IROperand *o = malloc(sizeof(IROperand));
@@ -160,8 +194,35 @@ IROperand *assemblyOperandCreate(char *assembly) {
   o->data.assembly.assembly = assembly;
   return o;
 }
-IROperand *stackFrameSizeOperandCreate(void) {
-  return irOperandCreate(OK_STACK_FRAME_SIZE);
+IROperand *irOperandCopy(IROperand const *o) {
+  switch (o->kind) {
+    case OK_TEMP: {
+      return tempOperandCreate(o->data.temp.name, o->data.temp.alignment,
+                               o->data.temp.size, o->data.temp.kind);
+    }
+    case OK_REG: {
+      return regOperandCreate(o->data.reg.name);
+    }
+    case OK_CONSTANT: {
+      IROperand *retval = constantOperandCreate(o->data.constant.alignment);
+      for (size_t idx = 0; idx < o->data.constant.data.size; ++idx)
+        vectorInsert(&retval->data.constant.data,
+                     irDatumCopy(o->data.constant.data.elements[idx]));
+      return retval;
+    }
+    case OK_LABEL: {
+      return labelOperandCreate(strdup(o->data.label.name));
+    }
+    case OK_OFFSET: {
+      return offsetOperandCreate(o->data.offset.offset);
+    }
+    case OK_ASM: {
+      return assemblyOperandCreate(strdup(o->data.assembly.assembly));
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid IROperandKind");
+    }
+  }
 }
 void irOperandFree(IROperand *o) {
   if (o == NULL) return;
