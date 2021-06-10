@@ -67,6 +67,75 @@ char *getMangledName(SymbolTableEntry *entry) {
   return retval;
 }
 
+typedef struct {
+  union {
+    uint64_t unsignedVal;
+    int64_t signedVal;
+  } value;
+  size_t label;
+} JumpTableEntry;
+static int compareUnsignedJumpTableEntry(JumpTableEntry const *a,
+                                         JumpTableEntry const *b) {
+  if (a->value.unsignedVal < b->value.unsignedVal)
+    return -1;
+  else if (a->value.unsignedVal > b->value.unsignedVal)
+    return 1;
+  else
+    return 0;
+}
+static int compareSignedJumpTableEntry(JumpTableEntry const *a,
+                                       JumpTableEntry const *b) {
+  if (a->value.signedVal < b->value.signedVal)
+    return -1;
+  else if (a->value.signedVal > b->value.signedVal)
+    return 1;
+  else
+    return 0;
+}
+static IROperand *signedJumpTableEntryToConstant(JumpTableEntry const *e,
+                                                 size_t size) {
+  switch (size) {
+    case 1: {
+      return CONSTANT(size,
+                      byteDatumCreate(s8ToU8((int8_t)e->value.signedVal)));
+    }
+    case 2: {
+      return CONSTANT(size,
+                      shortDatumCreate(s16ToU16((int16_t)e->value.signedVal)));
+    }
+    case 4: {
+      return CONSTANT(size,
+                      intDatumCreate(s32ToU32((int32_t)e->value.signedVal)));
+    }
+    case 8: {
+      return CONSTANT(size, longDatumCreate(s64ToU64(e->value.signedVal)));
+    }
+    default: {
+      error(__FILE__, __LINE__, "can't switch on a type of that size");
+    }
+  }
+}
+static IROperand *unsignedJumpTableEntryToConstant(JumpTableEntry const *e,
+                                                   size_t size) {
+  switch (size) {
+    case 1: {
+      return CONSTANT(size, byteDatumCreate((uint8_t)e->value.unsignedVal));
+    }
+    case 2: {
+      return CONSTANT(size, shortDatumCreate((uint16_t)e->value.unsignedVal));
+    }
+    case 4: {
+      return CONSTANT(size, intDatumCreate((uint32_t)e->value.unsignedVal));
+    }
+    case 8: {
+      return CONSTANT(size, longDatumCreate(e->value.unsignedVal));
+    }
+    default: {
+      error(__FILE__, __LINE__, "can't switch on a type of that size");
+    }
+  }
+}
+
 /**
  * get the type of an expression
  */
@@ -885,7 +954,355 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
       break;
     }
     case NT_SWITCHSTMT: {
-      // TODO
+      // condition -+-> case
+      //            |      |
+      //            |      v
+      //            +-> case
+      //               .
+      //               .
+      //               .
+      //            |      |
+      //            |      v
+      //            +-> next
+
+      size_t jumpSectionLabel = fresh(file);
+      IROperand *o =
+          translateExpressionValue(blocks, stmt->data.switchStmt.condition,
+                                   label, jumpSectionLabel, file);
+
+      Type const *switchedType =
+          expressionTypeof(stmt->data.switchStmt.condition);
+      size_t size = typeSizeof(switchedType);
+      bool isSigned =
+          typeSignedIntegral(switchedType) ||
+          (typeEnum(switchedType) &&
+           typeSignedIntegral(
+               stripCV(switchedType)
+                   ->data.reference.entry->data.enumType.backingType));
+
+      Vector *cases = stmt->data.switchStmt.cases;
+      size_t *caseLabels = malloc(sizeof(size_t) * cases->size);
+
+      for (size_t idx = 0; idx < cases->size; ++idx)
+        caseLabels[idx] = fresh(file);
+
+      size_t defaultLabel = 0;
+      size_t jumpTableLen = 0;
+      for (size_t idx = 0; idx < cases->size; ++idx) {
+        Node const *caseNode = cases->elements[idx];
+        if (caseNode->type == NT_SWITCHDEFAULT) {
+          defaultLabel = idx;
+        } else {
+          jumpTableLen += caseNode->data.switchCase.values->size;
+        }
+        translateStmt(blocks,
+                      caseNode->type == NT_SWITCHCASE
+                          ? caseNode->data.switchCase.body
+                          : caseNode->data.switchDefault.body,
+                      caseLabels[idx],
+                      idx == cases->size - 1 ? nextLabel : caseLabels[idx + 1],
+                      returnLabel, nextLabel, continueLabel, returnValueTemp,
+                      returnType, file);
+      }
+
+      JumpTableEntry *jumpTable = malloc(sizeof(JumpTableEntry) * jumpTableLen);
+      size_t currEntry = 0;
+      for (size_t caseIdx = 0; caseIdx < cases->size; ++caseIdx) {
+        Node const *caseNode = cases->elements[caseIdx];
+        if (caseNode->type == NT_SWITCHCASE) {
+          size_t label = caseLabels[caseIdx];
+          for (size_t valueIdx = 0;
+               valueIdx < caseNode->data.switchCase.values->size; ++valueIdx) {
+            Node const *valueNode =
+                caseNode->data.switchCase.values->elements[valueIdx];
+            switch (valueNode->type) {
+              case NT_LITERAL: {
+                switch (valueNode->data.literal.literalType) {
+                  case LT_UBYTE: {
+                    if (isSigned)
+                      jumpTable[currEntry].value.signedVal =
+                          valueNode->data.literal.data.ubyteVal;
+                    else
+                      jumpTable[currEntry].value.unsignedVal =
+                          valueNode->data.literal.data.ubyteVal;
+                    break;
+                  }
+                  case LT_BYTE: {
+                    if (isSigned)
+                      jumpTable[currEntry].value.signedVal =
+                          valueNode->data.literal.data.byteVal;
+                    else
+                      jumpTable[currEntry].value.unsignedVal =
+                          (uint64_t)valueNode->data.literal.data.byteVal;
+                    break;
+                  }
+                  case LT_USHORT: {
+                    if (isSigned)
+                      jumpTable[currEntry].value.signedVal =
+                          valueNode->data.literal.data.ushortVal;
+                    else
+                      jumpTable[currEntry].value.unsignedVal =
+                          valueNode->data.literal.data.ushortVal;
+                    break;
+                  }
+                  case LT_SHORT: {
+                    if (isSigned)
+                      jumpTable[currEntry].value.signedVal =
+                          valueNode->data.literal.data.shortVal;
+                    else
+                      jumpTable[currEntry].value.unsignedVal =
+                          (uint64_t)valueNode->data.literal.data.shortVal;
+                    break;
+                  }
+                  case LT_UINT: {
+                    if (isSigned)
+                      jumpTable[currEntry].value.signedVal =
+                          valueNode->data.literal.data.uintVal;
+                    else
+                      jumpTable[currEntry].value.unsignedVal =
+                          valueNode->data.literal.data.uintVal;
+                    break;
+                  }
+                  case LT_INT: {
+                    if (isSigned)
+                      jumpTable[currEntry].value.signedVal =
+                          valueNode->data.literal.data.intVal;
+                    else
+                      jumpTable[currEntry].value.unsignedVal =
+                          (uint64_t)valueNode->data.literal.data.intVal;
+                    break;
+                  }
+                  case LT_ULONG: {
+                    if (isSigned)
+                      jumpTable[currEntry].value.signedVal =
+                          (int64_t)valueNode->data.literal.data.ulongVal;
+                    else
+                      jumpTable[currEntry].value.unsignedVal =
+                          valueNode->data.literal.data.ulongVal;
+                    break;
+                  }
+                  case LT_LONG: {
+                    if (isSigned)
+                      jumpTable[currEntry].value.signedVal =
+                          valueNode->data.literal.data.longVal;
+                    else
+                      jumpTable[currEntry].value.unsignedVal =
+                          (uint64_t)valueNode->data.literal.data.longVal;
+                    break;
+                  }
+                  case LT_CHAR: {
+                    if (isSigned)
+                      jumpTable[currEntry].value.signedVal =
+                          valueNode->data.literal.data.charVal;
+                    else
+                      jumpTable[currEntry].value.unsignedVal =
+                          valueNode->data.literal.data.charVal;
+                    break;
+                  }
+                  case LT_WCHAR: {
+                    if (isSigned)
+                      jumpTable[currEntry].value.signedVal =
+                          valueNode->data.literal.data.wcharVal;
+                    else
+                      jumpTable[currEntry].value.unsignedVal =
+                          valueNode->data.literal.data.wcharVal;
+                    break;
+                  }
+                  default: {
+                    error(__FILE__, __LINE__,
+                          "can't have a switch case value of that type");
+                  }
+                }
+                break;
+              }
+              case NT_SCOPEDID: {
+                if (isSigned)
+                  jumpTable[currEntry].value.signedVal =
+                      valueNode->data.scopedId.entry->data.enumConst.data
+                          .signedValue;
+                else
+                  jumpTable[currEntry].value.unsignedVal =
+                      valueNode->data.scopedId.entry->data.enumConst.data
+                          .unsignedValue;
+                break;
+              }
+              default: {
+                error(__FILE__, __LINE__,
+                      "can't have a switch case value with that node");
+              }
+            }
+            jumpTable[currEntry++].label = label;
+          }
+        }
+      }
+      free(caseLabels);
+
+      qsort(jumpTable, jumpTableLen, sizeof(JumpTableEntry),
+            (int (*)(void const *,
+                     void const *))(isSigned ? compareSignedJumpTableEntry
+                                             : compareUnsignedJumpTableEntry));
+      if (defaultLabel == 0) defaultLabel = nextLabel;
+      size_t curr = jumpSectionLabel;
+      if (isSigned) {
+        for (size_t entryIdx = 0; entryIdx < jumpTableLen; ++entryIdx) {
+          if (entryIdx == jumpTableLen - 1 ||
+              jumpTable[entryIdx].value.signedVal !=
+                  jumpTable[entryIdx + 1].value.signedVal - 1) {
+            // singleton
+            IRBlock *b = BLOCK(curr, blocks);
+            IR(b, CJUMP(size, IO_E, jumpTable[entryIdx].label, irOperandCopy(o),
+                        signedJumpTableEntryToConstant(&jumpTable[entryIdx],
+                                                       size)));
+            IR(b, JUMP(entryIdx == jumpTableLen - 1 ? defaultLabel
+                                                    : (curr = fresh(file))));
+          } else {
+            // not a singleton
+            size_t end = entryIdx + 1;
+            while (end < jumpTableLen - 1 &&
+                   jumpTable[end].value.signedVal ==
+                       jumpTable[end + 1].value.signedVal - 1)
+              ++end;
+
+            size_t next = end == jumpTableLen - 1 ? defaultLabel : fresh(file);
+            size_t tableLabel = fresh(file);
+            IRFrag *table = dataFragCreate(
+                FT_RODATA, format(localLabelFormat(), tableLabel),
+                POINTER_WIDTH);
+            vectorInsert(&file->irFrags, table);
+            for (size_t blockIdx = entryIdx; blockIdx <= end; ++blockIdx)
+              vectorInsert(&table->data.data.data,
+                           labelDatumCreate(jumpTable[blockIdx].label));
+
+            size_t gtFallthrough = fresh(file);
+            IRBlock *b = BLOCK(curr, blocks);
+            IR(b, CJUMP(size, IO_L, defaultLabel, irOperandCopy(o),
+                        signedJumpTableEntryToConstant(&jumpTable[entryIdx],
+                                                       size)));
+            IR(b, JUMP(gtFallthrough));
+
+            size_t tableDeref = fresh(file);
+            b = BLOCK(gtFallthrough, blocks);
+            IR(b, CJUMP(size, IO_G, next, irOperandCopy(o),
+                        signedJumpTableEntryToConstant(&jumpTable[end], size)));
+            IR(b, JUMP(tableDeref));
+
+            size_t offset = fresh(file);
+            size_t castOffset;
+            size_t multipliedOffset = fresh(file);
+            size_t target = fresh(file);
+            b = BLOCK(tableDeref, blocks);
+            IR(b, BINOP(size, IO_SUB, TEMP(target, size, size, AH_GP),
+                        irOperandCopy(o),
+                        signedJumpTableEntryToConstant(&jumpTable[entryIdx],
+                                                       size)));
+            if (size != 8) {
+              castOffset = fresh(file);
+              IR(b, UNOP(size, IO_SX_LONG,
+                         TEMP(castOffset, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                         TEMP(offset, size, size, AH_GP)));
+            } else {
+              castOffset = offset;
+            }
+
+            IR(b,
+               BINOP(
+                   POINTER_WIDTH, IO_SMUL,
+                   TEMP(multipliedOffset, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                   TEMP(castOffset, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                   CONSTANT(POINTER_WIDTH, longDatumCreate(POINTER_WIDTH))));
+            IR(b, BINOP(POINTER_WIDTH, IO_ADD,
+                        TEMP(target, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        TEMP(multipliedOffset, POINTER_WIDTH, POINTER_WIDTH,
+                             AH_GP),
+                        LOCAL(tableLabel)));
+            IR(b, JUMP(target));
+
+            curr = next;
+            entryIdx = end;
+          }
+        }
+      } else {
+        for (size_t entryIdx = 0; entryIdx < jumpTableLen; ++entryIdx) {
+          if (entryIdx == jumpTableLen - 1 ||
+              jumpTable[entryIdx].value.unsignedVal !=
+                  jumpTable[entryIdx + 1].value.unsignedVal - 1) {
+            // singleton
+            IRBlock *b = BLOCK(curr, blocks);
+            IR(b, CJUMP(size, IO_E, jumpTable[entryIdx].label, irOperandCopy(o),
+                        unsignedJumpTableEntryToConstant(&jumpTable[entryIdx],
+                                                         size)));
+            IR(b, JUMP(entryIdx == jumpTableLen - 1 ? defaultLabel
+                                                    : (curr = fresh(file))));
+          } else {
+            // not a singleton
+            size_t end = entryIdx + 1;
+            while (end < jumpTableLen - 1 &&
+                   jumpTable[end].value.unsignedVal ==
+                       jumpTable[end + 1].value.unsignedVal - 1)
+              ++end;
+
+            size_t next = end == jumpTableLen - 1 ? defaultLabel : fresh(file);
+            size_t tableLabel = fresh(file);
+            IRFrag *table = dataFragCreate(
+                FT_RODATA, format(localLabelFormat(), tableLabel),
+                POINTER_WIDTH);
+            vectorInsert(&file->irFrags, table);
+            for (size_t blockIdx = entryIdx; blockIdx <= end; ++blockIdx)
+              vectorInsert(&table->data.data.data,
+                           labelDatumCreate(jumpTable[blockIdx].label));
+
+            size_t gtFallthrough = fresh(file);
+            IRBlock *b = BLOCK(curr, blocks);
+            IR(b, CJUMP(size, IO_B, defaultLabel, irOperandCopy(o),
+                        unsignedJumpTableEntryToConstant(&jumpTable[entryIdx],
+                                                         size)));
+            IR(b, JUMP(gtFallthrough));
+
+            size_t tableDeref = fresh(file);
+            b = BLOCK(gtFallthrough, blocks);
+            IR(b,
+               CJUMP(size, IO_A, next, irOperandCopy(o),
+                     unsignedJumpTableEntryToConstant(&jumpTable[end], size)));
+            IR(b, JUMP(tableDeref));
+
+            size_t offset = fresh(file);
+            size_t castOffset;
+            size_t multipliedOffset = fresh(file);
+            size_t target = fresh(file);
+            b = BLOCK(tableDeref, blocks);
+            IR(b, BINOP(size, IO_SUB, TEMP(target, size, size, AH_GP),
+                        irOperandCopy(o),
+                        unsignedJumpTableEntryToConstant(&jumpTable[entryIdx],
+                                                         size)));
+            if (size != 8) {
+              castOffset = fresh(file);
+              IR(b, UNOP(size, IO_ZX_LONG,
+                         TEMP(castOffset, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                         TEMP(offset, size, size, AH_GP)));
+            } else {
+              castOffset = offset;
+            }
+
+            IR(b,
+               BINOP(
+                   POINTER_WIDTH, IO_UMUL,
+                   TEMP(multipliedOffset, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                   TEMP(castOffset, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                   CONSTANT(POINTER_WIDTH, longDatumCreate(POINTER_WIDTH))));
+            IR(b, BINOP(POINTER_WIDTH, IO_ADD,
+                        TEMP(target, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+                        TEMP(multipliedOffset, POINTER_WIDTH, POINTER_WIDTH,
+                             AH_GP),
+                        LOCAL(tableLabel)));
+            IR(b, JUMP(target));
+
+            curr = next;
+            entryIdx = end;
+          }
+        }
+      }
+      irOperandFree(o);
+      free(jumpTable);
       break;
     }
     case NT_BREAKSTMT: {
