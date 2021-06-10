@@ -351,6 +351,7 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                 !typeImplicitlyConvertable(merged, lhsType))
               errorNoImplicitConversion(entry, exp->line, exp->character,
                                         merged, lhsType);
+            typeFree(merged);
 
             if (!isLvalue(exp->data.binOpExp.lhs)) {
               errorNotLvalue(entry, exp->line, exp->character,
@@ -383,6 +384,7 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                 !typeImplicitlyConvertable(merged, lhsType))
               errorNoImplicitConversion(entry, exp->line, exp->character,
                                         merged, lhsType);
+            typeFree(merged);
 
             if (!isLvalue(exp->data.binOpExp.lhs)) {
               errorNotLvalue(entry, exp->line, exp->character,
@@ -415,6 +417,7 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                 !typeImplicitlyConvertable(merged, lhsType))
               errorNoImplicitConversion(entry, exp->line, exp->character,
                                         merged, lhsType);
+            typeFree(merged);
 
             if (!isLvalue(exp->data.binOpExp.lhs)) {
               errorNotLvalue(entry, exp->line, exp->character,
@@ -448,6 +451,7 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                   !typeImplicitlyConvertable(merged, lhsType))
                 errorNoImplicitConversion(entry, exp->line, exp->character,
                                           merged, lhsType);
+              typeFree(merged);
 
               if (!isLvalue(exp->data.binOpExp.lhs)) {
                 errorNotLvalue(entry, exp->line, exp->character,
@@ -500,6 +504,7 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                   !typeImplicitlyConvertable(merged, lhsType))
                 errorNoImplicitConversion(entry, exp->line, exp->character,
                                           merged, lhsType);
+              typeFree(merged);
 
               if (!isLvalue(exp->data.binOpExp.lhs)) {
                 errorNotLvalue(entry, exp->line, exp->character,
@@ -608,6 +613,7 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
                 !typeImplicitlyConvertable(merged, lhsType))
               errorNoImplicitConversion(entry, exp->line, exp->character,
                                         merged, lhsType);
+            typeFree(merged);
 
             if (!isLvalue(exp->data.binOpExp.lhs)) {
               errorNotLvalue(entry, exp->line, exp->character,

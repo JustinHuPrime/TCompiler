@@ -32,6 +32,7 @@
 #include "ast/dump.h"
 #include "engine.h"
 #include "fileList.h"
+#include "ir/ir.h"
 #include "tests.h"
 
 static bool dumpEqual(FileListEntry *entry, char const *expectedFilename) {
@@ -87,6 +88,7 @@ static void testModuleParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/moduleWithId.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/moduleWithScopedId.tc",
                     true);
@@ -98,6 +100,7 @@ static void testModuleParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/moduleWithScopedId.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testImportParser(void) {
@@ -116,7 +119,9 @@ static void testImportParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/importWithId.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[1].ast);
+  vectorUninit(&entries[1].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/importWithScopedId.tc",
                     true);
@@ -130,7 +135,9 @@ static void testImportParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/importWithScopedId.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[1].ast);
+  vectorUninit(&entries[1].irFrags, (void (*)(void *))irFragFree);
 
   fileList.size = 3;
   fileListEntryInit(&entries[0], "testFiles/parser/input/multipleImports.tc",
@@ -146,8 +153,11 @@ static void testImportParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/multipleImports.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[1].ast);
+  vectorUninit(&entries[1].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[2].ast);
+  vectorUninit(&entries[2].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testFunDefnParser(void) {
@@ -165,6 +175,7 @@ static void testFunDefnParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/funDefnNoBodyNoArgs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/funDefnNoBodyOneArg.tc", true);
@@ -176,6 +187,7 @@ static void testFunDefnParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/funDefnNoBodyOneArg.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/funDefnNoBodyManyArgs.tc", true);
@@ -187,6 +199,7 @@ static void testFunDefnParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/funDefnNoBodyManyArgs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/funDefnOneBodyNoArgs.tc", true);
@@ -198,6 +211,7 @@ static void testFunDefnParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/funDefnOneBodyNoArgs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/funDefnManyBodiesNoArgs.tc", true);
@@ -210,6 +224,7 @@ static void testFunDefnParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/funDefnManyBodiesNoArgs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testVarDefnParser(void) {
@@ -227,6 +242,7 @@ static void testVarDefnParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/varDefnOneIdNoInit.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/varDefnOneIdWithInit.tc", true);
@@ -238,6 +254,7 @@ static void testVarDefnParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/varDefnOneIdWithInit.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/varDefnMany.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
@@ -248,6 +265,7 @@ static void testVarDefnParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/varDefnMany.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testFunDeclParser(void) {
@@ -266,7 +284,9 @@ static void testFunDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/funDeclNoArgs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[1].ast);
+  vectorUninit(&entries[1].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/funDeclOneArg.td",
                     false);
@@ -278,6 +298,7 @@ static void testFunDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/funDeclOneArg.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[1].ast);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/funDeclManyArgs.td",
@@ -290,6 +311,7 @@ static void testFunDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/funDeclManyArgs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[1].ast);
 }
 
@@ -309,7 +331,9 @@ static void testVarDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/varDeclOneId.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[1].ast);
+  vectorUninit(&entries[1].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/varDeclManyIds.td",
                     false);
@@ -321,6 +345,7 @@ static void testVarDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/varDeclManyIds.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[1].ast);
 }
 
@@ -340,7 +365,9 @@ static void testOpaqueDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/opaqueNoDefn.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[1].ast);
+  vectorUninit(&entries[1].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/opaqueWithDefn.td",
                     false);
@@ -354,7 +381,9 @@ static void testOpaqueDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/opaqueWithDefn.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
   nodeFree(entries[1].ast);
+  vectorUninit(&entries[1].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testStructDeclParser(void) {
@@ -372,6 +401,7 @@ static void testStructDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/structOneField.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/structManyFields.tc",
                     true);
@@ -383,6 +413,7 @@ static void testStructDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/structManyFields.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testUnionDeclParser(void) {
@@ -400,6 +431,7 @@ static void testUnionDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/unionOneOption.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/unionManyOptions.tc",
                     true);
@@ -411,6 +443,7 @@ static void testUnionDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/unionManyOptions.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testEnumDeclParser(void) {
@@ -428,6 +461,7 @@ static void testEnumDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/enumOneConstant.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/enumManyConstants.tc",
                     true);
@@ -439,6 +473,7 @@ static void testEnumDeclParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/enumManyConstants.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/enumLiteralInit.tc",
                     true);
@@ -450,6 +485,7 @@ static void testEnumDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/enumLiteralInit.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/enumEnumInit.tc",
                     true);
@@ -461,6 +497,7 @@ static void testEnumDeclParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/enumEnumInit.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testTypedefDeclParser(void) {
@@ -476,6 +513,7 @@ static void testTypedefDeclParser(void) {
   testDynamic(format("ast of %s is correct", entries[0].inputFilename),
               dumpEqual(&entries[0], "testFiles/parser/expected/typedef.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testCompoundStmtParser(void) {
@@ -493,6 +531,7 @@ static void testCompoundStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/compoundStmtOneStmt.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/compoundStmtManyStmts.tc", true);
@@ -504,6 +543,7 @@ static void testCompoundStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/compoundStmtManyStmts.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/compoundStmtNestedStmts.tc", true);
@@ -516,6 +556,7 @@ static void testCompoundStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/compoundStmtNestedStmts.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testIfStmtParser(void) {
@@ -531,6 +572,7 @@ static void testIfStmtParser(void) {
   testDynamic(format("ast of %s is correct", entries[0].inputFilename),
               dumpEqual(&entries[0], "testFiles/parser/expected/ifNoElse.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/ifWithElse.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
@@ -541,6 +583,7 @@ static void testIfStmtParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/ifWithElse.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/ifWithCompoundStmts.tc", true);
@@ -552,6 +595,7 @@ static void testIfStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/ifWithCompoundStmts.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testWhileStmtParser(void) {
@@ -567,6 +611,7 @@ static void testWhileStmtParser(void) {
   testDynamic(format("ast of %s is correct", entries[0].inputFilename),
               dumpEqual(&entries[0], "testFiles/parser/expected/while.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testDoWhileStmtParser(void) {
@@ -582,6 +627,7 @@ static void testDoWhileStmtParser(void) {
   testDynamic(format("ast of %s is correct", entries[0].inputFilename),
               dumpEqual(&entries[0], "testFiles/parser/expected/doWhile.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testForStmtParser(void) {
@@ -599,6 +645,7 @@ static void testForStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/forNoInitNoIncrement.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/forWithInitNoIncrement.tc", true);
@@ -611,6 +658,7 @@ static void testForStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/forWithInitNoIncrement.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/forNoInitWithIncrement.tc", true);
@@ -623,6 +671,7 @@ static void testForStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/forNoInitWithIncrement.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/forWithInitWithIncrement.tc", true);
@@ -635,6 +684,7 @@ static void testForStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/forWithInitWithIncrement.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testSwitchStmtParser(void) {
@@ -652,6 +702,7 @@ static void testSwitchStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/switchStmtOneCase.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/switchStmtManyCases.tc", true);
@@ -663,6 +714,7 @@ static void testSwitchStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/switchStmtManyCases.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testBreakStmtParser(void) {
@@ -678,6 +730,7 @@ static void testBreakStmtParser(void) {
   testDynamic(format("ast of %s is correct", entries[0].inputFilename),
               dumpEqual(&entries[0], "testFiles/parser/expected/break.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testContinueStmtParser(void) {
@@ -693,6 +746,7 @@ static void testContinueStmtParser(void) {
   testDynamic(format("ast of %s is correct", entries[0].inputFilename),
               dumpEqual(&entries[0], "testFiles/parser/expected/continue.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testReturnStmtParser(void) {
@@ -709,6 +763,7 @@ static void testReturnStmtParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/returnVoid.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/returnValue.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
@@ -719,6 +774,7 @@ static void testReturnStmtParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/returnValue.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testAsmStmtParser(void) {
@@ -734,6 +790,7 @@ static void testAsmStmtParser(void) {
   testDynamic(format("ast of %s is correct", entries[0].inputFilename),
               dumpEqual(&entries[0], "testFiles/parser/expected/asm.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testVariableDefinitionStmtParser(void) {
@@ -751,6 +808,7 @@ static void testVariableDefinitionStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/varDefnStmtOneVar.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/varDefnStmtManyVars.tc", true);
@@ -762,6 +820,7 @@ static void testVariableDefinitionStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/varDefnStmtManyVars.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/varDefnStmtExprInit.tc", true);
@@ -773,6 +832,7 @@ static void testVariableDefinitionStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/varDefnStmtExprInit.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/varDefnStmtMultiInit.tc", true);
@@ -784,6 +844,7 @@ static void testVariableDefinitionStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/varDefnStmtMultiInit.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testExpressionStmtParser(void) {
@@ -800,6 +861,7 @@ static void testExpressionStmtParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/expression.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testOpaqueDeclStmtParser(void) {
@@ -817,6 +879,7 @@ static void testOpaqueDeclStmtParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/opaqueDeclStmtNoDefn.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/opaqueDeclStmtWithDefn.tc", true);
@@ -829,6 +892,7 @@ static void testOpaqueDeclStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/opaqueDeclStmtWithDefn.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testStructDeclStmtParser(void) {
@@ -847,6 +911,7 @@ static void testStructDeclStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/structDeclStmtOneField.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/structDeclStmtManyFields.tc", true);
@@ -859,6 +924,7 @@ static void testStructDeclStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/structDeclStmtManyFields.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testUnionDeclStmtParser(void) {
@@ -877,6 +943,7 @@ static void testUnionDeclStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/unionDeclStmtOneOption.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/unionDeclStmtManyOptions.tc", true);
@@ -889,6 +956,7 @@ static void testUnionDeclStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/unionDeclStmtManyOptions.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testEnumDeclStmtParser(void) {
@@ -907,6 +975,7 @@ static void testEnumDeclStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/enumDeclStmtOneConstant.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(
       &entries[0], "testFiles/parser/input/enumDeclStmtManyConstants.tc", true);
@@ -919,6 +988,7 @@ static void testEnumDeclStmtParser(void) {
       dumpEqual(&entries[0],
                 "testFiles/parser/expected/enumDeclStmtManyConstants.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testTypedefDeclStmtParser(void) {
@@ -936,6 +1006,7 @@ static void testTypedefDeclStmtParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/typedefDeclStmt.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testNullStmtParser(void) {
@@ -951,6 +1022,7 @@ static void testNullStmtParser(void) {
   testDynamic(format("ast of %s is correct", entries[0].inputFilename),
               dumpEqual(&entries[0], "testFiles/parser/expected/nullStmt.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testSwitchCaseParser(void) {
@@ -968,6 +1040,7 @@ static void testSwitchCaseParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/switchCaseOneValue.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0],
                     "testFiles/parser/input/switchCaseManyValues.tc", true);
@@ -979,6 +1052,7 @@ static void testSwitchCaseParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/switchCaseManyValues.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testSwitchDefaultParser(void) {
@@ -996,6 +1070,7 @@ static void testSwitchDefaultParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/switchDefault.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testSeqExprParser(void) {
@@ -1012,6 +1087,7 @@ static void testSeqExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/seqExprOne.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 
   fileListEntryInit(&entries[0], "testFiles/parser/input/seqExprMany.tc", true);
   testDynamic(format("parser accepts %s", entries[0].inputFilename),
@@ -1022,6 +1098,7 @@ static void testSeqExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/seqExprMany.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testAssignmentExprParser(void) {
@@ -1039,6 +1116,7 @@ static void testAssignmentExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/assignmentExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testTernaryExprParser(void) {
@@ -1055,6 +1133,7 @@ static void testTernaryExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/ternaryExpr.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testLogicalExprParser(void) {
@@ -1072,6 +1151,7 @@ static void testLogicalExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/logicalExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testBitwiseExprParser(void) {
@@ -1089,6 +1169,7 @@ static void testBitwiseExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/bitwiseExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testEqualityExprParser(void) {
@@ -1106,6 +1187,7 @@ static void testEqualityExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/equalityExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testComparisonExprParser(void) {
@@ -1123,6 +1205,7 @@ static void testComparisonExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/comparisonExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testSpaceshipExprParser(void) {
@@ -1140,6 +1223,7 @@ static void testSpaceshipExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/spaceshipExpr.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testShiftExprParser(void) {
@@ -1156,6 +1240,7 @@ static void testShiftExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/shiftExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testAdditionExprParser(void) {
@@ -1173,6 +1258,7 @@ static void testAdditionExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/additionExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testMultiplicationExprParser(void) {
@@ -1190,6 +1276,7 @@ static void testMultiplicationExprParser(void) {
               dumpEqual(&entries[0],
                         "testFiles/parser/expected/multiplicationExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testPrefixExprParser(void) {
@@ -1206,6 +1293,7 @@ static void testPrefixExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/prefixExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testPostfixExprParser(void) {
@@ -1223,6 +1311,7 @@ static void testPostfixExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/postfixExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testPrimaryExprParser(void) {
@@ -1240,6 +1329,7 @@ static void testPrimaryExprParser(void) {
       format("ast of %s is correct", entries[0].inputFilename),
       dumpEqual(&entries[0], "testFiles/parser/expected/primaryExprs.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 static void testTypeParser(void) {
@@ -1255,6 +1345,7 @@ static void testTypeParser(void) {
   testDynamic(format("ast of %s is correct", entries[0].inputFilename),
               dumpEqual(&entries[0], "testFiles/parser/expected/types.txt"));
   nodeFree(entries[0].ast);
+  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
 void testParser(void) {

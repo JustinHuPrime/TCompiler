@@ -1526,13 +1526,11 @@ void finishEnumStab(FileListEntry *entry, Node *body,
     }
   }
   free(processed);
+  vectorUninit(&enumConstants, nullDtor);
+  vectorUninit(&dependencies, nullDtor);
+  vectorUninit(&enumValues, nullDtor);
 
-  if (errored) {
-    vectorUninit(&enumConstants, nullDtor);
-    vectorUninit(&dependencies, nullDtor);
-    vectorUninit(&enumValues, nullDtor);
-    return;
-  }
+  if (errored) return;
 
   // 0 = no particular signedness required
   // 1 = must be unsigned (there's something larger than LONG_MAX)
