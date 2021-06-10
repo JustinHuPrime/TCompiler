@@ -2637,7 +2637,7 @@ static Node *parseAsmStmt(FileListEntry *entry, Node *unparsed,
     return NULL;
   }
 
-  return asmStmtNodeCreate(start, stringLiteralNodeCreate(&str));
+  return asmStmtNodeCreate(start, &str);
 }
 
 /**

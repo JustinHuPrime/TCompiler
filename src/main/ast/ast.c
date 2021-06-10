@@ -418,9 +418,60 @@ Node *returnStmtNodeCreate(Token const *keyword, Node *value) {
   n->data.returnStmt.value = value;
   return n;
 }
-Node *asmStmtNodeCreate(Token const *keyword, Node *assembly) {
+Node *asmStmtNodeCreate(Token const *keyword, Token *assembly) {
   Node *n = createNode(NT_ASMSTMT, keyword->line, keyword->character);
-  n->data.asmStmt.assembly = assembly;
+
+  StringBuilder sb;
+  stringBuilderInit(&sb);
+  for (char *string = assembly->string; *string != '\0'; ++string) {
+    if (*string == '\\') {
+      ++string;
+      // escape sequence
+      switch (*string) {
+        case 'n': {
+          stringBuilderPush(&sb, '\n');
+          break;
+        }
+        case 'r': {
+          stringBuilderPush(&sb, '\r');
+          break;
+        }
+        case 't': {
+          stringBuilderPush(&sb, '\t');
+          break;
+        }
+        case '0': {
+          stringBuilderPush(&sb, '\0');
+          break;
+        }
+        case '\\': {
+          stringBuilderPush(&sb, '\\');
+          break;
+        }
+        case 'x': {
+          char high = *string++;
+          char low = *string;
+          stringBuilderPush(&sb, (char)((high << 4) + (low << 0)));
+          break;
+        }
+        case '\'': {
+          stringBuilderPush(&sb, '\'');
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__,
+                "bad string literal string passed to stringLiteralNodeCreate");
+        }
+      }
+    } else {
+      // not an escape statement
+      stringBuilderPush(&sb, *string);
+    }
+  }
+
+  n->data.asmStmt.assembly = stringBuilderData(&sb);
+  stringBuilderUninit(&sb);
+  tokenUninit(assembly);
   return n;
 }
 Node *varDefnStmtNodeCreate(Node *type, Vector *names, Vector *initializers) {
@@ -1301,7 +1352,7 @@ void nodeFree(Node *n) {
       break;
     }
     case NT_ASMSTMT: {
-      nodeFree(n->data.asmStmt.assembly);
+      free(n->data.asmStmt.assembly);
       break;
     }
     case NT_VARDEFNSTMT: {
