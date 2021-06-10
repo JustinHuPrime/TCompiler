@@ -46,13 +46,14 @@ char const *prettyPrintRegister(size_t reg) {
   }
 }
 
-size_t generateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
-                             size_t returnValueAddressTemp,
-                             FileListEntry *file) {
+void generateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
+                           size_t returnValueAddressTemp, size_t nextLabel,
+                           FileListEntry *file) {
   switch (options.arch) {
     case OPTION_A_X86_64_LINUX: {
-      return x86_64LinuxGenerateFunctionEntry(blocks, entry,
-                                              returnValueAddressTemp, file);
+      x86_64LinuxGenerateFunctionEntry(blocks, entry, returnValueAddressTemp,
+                                       nextLabel, file);
+      break;
     }
     default: {
       error(__FILE__, __LINE__, "unrecognized architecture");

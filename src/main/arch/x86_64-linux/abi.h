@@ -28,9 +28,9 @@
 #include "ast/symbolTable.h"
 #include "ir/ir.h"
 
-size_t x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
-                                        size_t returnValueAddressTemp,
-                                        FileListEntry *file);
+void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
+                                      size_t returnValueAddressTemp,
+                                      size_t nextLabel, FileListEntry *file);
 void x86_64LinuxGenerateFunctionExit(Vector *blocks,
                                      SymbolTableEntry const *entry,
                                      size_t returnValueAddressTemp,

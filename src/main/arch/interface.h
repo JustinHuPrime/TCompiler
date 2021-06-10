@@ -46,12 +46,12 @@ char const *prettyPrintRegister(size_t reg);
  * @param entry who to generate the sequence for
  * @param returnValueAddressTemp temp to store return value's address in (unused
  * if function doesn't return a value via memory)
+ * @param nextLabel label to jump to
  * @param file file this is going to be in
- * @returns required id of next block
  */
-size_t generateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
-                             size_t returnValueAddressTemp,
-                             FileListEntry *file);
+void generateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
+                           size_t returnValueAddressTemp, size_t nextLabel,
+                           FileListEntry *file);
 /**
  * generate a function exit sequence
  *
@@ -61,11 +61,11 @@ size_t generateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
  * if function doesn't return a value via memory)
  * @param returnValueTemp temp to get return value from (unused if function
  * returns void)
- * @param prevLink id that the previous block jumps to
+ * @param label id that the previous block jumps to
  * @param file file this is going to be in
  */
 void generateFunctionExit(Vector *blocks, SymbolTableEntry const *entry,
                           size_t returnValueAddressTemp, size_t returnValueTemp,
-                          size_t prevLink, FileListEntry *file);
+                          size_t label, FileListEntry *file);
 
 #endif  // TLC_ARCH_INTERFACE_H_

@@ -656,19 +656,116 @@ static void translateLiteral(Node const *name, Node const *initializer,
 }
 
 /**
+ * translate an expression for its value
+ *
+ * @param block vector to put new blocks in
+ * @param stmt statement to translate
+ * @param label this block's label
+ * @param nextLabel label the next block is at
+ * @param file file the statement is in
+ * @returns temp with produced value
+ */
+static IROperand *translateExpressionValue(Vector *blocks, Node *stmt,
+                                           size_t label, size_t nextLabel,
+                                           FileListEntry *file) {
+  return NULL;  // TODO
+}
+
+/**
  * translate a statement
  *
- * @param blocks vector of basic block
+ * @param blocks vector to put new blocks in
  * @param stmt statement to translate
- * @param prevLink label the previous block jumps to
+ * @param label this block's label
+ * @param nextLabel next block's label
+ * @param returnLabel label the exit block is
+ * @param breakLabel label to get to the outside of the loop
+ * @param continueLabel label to get to the start of the loop
  * @param file file the statement is in
- * @returns id for block after this one (may be prevLink, if no block is
- * created)
  */
-static size_t translateStmt(Vector *blocks, Node *stmt, size_t prevLink,
-                            FileListEntry *file) {
-  return prevLink;
-  // TODO
+static void translateStmt(Vector *blocks, Node *stmt, size_t label,
+                          size_t nextLabel, size_t returnLabel,
+                          size_t breakLabel, size_t continueLabel,
+                          FileListEntry *file) {
+  switch (stmt->type) {
+    case NT_COMPOUNDSTMT: {
+      Vector *stmts = stmt->data.compoundStmt.stmts;
+      if (stmts->size == 0) {
+        // case: empty compound - just jump to the next thing
+        IRBlock *b = BLOCK(label, blocks);
+        IR(b, JUMP(nextLabel));
+      } else if (stmts->size == 1) {
+        // case: single element compound - treat it as if there were no compound
+        translateStmt(blocks, stmts->elements[0], label, nextLabel, returnLabel,
+                      breakLabel, continueLabel, file);
+      } else {
+        // case: multi element compound
+        size_t curr = label;
+        for (size_t idx = 0; idx < stmts->size; ++idx) {
+          if (idx == stmts->size - 1) {
+            // last element
+            translateStmt(blocks, stmts->elements[idx], curr, nextLabel,
+                          returnLabel, breakLabel, continueLabel, file);
+          } else {
+            size_t next = fresh(file);
+            translateStmt(blocks, stmts->elements[idx], curr, next, returnLabel,
+                          breakLabel, continueLabel, file);
+            curr = next;
+          }
+        }
+      }
+      break;
+    }
+    case NT_IFSTMT: {
+      // TODO
+      break;
+    }
+    case NT_WHILESTMT: {
+      // TODO
+      break;
+    }
+    case NT_DOWHILESTMT: {
+      // TODO
+      break;
+    }
+    case NT_FORSTMT: {
+      // TODO
+      break;
+    }
+    case NT_SWITCHSTMT: {
+      // TODO
+      break;
+    }
+    case NT_BREAKSTMT: {
+      // TODO
+      break;
+    }
+    case NT_CONTINUESTMT: {
+      // TODO
+      break;
+    }
+    case NT_RETURNSTMT: {
+      // TODO
+      break;
+    }
+    case NT_ASMSTMT: {
+      // TODO
+      break;
+    }
+    case NT_VARDEFNSTMT: {
+      // TODO
+      break;
+    }
+    case NT_EXPRESSIONSTMT: {
+      // TODO
+      break;
+    }
+    default: {
+      IRBlock *b = BLOCK(label, blocks);
+      IR(b, JUMP(nextLabel));
+      break;
+    }
+  }
 }
 
 /**
@@ -686,22 +783,21 @@ static void translateFile(FileListEntry *file) {
         IRFrag *frag = textFragCreate(
             suffixName(namePrefix, body->data.funDefn.name->data.id.id));
         vectorInsert(&file->irFrags, frag);
+        Vector *blocks = &frag->data.text.blocks;
 
         size_t returnValueAddressTemp = fresh(file);
         size_t returnValueTemp = fresh(file);
+        size_t toBodyLink = fresh(file);
+        size_t toExitLink = fresh(file);
 
-        size_t toBodyLink;
-        IRBlock *functionEntry = generateFunctionEntry(
-            &toBodyLink, entry, returnValueAddressTemp, file);
-        vectorInsert(&frag->data.text.blocks, functionEntry);
+        generateFunctionEntry(blocks, entry, returnValueAddressTemp, toBodyLink,
+                              file);
 
-        size_t toExitLink = translateStmt(
-            &frag->data.text.blocks, body->data.funDefn.body, toBodyLink, file);
+        translateStmt(&frag->data.text.blocks, body->data.funDefn.body,
+                      toBodyLink, toExitLink, toExitLink, 0, 0, file);
 
-        IRBlock *functionExit = generateFunctionExit(
-            entry, returnValueAddressTemp, returnValueTemp, toExitLink, file);
-        vectorInsert(&frag->data.text.blocks, functionExit);
-
+        generateFunctionExit(blocks, entry, returnValueAddressTemp,
+                             returnValueTemp, toExitLink, file);
         break;
       }
       case NT_VARDEFN: {

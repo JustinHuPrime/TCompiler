@@ -1,10 +1,13 @@
 testFiles/translation/x86_64-linux/input/parameterPassingStructInRegister.tc:
 TEXT(_T3foo3bar,
-  BLOCK(3,
-    MOVE(8, TEMP(temp4, 4, 8, MEM), REG(rdi)),
-    JUMP(0, LABEL(.L5)),
-  ),
   BLOCK(5,
+    MOVE(8, TEMP(temp6, 4, 8, MEM), REG(rdi)),
+    JUMP(0, LABEL(.L3)),
+  ),
+  BLOCK(3,
+    JUMP(0, LABEL(.L4)),
+  ),
+  BLOCK(4,
     RETURN(0),
   ),
 )
