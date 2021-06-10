@@ -160,4 +160,12 @@ IRInstruction *RETURN(void);
  */
 void IR(IRBlock *b, IRInstruction *i);
 
+/**
+ * create a new block and add it to the given vector
+ *
+ * @param label label of the block
+ * @param v vector of IRBlock to insert into
+ */
+IRBlock *BLOCK(size_t label, Vector *v);
+
 #endif  // TLC_IR_SHORTHAND_H_

@@ -232,11 +232,10 @@ static X86_64_Register SSE_RETURN_REGS[] = {
     X86_64_XMM1,
 };
 
-IRBlock *x86_64LinuxGenerateFunctionEntry(size_t *linkOut,
-                                          SymbolTableEntry *entry,
-                                          size_t returnValueAddressTemp,
-                                          FileListEntry *file) {
-  IRBlock *b = irBlockCreate(fresh(file));
+size_t x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
+                                        size_t returnValueAddressTemp,
+                                        FileListEntry *file) {
+  IRBlock *b = BLOCK(fresh(file), blocks);
 
   size_t gpArgIdx = 0;
   size_t sseArgIdx = 0;
@@ -309,14 +308,16 @@ IRBlock *x86_64LinuxGenerateFunctionEntry(size_t *linkOut,
     }
   }
 
-  IR(b, JUMP(*linkOut = fresh(file)));
-  return b;
+  size_t retval = fresh(file);
+  IR(b, JUMP(retval));
+  return retval;
 }
-IRBlock *x86_64LinuxGenerateFunctionExit(SymbolTableEntry const *entry,
-                                         size_t returnValueAddressTemp,
-                                         size_t returnValueTemp,
-                                         size_t prevLink, FileListEntry *file) {
-  IRBlock *b = irBlockCreate(prevLink);
+void x86_64LinuxGenerateFunctionExit(Vector *blocks,
+                                     SymbolTableEntry const *entry,
+                                     size_t returnValueAddressTemp,
+                                     size_t returnValueTemp, size_t prevLink,
+                                     FileListEntry *file) {
+  IRBlock *b = BLOCK(prevLink, blocks);
   Type const *returnType = entry->data.function.returnType;
 
   // is it a void function?
@@ -370,5 +371,4 @@ IRBlock *x86_64LinuxGenerateFunctionExit(SymbolTableEntry const *entry,
     }
   }
   IR(b, RETURN());
-  return b;
 }
