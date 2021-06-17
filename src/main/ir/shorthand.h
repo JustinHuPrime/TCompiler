@@ -68,15 +68,19 @@ IRInstruction *MOVE(size_t size, IROperand *dest, IROperand *src);
  * @param size sizeof op
  * @param addr destination address in temp, reg, or label
  * @param src source temp, reg, constant, or label
+ * @param offset offset into destination address
  */
-IRInstruction *MEM_STORE(size_t size, IROperand *addr, IROperand *src);
+IRInstruction *MEM_STORE(size_t size, IROperand *addr, IROperand *src,
+                         IROperand *offset);
 /**
  * move from memory
  * @param size sizeof op
  * @param dest destination temp or reg
  * @param addr source address in temp, reg, or label
+ * @param offset offset into destination address
  */
-IRInstruction *MEM_LOAD(size_t size, IROperand *dest, IROperand *addr);
+IRInstruction *MEM_LOAD(size_t size, IROperand *dest, IROperand *addr,
+                        IROperand *offset);
 /**
  * store to stack
  * @param size sizeof op

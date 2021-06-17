@@ -331,10 +331,11 @@ void x86_64LinuxGenerateFunctionExit(Vector *blocks,
 
     if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY) {
       // returned in memory (pointer was given to us above)
-      IR(b, MEM_STORE(size,
-                      TEMP(returnValueAddressTemp, POINTER_WIDTH, POINTER_WIDTH,
-                           AH_GP),
-                      TEMP(returnValueTemp, alignment, size, allocation)));
+      IR(b,
+         MEM_STORE(
+             size,
+             TEMP(returnValueAddressTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
+             TEMP(returnValueTemp, alignment, size, allocation), OFFSET(0)));
     } else {
       // returned in registers
       size_t gpReturnIdx = 0;

@@ -156,11 +156,11 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       break;
     }
     case IO_MEM_STORE: {
-      twoOperandInstructionDump(where, "MEM_STORE", i);
+      threeOperandInstructionDump(where, "MEM_STORE", i);
       break;
     }
     case IO_MEM_LOAD: {
-      twoOperandInstructionDump(where, "MEM_LOAD", i);
+      threeOperandInstructionDump(where, "MEM_LOAD", i);
       break;
     }
     case IO_STK_STORE: {

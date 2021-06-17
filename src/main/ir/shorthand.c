@@ -43,11 +43,13 @@ IRInstruction *ASM(char const *assembly) {
 IRInstruction *MOVE(size_t size, IROperand *dest, IROperand *src) {
   return irInstructionCreate(IO_MOVE, size, dest, src, NULL);
 }
-IRInstruction *MEM_STORE(size_t size, IROperand *addr, IROperand *src) {
-  return irInstructionCreate(IO_MEM_STORE, size, addr, src, NULL);
+IRInstruction *MEM_STORE(size_t size, IROperand *addr, IROperand *src,
+                         IROperand *offset) {
+  return irInstructionCreate(IO_MEM_STORE, size, addr, src, offset);
 }
-IRInstruction *MEM_LOAD(size_t size, IROperand *dest, IROperand *addr) {
-  return irInstructionCreate(IO_MEM_LOAD, size, dest, addr, NULL);
+IRInstruction *MEM_LOAD(size_t size, IROperand *dest, IROperand *addr,
+                        IROperand *offset) {
+  return irInstructionCreate(IO_MEM_LOAD, size, dest, addr, offset);
 }
 IRInstruction *STK_STORE(size_t size, IROperand *offset, IROperand *src) {
   return irInstructionCreate(IO_STK_STORE, size, offset, src, NULL);
