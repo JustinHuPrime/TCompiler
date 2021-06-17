@@ -795,7 +795,12 @@ static void translateExpressionPredicate(Vector *blocks, Node const *e,
     case NT_BINOPEXP: {
       switch (e->data.binOpExp.op) {
         case BO_SEQ: {
-          break;  // TODO
+          size_t secondExp = fresh(file);
+          translateExpressionVoid(blocks, e->data.binOpExp.lhs, label,
+                                  secondExp, file);
+          translateExpressionPredicate(blocks, e->data.binOpExp.rhs, secondExp,
+                                       trueLabel, falseLabel, file);
+          break;
         }
         case BO_ASSIGN: {
           break;  // TODO
@@ -995,9 +1000,21 @@ typedef enum {
   LK_TEMP,
   LK_GLOBAL,
   LK_ADDR,
-} LValueKind;
+} LvalueKind;
 typedef struct {
-} LValue;
+  LvalueKind kind;
+  union {
+    struct {
+      void *TODO;  // TODO
+    } temp;
+    struct {
+      void *TODO;  // TODO
+    } global;
+    struct {
+      void *TODO;  // TODO
+    } addr;
+  } data;
+} Lvalue;
 /**
  * translate an l-value expression
  *
@@ -1008,14 +1025,18 @@ typedef struct {
  * @param file file the expression is in
  * @returns an l-value
  */
-static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
+static Lvalue *translateExpressionLvalue(Vector *blocks, Node const *e,
                                          size_t label, size_t nextLabel,
                                          FileListEntry *file) {
   switch (e->type) {
     case NT_BINOPEXP: {
       switch (e->data.binOpExp.op) {
         case BO_SEQ: {
-          return NULL;  // TODO
+          size_t secondExp = fresh(file);
+          translateExpressionVoid(blocks, e->data.binOpExp.lhs, label,
+                                  secondExp, file);
+          return translateExpressionLvalue(blocks, e->data.binOpExp.rhs,
+                                           secondExp, nextLabel, file);
         }
         case BO_ASSIGN: {
           return NULL;  // TODO
@@ -1059,66 +1080,6 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
         case BO_LORASSIGN: {
           return NULL;  // TODO
         }
-        case BO_LAND: {
-          return NULL;  // TODO
-        }
-        case BO_LOR: {
-          return NULL;  // TODO
-        }
-        case BO_BITAND: {
-          return NULL;  // TODO
-        }
-        case BO_BITOR: {
-          return NULL;  // TODO
-        }
-        case BO_BITXOR: {
-          return NULL;  // TODO
-        }
-        case BO_EQ: {
-          return NULL;  // TODO
-        }
-        case BO_NEQ: {
-          return NULL;  // TODO
-        }
-        case BO_LT: {
-          return NULL;  // TODO
-        }
-        case BO_GT: {
-          return NULL;  // TODO
-        }
-        case BO_LTEQ: {
-          return NULL;  // TODO
-        }
-        case BO_GTEQ: {
-          return NULL;  // TODO
-        }
-        case BO_SPACESHIP: {
-          return NULL;  // TODO
-        }
-        case BO_LSHIFT: {
-          return NULL;  // TODO
-        }
-        case BO_ARSHIFT: {
-          return NULL;  // TODO
-        }
-        case BO_LRSHIFT: {
-          return NULL;  // TODO
-        }
-        case BO_ADD: {
-          return NULL;  // TODO
-        }
-        case BO_SUB: {
-          return NULL;  // TODO
-        }
-        case BO_MUL: {
-          return NULL;  // TODO
-        }
-        case BO_DIV: {
-          return NULL;  // TODO
-        }
-        case BO_MOD: {
-          return NULL;  // TODO
-        }
         case BO_FIELD: {
           return NULL;  // TODO
         }
@@ -1128,11 +1089,8 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
         case BO_ARRAY: {
           return NULL;  // TODO
         }
-        case BO_CAST: {
-          return NULL;  // TODO
-        }
         default: {
-          error(__FILE__, __LINE__, "invalid binop");
+          error(__FILE__, __LINE__, "invalid lvalue binop");
         }
       }
     }
@@ -1141,28 +1099,10 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
         case UO_DEREF: {
           return NULL;  // TODO
         }
-        case UO_ADDROF: {
-          return NULL;  // TODO
-        }
         case UO_PREINC: {
           return NULL;  // TODO
         }
         case UO_PREDEC: {
-          return NULL;  // TODO
-        }
-        case UO_NEG: {
-          return NULL;  // TODO
-        }
-        case UO_LNOT: {
-          return NULL;  // TODO
-        }
-        case UO_BITNOT: {
-          return NULL;  // TODO
-        }
-        case UO_POSTINC: {
-          return NULL;  // TODO
-        }
-        case UO_POSTDEC: {
           return NULL;  // TODO
         }
         case UO_NEGASSIGN: {
@@ -1174,28 +1114,13 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
         case UO_BITNOTASSIGN: {
           return NULL;  // TODO
         }
-        case UO_SIZEOFEXP: {
-          return NULL;  // TODO
-        }
-        case UO_SIZEOFTYPE: {
-          return NULL;  // TODO
-        }
         case UO_PARENS: {
           return NULL;  // TODO
         }
         default: {
-          error(__FILE__, __LINE__, "invalid unop");
+          error(__FILE__, __LINE__, "invalid lvalue unop");
         }
       }
-    }
-    case NT_TERNARYEXP: {
-      return NULL;  // TODO
-    }
-    case NT_FUNCALLEXP: {
-      return NULL;  // TODO
-    }
-    case NT_LITERAL: {
-      return NULL;  // TODO
     }
     case NT_SCOPEDID: {
       return NULL;  // TODO
@@ -1204,7 +1129,7 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
       return NULL;  // TODO
     }
     default: {
-      error(__FILE__, __LINE__, "invalid expression");
+      error(__FILE__, __LINE__, "invalid lvalue expression");
     }
   }
 }
@@ -1226,7 +1151,11 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
     case NT_BINOPEXP: {
       switch (e->data.binOpExp.op) {
         case BO_SEQ: {
-          return NULL;  // TODO
+          size_t secondExp = fresh(file);
+          translateExpressionVoid(blocks, e->data.binOpExp.lhs, label,
+                                  secondExp, file);
+          return translateExpressionValue(blocks, e->data.binOpExp.rhs,
+                                          secondExp, nextLabel, file);
         }
         case BO_ASSIGN: {
           return NULL;  // TODO
