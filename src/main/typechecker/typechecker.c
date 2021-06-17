@@ -52,25 +52,6 @@ static void errorNoImplicitConversion(FileListEntry *entry, size_t line,
   entry->errored = true;
 }
 /**
- * complains about being unable to convert a value explicitly
- *
- * @param from from type
- * @param to to type
- */
-static void errorNoExplicitConversion(FileListEntry *entry, size_t line,
-                                      size_t character, Type const *from,
-                                      Type const *to) {
-  char *fromString = typeToString(from);
-  char *toString = typeToString(to);
-  fprintf(stderr,
-          "%s:%zu:%zu: error: cannot convert a value of type '%s' to a value "
-          "of type '%s'\n",
-          entry->inputFilename, line, character, fromString, toString);
-  free(fromString);
-  free(toString);
-  entry->errored = true;
-}
-/**
  * complaints about being unable to perform a binop
  */
 static void errorNoBinOp(FileListEntry *entry, size_t line, size_t character,
@@ -154,17 +135,6 @@ static void errorRecursiveDecl(FileListEntry *entry, size_t line,
                                char const *name) {
   fprintf(stderr, "%s:%zu:%zu: error: the %s '%s' may not contain itself\n",
           entry->inputFilename, line, character, what, name);
-  entry->errored = true;
-}
-/**
- * complains about being unable to switch on a value
- */
-static void errorNotSwitchable(FileListEntry *entry, size_t line,
-                               size_t character, Type const *conditionType) {
-  char *typeString = typeToString(conditionType);
-  fprintf(stderr, "%s:%zu:%zu: error: cannot switch on values of type '%s'\n",
-          entry->inputFilename, line, character, typeString);
-  free(typeString);
   entry->errored = true;
 }
 
@@ -967,9 +937,18 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
               typecheckExpression(exp->data.binOpExp.rhs, entry);
 
           if (target != NULL &&
-              !typeExplicitlyConvertable(target, exp->data.binOpExp.type))
-            errorNoExplicitConversion(entry, exp->line, exp->character, target,
-                                      exp->data.binOpExp.type);
+              !typeExplicitlyConvertable(target, exp->data.binOpExp.type)) {
+            char *fromString = typeToString(target);
+            char *toString = typeToString(exp->data.binOpExp.type);
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot convert a value of type '%s' to "
+                    "a value of type '%s'\n",
+                    entry->inputFilename, exp->line, exp->character, fromString,
+                    toString);
+            free(fromString);
+            free(toString);
+            entry->errored = true;
+          }
 
           return exp->data.binOpExp.type;
         }
@@ -1389,17 +1368,24 @@ static void typecheckStmt(Node *stmt, Type const *returnType,
     case NT_SWITCHSTMT: {
       Type const *conditionType =
           typecheckExpression(stmt->data.switchStmt.condition, entry);
-      if (!typeSwitchable(conditionType))
-        errorNotSwitchable(entry, stmt->data.switchStmt.condition->line,
-                           stmt->data.switchStmt.condition->character,
-                           conditionType);
+      if (!typeSwitchable(conditionType)) {
+        char *typeString = typeToString(conditionType);
+        fprintf(stderr,
+                "%s:%zu:%zu: error: cannot switch on values of type '%s'\n",
+                entry->inputFilename, stmt->data.switchStmt.condition->line,
+                stmt->data.switchStmt.condition->character, typeString);
+        free(typeString);
+        entry->errored = true;
+      }
 
       Vector *cases = stmt->data.switchStmt.cases;
+      size_t numValues = 0;
       for (size_t caseIdx = 0; caseIdx < cases->size; ++caseIdx) {
         Node *caseNode = cases->elements[caseIdx];
         switch (caseNode->type) {
           case NT_SWITCHCASE: {
             Vector *values = caseNode->data.switchCase.values;
+            numValues += values->size;
             for (size_t valueIdx = 0; valueIdx < values->size; ++valueIdx) {
               Node *value = values->elements[valueIdx];
               Type const *valueType = typecheckExpression(value, entry);
@@ -1421,6 +1407,188 @@ static void typecheckStmt(Node *stmt, Type const *returnType,
           }
         }
       }
+
+      bool isSigned =
+          typeSignedIntegral(conditionType) ||
+          (typeEnum(conditionType) &&
+           typeSignedIntegral(
+               stripCV(conditionType)
+                   ->data.reference.entry->data.enumType.backingType));
+      typedef struct {
+        union {
+          uint64_t unsignedVal;
+          int64_t signedVal;
+        } value;
+        size_t line;
+        size_t character;
+      } SwitchCaseVal;
+      SwitchCaseVal *values = malloc(sizeof(SwitchCaseVal) * numValues);
+      size_t currValue = 0;
+
+      bool seenDefault = false;
+      size_t firstLine = 0;
+      size_t firstCharacter = 0;
+      for (size_t idx = 0; idx < cases->size; ++idx) {
+        Node *c = cases->elements[idx];
+        if (c->type == NT_SWITCHDEFAULT) {
+          if (seenDefault) {
+            fprintf(stderr,
+                    "%s:%zu:%zu: error: cannot have multiple default cases in "
+                    "a switch statement\n",
+                    entry->inputFilename, c->line, c->character);
+            fprintf(stderr, "%s:%zu:%zu: note: first seen here\n",
+                    entry->inputFilename, firstLine, firstCharacter);
+            entry->errored = true;
+          } else {
+            seenDefault = true;
+            firstLine = c->line;
+            firstCharacter = c->character;
+          }
+        } else {
+          Vector *valueNodes = c->data.switchCase.values;
+          for (size_t valueIdx = 0; valueIdx < valueNodes->size; ++idx) {
+            Node const *valueNode = valueNodes->elements[idx];
+            values[currValue].line = valueNode->line;
+            values[currValue].character = valueNode->character;
+            switch (valueNode->type) {
+              case NT_LITERAL: {
+                switch (valueNode->data.literal.literalType) {
+                  case LT_UBYTE: {
+                    if (isSigned)
+                      values[currValue++].value.signedVal =
+                          valueNode->data.literal.data.ubyteVal;
+                    else
+                      values[currValue++].value.unsignedVal =
+                          valueNode->data.literal.data.ubyteVal;
+                    break;
+                  }
+                  case LT_BYTE: {
+                    if (isSigned)
+                      values[currValue++].value.signedVal =
+                          valueNode->data.literal.data.byteVal;
+                    else
+                      values[currValue++].value.unsignedVal =
+                          (uint64_t)valueNode->data.literal.data.byteVal;
+                    break;
+                  }
+                  case LT_USHORT: {
+                    if (isSigned)
+                      values[currValue++].value.signedVal =
+                          valueNode->data.literal.data.ushortVal;
+                    else
+                      values[currValue++].value.unsignedVal =
+                          valueNode->data.literal.data.ushortVal;
+                    break;
+                  }
+                  case LT_SHORT: {
+                    if (isSigned)
+                      values[currValue++].value.signedVal =
+                          valueNode->data.literal.data.shortVal;
+                    else
+                      values[currValue++].value.unsignedVal =
+                          (uint64_t)valueNode->data.literal.data.shortVal;
+                    break;
+                  }
+                  case LT_UINT: {
+                    if (isSigned)
+                      values[currValue++].value.signedVal =
+                          valueNode->data.literal.data.uintVal;
+                    else
+                      values[currValue++].value.unsignedVal =
+                          valueNode->data.literal.data.uintVal;
+                    break;
+                  }
+                  case LT_INT: {
+                    if (isSigned)
+                      values[currValue++].value.signedVal =
+                          valueNode->data.literal.data.intVal;
+                    else
+                      values[currValue++].value.unsignedVal =
+                          (uint64_t)valueNode->data.literal.data.intVal;
+                    break;
+                  }
+                  case LT_ULONG: {
+                    if (isSigned)
+                      values[currValue++].value.signedVal =
+                          (int64_t)valueNode->data.literal.data.ulongVal;
+                    else
+                      values[currValue++].value.unsignedVal =
+                          valueNode->data.literal.data.ulongVal;
+                    break;
+                  }
+                  case LT_LONG: {
+                    if (isSigned)
+                      values[currValue++].value.signedVal =
+                          valueNode->data.literal.data.longVal;
+                    else
+                      values[currValue++].value.unsignedVal =
+                          (uint64_t)valueNode->data.literal.data.longVal;
+                    break;
+                  }
+                  case LT_CHAR: {
+                    if (isSigned)
+                      values[currValue++].value.signedVal =
+                          valueNode->data.literal.data.charVal;
+                    else
+                      values[currValue++].value.unsignedVal =
+                          valueNode->data.literal.data.charVal;
+                    break;
+                  }
+                  case LT_WCHAR: {
+                    if (isSigned)
+                      values[currValue++].value.signedVal =
+                          valueNode->data.literal.data.wcharVal;
+                    else
+                      values[currValue++].value.unsignedVal =
+                          valueNode->data.literal.data.wcharVal;
+                    break;
+                  }
+                  default: {
+                    error(__FILE__, __LINE__,
+                          "can't have a switch case value of that type");
+                  }
+                }
+                break;
+              }
+              case NT_SCOPEDID: {
+                if (isSigned)
+                  values[currValue++].value.signedVal =
+                      valueNode->data.scopedId.entry->data.enumConst.data
+                          .signedValue;
+                else
+                  values[currValue++].value.unsignedVal =
+                      valueNode->data.scopedId.entry->data.enumConst.data
+                          .unsignedValue;
+                break;
+              }
+              default: {
+                error(__FILE__, __LINE__,
+                      "can't have a switch case value with that node");
+              }
+            }
+
+            for (size_t valueIdx = 0; valueIdx < currValue - 1; ++valueIdx) {
+              if ((isSigned && values[valueIdx].value.signedVal ==
+                                   values[currValue - 1].value.signedVal) ||
+                  (!isSigned && values[valueIdx].value.unsignedVal ==
+                                    values[currValue - 1].value.unsignedVal)) {
+                fprintf(stderr,
+                        "%s:%zu:%zu: error: cannot have multiple cases with "
+                        "the same value in a switch statement\n",
+                        entry->inputFilename, values[currValue - 1].line,
+                        values[currValue - 1].character);
+                fprintf(stderr, "%s:%zu:%zu: note: first seen here\n",
+                        entry->inputFilename, values[valueIdx].line,
+                        values[valueIdx].character);
+                entry->errored = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      free(values);
+
       break;
     }
     case NT_RETURNSTMT: {
