@@ -672,7 +672,7 @@ A plain or compound assignment produces an lvalue which is the same as its left 
 
 The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated.
 
-A ternary expression produces the type from merging the type of its operands according to \ref{subsection:Ternary Type Merging}. The value is an lvalue if and only if both the cconsequent and the alternative expressions are lvalues. Like an if statement, the predicate must be implicitly convertable to boolean.
+A ternary expression produces the type from merging the type of its operands according to \ref{subsection:Ternary Type Merging}. The value is an rvalue. Like an if statement, the predicate must be implicitly convertable to boolean.
 
 \subsection{Logical Operators}
 

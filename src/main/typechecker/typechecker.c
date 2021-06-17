@@ -163,17 +163,18 @@ static bool isLvalue(Node const *exp) {
         case BO_BITXORASSIGN:
         case BO_BITORASSIGN:
         case BO_LANDASSIGN:
-        case BO_LORASSIGN: {
+        case BO_LORASSIGN:
+        case BO_PTRFIELD: {
           return true;
+        }
+        case BO_FIELD:
+        case BO_ARRAY: {
+          return isLvalue(exp->data.binOpExp.lhs);
         }
         default: {
           return false;
         }
       }
-    }
-    case NT_TERNARYEXP: {
-      return isLvalue(exp->data.ternaryExp.consequent) &&
-             isLvalue(exp->data.ternaryExp.alternative);
     }
     case NT_UNOPEXP: {
       switch (exp->data.unOpExp.op) {
@@ -184,6 +185,9 @@ static bool isLvalue(Node const *exp) {
         case UO_LNOTASSIGN:
         case UO_BITNOTASSIGN: {
           return true;
+        }
+        case UO_PARENS: {
+          return isLvalue(exp->data.unOpExp.target);
         }
         default: {
           return false;
