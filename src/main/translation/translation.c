@@ -775,51 +775,865 @@ static IROperand *translateCast(Vector *blocks, IROperand *src,
   return NULL;  // TODO
 }
 
+static void translateExpressionVoid(Vector *, Node const *, size_t, size_t,
+                                    FileListEntry *);
 /**
- * translate a predicate
+ * translate a conditional jump predicate
  *
  * @param block vector to put new blocks in
  * @param e expression to translate
  * @param label this block's label
  * @param trueLabel label to go to if true
  * @param falseLabel label to go to if false
- * @param file file the statement is in
+ * @param file file the expression is in
  */
 static void translateExpressionPredicate(Vector *blocks, Node const *e,
                                          size_t label, size_t trueLabel,
                                          size_t falseLabel,
                                          FileListEntry *file) {
-  // TODO
+  switch (e->type) {
+    case NT_BINOPEXP: {
+      switch (e->data.binOpExp.op) {
+        case BO_SEQ: {
+          break;  // TODO
+        }
+        case BO_ASSIGN: {
+          break;  // TODO
+        }
+        case BO_MULASSIGN: {
+          break;  // TODO
+        }
+        case BO_DIVASSIGN: {
+          break;  // TODO
+        }
+        case BO_MODASSIGN: {
+          break;  // TODO
+        }
+        case BO_ADDASSIGN: {
+          break;  // TODO
+        }
+        case BO_SUBASSIGN: {
+          break;  // TODO
+        }
+        case BO_LSHIFTASSIGN: {
+          break;  // TODO
+        }
+        case BO_ARSHIFTASSIGN: {
+          break;  // TODO
+        }
+        case BO_LRSHIFTASSIGN: {
+          break;  // TODO
+        }
+        case BO_BITANDASSIGN: {
+          break;  // TODO
+        }
+        case BO_BITXORASSIGN: {
+          break;  // TODO
+        }
+        case BO_BITORASSIGN: {
+          break;  // TODO
+        }
+        case BO_LANDASSIGN: {
+          break;  // TODO
+        }
+        case BO_LORASSIGN: {
+          break;  // TODO
+        }
+        case BO_LAND: {
+          break;  // TODO
+        }
+        case BO_LOR: {
+          break;  // TODO
+        }
+        case BO_BITAND: {
+          break;  // TODO
+        }
+        case BO_BITOR: {
+          break;  // TODO
+        }
+        case BO_BITXOR: {
+          break;  // TODO
+        }
+        case BO_EQ: {
+          break;  // TODO
+        }
+        case BO_NEQ: {
+          break;  // TODO
+        }
+        case BO_LT: {
+          break;  // TODO
+        }
+        case BO_GT: {
+          break;  // TODO
+        }
+        case BO_LTEQ: {
+          break;  // TODO
+        }
+        case BO_GTEQ: {
+          break;  // TODO
+        }
+        case BO_SPACESHIP: {
+          break;  // TODO
+        }
+        case BO_LSHIFT: {
+          break;  // TODO
+        }
+        case BO_ARSHIFT: {
+          break;  // TODO
+        }
+        case BO_LRSHIFT: {
+          break;  // TODO
+        }
+        case BO_ADD: {
+          break;  // TODO
+        }
+        case BO_SUB: {
+          break;  // TODO
+        }
+        case BO_MUL: {
+          break;  // TODO
+        }
+        case BO_DIV: {
+          break;  // TODO
+        }
+        case BO_MOD: {
+          break;  // TODO
+        }
+        case BO_FIELD: {
+          break;  // TODO
+        }
+        case BO_PTRFIELD: {
+          break;  // TODO
+        }
+        case BO_ARRAY: {
+          break;  // TODO
+        }
+        case BO_CAST: {
+          break;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid binop");
+        }
+      }
+      break;
+    }
+    case NT_UNOPEXP: {
+      switch (e->data.unOpExp.op) {
+        case UO_DEREF: {
+          break;  // TODO
+        }
+        case UO_ADDROF: {
+          break;  // TODO
+        }
+        case UO_PREINC: {
+          break;  // TODO
+        }
+        case UO_PREDEC: {
+          break;  // TODO
+        }
+        case UO_NEG: {
+          break;  // TODO
+        }
+        case UO_LNOT: {
+          break;  // TODO
+        }
+        case UO_BITNOT: {
+          break;  // TODO
+        }
+        case UO_POSTINC: {
+          break;  // TODO
+        }
+        case UO_POSTDEC: {
+          break;  // TODO
+        }
+        case UO_NEGASSIGN: {
+          break;  // TODO
+        }
+        case UO_LNOTASSIGN: {
+          break;  // TODO
+        }
+        case UO_BITNOTASSIGN: {
+          break;  // TODO
+        }
+        case UO_SIZEOFEXP: {
+          break;  // TODO
+        }
+        case UO_SIZEOFTYPE: {
+          break;  // TODO
+        }
+        case UO_PARENS: {
+          break;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid unop");
+        }
+      }
+      break;
+    }
+    case NT_TERNARYEXP: {
+      break;  // TODO
+    }
+    case NT_FUNCALLEXP: {
+      break;  // TODO
+    }
+    case NT_LITERAL: {
+      break;  // TODO
+    }
+    case NT_SCOPEDID: {
+      break;  // TODO
+    }
+    case NT_ID: {
+      break;  // TODO
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid expression");
+    }
+  }
 }
 
+typedef enum {
+  LK_TEMP,
+  LK_GLOBAL,
+  LK_ADDR,
+} LValueKind;
+typedef struct {
+} LValue;
 /**
- * translate an expression for effect
+ * translate an l-value expression
  *
  * @param block vector to put new blocks in
- * @param e statement to translate
+ * @param e expression to translate
  * @param label this block's label
  * @param nextLabel label the next block is at
- * @param file file the statement is in
+ * @param file file the expression is in
+ * @returns an l-value
  */
-static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
-                                    size_t nextLabel, FileListEntry *file) {
-  // TODO
+static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
+                                         size_t label, size_t nextLabel,
+                                         FileListEntry *file) {
+  switch (e->type) {
+    case NT_BINOPEXP: {
+      switch (e->data.binOpExp.op) {
+        case BO_SEQ: {
+          return NULL;  // TODO
+        }
+        case BO_ASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_MULASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_DIVASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_MODASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_ADDASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_SUBASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_ARSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LRSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_BITANDASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_BITXORASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_BITORASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LANDASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LORASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LAND: {
+          return NULL;  // TODO
+        }
+        case BO_LOR: {
+          return NULL;  // TODO
+        }
+        case BO_BITAND: {
+          return NULL;  // TODO
+        }
+        case BO_BITOR: {
+          return NULL;  // TODO
+        }
+        case BO_BITXOR: {
+          return NULL;  // TODO
+        }
+        case BO_EQ: {
+          return NULL;  // TODO
+        }
+        case BO_NEQ: {
+          return NULL;  // TODO
+        }
+        case BO_LT: {
+          return NULL;  // TODO
+        }
+        case BO_GT: {
+          return NULL;  // TODO
+        }
+        case BO_LTEQ: {
+          return NULL;  // TODO
+        }
+        case BO_GTEQ: {
+          return NULL;  // TODO
+        }
+        case BO_SPACESHIP: {
+          return NULL;  // TODO
+        }
+        case BO_LSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_ARSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_LRSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_ADD: {
+          return NULL;  // TODO
+        }
+        case BO_SUB: {
+          return NULL;  // TODO
+        }
+        case BO_MUL: {
+          return NULL;  // TODO
+        }
+        case BO_DIV: {
+          return NULL;  // TODO
+        }
+        case BO_MOD: {
+          return NULL;  // TODO
+        }
+        case BO_FIELD: {
+          return NULL;  // TODO
+        }
+        case BO_PTRFIELD: {
+          return NULL;  // TODO
+        }
+        case BO_ARRAY: {
+          return NULL;  // TODO
+        }
+        case BO_CAST: {
+          return NULL;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid binop");
+        }
+      }
+    }
+    case NT_UNOPEXP: {
+      switch (e->data.unOpExp.op) {
+        case UO_DEREF: {
+          return NULL;  // TODO
+        }
+        case UO_ADDROF: {
+          return NULL;  // TODO
+        }
+        case UO_PREINC: {
+          return NULL;  // TODO
+        }
+        case UO_PREDEC: {
+          return NULL;  // TODO
+        }
+        case UO_NEG: {
+          return NULL;  // TODO
+        }
+        case UO_LNOT: {
+          return NULL;  // TODO
+        }
+        case UO_BITNOT: {
+          return NULL;  // TODO
+        }
+        case UO_POSTINC: {
+          return NULL;  // TODO
+        }
+        case UO_POSTDEC: {
+          return NULL;  // TODO
+        }
+        case UO_NEGASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_LNOTASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_BITNOTASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_SIZEOFEXP: {
+          return NULL;  // TODO
+        }
+        case UO_SIZEOFTYPE: {
+          return NULL;  // TODO
+        }
+        case UO_PARENS: {
+          return NULL;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid unop");
+        }
+      }
+    }
+    case NT_TERNARYEXP: {
+      return NULL;  // TODO
+    }
+    case NT_FUNCALLEXP: {
+      return NULL;  // TODO
+    }
+    case NT_LITERAL: {
+      return NULL;  // TODO
+    }
+    case NT_SCOPEDID: {
+      return NULL;  // TODO
+    }
+    case NT_ID: {
+      return NULL;  // TODO
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid expression");
+    }
+  }
 }
 
 /**
  * translate an expression for its value
  *
  * @param block vector to put new blocks in
- * @param e statement to translate
+ * @param e expression to translate
  * @param label this block's label
  * @param nextLabel label the next block is at
- * @param file file the statement is in
+ * @param file file the expression is in
  * @returns temp with produced value
  */
 static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
                                            size_t label, size_t nextLabel,
                                            FileListEntry *file) {
-  return NULL;  // TODO
+  switch (e->type) {
+    case NT_BINOPEXP: {
+      switch (e->data.binOpExp.op) {
+        case BO_SEQ: {
+          return NULL;  // TODO
+        }
+        case BO_ASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_MULASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_DIVASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_MODASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_ADDASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_SUBASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_ARSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LRSHIFTASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_BITANDASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_BITXORASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_BITORASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LANDASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LORASSIGN: {
+          return NULL;  // TODO
+        }
+        case BO_LAND: {
+          return NULL;  // TODO
+        }
+        case BO_LOR: {
+          return NULL;  // TODO
+        }
+        case BO_BITAND: {
+          return NULL;  // TODO
+        }
+        case BO_BITOR: {
+          return NULL;  // TODO
+        }
+        case BO_BITXOR: {
+          return NULL;  // TODO
+        }
+        case BO_EQ: {
+          return NULL;  // TODO
+        }
+        case BO_NEQ: {
+          return NULL;  // TODO
+        }
+        case BO_LT: {
+          return NULL;  // TODO
+        }
+        case BO_GT: {
+          return NULL;  // TODO
+        }
+        case BO_LTEQ: {
+          return NULL;  // TODO
+        }
+        case BO_GTEQ: {
+          return NULL;  // TODO
+        }
+        case BO_SPACESHIP: {
+          return NULL;  // TODO
+        }
+        case BO_LSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_ARSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_LRSHIFT: {
+          return NULL;  // TODO
+        }
+        case BO_ADD: {
+          return NULL;  // TODO
+        }
+        case BO_SUB: {
+          return NULL;  // TODO
+        }
+        case BO_MUL: {
+          return NULL;  // TODO
+        }
+        case BO_DIV: {
+          return NULL;  // TODO
+        }
+        case BO_MOD: {
+          return NULL;  // TODO
+        }
+        case BO_FIELD: {
+          return NULL;  // TODO
+        }
+        case BO_PTRFIELD: {
+          return NULL;  // TODO
+        }
+        case BO_ARRAY: {
+          return NULL;  // TODO
+        }
+        case BO_CAST: {
+          return NULL;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid binop");
+        }
+      }
+    }
+    case NT_UNOPEXP: {
+      switch (e->data.unOpExp.op) {
+        case UO_DEREF: {
+          return NULL;  // TODO
+        }
+        case UO_ADDROF: {
+          return NULL;  // TODO
+        }
+        case UO_PREINC: {
+          return NULL;  // TODO
+        }
+        case UO_PREDEC: {
+          return NULL;  // TODO
+        }
+        case UO_NEG: {
+          return NULL;  // TODO
+        }
+        case UO_LNOT: {
+          return NULL;  // TODO
+        }
+        case UO_BITNOT: {
+          return NULL;  // TODO
+        }
+        case UO_POSTINC: {
+          return NULL;  // TODO
+        }
+        case UO_POSTDEC: {
+          return NULL;  // TODO
+        }
+        case UO_NEGASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_LNOTASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_BITNOTASSIGN: {
+          return NULL;  // TODO
+        }
+        case UO_SIZEOFEXP: {
+          return NULL;  // TODO
+        }
+        case UO_SIZEOFTYPE: {
+          return NULL;  // TODO
+        }
+        case UO_PARENS: {
+          return NULL;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid unop");
+        }
+      }
+    }
+    case NT_TERNARYEXP: {
+      return NULL;  // TODO
+    }
+    case NT_FUNCALLEXP: {
+      return NULL;  // TODO
+    }
+    case NT_LITERAL: {
+      return NULL;  // TODO
+    }
+    case NT_SCOPEDID: {
+      return NULL;  // TODO
+    }
+    case NT_ID: {
+      return NULL;  // TODO
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid expression");
+    }
+  }
+}
+
+/**
+ * translate an expression for effect
+ *
+ * @param block vector to put new blocks in
+ * @param e expression to translate
+ * @param label this block's label
+ * @param nextLabel label the next block is at
+ * @param file file the expression is in
+ */
+static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
+                                    size_t nextLabel, FileListEntry *file) {
+  switch (e->type) {
+    case NT_BINOPEXP: {
+      switch (e->data.binOpExp.op) {
+        case BO_SEQ: {
+          size_t secondExp = fresh(file);
+          translateExpressionVoid(blocks, e->data.binOpExp.lhs, label,
+                                  secondExp, file);
+          translateExpressionVoid(blocks, e->data.binOpExp.rhs, secondExp,
+                                  nextLabel, file);
+          break;
+        }
+        case BO_ASSIGN: {
+          break;  // TODO
+        }
+        case BO_MULASSIGN: {
+          break;  // TODO
+        }
+        case BO_DIVASSIGN: {
+          break;  // TODO
+        }
+        case BO_MODASSIGN: {
+          break;  // TODO
+        }
+        case BO_ADDASSIGN: {
+          break;  // TODO
+        }
+        case BO_SUBASSIGN: {
+          break;  // TODO
+        }
+        case BO_LSHIFTASSIGN: {
+          break;  // TODO
+        }
+        case BO_ARSHIFTASSIGN: {
+          break;  // TODO
+        }
+        case BO_LRSHIFTASSIGN: {
+          break;  // TODO
+        }
+        case BO_BITANDASSIGN: {
+          break;  // TODO
+        }
+        case BO_BITXORASSIGN: {
+          break;  // TODO
+        }
+        case BO_BITORASSIGN: {
+          break;  // TODO
+        }
+        case BO_LANDASSIGN: {
+          break;  // TODO
+        }
+        case BO_LORASSIGN: {
+          break;  // TODO
+        }
+        case BO_LAND: {
+          break;  // TODO
+        }
+        case BO_LOR: {
+          break;  // TODO
+        }
+        case BO_BITAND: {
+          break;  // TODO
+        }
+        case BO_BITOR: {
+          break;  // TODO
+        }
+        case BO_BITXOR: {
+          break;  // TODO
+        }
+        case BO_EQ: {
+          break;  // TODO
+        }
+        case BO_NEQ: {
+          break;  // TODO
+        }
+        case BO_LT: {
+          break;  // TODO
+        }
+        case BO_GT: {
+          break;  // TODO
+        }
+        case BO_LTEQ: {
+          break;  // TODO
+        }
+        case BO_GTEQ: {
+          break;  // TODO
+        }
+        case BO_SPACESHIP: {
+          break;  // TODO
+        }
+        case BO_LSHIFT: {
+          break;  // TODO
+        }
+        case BO_ARSHIFT: {
+          break;  // TODO
+        }
+        case BO_LRSHIFT: {
+          break;  // TODO
+        }
+        case BO_ADD: {
+          break;  // TODO
+        }
+        case BO_SUB: {
+          break;  // TODO
+        }
+        case BO_MUL: {
+          break;  // TODO
+        }
+        case BO_DIV: {
+          break;  // TODO
+        }
+        case BO_MOD: {
+          break;  // TODO
+        }
+        case BO_FIELD: {
+          break;  // TODO
+        }
+        case BO_PTRFIELD: {
+          break;  // TODO
+        }
+        case BO_ARRAY: {
+          break;  // TODO
+        }
+        case BO_CAST: {
+          break;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid binop");
+        }
+      }
+      break;
+    }
+    case NT_UNOPEXP: {
+      switch (e->data.unOpExp.op) {
+        case UO_DEREF: {
+          break;  // TODO
+        }
+        case UO_ADDROF: {
+          break;  // TODO
+        }
+        case UO_PREINC: {
+          break;  // TODO
+        }
+        case UO_PREDEC: {
+          break;  // TODO
+        }
+        case UO_NEG: {
+          break;  // TODO
+        }
+        case UO_LNOT: {
+          break;  // TODO
+        }
+        case UO_BITNOT: {
+          break;  // TODO
+        }
+        case UO_POSTINC: {
+          break;  // TODO
+        }
+        case UO_POSTDEC: {
+          break;  // TODO
+        }
+        case UO_NEGASSIGN: {
+          break;  // TODO
+        }
+        case UO_LNOTASSIGN: {
+          break;  // TODO
+        }
+        case UO_BITNOTASSIGN: {
+          break;  // TODO
+        }
+        case UO_SIZEOFEXP: {
+          break;  // TODO
+        }
+        case UO_SIZEOFTYPE: {
+          break;  // TODO
+        }
+        case UO_PARENS: {
+          break;  // TODO
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid unop");
+        }
+      }
+      break;
+    }
+    case NT_TERNARYEXP: {
+      break;  // TODO
+    }
+    case NT_FUNCALLEXP: {
+      break;  // TODO
+    }
+    case NT_LITERAL: {
+      break;  // TODO
+    }
+    case NT_SCOPEDID: {
+      break;  // TODO
+    }
+    case NT_ID: {
+      break;  // TODO
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid expression");
+    }
+  }
 }
 
 /**
