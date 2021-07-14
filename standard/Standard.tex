@@ -756,7 +756,7 @@ The array-index operator (\texttt{[]}) takes a value that is either a pointer or
 
 The post-increment and post-decrement operators (\texttt{++}, \texttt{--}) produce the value, then increment it or decrement it exactly like a pre-increment or pre-decrement operator. The value is only evaluated once. The result is an rvalue.
 
-The in-place unary operators take the value, performs the unary operation on it, stores it, and produces the result of the unary operation. The in-place negation operator (\texttt{=-}) performs a negation on a signed numeric value, the in-place logical not operator (\texttt{=!}) performs a logical not on a boolean value, and the in-place bitwise not operator (\texttt{=\~{}}) performs a bitwise not on an integral value. In all cases, the resulting value is an lvalue.
+The in-place unary operators take the value, performs the unary operation on it, stores it, and produces the original value like a post-increment or post-decrement operator. The in-place negation operator (\texttt{=-}) performs a negation on a signed numeric value, the in-place logical not operator (\texttt{=!}) performs a logical not on a boolean value, and the in-place bitwise not operator (\texttt{=\~{}}) performs a bitwise not on an integral value. In all cases, the resulting value is an rvalue.
 
 \section{Primary Expressions}
 

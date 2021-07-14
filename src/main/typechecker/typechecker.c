@@ -180,10 +180,7 @@ static bool isLvalue(Node const *exp) {
       switch (exp->data.unOpExp.op) {
         case UO_DEREF:
         case UO_PREINC:
-        case UO_PREDEC:
-        case UO_NEGASSIGN:
-        case UO_LNOTASSIGN:
-        case UO_BITNOTASSIGN: {
+        case UO_PREDEC: {
           return true;
         }
         case UO_PARENS: {
@@ -247,10 +244,7 @@ static void markEscapes(Node *exp) {
       switch (exp->data.unOpExp.op) {
         case UO_DEREF:
         case UO_PREINC:
-        case UO_PREDEC:
-        case UO_NEGASSIGN:
-        case UO_LNOTASSIGN:
-        case UO_BITNOTASSIGN: {
+        case UO_PREDEC: {
           markEscapes(exp->data.unOpExp.target);
           break;
         }
