@@ -68,4 +68,16 @@ void generateFunctionExit(Vector *blocks, SymbolTableEntry const *entry,
                           size_t returnValueAddressTemp, size_t returnValueTemp,
                           size_t label, FileListEntry *file);
 
+/**
+ * generate a function call sequence
+ *
+ * @param b block to insert code into
+ * @param fun function to call
+ * @param funType type of function to call
+ * @param file file this is going to be in
+ * @returns IROperand with return value, or NULL if void function called
+ */
+IROperand *generateFunctionCall(IRBlock *b, IROperand *fun, Type const *funType,
+                                FileListEntry *file);
+
 #endif  // TLC_ARCH_INTERFACE_H_

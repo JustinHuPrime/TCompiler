@@ -371,3 +371,8 @@ void x86_64LinuxGenerateFunctionExit(Vector *blocks,
   }
   IR(b, RETURN());
 }
+IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun,
+                                           Type const *funType,
+                                           FileListEntry *file) {
+  return NULL;  // TODO
+}

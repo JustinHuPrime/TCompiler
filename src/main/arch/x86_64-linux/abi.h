@@ -36,5 +36,7 @@ void x86_64LinuxGenerateFunctionExit(Vector *blocks,
                                      size_t returnValueAddressTemp,
                                      size_t returnValueTemp, size_t prevLink,
                                      FileListEntry *file);
+IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun, Type const *funType,
+                                FileListEntry *file);
 
 #endif  // TLC_ARCH_X86_64_LINUX_ABI_H_
