@@ -251,6 +251,8 @@ typedef enum IROperator {
   IO_JFNE,
   IO_JFG,
   IO_JFGE,
+  IO_JZ,
+  IO_JNZ,
 
   // function calling
   IO_CALL,

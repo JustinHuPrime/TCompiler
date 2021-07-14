@@ -38,6 +38,7 @@ extern size_t const DOUBLE_WIDTH;
 extern size_t const POINTER_WIDTH;
 extern size_t const CHAR_WIDTH;
 extern size_t const WCHAR_WIDTH;
+extern size_t const BOOL_WIDTH;
 
 /** absolute value of limits for some data type */
 extern uint64_t const UBYTE_MAX;

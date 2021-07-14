@@ -482,6 +482,14 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       threeOperandInstructionDump(where, "JFGE", i);
       break;
     }
+    case IO_JZ: {
+      twoOperandInstructionDump(where, "JZ", i);
+      break;
+    }
+    case IO_JNZ: {
+      twoOperandInstructionDump(where, "JNZ", i);
+      break;
+    }
     case IO_CALL: {
       oneOperandInstructionDump(where, "CALL", i);
       break;

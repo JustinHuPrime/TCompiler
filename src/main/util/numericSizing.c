@@ -30,6 +30,7 @@ size_t const DOUBLE_WIDTH = 8;
 size_t const POINTER_WIDTH = 8;
 size_t const CHAR_WIDTH = 1;
 size_t const WCHAR_WIDTH = 4;
+size_t const BOOL_WIDTH = 1;
 
 uint64_t const UBYTE_MAX = 255;
 uint64_t const BYTE_MAX = 127;

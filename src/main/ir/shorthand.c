@@ -20,9 +20,20 @@
 #include "ir/shorthand.h"
 
 #include "arch/interface.h"
+#include "util/numericSizing.h"
 
 IROperand *TEMP(size_t name, size_t alignment, size_t size, AllocHint kind) {
   return tempOperandCreate(name, alignment, size, kind);
+}
+IROperand *TEMPOF(size_t name, Type const *t) {
+  return tempOperandCreate(name, typeAlignof(t), typeSizeof(t),
+                           typeAllocation(t));
+}
+IROperand *TEMPPTR(size_t name) {
+  return tempOperandCreate(name, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
+}
+IROperand *TEMPBOOL(size_t name) {
+  return tempOperandCreate(name, BOOL_WIDTH, BOOL_WIDTH, AH_GP);
 }
 IROperand *REG(size_t name) { return regOperandCreate(name); }
 IROperand *CONSTANT(size_t alignment, IRDatum *datum) {
@@ -79,6 +90,10 @@ IRInstruction *JUMP(size_t dest) {
 IRInstruction *CJUMP(size_t size, IROperator op, size_t dest, IROperand *lhs,
                      IROperand *rhs) {
   return irInstructionCreate(op, size, LOCAL(dest), lhs, rhs);
+}
+IRInstruction *BJUMP(size_t size, IROperator op, size_t dest,
+                     IROperand *condition) {
+  return irInstructionCreate(op, size, LOCAL(dest), condition, NULL);
 }
 IRInstruction *CALL(IROperand *who) {
   return irInstructionCreate(IO_CALL, 0, NULL, who, NULL);

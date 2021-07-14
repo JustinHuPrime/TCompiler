@@ -731,6 +731,15 @@ size_t typeSizeof(Type const *t) {
     }
   }
 }
+size_t structOffsetof(struct SymbolTableEntry const *e, char const *field) {
+  size_t offset = 0;
+  for (size_t idx = 0;
+       strcmp(e->data.structType.fieldNames.elements[idx], field) != 0; ++idx) {
+    offset += typeSizeof(e->data.structType.fieldTypes.elements[idx]);
+    offset = incrementToMultiple(
+        offset, typeAlignof(e->data.structType.fieldTypes.elements[idx + 1]));
+  }
+}
 size_t typeAlignof(Type const *t) {
   switch (t->kind) {
     case TK_KEYWORD:

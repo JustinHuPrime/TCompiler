@@ -32,6 +32,18 @@
  */
 IROperand *TEMP(size_t name, size_t alignment, size_t size, AllocHint kind);
 /**
+ * temporary value from type
+ */
+IROperand *TEMPOF(size_t name, Type const *t);
+/**
+ * temporary pointer
+ */
+IROperand *TEMPPTR(size_t name);
+/**
+ * temporary boolean
+ */
+IROperand *TEMPBOOL(size_t name);
+/**
  * register
  */
 IROperand *REG(size_t name);
@@ -120,8 +132,8 @@ IRInstruction *OFFSET_LOAD(size_t size, IROperand *dest, IROperand *src,
  * @param size sizeof op
  * @param op operator
  * @param dest destination temp or reg
- * @param lhs left-hand temp or reg
- * @param rhs right-hand temp or reg
+ * @param lhs left-hand temp, reg, constant, or offset
+ * @param rhs right-hand temp, reg, constant, or offset
  */
 IRInstruction *BINOP(size_t size, IROperator op, IROperand *dest,
                      IROperand *lhs, IROperand *rhs);
@@ -140,7 +152,7 @@ IRInstruction *UNOP(size_t size, IROperator op, IROperand *dest,
  */
 IRInstruction *JUMP(size_t dest);
 /**
- * conditional jump to local label
+ * comparison conditional jump to local label
  * @param size sizeof comparison
  * @param op comparison operation
  * @param dest destination numeric id
@@ -149,6 +161,15 @@ IRInstruction *JUMP(size_t dest);
  */
 IRInstruction *CJUMP(size_t size, IROperator op, size_t dest, IROperand *lhs,
                      IROperand *rhs);
+/**
+ * unary conditional jump to local label
+ * @param size sizeof condition
+ * @param op IO_JZ or IO_JNZ
+ * @param dest destination numeric id
+ * @param condition temp to condition on (jump if zero/not zero)
+ */
+IRInstruction *BJUMP(size_t size, IROperator op, size_t dest,
+                     IROperand *condition);
 /**
  * call a function with the given (mangled) name
  * @param who label or temp or reg to call

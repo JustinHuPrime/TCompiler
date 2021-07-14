@@ -219,6 +219,10 @@ Type *comparisonTypeMerge(Type const *a, Type const *b);
  */
 size_t typeSizeof(Type const *t);
 /**
+ * produce the offset of a struct field
+ */
+size_t structOffsetof(struct SymbolTableEntry const *e, char const *field);
+/**
  * produce the alignment of a type
  */
 size_t typeAlignof(Type const *t);
