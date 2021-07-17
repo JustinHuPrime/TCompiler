@@ -1293,6 +1293,40 @@ static IROperand *translateLValueLoad(IRBlock *b, LValue const *src,
   }
 }
 /**
+ * translate the address of a lvalue
+ *
+ * @param b block to add load to
+ * @param src source lvalue
+ * @param dest destination temp (borrowed)
+ * @param file file this block is in
+ * @returns destination temp
+ */
+static IROperand *translateLValueAddr(IRBlock *b, LValue const *src,
+                                      IROperand *dest, FileListEntry *file) {
+  switch (src->kind) {
+    case LK_TEMP: {
+      if (src->dynamicOffset == NULL && src->staticOffset == 0) {
+        IR(b, ADDROF(irOperandCopy(dest), irOperandCopy(src->operand)));
+      } else {
+        IROperand *addr = TEMPPTR(fresh(file));
+        IROperand *offset = getLValueOffset(b, src, file);
+        IR(b, ADDROF(irOperandCopy(addr), irOperandCopy(src->operand)));
+        IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(dest), addr, offset));
+      }
+      return dest;
+    }
+    case LK_MEM: {
+      IROperand *offset = getLValueOffset(b, src, file);
+      IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(dest),
+                  irOperandCopy(src->operand), offset));
+      return dest;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid lvalue kind");
+    }
+  }
+}
+/**
  * translate a store to an lvalue
  *
  * @param b block to add store to
@@ -1426,7 +1460,7 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
           LValue *lvalue =
               translateExpressionLValue(blocks, lhs, label, nextLabel, file);
           SymbolTableEntry const *lhsEntry =
-              expressionTypeof(lhs)->data.reference.entry;
+              stripCV(expressionTypeof(lhs))->data.reference.entry;
           if (lhsEntry->kind == SK_STRUCT) {
             lvalue->staticOffset +=
                 (int64_t)structOffsetof(lhsEntry, rhs->data.id.id);
@@ -1435,7 +1469,7 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
         }
         case BO_PTRFIELD: {
           SymbolTableEntry const *lhsEntry =
-              expressionTypeof(lhs)->data.reference.entry;
+              stripCV(expressionTypeof(lhs))->data.reference.entry;
           return lvalueCreate(
               LK_MEM,
               translateExpressionValue(blocks, lhs, label, nextLabel, file),
@@ -1445,8 +1479,8 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
               NULL);
         }
         case BO_ARRAY: {
+          size_t rhsLabel = fresh(file);
           if (typePointer(expressionTypeof(lhs))) {
-            size_t rhsLabel = fresh(file);
             IROperand *lhsVal =
                 translateExpressionValue(blocks, lhs, label, rhsLabel, file);
             size_t offsetLabel = fresh(file);
@@ -1457,9 +1491,9 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
                 LK_MEM, lhsVal, 0,
                 translatePointerArithmeticScale(
                     b, unscaledIndex, expressionTypeof(rhs),
-                    typeSizeof(expressionTypeof(lhs)->data.pointer.base)));
+                    typeSizeof(
+                        stripCV(expressionTypeof(lhs))->data.pointer.base)));
           } else {
-            size_t rhsLabel = fresh(file);
             LValue *lvalue =
                 translateExpressionLValue(blocks, lhs, label, rhsLabel, file);
             size_t offsetLabel = fresh(file);
@@ -1469,16 +1503,15 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
             if (lvalue->dynamicOffset == NULL) {
               lvalue->dynamicOffset = translatePointerArithmeticScale(
                   b, unscaledIndex, expressionTypeof(rhs),
-                  typeSizeof(expressionTypeof(lhs)->data.array.type));
+                  typeSizeof(stripCV(expressionTypeof(lhs))->data.array.type));
             } else {
               IROperand *newOffset = TEMPPTR(fresh(file));
-              IR(b,
-                 BINOP(
-                     POINTER_WIDTH, IO_ADD, irOperandCopy(newOffset),
-                     lvalue->dynamicOffset,
-                     translatePointerArithmeticScale(
-                         b, unscaledIndex, expressionTypeof(rhs),
-                         typeSizeof(expressionTypeof(lhs)->data.array.type))));
+              IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(newOffset),
+                          lvalue->dynamicOffset,
+                          translatePointerArithmeticScale(
+                              b, unscaledIndex, expressionTypeof(rhs),
+                              typeSizeof(stripCV(expressionTypeof(lhs))
+                                             ->data.array.type))));
               lvalue->dynamicOffset = newOffset;
             }
             IR(b, JUMP(nextLabel));
@@ -1524,25 +1557,16 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
       }
     }
     case NT_SCOPEDID: {
-      if (e->data.scopedId.entry->data.variable.temp == 0) {
-        return lvalueCreate(
-            LK_MEM, GLOBAL(getMangledName(e->data.scopedId.entry)), 0, NULL);
-      } else {
-        return lvalueCreate(LK_TEMP,
-                            TEMPOF(e->data.scopedId.entry->data.variable.temp,
-                                   e->data.scopedId.type),
-                            0, NULL);
-      }
+      // is never in a temp - always a global
+      return lvalueCreate(
+          LK_MEM, GLOBAL(getMangledName(e->data.scopedId.entry)), 0, NULL);
     }
     case NT_ID: {
       if (e->data.id.entry->data.variable.temp == 0) {
         return lvalueCreate(LK_MEM, GLOBAL(getMangledName(e->data.id.entry)), 0,
                             NULL);
       } else {
-        return lvalueCreate(
-            LK_TEMP,
-            TEMPOF(e->data.id.entry->data.variable.temp, e->data.id.type), 0,
-            NULL);
+        return lvalueCreate(LK_TEMP, TEMPVAR(e), 0, NULL);
       }
     }
     default: {
@@ -1785,127 +1809,218 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
                                            FileListEntry *file) {
   switch (e->type) {
     case NT_BINOPEXP: {
+      Node const *lhs = e->data.binOpExp.lhs;
+      Node const *rhs = e->data.binOpExp.rhs;
       switch (e->data.binOpExp.op) {
         case BO_SEQ: {
           size_t rhsLabel = fresh(file);
-          translateExpressionVoid(blocks, e->data.binOpExp.lhs, label, rhsLabel,
-                                  file);
-          return translateExpressionValue(blocks, e->data.binOpExp.rhs,
-                                          rhsLabel, nextLabel, file);
+          translateExpressionVoid(blocks, lhs, label, rhsLabel, file);
+          return translateExpressionValue(blocks, rhs, rhsLabel, nextLabel,
+                                          file);
         }
         case BO_ASSIGN: {
-          return NULL;  // TODO
+          size_t rhsLabel = fresh(file);
+          LValue *lvalue =
+              translateExpressionLValue(blocks, lhs, label, rhsLabel, file);
+          size_t assignmentLabel = fresh(file);
+          IROperand *rawRhs = translateExpressionValue(blocks, rhs, rhsLabel,
+                                                       assignmentLabel, file);
+          IRBlock *b = BLOCK(assignmentLabel, blocks);
+          IROperand *castRhs = translateCast(b, rawRhs, expressionTypeof(rhs),
+                                             expressionTypeof(lhs), file);
+          translateLValueStore(b, lvalue, castRhs, file);
+          lvalueFree(lvalue);
+          return castRhs;
         }
-        case BO_MULASSIGN: {
-          return NULL;  // TODO
-        }
-        case BO_DIVASSIGN: {
-          return NULL;  // TODO
-        }
-        case BO_MODASSIGN: {
-          return NULL;  // TODO
-        }
-        case BO_ADDASSIGN: {
-          return NULL;  // TODO
-        }
-        case BO_SUBASSIGN: {
-          return NULL;  // TODO
-        }
-        case BO_LSHIFTASSIGN: {
-          return NULL;  // TODO
-        }
-        case BO_ARSHIFTASSIGN: {
-          return NULL;  // TODO
-        }
-        case BO_LRSHIFTASSIGN: {
-          return NULL;  // TODO
-        }
-        case BO_BITANDASSIGN: {
-          return NULL;  // TODO
-        }
-        case BO_BITXORASSIGN: {
-          return NULL;  // TODO
-        }
+        case BO_MULASSIGN:
+        case BO_DIVASSIGN:
+        case BO_MODASSIGN:
+        case BO_ADDASSIGN:
+        case BO_SUBASSIGN:
+        case BO_LSHIFTASSIGN:
+        case BO_ARSHIFTASSIGN:
+        case BO_LRSHIFTASSIGN:
+        case BO_BITANDASSIGN:
+        case BO_BITXORASSIGN:
         case BO_BITORASSIGN: {
-          return NULL;  // TODO
+          size_t rhsLabel = fresh(file);
+          LValue *lvalue =
+              translateExpressionLValue(blocks, lhs, label, rhsLabel, file);
+          size_t assignmentLabel = fresh(file);
+          IROperand *rawRhs = translateExpressionValue(blocks, rhs, rhsLabel,
+                                                       assignmentLabel, file);
+          IRBlock *b = BLOCK(assignmentLabel, blocks);
+          IROperand *rawLhs = translateLValueLoad(
+              b, lvalue, TEMPOF(fresh(file), expressionTypeof(lhs)), file);
+          IROperand *rawResult = BINOP_TRANSLATORS[e->data.binOpExp.op](
+              b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs));
+          Type *merged =
+              arithmeticTypeMerge(expressionTypeof(lhs), expressionTypeof(rhs));
+          IROperand *castResult =
+              translateCast(b, rawResult, merged, expressionTypeof(lhs), file);
+          typeFree(merged);
+          translateLValueStore(b, lvalue, castResult, file);
+          IR(b, JUMP(nextLabel));
+          lvalueFree(lvalue);
+          return castResult;
         }
-        case BO_LANDASSIGN: {
-          return NULL;  // TODO
-        }
+        case BO_LANDASSIGN:
         case BO_LORASSIGN: {
-          return NULL;  // TODO
+          // lhs -> move lhs -> next
+          //     \> move rhs /
+
+          IROperand *outTemp = TEMPBOOL(fresh(file));
+          size_t shortCircuitLabel = fresh(file);
+          LValue *lvalue = translateExpressionLValue(blocks, lhs, label,
+                                                     shortCircuitLabel, file);
+
+          size_t lhsLabel = fresh(file);
+          size_t rhsLabel = fresh(file);
+          IRBlock *b = BLOCK(shortCircuitLabel, blocks);
+          IROperand *lhsVal =
+              translateLValueLoad(b, lvalue, TEMPBOOL(fresh(file)), file);
+          IR(b, BJUMP(BOOL_WIDTH,
+                      e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
+                      lhsLabel, irOperandCopy(lhsVal)));
+          IR(b, JUMP(rhsLabel));
+          b = BLOCK(lhsLabel, blocks);
+          IR(b, MOVE(BOOL_WIDTH, irOperandCopy(outTemp), lhsVal));
+          IR(b, JUMP(nextLabel));
+          size_t assignmentLabel = fresh(file);
+          IROperand *rhsVal = translateExpressionValue(blocks, rhs, rhsLabel,
+                                                       assignmentLabel, file);
+          b = BLOCK(assignmentLabel, blocks);
+          translateLValueStore(b, lvalue, irOperandCopy(rhsVal), file);
+          IR(b, MOVE(BOOL_WIDTH, irOperandCopy(outTemp), rhsVal));
+          IR(b, JUMP(nextLabel));
+          lvalueFree(lvalue);
+          return outTemp;
         }
-        case BO_LAND: {
-          return NULL;  // TODO
-        }
+        case BO_LAND:
         case BO_LOR: {
-          return NULL;  // TODO
+          IROperand *outTemp = TEMPBOOL(fresh(file));
+          size_t shortCircuitLabel = fresh(file);
+          IROperand *lhsVal = translateExpressionValue(blocks, lhs, label,
+                                                       shortCircuitLabel, file);
+          size_t lhsLabel = fresh(file);
+          size_t rhsLabel = fresh(file);
+          IRBlock *b = BLOCK(shortCircuitLabel, blocks);
+          IR(b, BJUMP(BOOL_WIDTH,
+                      e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
+                      lhsLabel, irOperandCopy(lhsVal)));
+          IR(b, JUMP(rhsLabel));
+          b = BLOCK(lhsLabel, blocks);
+          IR(b, MOVE(BOOL_WIDTH, irOperandCopy(outTemp), lhsVal));
+          IR(b, JUMP(nextLabel));
+          size_t assignmentLabel = fresh(file);
+          IROperand *rhsVal = translateExpressionValue(blocks, rhs, rhsLabel,
+                                                       assignmentLabel, file);
+          b = BLOCK(assignmentLabel, blocks);
+          IR(b, MOVE(BOOL_WIDTH, irOperandCopy(outTemp), rhsVal));
+          IR(b, JUMP(nextLabel));
+          return outTemp;
         }
-        case BO_BITAND: {
-          return NULL;  // TODO
-        }
-        case BO_BITOR: {
-          return NULL;  // TODO
-        }
-        case BO_BITXOR: {
-          return NULL;  // TODO
-        }
-        case BO_EQ: {
-          return NULL;  // TODO
-        }
-        case BO_NEQ: {
-          return NULL;  // TODO
-        }
-        case BO_LT: {
-          return NULL;  // TODO
-        }
-        case BO_GT: {
-          return NULL;  // TODO
-        }
-        case BO_LTEQ: {
-          return NULL;  // TODO
-        }
-        case BO_GTEQ: {
-          return NULL;  // TODO
-        }
-        case BO_SPACESHIP: {
-          return NULL;  // TODO
-        }
-        case BO_LSHIFT: {
-          return NULL;  // TODO
-        }
-        case BO_ARSHIFT: {
-          return NULL;  // TODO
-        }
-        case BO_LRSHIFT: {
-          return NULL;  // TODO
-        }
-        case BO_ADD: {
-          return NULL;  // TODO
-        }
-        case BO_SUB: {
-          return NULL;  // TODO
-        }
-        case BO_MUL: {
-          return NULL;  // TODO
-        }
-        case BO_DIV: {
-          return NULL;  // TODO
-        }
+        case BO_BITAND:
+        case BO_BITOR:
+        case BO_BITXOR:
+        case BO_EQ:
+        case BO_NEQ:
+        case BO_LT:
+        case BO_GT:
+        case BO_LTEQ:
+        case BO_GTEQ:
+        case BO_SPACESHIP:
+        case BO_LSHIFT:
+        case BO_ARSHIFT:
+        case BO_LRSHIFT:
+        case BO_ADD:
+        case BO_SUB:
+        case BO_MUL:
+        case BO_DIV:
         case BO_MOD: {
-          return NULL;  // TODO
+          size_t rhsLabel = fresh(file);
+          IROperand *rawLhs =
+              translateExpressionValue(blocks, lhs, label, rhsLabel, file);
+          size_t resultLabel = fresh(file);
+          IROperand *rawRhs = translateExpressionValue(blocks, rhs, rhsLabel,
+                                                       resultLabel, file);
+          IRBlock *b = BLOCK(resultLabel, blocks);
+          IROperand *result = BINOP_TRANSLATORS[e->data.binOpExp.op](
+              b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs));
+          IR(b, JUMP(nextLabel));
+          return result;
         }
         case BO_FIELD: {
-          return NULL;  // TODO
+          SymbolTableEntry const *lhsEntry =
+              stripCV(expressionTypeof(lhs))->data.reference.entry;
+          size_t resultLabel = fresh(file);
+          IROperand *whole =
+              translateExpressionValue(blocks, lhs, label, resultLabel, file);
+          IRBlock *b = BLOCK(resultLabel, blocks);
+          IROperand *result = TEMPOF(fresh(file), expressionTypeof(e));
+          if (lhsEntry->kind == SK_STRUCT)
+            IR(b, OFFSET_LOAD(typeSizeof(expressionTypeof(e)),
+                              irOperandCopy(result), whole,
+                              OFFSET((int64_t)structOffsetof(
+                                  lhsEntry, rhs->data.id.id))));
+          else
+            IR(b, MOVE(typeSizeof(expressionTypeof(e)), irOperandCopy(result),
+                       whole));
+          IR(b, JUMP(nextLabel));
+          return result;
         }
         case BO_PTRFIELD: {
-          return NULL;  // TODO
+          SymbolTableEntry const *lhsEntry =
+              stripCV(stripCV(expressionTypeof(lhs))->data.pointer.base)
+                  ->data.reference.entry;
+          size_t resultLabel = fresh(file);
+          IROperand *addr =
+              translateExpressionValue(blocks, lhs, label, resultLabel, file);
+          IRBlock *b = BLOCK(resultLabel, blocks);
+          IROperand *result = TEMPOF(fresh(file), expressionTypeof(e));
+          IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(result),
+                         addr,
+                         lhsEntry->kind == SK_STRUCT
+                             ? OFFSET((int64_t)structOffsetof(lhsEntry,
+                                                              rhs->data.id.id))
+                             : OFFSET(0)));
+          IR(b, JUMP(nextLabel));
+          return result;
         }
         case BO_ARRAY: {
-          return NULL;  // TODO
+          size_t rhsLabel = fresh(file);
+          IROperand *lhsVal =
+              translateExpressionValue(blocks, lhs, label, rhsLabel, file);
+          size_t resultLabel = fresh(file);
+          IROperand *rawRhs = translateExpressionValue(blocks, rhs, rhsLabel,
+                                                       resultLabel, file);
+          IRBlock *b = BLOCK(resultLabel, blocks);
+          IROperand *result = TEMPOF(fresh(file), expressionTypeof(e));
+          if (typePointer(expressionTypeof(lhs))) {
+            IROperand *scaledRhs = translatePointerArithmeticScale(
+                b, rawRhs, expressionTypeof(rhs),
+                typeSizeof(stripCV(expressionTypeof(lhs))->data.pointer.base));
+            IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)),
+                           irOperandCopy(result), lhsVal, scaledRhs));
+          } else {
+            IROperand *scaledRhs = translatePointerArithmeticScale(
+                b, rawRhs, expressionTypeof(rhs),
+                typeSizeof(stripCV(expressionTypeof(lhs))->data.array.type));
+            IR(b, OFFSET_LOAD(typeSizeof(expressionTypeof(e)),
+                              irOperandCopy(result), lhsVal, scaledRhs));
+          }
+          IR(b, JUMP(nextLabel));
+          return result;
         }
         case BO_CAST: {
-          return NULL;  // TODO
+          size_t resultLabel = fresh(file);
+          IROperand *uncast =
+              translateExpressionValue(blocks, rhs, label, resultLabel, file);
+          IRBlock *b = BLOCK(resultLabel, blocks);
+          IROperand *result = translateCast(b, uncast, expressionTypeof(rhs),
+                                            expressionTypeof(e), file);
+          IR(b, JUMP(nextLabel));
+          return result;
         }
         default: {
           error(__FILE__, __LINE__, "invalid binop");
@@ -1913,12 +2028,28 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
       }
     }
     case NT_UNOPEXP: {
+      Node const *target = e->data.unOpExp.target;
       switch (e->data.unOpExp.op) {
         case UO_DEREF: {
-          return NULL;  // TODO
+          size_t derefLabel = fresh(file);
+          IRBlock *b = BLOCK(derefLabel, blocks);
+          IROperand *result = TEMPOF(fresh(file), expressionTypeof(e));
+          IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(result),
+                         translateExpressionValue(blocks, target, label,
+                                                  derefLabel, file),
+                         OFFSET(0)));
+          IR(b, JUMP(nextLabel));
+          return result;
         }
         case UO_ADDROF: {
-          return NULL;  // TODO
+          size_t addrofLabel = fresh(file);
+          LValue *lvalue = translateExpressionLValue(blocks, target, label,
+                                                     addrofLabel, file);
+          IRBlock *b = BLOCK(addrofLabel, blocks);
+          IROperand *result =
+              translateLValueAddr(b, lvalue, TEMPPTR(fresh(file)), file);
+          lvalueFree(lvalue);
+          return result;
         }
         case UO_PREINC: {
           return NULL;  // TODO
@@ -1974,10 +2105,25 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
       return NULL;  // TODO
     }
     case NT_SCOPEDID: {
-      return NULL;  // TODO
+      IRBlock *b = BLOCK(label, blocks);
+      IROperand *dest = TEMPOF(fresh(file), expressionTypeof(e));
+      IR(b,
+         MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
+                  GLOBAL(getMangledName(e->data.scopedId.entry)), OFFSET(0)));
+      IR(b, JUMP(nextLabel));
+      return dest;
     }
     case NT_ID: {
-      return NULL;  // TODO
+      IRBlock *b = BLOCK(label, blocks);
+      IROperand *dest = TEMPOF(fresh(file), expressionTypeof(e));
+      if (e->data.id.entry->data.variable.temp == 0)
+        IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
+                       GLOBAL(getMangledName(e->data.id.entry)), OFFSET(0)));
+      else
+        IR(b, MOVE(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
+                   TEMPVAR(e)));
+      IR(b, JUMP(nextLabel));
+      return dest;
     }
     default: {
       error(__FILE__, __LINE__, "invalid expression");
@@ -2110,7 +2256,7 @@ static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
         case BO_FIELD:
         case BO_PTRFIELD:
         case BO_CAST: {
-          translateExpressionVoid(blocks, lhs, label, nextLabel, file);
+          translateExpressionVoid(blocks, rhs, label, nextLabel, file);
           break;
         }
         default: {
@@ -2144,9 +2290,8 @@ static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
           IRBlock *b = BLOCK(modifyLabel, blocks);
           IROperand *value = translateLValueLoad(
               b, lvalue, TEMPOF(fresh(file), expressionTypeof(target)), file);
-          IROperand *modified =
-              (UNOP_TRANSLATORS[e->data.unOpExp.op])(b, value,
-                                                     expressionTypeof(target));
+          IROperand *modified = UNOP_TRANSLATORS[e->data.unOpExp.op](
+              b, value, expressionTypeof(target));
           translateLValueStore(b, lvalue, modified, file);
           lvalueFree(lvalue);
           break;
@@ -2195,8 +2340,11 @@ static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
     case NT_ID: {
       if (expressionTypeof(e)->kind == TK_QUALIFIED &&
           expressionTypeof(e)->data.qualified.volatileQual) {
-        irOperandFree(
-            translateExpressionValue(blocks, e, label, nextLabel, file));
+        size_t volatileLabel = fresh(file);
+        IRBlock *b = BLOCK(volatileLabel, blocks);
+        IR(b, VOLATILE(translateExpressionValue(blocks, e, label, volatileLabel,
+                                                file)));
+        IR(b, JUMP(nextLabel));
       } else {
         IRBlock *b = BLOCK(label, blocks);
         IR(b, JUMP(nextLabel));
@@ -2724,26 +2872,53 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
       for (size_t idx = 0; idx < names->size; ++idx) {
         Node *name = names->elements[idx];
         Node const *initializer = initializers->elements[idx];
+        SymbolTableEntry *e = name->data.id.entry;
         if (idx == names->size - 1) {
           if (initializer == NULL) {
             IRBlock *b = BLOCK(curr, blocks);
             IR(b, JUMP(nextLabel));
-            name->data.id.entry->data.variable.temp = fresh(file);
+            e->data.variable.temp = fresh(file);
           } else {
-            IROperand *o = translateExpressionValue(blocks, initializer, curr,
-                                                    nextLabel, file);
-            name->data.id.entry->data.variable.temp = o->data.temp.name;
-            irOperandFree(o);
+            if (e->data.variable.escapes) {
+              size_t moveToMemLabel = fresh(file);
+              IROperand *o = translateExpressionValue(blocks, initializer, curr,
+                                                      moveToMemLabel, file);
+              IRBlock *b = BLOCK(moveToMemLabel, blocks);
+              IROperand *memTemp =
+                  TEMP(fresh(file), typeAlignof(e->data.variable.type),
+                       typeSizeof(e->data.variable.type), AH_MEM);
+              IR(b, MOVE(typeSizeof(e->data.variable.type), memTemp, o));
+              IR(b, JUMP(nextLabel));
+              e->data.variable.temp = memTemp->data.temp.name;
+            } else {
+              IROperand *o = translateExpressionValue(blocks, initializer, curr,
+                                                      nextLabel, file);
+              e->data.variable.temp = o->data.temp.name;
+              irOperandFree(o);
+            }
           }
         } else {
           if (initializer == NULL) {
-            name->data.id.entry->data.variable.temp = fresh(file);
+            e->data.variable.temp = fresh(file);
           } else {
             size_t next = fresh(file);
-            IROperand *o =
-                translateExpressionValue(blocks, initializer, curr, next, file);
-            name->data.id.entry->data.variable.temp = o->data.temp.name;
-            irOperandFree(o);
+            if (e->data.variable.escapes) {
+              size_t moveToMemLabel = fresh(file);
+              IROperand *o = translateExpressionValue(blocks, initializer, curr,
+                                                      moveToMemLabel, file);
+              IRBlock *b = BLOCK(moveToMemLabel, blocks);
+              IROperand *memTemp =
+                  TEMP(fresh(file), typeAlignof(e->data.variable.type),
+                       typeSizeof(e->data.variable.type), AH_MEM);
+              IR(b, MOVE(typeSizeof(e->data.variable.type), memTemp, o));
+              IR(b, JUMP(next));
+              e->data.variable.temp = memTemp->data.temp.name;
+            } else {
+              IROperand *o = translateExpressionValue(blocks, initializer, curr,
+                                                      next, file);
+              e->data.variable.temp = o->data.temp.name;
+              irOperandFree(o);
+            }
             curr = next;
           }
         }

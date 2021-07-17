@@ -29,6 +29,13 @@ IROperand *TEMPOF(size_t name, Type const *t) {
   return tempOperandCreate(name, typeAlignof(t), typeSizeof(t),
                            typeAllocation(t));
 }
+IROperand *TEMPVAR(SymbolTableEntry const *e) {
+  return tempOperandCreate(
+      e->data.variable.temp, typeAlignof(e->data.variable.type),
+      typeSizeof(e->data.variable.type),
+      e->data.variable.escapes ? AH_MEM
+                               : typeAllocation(e->data.variable.type));
+}
 IROperand *TEMPPTR(size_t name) {
   return tempOperandCreate(name, POINTER_WIDTH, POINTER_WIDTH, AH_GP);
 }
@@ -50,6 +57,12 @@ IROperand *OFFSET(int64_t offset) { return offsetOperandCreate(offset); }
 IRInstruction *ASM(char const *assembly) {
   return irInstructionCreate(IO_ASM, 0, NULL,
                              assemblyOperandCreate(strdup(assembly)), NULL);
+}
+IRInstruction *VOLATILE(IROperand *temp) {
+  return irInstructionCreate(IO_VOLATILE, 0, NULL, temp, NULL);
+}
+IRInstruction *ADDROF(IROperand *dest, IROperand *src) {
+  return irInstructionCreate(IO_ADDROF, 0, dest, src, NULL);
 }
 IRInstruction *MOVE(size_t size, IROperand *dest, IROperand *src) {
   return irInstructionCreate(IO_MOVE, size, dest, src, NULL);

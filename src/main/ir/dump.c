@@ -151,6 +151,14 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       oneOperandInstructionDump(where, "LABEL", i);
       break;
     }
+    case IO_VOLATILE: {
+      oneOperandInstructionDump(where, "VOLATILE", i);
+      break;
+    }
+    case IO_ADDROF: {
+      twoOperandInstructionDump(where, "ADDROF", i);
+      break;
+    }
     case IO_MOVE: {
       twoOperandInstructionDump(where, "MOVE", i);
       break;

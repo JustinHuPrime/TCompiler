@@ -155,8 +155,10 @@ void irOperandFree(IROperand *);
 /** an ir operator */
 typedef enum IROperator {
   // miscellaneous
-  IO_ASM,    // inline asm
-  IO_LABEL,  // label
+  IO_ASM,
+  IO_LABEL,
+  IO_VOLATILE,  // mark temp as being volatilely used
+  IO_ADDROF,    // get address of a mem temp
 
   // data transfer
   IO_MOVE,

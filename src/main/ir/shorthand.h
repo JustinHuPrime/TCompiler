@@ -36,6 +36,10 @@ IROperand *TEMP(size_t name, size_t alignment, size_t size, AllocHint kind);
  */
 IROperand *TEMPOF(size_t name, Type const *t);
 /**
+ * temporary value storing a non-global variable
+ */
+IROperand *TEMPVAR(SymbolTableEntry const *e);
+/**
  * temporary pointer
  */
 IROperand *TEMPPTR(size_t name);
@@ -68,6 +72,19 @@ IROperand *OFFSET(int64_t offset);
  * inline asm
  */
 IRInstruction *ASM(char const *assembly);
+/**
+ * volatile use of a temp (prevents dead-code elimination from removing the
+ * temp)
+ * @param temp temp to use
+ */
+IRInstruction *VOLATILE(IROperand *temp);
+/**
+ * get address of a mem temp
+ *
+ * @param dest destination temp or reg
+ * @param src source mem temp
+ */
+IRInstruction *ADDROF(IROperand *dest, IROperand *src);
 /**
  * simple move
  * @param size sizeof op
