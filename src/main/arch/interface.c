@@ -74,11 +74,11 @@ void generateFunctionExit(Vector *blocks, SymbolTableEntry const *entry,
     }
   }
 }
-IROperand *generateFunctionCall(IRBlock *b, IROperand *fun, Type const *funType,
-                                FileListEntry *file) {
+IROperand *generateFunctionCall(IRBlock *b, IROperand *fun, IROperand **args,
+                                Type const *funType, FileListEntry *file) {
   switch (options.arch) {
     case OPTION_A_X86_64_LINUX: {
-      return x86_64LinuxGenerateFunctionCall(b, fun, funType, file);
+      return x86_64LinuxGenerateFunctionCall(b, fun, args, funType, file);
     }
     default: {
       error(__FILE__, __LINE__, "unrecognized architecture");

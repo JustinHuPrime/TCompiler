@@ -157,7 +157,7 @@ static Type const *expressionTypeof(Node const *e) {
       return e->data.literal.type;
     }
     case NT_SCOPEDID: {
-      return e->data.literal.type;
+      return e->data.scopedId.type;
     }
     case NT_ID: {
       return e->data.id.type;
@@ -785,7 +785,8 @@ static IROperand *translateCast(IRBlock *b, IROperand *src,
  */
 static IROperand *translatePointerArithmeticScale(IRBlock *b, IROperand *target,
                                                   Type const *targetType,
-                                                  size_t pointedSize) {
+                                                  size_t pointedSize,
+                                                  FileListEntry *file) {
   return NULL;  // TODO
 }
 
@@ -798,7 +799,8 @@ static IROperand *translatePointerArithmeticScale(IRBlock *b, IROperand *target,
  * @returns owning temp containing result
  */
 static IROperand *translateIncrement(IRBlock *b, IROperand *target,
-                                     Type const *targetType) {
+                                     Type const *targetType,
+                                     FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -810,7 +812,8 @@ static IROperand *translateIncrement(IRBlock *b, IROperand *target,
  * @returns owning temp containing result
  */
 static IROperand *translateDecrement(IRBlock *b, IROperand *target,
-                                     Type const *targetType) {
+                                     Type const *targetType,
+                                     FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -822,7 +825,8 @@ static IROperand *translateDecrement(IRBlock *b, IROperand *target,
  * @returns owning temp containing result
  */
 static IROperand *translateNegation(IRBlock *b, IROperand *target,
-                                    Type const *targetType) {
+                                    Type const *targetType,
+                                    FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -834,7 +838,7 @@ static IROperand *translateNegation(IRBlock *b, IROperand *target,
  * @returns owning temp containing result
  */
 static IROperand *translateLnot(IRBlock *b, IROperand *target,
-                                Type const *targetType) {
+                                Type const *targetType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -846,13 +850,14 @@ static IROperand *translateLnot(IRBlock *b, IROperand *target,
  * @returns owning temp containing result
  */
 static IROperand *translateBitNot(IRBlock *b, IROperand *target,
-                                  Type const *targetType) {
+                                  Type const *targetType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
  * table of translation functions for UnOpType
  */
-IROperand *(*const UNOP_TRANSLATORS[])(IRBlock *, IROperand *, Type const *) = {
+IROperand *(*const UNOP_TRANSLATORS[])(IRBlock *, IROperand *, Type const *,
+                                       FileListEntry *) = {
     NULL,
     NULL,
     translateIncrement,
@@ -882,7 +887,8 @@ IROperand *(*const UNOP_TRANSLATORS[])(IRBlock *, IROperand *, Type const *) = {
  */
 static IROperand *translateMultiplication(IRBlock *b, IROperand *lhs,
                                           Type const *lhsType, IROperand *rhs,
-                                          Type const *rhsType) {
+                                          Type const *rhsType,
+                                          FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -897,7 +903,7 @@ static IROperand *translateMultiplication(IRBlock *b, IROperand *lhs,
  */
 static IROperand *translateDivision(IRBlock *b, IROperand *lhs,
                                     Type const *lhsType, IROperand *rhs,
-                                    Type const *rhsType) {
+                                    Type const *rhsType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -912,7 +918,7 @@ static IROperand *translateDivision(IRBlock *b, IROperand *lhs,
  */
 static IROperand *translateModulo(IRBlock *b, IROperand *lhs,
                                   Type const *lhsType, IROperand *rhs,
-                                  Type const *rhsType) {
+                                  Type const *rhsType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -927,7 +933,7 @@ static IROperand *translateModulo(IRBlock *b, IROperand *lhs,
  */
 static IROperand *translateAddition(IRBlock *b, IROperand *lhs,
                                     Type const *lhsType, IROperand *rhs,
-                                    Type const *rhsType) {
+                                    Type const *rhsType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -942,7 +948,8 @@ static IROperand *translateAddition(IRBlock *b, IROperand *lhs,
  */
 static IROperand *translateSubtraction(IRBlock *b, IROperand *lhs,
                                        Type const *lhsType, IROperand *rhs,
-                                       Type const *rhsType) {
+                                       Type const *rhsType,
+                                       FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -957,7 +964,7 @@ static IROperand *translateSubtraction(IRBlock *b, IROperand *lhs,
  */
 static IROperand *translateLShift(IRBlock *b, IROperand *lhs,
                                   Type const *lhsType, IROperand *rhs,
-                                  Type const *rhsType) {
+                                  Type const *rhsType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -972,7 +979,7 @@ static IROperand *translateLShift(IRBlock *b, IROperand *lhs,
  */
 static IROperand *translateARShift(IRBlock *b, IROperand *lhs,
                                    Type const *lhsType, IROperand *rhs,
-                                   Type const *rhsType) {
+                                   Type const *rhsType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -987,7 +994,7 @@ static IROperand *translateARShift(IRBlock *b, IROperand *lhs,
  */
 static IROperand *translateLRShift(IRBlock *b, IROperand *lhs,
                                    Type const *lhsType, IROperand *rhs,
-                                   Type const *rhsType) {
+                                   Type const *rhsType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -1002,7 +1009,7 @@ static IROperand *translateLRShift(IRBlock *b, IROperand *lhs,
  */
 static IROperand *translateBitAnd(IRBlock *b, IROperand *lhs,
                                   Type const *lhsType, IROperand *rhs,
-                                  Type const *rhsType) {
+                                  Type const *rhsType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -1017,7 +1024,7 @@ static IROperand *translateBitAnd(IRBlock *b, IROperand *lhs,
  */
 static IROperand *translateBitXor(IRBlock *b, IROperand *lhs,
                                   Type const *lhsType, IROperand *rhs,
-                                  Type const *rhsType) {
+                                  Type const *rhsType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -1032,7 +1039,7 @@ static IROperand *translateBitXor(IRBlock *b, IROperand *lhs,
  */
 static IROperand *translateBitOr(IRBlock *b, IROperand *lhs,
                                  Type const *lhsType, IROperand *rhs,
-                                 Type const *rhsType) {
+                                 Type const *rhsType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -1075,7 +1082,8 @@ static IROperator binopToComparison(BinOpType binop, bool floating,
  * @returns owning temp containing result
  */
 static IROperand *translateEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
-                              IROperand *rhs, Type const *rhsType) {
+                              IROperand *rhs, Type const *rhsType,
+                              FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -1089,7 +1097,8 @@ static IROperand *translateEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
  * @returns owning temp containing result
  */
 static IROperand *translateNeq(IRBlock *b, IROperand *lhs, Type const *lhsType,
-                               IROperand *rhs, Type const *rhsType) {
+                               IROperand *rhs, Type const *rhsType,
+                               FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -1103,7 +1112,8 @@ static IROperand *translateNeq(IRBlock *b, IROperand *lhs, Type const *lhsType,
  * @returns owning temp containing result
  */
 static IROperand *translateLt(IRBlock *b, IROperand *lhs, Type const *lhsType,
-                              IROperand *rhs, Type const *rhsType) {
+                              IROperand *rhs, Type const *rhsType,
+                              FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -1117,7 +1127,8 @@ static IROperand *translateLt(IRBlock *b, IROperand *lhs, Type const *lhsType,
  * @returns owning temp containing result
  */
 static IROperand *translateGt(IRBlock *b, IROperand *lhs, Type const *lhsType,
-                              IROperand *rhs, Type const *rhsType) {
+                              IROperand *rhs, Type const *rhsType,
+                              FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -1131,7 +1142,8 @@ static IROperand *translateGt(IRBlock *b, IROperand *lhs, Type const *lhsType,
  * @returns owning temp containing result
  */
 static IROperand *translateLtEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
-                                IROperand *rhs, Type const *rhsType) {
+                                IROperand *rhs, Type const *rhsType,
+                                FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -1145,7 +1157,8 @@ static IROperand *translateLtEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
  * @returns owning temp containing result
  */
 static IROperand *translateGtEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
-                                IROperand *rhs, Type const *rhsType) {
+                                IROperand *rhs, Type const *rhsType,
+                                FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
@@ -1160,14 +1173,15 @@ static IROperand *translateGtEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
  */
 static IROperand *translateSpaceship(IRBlock *b, IROperand *lhs,
                                      Type const *lhsType, IROperand *rhs,
-                                     Type const *rhsType) {
+                                     Type const *rhsType, FileListEntry *file) {
   return NULL;  // TODO
 }
 /**
  * table of translation functions for BinOpType
  */
 IROperand *(*const BINOP_TRANSLATORS[])(IRBlock *, IROperand *, Type const *,
-                                        IROperand *, Type const *) = {
+                                        IROperand *, Type const *,
+                                        FileListEntry *) = {
     NULL,
     NULL,
     translateMultiplication,
@@ -1425,7 +1439,8 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
           IROperand *rawLhs = translateLValueLoad(
               b, lvalue, TEMPOF(fresh(file), expressionTypeof(lhs)), file);
           IROperand *rawResult = BINOP_TRANSLATORS[e->data.binOpExp.op](
-              b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs));
+              b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs),
+              file);
           Type *merged =
               arithmeticTypeMerge(expressionTypeof(lhs), expressionTypeof(rhs));
           IROperand *castResult =
@@ -1487,12 +1502,15 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
             IROperand *unscaledIndex = translateExpressionValue(
                 blocks, rhs, rhsLabel, offsetLabel, file);
             IRBlock *b = BLOCK(offsetLabel, blocks);
-            return lvalueCreate(
+            LValue *lvalue = lvalueCreate(
                 LK_MEM, lhsVal, 0,
                 translatePointerArithmeticScale(
                     b, unscaledIndex, expressionTypeof(rhs),
                     typeSizeof(
-                        stripCV(expressionTypeof(lhs))->data.pointer.base)));
+                        stripCV(expressionTypeof(lhs))->data.pointer.base),
+                    file));
+            IR(b, JUMP(nextLabel));
+            return lvalue;
           } else {
             LValue *lvalue =
                 translateExpressionLValue(blocks, lhs, label, rhsLabel, file);
@@ -1503,15 +1521,18 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
             if (lvalue->dynamicOffset == NULL) {
               lvalue->dynamicOffset = translatePointerArithmeticScale(
                   b, unscaledIndex, expressionTypeof(rhs),
-                  typeSizeof(stripCV(expressionTypeof(lhs))->data.array.type));
+                  typeSizeof(stripCV(expressionTypeof(lhs))->data.array.type),
+                  file);
             } else {
               IROperand *newOffset = TEMPPTR(fresh(file));
-              IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(newOffset),
-                          lvalue->dynamicOffset,
-                          translatePointerArithmeticScale(
-                              b, unscaledIndex, expressionTypeof(rhs),
-                              typeSizeof(stripCV(expressionTypeof(lhs))
-                                             ->data.array.type))));
+              IR(b,
+                 BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(newOffset),
+                       lvalue->dynamicOffset,
+                       translatePointerArithmeticScale(
+                           b, unscaledIndex, expressionTypeof(rhs),
+                           typeSizeof(
+                               stripCV(expressionTypeof(lhs))->data.array.type),
+                           file)));
               lvalue->dynamicOffset = newOffset;
             }
             IR(b, JUMP(nextLabel));
@@ -1541,10 +1562,11 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
           IROperand *value = translateLValueLoad(
               b, lvalue, TEMPOF(fresh(file), expressionTypeof(target)), file);
           IROperand *modified =
-              (e->data.unOpExp.op == UO_PREINC
-                   ? translateIncrement
-                   : translateDecrement)(b, value, expressionTypeof(target));
+              (e->data.unOpExp.op == UO_PREINC ? translateIncrement
+                                               : translateDecrement)(
+                  b, value, expressionTypeof(target), file);
           translateLValueStore(b, lvalue, modified, file);
+          IR(b, JUMP(nextLabel));
           return lvalue;
         }
         case UO_PARENS: {
@@ -1566,7 +1588,7 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
         return lvalueCreate(LK_MEM, GLOBAL(getMangledName(e->data.id.entry)), 0,
                             NULL);
       } else {
-        return lvalueCreate(LK_TEMP, TEMPVAR(e), 0, NULL);
+        return lvalueCreate(LK_TEMP, TEMPVAR(e->data.id.entry), 0, NULL);
       }
     }
     default: {
@@ -1795,6 +1817,207 @@ static void translateExpressionPredicate(Vector *blocks, Node const *e,
 }
 
 /**
+ * translate a literal into a sequence of IRDatums
+ */
+static void translateValueLiteral(Node const *e, IRFrag *df,
+                                  FileListEntry *file) {
+  switch (e->type) {
+    case NT_SCOPEDID: {
+      switch (e->data.scopedId.entry->data.enumConst.parent->data.enumType
+                  .backingType->data.keyword.keyword) {
+        case TK_UBYTE: {
+          vectorInsert(&df->data.data.data,
+                       byteDatumCreate((uint8_t)e->data.scopedId.entry->data
+                                           .enumConst.data.unsignedValue));
+          break;
+        }
+        case TK_BYTE: {
+          vectorInsert(
+              &df->data.data.data,
+              byteDatumCreate(s8ToU8((int8_t)e->data.scopedId.entry->data
+                                         .enumConst.data.signedValue)));
+          break;
+        }
+        case TK_USHORT: {
+          vectorInsert(&df->data.data.data,
+                       shortDatumCreate((uint16_t)e->data.scopedId.entry->data
+                                            .enumConst.data.unsignedValue));
+          break;
+        }
+        case TK_SHORT: {
+          vectorInsert(
+              &df->data.data.data,
+              shortDatumCreate(s16ToU16((int16_t)e->data.scopedId.entry->data
+                                            .enumConst.data.signedValue)));
+          break;
+        }
+        case TK_UINT: {
+          vectorInsert(&df->data.data.data,
+                       intDatumCreate((uint32_t)e->data.scopedId.entry->data
+                                          .enumConst.data.unsignedValue));
+          break;
+        }
+        case TK_INT: {
+          vectorInsert(
+              &df->data.data.data,
+              intDatumCreate(s32ToU32((int32_t)e->data.scopedId.entry->data
+                                          .enumConst.data.signedValue)));
+          break;
+        }
+        case TK_ULONG: {
+          vectorInsert(
+              &df->data.data.data,
+              longDatumCreate(
+                  e->data.scopedId.entry->data.enumConst.data.unsignedValue));
+          break;
+        }
+        case TK_LONG: {
+          vectorInsert(
+              &df->data.data.data,
+              longDatumCreate(s64ToU64((int64_t)e->data.scopedId.entry->data
+                                           .enumConst.data.signedValue)));
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid backing type for an enum");
+        }
+      }
+      break;
+    }
+    case NT_LITERAL: {
+      switch (e->data.literal.literalType) {
+        case LT_UBYTE: {
+          vectorInsert(&df->data.data.data,
+                       byteDatumCreate(e->data.literal.data.ubyteVal));
+          break;
+        }
+        case LT_BYTE: {
+          vectorInsert(&df->data.data.data,
+                       byteDatumCreate(s8ToU8(e->data.literal.data.byteVal)));
+          break;
+        }
+        case LT_USHORT: {
+          vectorInsert(&df->data.data.data,
+                       shortDatumCreate(e->data.literal.data.ushortVal));
+          break;
+        }
+        case LT_SHORT: {
+          vectorInsert(
+              &df->data.data.data,
+              shortDatumCreate(s16ToU16(e->data.literal.data.shortVal)));
+          break;
+        }
+        case LT_UINT: {
+          vectorInsert(&df->data.data.data,
+                       intDatumCreate(e->data.literal.data.uintVal));
+          break;
+        }
+        case LT_INT: {
+          vectorInsert(&df->data.data.data,
+                       intDatumCreate(s32ToU32(e->data.literal.data.intVal)));
+          break;
+        }
+        case LT_ULONG: {
+          vectorInsert(&df->data.data.data,
+                       longDatumCreate(e->data.literal.data.ulongVal));
+          break;
+        }
+        case LT_LONG: {
+          vectorInsert(&df->data.data.data,
+                       longDatumCreate(s64ToU64(e->data.literal.data.longVal)));
+          break;
+        }
+        case LT_FLOAT: {
+          vectorInsert(&df->data.data.data,
+                       intDatumCreate(e->data.literal.data.floatBits));
+          break;
+        }
+        case LT_DOUBLE: {
+          vectorInsert(&df->data.data.data,
+                       longDatumCreate(e->data.literal.data.doubleBits));
+          break;
+        }
+        case LT_STRING: {
+          size_t dataLabel = fresh(file);
+          IRFrag *df = dataFragCreate(
+              FT_RODATA, format(localLabelFormat(), dataLabel), CHAR_WIDTH);
+          vectorInsert(
+              &df->data.data.data,
+              stringDatumCreate(tstrdup(e->data.literal.data.stringVal)));
+          vectorInsert(&file->irFrags, df);
+
+          vectorInsert(&df->data.data.data, labelDatumCreate(dataLabel));
+          break;
+        }
+        case LT_CHAR: {
+          vectorInsert(&df->data.data.data,
+                       byteDatumCreate(e->data.literal.data.charVal));
+          break;
+        }
+        case LT_WSTRING: {
+          size_t dataLabel = fresh(file);
+          IRFrag *df = dataFragCreate(
+              FT_RODATA, format(localLabelFormat(), dataLabel), WCHAR_WIDTH);
+          vectorInsert(
+              &df->data.data.data,
+              wstringDatumCreate(twstrdup(e->data.literal.data.wstringVal)));
+          vectorInsert(&file->irFrags, df);
+
+          vectorInsert(&df->data.data.data, labelDatumCreate(dataLabel));
+          break;
+        }
+        case LT_WCHAR: {
+          vectorInsert(&df->data.data.data,
+                       intDatumCreate(e->data.literal.data.wcharVal));
+          break;
+        }
+        case LT_BOOL: {
+          vectorInsert(&df->data.data.data,
+                       byteDatumCreate(e->data.literal.data.boolVal ? 1 : 0));
+          break;
+        }
+        case LT_NULL: {
+          vectorInsert(&df->data.data.data, longDatumCreate(0));
+          break;
+        }
+        case LT_AGGREGATEINIT: {
+          size_t pos = 0;
+          for (size_t idx = 0;
+               idx < e->data.literal.data.aggregateInitVal->size; ++idx) {
+            Node const *elm =
+                e->data.literal.data.aggregateInitVal->elements[idx];
+            translateValueLiteral(elm, df, file);
+            pos += typeSizeof(expressionTypeof(elm));
+            size_t padded;
+            if (idx < e->data.literal.data.aggregateInitVal->size - 1) {
+              Node const *nextElm =
+                  e->data.literal.data.aggregateInitVal->elements[idx + 1];
+              padded = incrementToMultiple(
+                  pos, typeAlignof(expressionTypeof(nextElm)));
+            } else {
+              padded =
+                  incrementToMultiple(pos, typeAlignof(expressionTypeof(e)));
+            }
+            if (padded != pos)
+              vectorInsert(&df->data.data.data,
+                           paddingDatumCreate(padded - pos));
+            pos = padded;
+          }
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid LiteralType enum");
+        }
+      }
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid literal node");
+    }
+  }
+}
+
+/**
  * translate an expression for its value
  *
  * @param block vector to put new blocks in
@@ -1829,6 +2052,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           IROperand *castRhs = translateCast(b, rawRhs, expressionTypeof(rhs),
                                              expressionTypeof(lhs), file);
           translateLValueStore(b, lvalue, castRhs, file);
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           return castRhs;
         }
@@ -1853,7 +2077,8 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           IROperand *rawLhs = translateLValueLoad(
               b, lvalue, TEMPOF(fresh(file), expressionTypeof(lhs)), file);
           IROperand *rawResult = BINOP_TRANSLATORS[e->data.binOpExp.op](
-              b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs));
+              b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs),
+              file);
           Type *merged =
               arithmeticTypeMerge(expressionTypeof(lhs), expressionTypeof(rhs));
           IROperand *castResult =
@@ -1946,7 +2171,8 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
                                                        resultLabel, file);
           IRBlock *b = BLOCK(resultLabel, blocks);
           IROperand *result = BINOP_TRANSLATORS[e->data.binOpExp.op](
-              b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs));
+              b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs),
+              file);
           IR(b, JUMP(nextLabel));
           return result;
         }
@@ -1999,13 +2225,15 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           if (typePointer(expressionTypeof(lhs))) {
             IROperand *scaledRhs = translatePointerArithmeticScale(
                 b, rawRhs, expressionTypeof(rhs),
-                typeSizeof(stripCV(expressionTypeof(lhs))->data.pointer.base));
+                typeSizeof(stripCV(expressionTypeof(lhs))->data.pointer.base),
+                file);
             IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)),
                            irOperandCopy(result), lhsVal, scaledRhs));
           } else {
             IROperand *scaledRhs = translatePointerArithmeticScale(
                 b, rawRhs, expressionTypeof(rhs),
-                typeSizeof(stripCV(expressionTypeof(lhs))->data.array.type));
+                typeSizeof(stripCV(expressionTypeof(lhs))->data.array.type),
+                file);
             IR(b, OFFSET_LOAD(typeSizeof(expressionTypeof(e)),
                               irOperandCopy(result), lhsVal, scaledRhs));
           }
@@ -2049,46 +2277,63 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           IROperand *result =
               translateLValueAddr(b, lvalue, TEMPPTR(fresh(file)), file);
           lvalueFree(lvalue);
+          IR(b, JUMP(nextLabel));
           return result;
         }
-        case UO_PREINC: {
-          return NULL;  // TODO
-        }
+        case UO_PREINC:
         case UO_PREDEC: {
-          return NULL;  // TODO
+          size_t modifyLabel = fresh(file);
+          LValue *lvalue = translateExpressionLValue(blocks, target, label,
+                                                     modifyLabel, file);
+          IRBlock *b = BLOCK(modifyLabel, blocks);
+          IROperand *value = translateLValueLoad(
+              b, lvalue, TEMPOF(fresh(file), expressionTypeof(target)), file);
+          IROperand *modified = UNOP_TRANSLATORS[e->data.unOpExp.op](
+              b, value, expressionTypeof(target), file);
+          translateLValueStore(b, lvalue, irOperandCopy(modified), file);
+          IR(b, JUMP(nextLabel));
+          return modified;
         }
-        case UO_NEG: {
-          return NULL;  // TODO
-        }
-        case UO_LNOT: {
-          return NULL;  // TODO
-        }
+        case UO_NEG:
+        case UO_LNOT:
         case UO_BITNOT: {
-          return NULL;  // TODO
+          size_t opLabel = fresh(file);
+          IRBlock *b = BLOCK(opLabel, blocks);
+          IROperand *o = UNOP_TRANSLATORS[e->data.unOpExp.op](
+              b, translateExpressionValue(blocks, target, label, opLabel, file),
+              expressionTypeof(target), file);
+          IR(b, JUMP(nextLabel));
+          return o;
         }
-        case UO_POSTINC: {
-          return NULL;  // TODO
-        }
-        case UO_POSTDEC: {
-          return NULL;  // TODO
-        }
-        case UO_NEGASSIGN: {
-          return NULL;  // TODO
-        }
-        case UO_LNOTASSIGN: {
-          return NULL;  // TODO
-        }
+        case UO_POSTINC:
+        case UO_POSTDEC:
+        case UO_NEGASSIGN:
+        case UO_LNOTASSIGN:
         case UO_BITNOTASSIGN: {
-          return NULL;  // TODO
+          size_t modifyLabel = fresh(file);
+          LValue *lvalue = translateExpressionLValue(blocks, target, label,
+                                                     modifyLabel, file);
+          IRBlock *b = BLOCK(modifyLabel, blocks);
+          IROperand *value = translateLValueLoad(
+              b, lvalue, TEMPOF(fresh(file), expressionTypeof(target)), file);
+          IROperand *modified = UNOP_TRANSLATORS[e->data.unOpExp.op](
+              b, irOperandCopy(value), expressionTypeof(target), file);
+          translateLValueStore(b, lvalue, modified, file);
+          IR(b, JUMP(nextLabel));
+          return value;
         }
-        case UO_SIZEOFEXP: {
-          return NULL;  // TODO
-        }
+        case UO_SIZEOFEXP:
         case UO_SIZEOFTYPE: {
-          return NULL;  // TODO
+          // no actual computation is done
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(
+              LONG_WIDTH,
+              longDatumCreate(typeSizeof(expressionTypeof(target))));
         }
         case UO_PARENS: {
-          return NULL;  // TODO
+          return translateExpressionValue(blocks, target, label, nextLabel,
+                                          file);
         }
         default: {
           error(__FILE__, __LINE__, "invalid unop");
@@ -2096,32 +2341,301 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
       }
     }
     case NT_TERNARYEXP: {
-      return NULL;  // TODO
+      Node const *consequent = e->data.ternaryExp.consequent;
+      Node const *alternative = e->data.ternaryExp.alternative;
+
+      IROperand *outTemp = TEMPOF(fresh(file), expressionTypeof(e));
+      size_t consequentLabel = fresh(file);
+      size_t alternativeLabel = fresh(file);
+      translateExpressionPredicate(blocks, e->data.ternaryExp.predicate, label,
+                                   consequentLabel, alternativeLabel, file);
+
+      size_t consequentCastLabel = fresh(file);
+      IROperand *uncastConsequent = translateExpressionValue(
+          blocks, consequent, consequentLabel, consequentCastLabel, file);
+      IRBlock *b = BLOCK(consequentCastLabel, blocks);
+      IROperand *castConsequent =
+          translateCast(b, uncastConsequent, expressionTypeof(consequent),
+                        expressionTypeof(e), file);
+      IR(b, MOVE(typeSizeof(expressionTypeof(e)), irOperandCopy(outTemp),
+                 castConsequent));
+      IR(b, JUMP(nextLabel));
+
+      size_t alternativeCastLabel = fresh(file);
+      IROperand *uncastAlternative = translateExpressionValue(
+          blocks, alternative, alternativeLabel, alternativeCastLabel, file);
+      b = BLOCK(alternativeCastLabel, blocks);
+      IROperand *castAlternative =
+          translateCast(b, uncastAlternative, expressionTypeof(alternative),
+                        expressionTypeof(e), file);
+      IR(b, MOVE(typeSizeof(expressionTypeof(e)), irOperandCopy(outTemp),
+                 castAlternative));
+      IR(b, JUMP(nextLabel));
+      return outTemp;
     }
     case NT_FUNCALLEXP: {
-      return NULL;  // TODO
+      Type const *funType = expressionTypeof(e->data.funCallExp.function);
+
+      size_t argsLabel = fresh(file);
+      size_t callLabel = fresh(file);
+      IROperand *fun = translateExpressionValue(
+          blocks, e->data.funCallExp.function, label,
+          funType->data.funPtr.argTypes.size == 0 ? callLabel : argsLabel,
+          file);
+
+      IROperand **args =
+          malloc(funType->data.funPtr.argTypes.size * sizeof(IROperand *));
+      size_t curr = argsLabel;
+      for (size_t idx = 0; idx < e->data.funCallExp.arguments->size; ++idx) {
+        Node const *arg = e->data.funCallExp.arguments->elements[idx];
+        if (idx == e->data.funCallExp.arguments->size - 1) {
+          args[idx] =
+              translateExpressionValue(blocks, arg, curr, callLabel, file);
+        } else {
+          size_t next = fresh(file);
+          args[idx] = translateExpressionValue(blocks, arg, curr, next, file);
+          curr = next;
+        }
+      }
+
+      IRBlock *b = BLOCK(callLabel, blocks);
+      IROperand *retVal = generateFunctionCall(b, fun, args, funType, file);
+      IR(b, JUMP(nextLabel));
+      return retVal;
     }
     case NT_LITERAL: {
-      return NULL;  // TODO
+      switch (e->data.literal.literalType) {
+        case LT_UBYTE: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(BYTE_WIDTH,
+                          byteDatumCreate(e->data.literal.data.ubyteVal));
+        }
+        case LT_BYTE: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(
+              BYTE_WIDTH,
+              byteDatumCreate(s8ToU8(e->data.literal.data.byteVal)));
+        }
+        case LT_USHORT: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(SHORT_WIDTH,
+                          shortDatumCreate(e->data.literal.data.ushortVal));
+        }
+        case LT_SHORT: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(
+              SHORT_WIDTH,
+              shortDatumCreate(s16ToU16(e->data.literal.data.shortVal)));
+        }
+        case LT_UINT: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(INT_WIDTH,
+                          intDatumCreate(e->data.literal.data.uintVal));
+        }
+        case LT_INT: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(
+              INT_WIDTH, intDatumCreate(s32ToU32(e->data.literal.data.intVal)));
+        }
+        case LT_ULONG: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(LONG_WIDTH,
+                          longDatumCreate(e->data.literal.data.ulongVal));
+        }
+        case LT_LONG: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(
+              LONG_WIDTH,
+              longDatumCreate(s64ToU64(e->data.literal.data.longVal)));
+        }
+        case LT_FLOAT: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(INT_WIDTH,
+                          intDatumCreate(e->data.literal.data.floatBits));
+        }
+        case LT_DOUBLE: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(LONG_WIDTH,
+                          longDatumCreate(e->data.literal.data.doubleBits));
+        }
+        case LT_STRING: {
+          size_t dataLabel = fresh(file);
+          IRFrag *df = dataFragCreate(
+              FT_RODATA, format(localLabelFormat(), dataLabel), CHAR_WIDTH);
+          vectorInsert(
+              &df->data.data.data,
+              stringDatumCreate(tstrdup(e->data.literal.data.stringVal)));
+          vectorInsert(&file->irFrags, df);
+
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(POINTER_WIDTH, labelDatumCreate(dataLabel));
+        }
+        case LT_CHAR: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(BYTE_WIDTH,
+                          byteDatumCreate(e->data.literal.data.charVal));
+        }
+        case LT_WSTRING: {
+          size_t dataLabel = fresh(file);
+          IRFrag *df = dataFragCreate(
+              FT_RODATA, format(localLabelFormat(), dataLabel), WCHAR_WIDTH);
+          vectorInsert(
+              &df->data.data.data,
+              wstringDatumCreate(twstrdup(e->data.literal.data.wstringVal)));
+          vectorInsert(&file->irFrags, df);
+
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(POINTER_WIDTH, labelDatumCreate(dataLabel));
+        }
+        case LT_WCHAR: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(INT_WIDTH,
+                          intDatumCreate(e->data.literal.data.wcharVal));
+        }
+        case LT_BOOL: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(
+              BYTE_WIDTH,
+              byteDatumCreate(e->data.literal.data.boolVal ? 1 : 0));
+        }
+        case LT_NULL: {
+          IRBlock *b = BLOCK(label, blocks);
+          IR(b, JUMP(nextLabel));
+          return CONSTANT(POINTER_WIDTH, longDatumCreate(0));
+        }
+        case LT_AGGREGATEINIT: {
+          size_t dataLabel = fresh(file);
+          IRFrag *df = dataFragCreate(
+              FT_RODATA, format(localLabelFormat(), dataLabel), WCHAR_WIDTH);
+          translateValueLiteral(e, df, file);
+          vectorInsert(&file->irFrags, df);
+
+          IRBlock *b = BLOCK(label, blocks);
+          IROperand *out = TEMPOF(fresh(file), expressionTypeof(e));
+          IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(out),
+                         LOCAL(dataLabel), OFFSET(0)));
+          IR(b, JUMP(nextLabel));
+          return out;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid LiteralType enum");
+        }
+      }
     }
     case NT_SCOPEDID: {
       IRBlock *b = BLOCK(label, blocks);
       IROperand *dest = TEMPOF(fresh(file), expressionTypeof(e));
-      IR(b,
-         MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
-                  GLOBAL(getMangledName(e->data.scopedId.entry)), OFFSET(0)));
+      if (e->data.scopedId.entry->kind == SK_VARIABLE) {
+        IR(b,
+           MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
+                    GLOBAL(getMangledName(e->data.scopedId.entry)), OFFSET(0)));
+      } else if (e->data.scopedId.entry->kind == SK_ENUMCONST) {
+        switch (e->data.scopedId.entry->data.enumConst.parent->data.enumType
+                    .backingType->data.keyword.keyword) {
+          case TK_UBYTE: {
+            IR(b, MOVE(BYTE_WIDTH, irOperandCopy(dest),
+                       CONSTANT(BYTE_WIDTH,
+                                byteDatumCreate(
+                                    (uint8_t)e->data.scopedId.entry->data
+                                        .enumConst.data.unsignedValue))));
+            break;
+          }
+          case TK_BYTE: {
+            IR(b, MOVE(BYTE_WIDTH, irOperandCopy(dest),
+                       CONSTANT(BYTE_WIDTH,
+                                byteDatumCreate(
+                                    s8ToU8((int8_t)e->data.scopedId.entry->data
+                                               .enumConst.data.signedValue)))));
+            break;
+          }
+          case TK_USHORT: {
+            IR(b, MOVE(SHORT_WIDTH, irOperandCopy(dest),
+                       CONSTANT(SHORT_WIDTH,
+                                shortDatumCreate(
+                                    (uint16_t)e->data.scopedId.entry->data
+                                        .enumConst.data.unsignedValue))));
+            break;
+          }
+          case TK_SHORT: {
+            IR(b, MOVE(SHORT_WIDTH, irOperandCopy(dest),
+                       CONSTANT(SHORT_WIDTH,
+                                shortDatumCreate(s16ToU16(
+                                    (int16_t)e->data.scopedId.entry->data
+                                        .enumConst.data.signedValue)))));
+            break;
+          }
+          case TK_UINT: {
+            IR(b, MOVE(INT_WIDTH, irOperandCopy(dest),
+                       CONSTANT(
+                           INT_WIDTH,
+                           intDatumCreate((uint32_t)e->data.scopedId.entry->data
+                                              .enumConst.data.unsignedValue))));
+            break;
+          }
+          case TK_INT: {
+            IR(b, MOVE(INT_WIDTH, irOperandCopy(dest),
+                       CONSTANT(INT_WIDTH,
+                                intDatumCreate(s32ToU32(
+                                    (int32_t)e->data.scopedId.entry->data
+                                        .enumConst.data.signedValue)))));
+            break;
+          }
+          case TK_ULONG: {
+            IR(b, MOVE(LONG_WIDTH, irOperandCopy(dest),
+                       CONSTANT(LONG_WIDTH,
+                                longDatumCreate(
+                                    e->data.scopedId.entry->data.enumConst.data
+                                        .unsignedValue))));
+            break;
+          }
+          case TK_LONG: {
+            IR(b, MOVE(LONG_WIDTH, irOperandCopy(dest),
+                       CONSTANT(LONG_WIDTH,
+                                longDatumCreate(s64ToU64(
+                                    (int64_t)e->data.scopedId.entry->data
+                                        .enumConst.data.signedValue)))));
+            break;
+          }
+          default: {
+            error(__FILE__, __LINE__, "invalid backing type for an enum");
+          }
+        }
+      } else {
+        IR(b, MOVE(POINTER_WIDTH, irOperandCopy(dest),
+                   GLOBAL(getMangledName(e->data.scopedId.entry))));
+      }
       IR(b, JUMP(nextLabel));
       return dest;
     }
     case NT_ID: {
       IRBlock *b = BLOCK(label, blocks);
       IROperand *dest = TEMPOF(fresh(file), expressionTypeof(e));
-      if (e->data.id.entry->data.variable.temp == 0)
-        IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
-                       GLOBAL(getMangledName(e->data.id.entry)), OFFSET(0)));
-      else
-        IR(b, MOVE(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
-                   TEMPVAR(e)));
+      if (e->data.id.entry->kind == SK_VARIABLE) {
+        if (e->data.id.entry->data.variable.temp == 0)
+          IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
+                         GLOBAL(getMangledName(e->data.id.entry)), OFFSET(0)));
+        else
+          IR(b, MOVE(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
+                     TEMPVAR(e->data.id.entry)));
+      } else {
+        IR(b, MOVE(POINTER_WIDTH, irOperandCopy(dest),
+                   GLOBAL(getMangledName(e->data.id.entry))));
+      }
       IR(b, JUMP(nextLabel));
       return dest;
     }
@@ -2208,7 +2722,8 @@ static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
           IROperand *rawLhs = translateLValueLoad(
               b, lvalue, TEMPOF(fresh(file), expressionTypeof(lhs)), file);
           IROperand *rawResult = BINOP_TRANSLATORS[e->data.binOpExp.op](
-              b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs));
+              b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs),
+              file);
           Type *merged =
               arithmeticTypeMerge(expressionTypeof(lhs), expressionTypeof(rhs));
           IROperand *castResult =
@@ -2291,8 +2806,9 @@ static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
           IROperand *value = translateLValueLoad(
               b, lvalue, TEMPOF(fresh(file), expressionTypeof(target)), file);
           IROperand *modified = UNOP_TRANSLATORS[e->data.unOpExp.op](
-              b, value, expressionTypeof(target));
+              b, value, expressionTypeof(target), file);
           translateLValueStore(b, lvalue, modified, file);
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           break;
         }
@@ -2321,14 +2837,8 @@ static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
       break;
     }
     case NT_FUNCALLEXP: {
-      size_t callLabel = fresh(file);
-      IRBlock *b = BLOCK(callLabel, blocks);
-      irOperandFree(generateFunctionCall(
-          b,
-          translateExpressionValue(blocks, e->data.funCallExp.function, label,
-                                   callLabel, file),
-          expressionTypeof(e->data.funCallExp.function), file));
-      IR(b, JUMP(nextLabel));
+      irOperandFree(
+          translateExpressionValue(blocks, e, label, nextLabel, file));
       break;
     }
     case NT_LITERAL: {

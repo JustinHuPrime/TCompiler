@@ -25,6 +25,7 @@
 #ifndef TLC_IR_SHORTHAND_H_
 #define TLC_IR_SHORTHAND_H_
 
+#include "ast/symbolTable.h"
 #include "ir/ir.h"
 
 /**
