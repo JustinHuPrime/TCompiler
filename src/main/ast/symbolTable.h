@@ -92,13 +92,14 @@ typedef struct SymbolTableEntry {
 
     // non-types
     struct {
-      Type *type;  /**< type of the variable */
-      size_t temp; /**< IR temp in which it's stored (zero if global) */
+      Type *type;   /**< type of the variable */
+      size_t temp;  /**< IR temp in which it's stored (zero if global) */
+      bool escapes; /**< do we ever want the address of this variable */
     } variable;
     struct {
       Type *returnType;
-      Vector argumentTypes; /**< vector of Type */
-      Vector argumentEntries;    /**< vector of SymbolTableEntry (non-owning) */
+      Vector argumentTypes;   /**< vector of Type */
+      Vector argumentEntries; /**< vector of SymbolTableEntry (non-owning) */
     } function;
   } data;
   FileListEntry *file;

@@ -406,14 +406,12 @@ typedef struct Node {
       SymbolTableEntry *entry; /**< non-owning reference to the stab entry, if
                                   any, this references. Nullable */
       Type *type;
-      bool escapes;
     } scopedId;
     struct {
       char *id;
       SymbolTableEntry *entry; /**< non-owning reference to the stab entry, if
                                   any, this references. Nullable */
       Type *type;
-      bool escapes;
     } id;
 
     struct {

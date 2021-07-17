@@ -255,11 +255,11 @@ static void markEscapes(Node *exp) {
       break;
     }
     case NT_ID: {
-      exp->data.id.escapes = true;
+      exp->data.id.entry->data.variable.escapes = true;
       break;
     }
     case NT_SCOPEDID: {
-      exp->data.scopedId.escapes = true;
+      exp->data.scopedId.entry->data.variable.escapes = true;
       break;
     }
     default: {
