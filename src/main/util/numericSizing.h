@@ -62,6 +62,7 @@ extern int64_t const FLOAT_EXPONENT_MIN_SUBNORMAL;
 extern uint32_t const FLOAT_SIGN_MASK;
 extern uint32_t const FLOAT_EXPONENT_MASK;
 extern uint32_t const FLOAT_MANTISSA_MASK;
+extern uint32_t const FLOAT_ONE;
 
 extern size_t const DOUBLE_MANTISSA_BITS;
 extern int64_t const DOUBLE_EXPONENT_MAX;
@@ -70,6 +71,7 @@ extern int64_t const DOUBLE_EXPONENT_MIN_SUBNORMAL;
 extern uint64_t const DOUBLE_SIGN_MASK;
 extern uint64_t const DOUBLE_EXPONENT_MASK;
 extern uint64_t const DOUBLE_MANTISSA_MASK;
+extern uint64_t const DOUBLE_ONE;
 
 /**
  * moves n to the largest multiple equal to or larger than itself

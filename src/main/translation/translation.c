@@ -779,79 +779,152 @@ static IROperand *translateCast(IRBlock *b, IROperand *src,
  *
  * @param b block to add to
  * @param target target value
- * @param targetType type of target value
+ * @param targetType type of target value (integral)
  * @param pointedSize size to multiply by
- * @returns owning temp containing result
+ * @param file file the expression is in
+ * @returns owning temp containing result (pointer-like)
  */
 static IROperand *translatePointerArithmeticScale(IRBlock *b, IROperand *target,
                                                   Type const *targetType,
                                                   size_t pointedSize,
                                                   FileListEntry *file) {
-  return NULL;  // TODO
+  IROperand *out = TEMPPTR(fresh(file));
+  IROperand *castTarget = TEMPPTR(fresh(file));
+  if (typeSizeof(targetType) == POINTER_WIDTH)
+    IR(b, MOVE(POINTER_WIDTH, irOperandCopy(castTarget), target));
+  else if (typeUnsignedIntegral(targetType))
+    IR(b, UNOP(typeSizeof(targetType), IO_ZX_LONG, irOperandCopy(castTarget),
+               target));
+  else
+    IR(b, UNOP(typeSizeof(targetType), IO_SX_LONG, irOperandCopy(castTarget),
+               target));
+  if (typeUnsignedIntegral(targetType))
+    IR(b, BINOP(POINTER_WIDTH, IO_UMUL, irOperandCopy(out), castTarget,
+                CONSTANT(POINTER_WIDTH, longDatumCreate(pointedSize))));
+  else
+    IR(b, BINOP(POINTER_WIDTH, IO_SMUL, irOperandCopy(out), castTarget,
+                CONSTANT(POINTER_WIDTH, longDatumCreate(pointedSize))));
+  return out;
 }
-
+/**
+ * translate an increment or a decrement
+ * @param b block to add to
+ * @param target target temp
+ * @param targetType type of target (numeric or pointer)
+ * @param isIncrement
+ * @param file file the expression is in
+ * @returns owning temp containing result
+ */
+static IROperand *translateIncOrDec(IRBlock *b, IROperand *target,
+                                    Type const *targetType, bool isIncrement,
+                                    FileListEntry *file) {
+  IROperand *out = TEMPOF(fresh(file), targetType);
+  if (typePointer(targetType)) {
+    IR(b,
+       BINOP(POINTER_WIDTH, isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out),
+             target,
+             CONSTANT(POINTER_WIDTH, longDatumCreate(typeSizeof(targetType)))));
+  } else if (typeFloating(targetType)) {
+    if (typeSizeof(targetType) == FLOAT_WIDTH) {
+      IR(b,
+         BINOP(FLOAT_WIDTH, isIncrement ? IO_FADD : IO_FSUB, irOperandCopy(out),
+               target, CONSTANT(FLOAT_WIDTH, intDatumCreate(FLOAT_ONE))));
+    } else {
+      IR(b, BINOP(DOUBLE_WIDTH, isIncrement ? IO_FADD : IO_FSUB,
+                  irOperandCopy(out), target,
+                  CONSTANT(DOUBLE_WIDTH, longDatumCreate(DOUBLE_ONE))));
+    }
+  } else {
+    if (typeSizeof(targetType) == BYTE_WIDTH) {
+      IR(b, BINOP(BYTE_WIDTH, isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out),
+                  target, CONSTANT(BYTE_WIDTH, byteDatumCreate(1))));
+    } else if (typeSizeof(targetType) == SHORT_WIDTH) {
+      IR(b,
+         BINOP(SHORT_WIDTH, isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out),
+               target, CONSTANT(SHORT_WIDTH, shortDatumCreate(1))));
+    } else if (typeSizeof(targetType) == INT_WIDTH) {
+      IR(b, BINOP(INT_WIDTH, isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out),
+                  target, CONSTANT(INT_WIDTH, intDatumCreate(1))));
+    } else {
+      IR(b, BINOP(LONG_WIDTH, isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out),
+                  target, CONSTANT(LONG_WIDTH, longDatumCreate(1))));
+    }
+  }
+  return out;
+}
 /**
  * translate an increment
  *
  * @param b block to add to
  * @param target target temp
- * @param targetType type of target
+ * @param targetType type of target (numeric or pointer)
+ * @param file file the expression is in
  * @returns owning temp containing result
  */
 static IROperand *translateIncrement(IRBlock *b, IROperand *target,
                                      Type const *targetType,
                                      FileListEntry *file) {
-  return NULL;  // TODO
+  return translateIncOrDec(b, target, targetType, true, file);
 }
 /**
  * translate a decrement
  *
  * @param b block to add to
  * @param target target temp
- * @param targetType type of target
+ * @param targetType type of target (numeric or pointer)
+ * @param file file the expression is in
  * @returns owning temp containing result
  */
 static IROperand *translateDecrement(IRBlock *b, IROperand *target,
                                      Type const *targetType,
                                      FileListEntry *file) {
-  return NULL;  // TODO
+  return translateIncOrDec(b, target, targetType, false, file);
 }
 /**
  * translate a negation
  *
  * @param b block to add to
  * @param target target temp
- * @param targetType type of target
+ * @param targetType type of target (numeric)
  * @returns owning temp containing result
  */
 static IROperand *translateNegation(IRBlock *b, IROperand *target,
                                     Type const *targetType,
                                     FileListEntry *file) {
-  return NULL;  // TODO
+  IROperand *out = TEMPOF(fresh(file), targetType);
+  if (typeFloating(targetType))
+    IR(b, UNOP(typeSizeof(targetType), IO_FNEG, irOperandCopy(out), target));
+  else
+    IR(b, UNOP(typeSizeof(targetType), IO_NEG, irOperandCopy(out), target));
+  return out;
 }
 /**
  * translate a logical not
  *
  * @param b block to add to
  * @param target target temp
- * @param targetType type of target
+ * @param targetType type of target (boolean)
  * @returns owning temp containing result
  */
 static IROperand *translateLnot(IRBlock *b, IROperand *target,
                                 Type const *targetType, FileListEntry *file) {
-  return NULL;  // TODO
+  IROperand *out = TEMPBOOL(fresh(file));
+  IR(b, UNOP(BOOL_WIDTH, IO_LNOT, irOperandCopy(out), target));
+  return out;
 }
 /**
  * translate a bitwise not
  *
  * @param b block to add to
  * @param target target temp
- * @param targetType type of target
+ * @param targetType type of target (integral)
  * @returns owning temp containing result
  */
 static IROperand *translateBitNot(IRBlock *b, IROperand *target,
                                   Type const *targetType, FileListEntry *file) {
-  return NULL;  // TODO
+  IROperand *out = TEMPOF(fresh(file), targetType);
+  IR(b, UNOP(typeSizeof(targetType), IO_NOT, irOperandCopy(out), target));
+  return out;
 }
 /**
  * table of translation functions for UnOpType

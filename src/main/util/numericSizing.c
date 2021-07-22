@@ -52,6 +52,7 @@ int64_t const FLOAT_EXPONENT_MIN_SUBNORMAL = -150;
 uint32_t const FLOAT_SIGN_MASK = 0x80000000;
 uint32_t const FLOAT_EXPONENT_MASK = 0x7f800000;
 uint32_t const FLOAT_MANTISSA_MASK = 0x007fffff;
+uint32_t const FLOAT_ONE = 0x3f800000;
 
 size_t const DOUBLE_MANTISSA_BITS = 52;
 int64_t const DOUBLE_EXPONENT_MAX = 1023;
@@ -60,6 +61,7 @@ int64_t const DOUBLE_EXPONENT_MIN_SUBNORMAL = -1075;
 uint64_t const DOUBLE_SIGN_MASK = 0x8000000000000000;
 uint64_t const DOUBLE_EXPONENT_MASK = 0x7ff0000000000000;
 uint64_t const DOUBLE_MANTISSA_MASK = 0x000fffffffffffff;
+uint64_t const DOUBLE_ONE = 0x3ff0000000000000;
 
 /**
  * moves n to the largest multiple equal to or larger than itself
