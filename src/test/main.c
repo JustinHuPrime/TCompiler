@@ -32,7 +32,13 @@ static bool containsString(size_t argc, char **argv, char const *string) {
 }
 
 int main(int argc, char *argv[]) {
-  testStatusInit(containsString((size_t)argc, argv, "--bless"));
+  bool blessing = containsString((size_t)argc, argv, "--bless");
+  testStatusInit(blessing);
+
+  if (blessing && argc <= 1) {
+    printf("Warning: no tests specified to bless\n");
+    return -1;
+  }
 
   if (argc <= 1 || containsString((size_t)argc, argv, "bigInteger"))
     testBigInteger();
