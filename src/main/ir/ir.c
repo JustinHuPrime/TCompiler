@@ -22,6 +22,7 @@
 #include <stdlib.h>
 
 #include "util/internalError.h"
+#include "util/numericSizing.h"
 #include "util/string.h"
 
 static IRFrag *fragCreate(FragmentType type, char *name) {
@@ -153,6 +154,37 @@ IRDatum *irDatumCopy(IRDatum const *d) {
     }
   }
 }
+static size_t irDatumSizeof(IRDatum const *d) {
+  switch (d->type) {
+    case DT_BYTE: {
+      return BYTE_WIDTH;
+    }
+    case DT_SHORT: {
+      return SHORT_WIDTH;
+    }
+    case DT_INT: {
+      return INT_WIDTH;
+    }
+    case DT_LONG: {
+      return LONG_WIDTH;
+    }
+    case DT_PADDING: {
+      return d->data.paddingLength;
+    }
+    case DT_STRING: {
+      return (tstrlen(d->data.string) + 1) * WCHAR_WIDTH;
+    }
+    case DT_WSTRING: {
+      return (twstrlen(d->data.wstring) + 1) * WCHAR_WIDTH;
+    }
+    case DT_LABEL: {
+      return POINTER_WIDTH;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid DatumType");
+    }
+  }
+}
 
 static IROperand *irOperandCreate(OperandKind kind) {
   IROperand *o = malloc(sizeof(IROperand));
@@ -219,6 +251,34 @@ IROperand *irOperandCopy(IROperand const *o) {
     }
     case OK_ASM: {
       return assemblyOperandCreate(strdup(o->data.assembly.assembly));
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid IROperandKind");
+    }
+  }
+}
+size_t irOperandSizeof(IROperand const *o) {
+  switch (o->kind) {
+    case OK_TEMP: {
+      return o->data.temp.size;
+    }
+    case OK_REG: {
+      return o->data.reg.size;
+    }
+    case OK_CONSTANT: {
+      size_t retval = 0;
+      for (size_t idx = 0; idx < o->data.constant.data.size; ++idx)
+        retval += irDatumSizeof(o->data.constant.data.elements[idx]);
+      return retval;
+    }
+    case OK_LABEL: {
+      return POINTER_WIDTH;
+    }
+    case OK_OFFSET: {
+      return LONG_WIDTH;
+    }
+    case OK_ASM: {
+      return 0;
     }
     default: {
       error(__FILE__, __LINE__, "invalid IROperandKind");

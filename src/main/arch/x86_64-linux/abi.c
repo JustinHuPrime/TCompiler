@@ -115,12 +115,11 @@ static TypeClass *layout(Type const *t) {
             free(fieldLayout);
 
             offset += fieldSize;
-            if (idx < entry->data.structType.fieldTypes.size - 1) {
+            if (idx < entry->data.structType.fieldTypes.size - 1)
               offset = incrementToMultiple(
                   offset,
                   typeAlignof(
                       entry->data.structType.fieldTypes.elements[idx + 1]));
-            }
           }
           return retval;
         }
@@ -245,10 +244,9 @@ void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
   TypeClass returnTypeClass[2];
   classify(returnType, returnTypeClass);
 
-  if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY) {
+  if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY)
     IR(b, MOVE(TEMPPTR(returnValueAddressTemp),
                REG(GP_ARG_REGS[gpArgIdx++], POINTER_WIDTH)));
-  }
 
   // for each argument, left to right
   Vector const *argumentTypes = &entry->data.function.argumentTypes;
@@ -271,44 +269,42 @@ void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
       // registers
       IR(b,
          STK_LOAD(TEMPOF(fresh(file), argType), OFFSET((int64_t)stackOffset)));
-      stackOffset = incrementToMultiple(stackOffset + typeSizeof(argType),
-                                        X86_64_LINUX_STACK_ALIGNMENT);
+      stackOffset +=
+          incrementToMultiple(typeSizeof(argType), X86_64_LINUX_REGISTER_WIDTH);
     } else {
       // passed in registers
       size_t temp = (argumentEntry->data.variable.temp = fresh(file));
       if (argTypeClass[0] == X86_64_LINUX_TC_GP &&
-          argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
+          argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
         IR(b, MOVE(TEMPOF(temp, argType),
                    REG(GP_ARG_REGS[gpArgIdx++], typeSizeof(argType))));
-      } else if (argTypeClass[0] == X86_64_LINUX_TC_GP) {
+      else if (argTypeClass[0] == X86_64_LINUX_TC_GP)
         IR(b, OFFSET_LOAD(
                   TEMPOF(temp, argType),
                   REG(GP_ARG_REGS[gpArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
                   OFFSET(0)));
-      } else if (argTypeClass[0] == X86_64_LINUX_TC_SSE &&
-                 argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
+      else if (argTypeClass[0] == X86_64_LINUX_TC_SSE &&
+               argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
         IR(b, MOVE(TEMPOF(temp, argType),
                    REG(SSE_ARG_REGS[sseArgIdx++], typeSizeof(argType))));
-      } else if (argTypeClass[0] == X86_64_LINUX_TC_SSE) {
+      else if (argTypeClass[0] == X86_64_LINUX_TC_SSE)
         IR(b, OFFSET_LOAD(
                   TEMPOF(temp, argType),
                   REG(SSE_ARG_REGS[sseArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
                   OFFSET(0)));
-      }
 
-      if (argTypeClass[1] == X86_64_LINUX_TC_GP) {
+      if (argTypeClass[1] == X86_64_LINUX_TC_GP)
         IR(b,
            OFFSET_LOAD(TEMPOF(temp, argType),
                        REG(GP_ARG_REGS[gpArgIdx++],
                            typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
                        OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
-      } else if (argTypeClass[1] == X86_64_LINUX_TC_SSE) {
+      else if (argTypeClass[1] == X86_64_LINUX_TC_SSE)
         IR(b,
            OFFSET_LOAD(TEMPOF(temp, argType),
                        REG(SSE_ARG_REGS[sseArgIdx++],
                            typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
                        OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
-      }
     }
   }
 
@@ -338,36 +334,34 @@ void x86_64LinuxGenerateFunctionExit(Vector *blocks,
       size_t gpReturnIdx = 0;
       size_t sseReturnIdx = 0;
       if (returnTypeClass[0] == X86_64_LINUX_TC_GP &&
-          returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
+          returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
         IR(b, MOVE(REG(GP_RETURN_REGS[gpReturnIdx++], typeSizeof(returnType)),
                    TEMPOF(returnValueTemp, returnType)));
-      } else if (returnTypeClass[0] == X86_64_LINUX_TC_GP) {
+      else if (returnTypeClass[0] == X86_64_LINUX_TC_GP)
         IR(b, OFFSET_LOAD(REG(GP_RETURN_REGS[gpReturnIdx++],
                               X86_64_LINUX_REGISTER_WIDTH),
                           TEMPOF(returnValueTemp, returnType), OFFSET(0)));
-      } else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE &&
-                 returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
+      else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE &&
+               returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
         IR(b, MOVE(REG(SSE_RETURN_REGS[sseReturnIdx++], typeSizeof(returnType)),
                    TEMPOF(returnValueTemp, returnType)));
-      } else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE) {
+      else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE)
         IR(b, OFFSET_LOAD(REG(SSE_RETURN_REGS[sseReturnIdx++],
                               X86_64_LINUX_REGISTER_WIDTH),
                           TEMPOF(returnValueTemp, returnType), OFFSET(0)));
-      }
 
-      if (returnTypeClass[1] == X86_64_LINUX_TC_GP) {
+      if (returnTypeClass[1] == X86_64_LINUX_TC_GP)
         IR(b, OFFSET_LOAD(
                   REG(GP_RETURN_REGS[gpReturnIdx++],
                       typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH),
                   TEMPOF(returnValueTemp, returnType),
                   OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
-      } else if (returnTypeClass[1] == X86_64_LINUX_TC_SSE) {
+      else if (returnTypeClass[1] == X86_64_LINUX_TC_SSE)
         IR(b, OFFSET_LOAD(
                   REG(SSE_RETURN_REGS[sseReturnIdx++],
                       typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH),
                   TEMPOF(returnValueTemp, returnType),
                   OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
-      }
     }
   }
   IR(b, RETURN());
@@ -376,5 +370,147 @@ IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun,
                                            IROperand **args,
                                            Type const *funType,
                                            FileListEntry *file) {
-  return NULL;  // TODO
+  size_t gpArgIdx = 0;
+  size_t sseArgIdx = 0;
+  size_t stackOffset = 0;
+
+  IRDatum *stackAllocationSize = longDatumCreate(0);
+  IRInstruction *stackAllocationInstruction =
+      BINOP(IO_SUB, REG(X86_64_RSP, X86_64_LINUX_REGISTER_WIDTH),
+            REG(X86_64_RSP, X86_64_LINUX_REGISTER_WIDTH),
+            CONSTANT(LONG_WIDTH, stackAllocationSize));
+  IR(b, stackAllocationInstruction);
+
+  Type const *returnType = funType->data.funPtr.returnType;
+  TypeClass returnTypeClass[2];
+  classify(returnType, returnTypeClass);
+
+  // reserve register for passing return value address
+  if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY) gpArgIdx++;
+
+  // for each argument, left to right
+  Vector const *argumentTypes = &funType->data.funPtr.argTypes;
+  for (size_t idx = 0; idx < argumentTypes->size; ++idx) {
+    Type const *argType = argumentTypes->elements[idx];
+    IROperand *arg = args[idx];
+
+    TypeClass argTypeClass[2];
+    classify(argType, argTypeClass);
+    size_t numGP = (argTypeClass[0] == X86_64_LINUX_TC_GP ? 1U : 0U) +
+                   (argTypeClass[1] == X86_64_LINUX_TC_GP ? 1U : 0U);
+    size_t numSSE = (argTypeClass[0] == X86_64_LINUX_TC_SSE ? 1U : 0U) +
+                    (argTypeClass[1] == X86_64_LINUX_TC_SSE ? 1U : 0U);
+
+    if (argTypeClass[0] == X86_64_LINUX_TC_MEMORY ||
+        gpArgIdx + numGP > GP_ARG_REG_MAX ||
+        sseArgIdx + numSSE > SSE_ARG_REG_MAX) {
+      // passed in memory
+      IR(b, STK_STORE(OFFSET((int64_t)stackOffset), arg));
+      stackOffset +=
+          incrementToMultiple(typeSizeof(argType), X86_64_LINUX_REGISTER_WIDTH);
+    } else {
+      // passed in registers
+      if (argTypeClass[0] == X86_64_LINUX_TC_GP &&
+          argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
+        IR(b, MOVE(REG(GP_ARG_REGS[gpArgIdx++], typeSizeof(argType)), arg));
+      else if (argTypeClass[0] == X86_64_LINUX_TC_GP)
+        IR(b, OFFSET_STORE(
+                  REG(GP_ARG_REGS[gpArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
+                  irOperandCopy(arg), OFFSET(0)));
+      else if (argTypeClass[0] == X86_64_LINUX_TC_SSE &&
+               argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
+        IR(b, MOVE(REG(SSE_ARG_REGS[sseArgIdx++], typeSizeof(argType)), arg));
+      else if (argTypeClass[0] == X86_64_LINUX_TC_SSE)
+        IR(b, OFFSET_STORE(
+                  REG(SSE_ARG_REGS[sseArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
+                  irOperandCopy(arg), OFFSET(0)));
+
+      if (argTypeClass[1] == X86_64_LINUX_TC_GP)
+        IR(b,
+           OFFSET_STORE(REG(GP_ARG_REGS[gpArgIdx++],
+                            typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
+                        arg, OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+      else if (argTypeClass[1] == X86_64_LINUX_TC_SSE)
+        IR(b,
+           OFFSET_STORE(REG(SSE_ARG_REGS[sseArgIdx++],
+                            typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
+                        arg, OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+    }
+  }
+  free(args);
+
+  // deal with return value
+  size_t returnStackOffset = 0;
+  if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY) {
+    IR(b, BINOP(IO_ADD, REG(GP_ARG_REGS[0], POINTER_WIDTH),
+                REG(X86_64_RSP, POINTER_WIDTH),
+                CONSTANT(POINTER_WIDTH, longDatumCreate(stackOffset))));
+    returnStackOffset = stackOffset;
+    stackOffset += typeSizeof(returnType);
+  }
+
+  // setup stack allocation
+  stackOffset = incrementToMultiple(stackOffset, X86_64_LINUX_STACK_ALIGNMENT);
+  if (stackOffset == 0)
+    stackAllocationInstruction->op = IO_NOP;
+  else
+    stackAllocationSize->data.longVal = stackOffset;
+
+  // actual function call
+  IR(b, CALL(fun));
+
+  // get return value
+  IROperand *retval = TEMPOF(fresh(file), returnType);
+  if (returnType->kind == TK_KEYWORD &&
+      returnType->data.keyword.keyword == TK_VOID) {
+    irOperandFree(retval);
+    retval = NULL;
+  } else if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY) {
+    // returned in memory
+    IR(b, MEM_LOAD(irOperandCopy(retval), REG(X86_64_RSP, POINTER_WIDTH),
+                   OFFSET((int64_t)returnStackOffset)));
+  } else {
+    // returned in registers
+    size_t gpReturnIdx = 0;
+    size_t sseReturnIdx = 0;
+    if (returnTypeClass[0] == X86_64_LINUX_TC_GP &&
+        returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
+      IR(b, MOVE(irOperandCopy(retval),
+                 REG(GP_RETURN_REGS[gpReturnIdx++], typeSizeof(returnType))));
+    else if (returnTypeClass[0] == X86_64_LINUX_TC_GP)
+      IR(b, OFFSET_STORE(
+                irOperandCopy(retval),
+                REG(GP_RETURN_REGS[gpReturnIdx++], X86_64_LINUX_REGISTER_WIDTH),
+                OFFSET(0)));
+    else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE &&
+             returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
+      IR(b, MOVE(irOperandCopy(retval),
+                 REG(SSE_RETURN_REGS[sseReturnIdx++], typeSizeof(returnType))));
+    else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE)
+      IR(b, OFFSET_STORE(irOperandCopy(retval),
+                         REG(SSE_RETURN_REGS[sseReturnIdx++],
+                             X86_64_LINUX_REGISTER_WIDTH),
+                         OFFSET(0)));
+
+    if (returnTypeClass[1] == X86_64_LINUX_TC_GP)
+      IR(b,
+         OFFSET_STORE(irOperandCopy(retval),
+                      REG(GP_RETURN_REGS[gpReturnIdx++],
+                          typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH),
+                      OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+    else if (returnTypeClass[1] == X86_64_LINUX_TC_SSE)
+      IR(b,
+         OFFSET_STORE(irOperandCopy(retval),
+                      REG(SSE_RETURN_REGS[sseReturnIdx++],
+                          typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH),
+                      OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+  }
+
+  // deallocate stack allocation
+  if (stackOffset != 0)
+    IR(b, BINOP(IO_ADD, REG(X86_64_RSP, X86_64_LINUX_REGISTER_WIDTH),
+                REG(X86_64_RSP, X86_64_LINUX_REGISTER_WIDTH),
+                CONSTANT(LONG_WIDTH, longDatumCreate(stackOffset))));
+
+  return retval;
 }

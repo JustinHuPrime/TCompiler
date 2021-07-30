@@ -150,6 +150,8 @@ IROperand *offsetOperandCreate(int64_t offset);
 IROperand *assemblyOperandCreate(char *assembly);
 /** copy */
 IROperand *irOperandCopy(IROperand const *o);
+/** sizeof */
+size_t irOperandSizeof(IROperand const *o);
 /** dtor */
 void irOperandFree(IROperand *);
 
@@ -160,6 +162,7 @@ typedef enum IROperator {
   IO_LABEL,
   IO_VOLATILE,  // mark temp as being volatilely used
   IO_ADDROF,    // get address of a mem temp
+  IO_NOP,
 
   // data transfer
   IO_MOVE,

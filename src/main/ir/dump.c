@@ -159,6 +159,10 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       twoOperandInstructionDump(where, "ADDROF", i);
       break;
     }
+    case IO_NOP: {
+      zeroOperandInstructionDump(where, "NOP", i);
+      break;
+    }
     case IO_MOVE: {
       twoOperandInstructionDump(where, "MOVE", i);
       break;
