@@ -886,6 +886,7 @@ static IROperand *translateDecrement(IRBlock *b, IROperand *target,
  * @param b block to add to
  * @param target target temp
  * @param targetType type of target (numeric)
+ * @param file file the expression is in
  * @returns owning temp containing result
  */
 static IROperand *translateNegation(IRBlock *b, IROperand *target,
@@ -904,6 +905,7 @@ static IROperand *translateNegation(IRBlock *b, IROperand *target,
  * @param b block to add to
  * @param target target temp
  * @param targetType type of target (boolean)
+ * @param file file the expression is in
  * @returns owning temp containing result
  */
 static IROperand *translateLnot(IRBlock *b, IROperand *target,
@@ -918,6 +920,7 @@ static IROperand *translateLnot(IRBlock *b, IROperand *target,
  * @param b block to add to
  * @param target target temp
  * @param targetType type of target (integral)
+ * @param file file the expression is in
  * @returns owning temp containing result
  */
 static IROperand *translateBitNot(IRBlock *b, IROperand *target,
@@ -949,6 +952,42 @@ IROperand *(*const UNOP_TRANSLATORS[])(IRBlock *, IROperand *, Type const *,
 };
 
 /**
+ * translate a multiplication-style operation
+ *
+ * @param b block to add to
+ * @param lhs lhs temp
+ * @param lhsType type of lhs
+ * @param rhs rhs temp
+ * @param rhsType type of rhs
+ * @param floatOp floating point operation
+ * @param unsignedOp unsigned operation
+ * @param signedOp signed operation
+ * @param file file the expression is in
+ * @returns owning temp containing result
+ */
+static IROperand *translateMulStyleOp(IRBlock *b, IROperand *lhs,
+                                      Type const *lhsType, IROperand *rhs,
+                                      Type const *rhsType, IROperator floatOp,
+                                      IROperator unsignedOp,
+                                      IROperator signedOp,
+                                      FileListEntry *file) {
+  Type *merged = arithmeticTypeMerge(lhsType, rhsType);
+  IROperand *castLhs = translateCast(b, lhs, lhsType, merged, file);
+  IROperand *castRhs = translateCast(b, rhs, rhsType, merged, file);
+  IROperand *out = TEMPOF(fresh(file), merged);
+  if (typeFloating(merged))
+    IR(b, BINOP(typeSizeof(merged), floatOp, irOperandCopy(out), castLhs,
+                castRhs));
+  else if (typeUnsignedIntegral(merged))
+    IR(b, BINOP(typeSizeof(merged), unsignedOp, irOperandCopy(out), castLhs,
+                castRhs));
+  else
+    IR(b, BINOP(typeSizeof(merged), signedOp, irOperandCopy(out), castLhs,
+                castRhs));
+  typeFree(merged);
+  return out;
+}
+/**
  * translate a multiplication
  *
  * @param b block to add to
@@ -956,13 +995,15 @@ IROperand *(*const UNOP_TRANSLATORS[])(IRBlock *, IROperand *, Type const *,
  * @param lhsType type of lhs
  * @param rhs rhs temp
  * @param rhsType type of rhs
+ * @param file file the expression is in
  * @returns owning temp containing result
  */
 static IROperand *translateMultiplication(IRBlock *b, IROperand *lhs,
                                           Type const *lhsType, IROperand *rhs,
                                           Type const *rhsType,
                                           FileListEntry *file) {
-  return NULL;  // TODO
+  return translateMulStyleOp(b, lhs, lhsType, rhs, rhsType, IO_FMUL, IO_UMUL,
+                             IO_SMUL, file);
 }
 /**
  * translate a division
@@ -977,7 +1018,8 @@ static IROperand *translateMultiplication(IRBlock *b, IROperand *lhs,
 static IROperand *translateDivision(IRBlock *b, IROperand *lhs,
                                     Type const *lhsType, IROperand *rhs,
                                     Type const *rhsType, FileListEntry *file) {
-  return NULL;  // TODO
+  return translateMulStyleOp(b, lhs, lhsType, rhs, rhsType, IO_FDIV, IO_UDIV,
+                             IO_SDIV, file);
 }
 /**
  * translate a modulo
@@ -992,7 +1034,8 @@ static IROperand *translateDivision(IRBlock *b, IROperand *lhs,
 static IROperand *translateModulo(IRBlock *b, IROperand *lhs,
                                   Type const *lhsType, IROperand *rhs,
                                   Type const *rhsType, FileListEntry *file) {
-  return NULL;  // TODO
+  return translateMulStyleOp(b, lhs, lhsType, rhs, rhsType, IO_FMOD, IO_UMOD,
+                             IO_SMOD, file);
 }
 /**
  * translate an addition
@@ -1007,7 +1050,22 @@ static IROperand *translateModulo(IRBlock *b, IROperand *lhs,
 static IROperand *translateAddition(IRBlock *b, IROperand *lhs,
                                     Type const *lhsType, IROperand *rhs,
                                     Type const *rhsType, FileListEntry *file) {
-  return NULL;  // TODO
+  if (typePointer(lhsType)) {
+    IROperand *scaledRhs = translatePointerArithmeticScale(
+        b, rhs, rhsType, typeSizeof(lhsType->data.pointer.base), file);
+    IROperand *out = TEMPPTR(fresh(file));
+    IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(out), lhs, scaledRhs));
+    return out;
+  } else if (typePointer(rhsType)) {
+    IROperand *scaledLhs = translatePointerArithmeticScale(
+        b, lhs, lhsType, typeSizeof(rhsType->data.pointer.base), file);
+    IROperand *out = TEMPPTR(fresh(file));
+    IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(out), scaledLhs, rhs));
+    return out;
+  } else {
+    return translateMulStyleOp(b, lhs, lhsType, rhs, rhsType, IO_FADD, IO_ADD,
+                               IO_ADD, file);
+  }
 }
 /**
  * translate a subtraction
@@ -1023,7 +1081,46 @@ static IROperand *translateSubtraction(IRBlock *b, IROperand *lhs,
                                        Type const *lhsType, IROperand *rhs,
                                        Type const *rhsType,
                                        FileListEntry *file) {
-  return NULL;  // TODO
+  if (typePointer(lhsType) && typePointer(rhsType)) {
+    IROperand *unscaledOut = TEMPPTR(fresh(file));
+    IR(b, BINOP(POINTER_WIDTH, IO_SUB, irOperandCopy(unscaledOut), lhs, rhs));
+    IROperand *out = TEMPPTR(fresh(file));
+    IR(b, BINOP(POINTER_WIDTH, IO_SDIV, irOperandCopy(out), unscaledOut,
+                CONSTANT(POINTER_WIDTH, longDatumCreate(typeSizeof(
+                                            lhsType->data.pointer.base)))));
+    return out;
+  } else if (typePointer(lhsType)) {
+    IROperand *scaledRhs = translatePointerArithmeticScale(
+        b, rhs, rhsType, typeSizeof(lhsType->data.pointer.base), file);
+    IROperand *out = TEMPPTR(fresh(file));
+    IR(b, BINOP(POINTER_WIDTH, IO_SUB, irOperandCopy(out), lhs, scaledRhs));
+    return out;
+  } else {
+    return translateMulStyleOp(b, lhs, lhsType, rhs, rhsType, IO_FSUB, IO_SUB,
+                               IO_SUB, file);
+  }
+}
+/**
+ * translate a shift operation
+ *
+ * @param b block to add to
+ * @param lhs lhs temp
+ * @param lhsType type of lhs
+ * @param rhs rhs temp
+ * @param rhsType type of rhs
+ * @param op operator to use
+ * @returns owning temp containing result
+ */
+static IROperand *translateShift(IRBlock *b, IROperand *lhs,
+                                 Type const *lhsType, IROperand *rhs,
+                                 Type const *rhsType, IROperator op,
+                                 FileListEntry *file) {
+  IROperand *out = TEMPOF(fresh(file), lhsType);
+  Type *ubyteType = keywordTypeCreate(TK_UBYTE);
+  IROperand *castRhs = translateCast(b, rhs, rhsType, ubyteType, file);
+  typeFree(ubyteType);
+  IR(b, BINOP(typeSizeof(lhsType), op, irOperandCopy(out), lhs, castRhs));
+  return out;
 }
 /**
  * translate a left shift
@@ -1038,7 +1135,7 @@ static IROperand *translateSubtraction(IRBlock *b, IROperand *lhs,
 static IROperand *translateLShift(IRBlock *b, IROperand *lhs,
                                   Type const *lhsType, IROperand *rhs,
                                   Type const *rhsType, FileListEntry *file) {
-  return NULL;  // TODO
+  return translateShift(b, lhs, lhsType, rhs, rhsType, IO_SLL, file);
 }
 /**
  * translate an arithmetic right shift
@@ -1053,7 +1150,7 @@ static IROperand *translateLShift(IRBlock *b, IROperand *lhs,
 static IROperand *translateARShift(IRBlock *b, IROperand *lhs,
                                    Type const *lhsType, IROperand *rhs,
                                    Type const *rhsType, FileListEntry *file) {
-  return NULL;  // TODO
+  return translateShift(b, lhs, lhsType, rhs, rhsType, IO_SAR, file);
 }
 /**
  * translate a logical right shift
@@ -1068,7 +1165,7 @@ static IROperand *translateARShift(IRBlock *b, IROperand *lhs,
 static IROperand *translateLRShift(IRBlock *b, IROperand *lhs,
                                    Type const *lhsType, IROperand *rhs,
                                    Type const *rhsType, FileListEntry *file) {
-  return NULL;  // TODO
+  return translateShift(b, lhs, lhsType, rhs, rhsType, IO_SLR, file);
 }
 /**
  * translate a bitwise and
@@ -1083,7 +1180,8 @@ static IROperand *translateLRShift(IRBlock *b, IROperand *lhs,
 static IROperand *translateBitAnd(IRBlock *b, IROperand *lhs,
                                   Type const *lhsType, IROperand *rhs,
                                   Type const *rhsType, FileListEntry *file) {
-  return NULL;  // TODO
+  return translateMulStyleOp(b, lhs, lhsType, rhs, rhsType, IO_AND, IO_AND,
+                             IO_AND, file);
 }
 /**
  * translate a bitwise xor
@@ -1098,7 +1196,8 @@ static IROperand *translateBitAnd(IRBlock *b, IROperand *lhs,
 static IROperand *translateBitXor(IRBlock *b, IROperand *lhs,
                                   Type const *lhsType, IROperand *rhs,
                                   Type const *rhsType, FileListEntry *file) {
-  return NULL;  // TODO
+  return translateMulStyleOp(b, lhs, lhsType, rhs, rhsType, IO_XOR, IO_XOR,
+                             IO_XOR, file);
 }
 /**
  * translate a bitwise or
@@ -1113,36 +1212,34 @@ static IROperand *translateBitXor(IRBlock *b, IROperand *lhs,
 static IROperand *translateBitOr(IRBlock *b, IROperand *lhs,
                                  Type const *lhsType, IROperand *rhs,
                                  Type const *rhsType, FileListEntry *file) {
-  return NULL;  // TODO
+  return translateMulStyleOp(b, lhs, lhsType, rhs, rhsType, IO_OR, IO_OR, IO_OR,
+                             file);
 }
-/**
- * determine the IROperator for a boolean comparison
- */
-static IROperator binopToComparison(BinOpType binop, bool floating,
-                                    bool signedInt) {
-  switch (binop) {
-    case BO_EQ: {
-      return floating ? IO_FE : IO_E;
-    }
-    case BO_NEQ: {
-      return floating ? IO_FNE : IO_NE;
-    }
-    case BO_LT: {
-      return floating ? IO_FL : signedInt ? IO_L : IO_B;
-    }
-    case BO_LTEQ: {
-      return floating ? IO_FLE : signedInt ? IO_LE : IO_BE;
-    }
-    case BO_GT: {
-      return floating ? IO_FG : signedInt ? IO_G : IO_A;
-    }
-    case BO_GTEQ: {
-      return floating ? IO_FGE : signedInt ? IO_GE : IO_AE;
-    }
-    default: {
-      error(__FILE__, __LINE__, "invalid comparison binop");
-    }
-  }
+static IROperand *translateComparison(IRBlock *b, IROperand *lhs,
+                                      Type const *lhsType, IROperand *rhs,
+                                      Type const *rhsType, IROperator floatOp,
+                                      IROperator unsignedOp,
+                                      IROperator signedOp,
+                                      FileListEntry *file) {
+  Type *merged = comparisonTypeMerge(lhsType, rhsType);
+  IROperand *castLhs = translateCast(b, lhs, lhsType, merged, file);
+  IROperand *castRhs = translateCast(b, rhs, rhsType, merged, file);
+  IROperand *out = TEMPBOOL(fresh(file));
+  if (typeFloating(merged))
+    IR(b, BINOP(typeSizeof(merged), floatOp, irOperandCopy(out), castLhs,
+                castRhs));
+  else if (typeUnsignedIntegral(merged) || typePointer(merged) ||
+           typeCharacter(merged) || typeBoolean(merged) ||
+           (typeEnum(merged) &&
+            typeUnsignedIntegral(
+                merged->data.reference.entry->data.enumType.backingType)))
+    IR(b, BINOP(typeSizeof(merged), unsignedOp, irOperandCopy(out), castLhs,
+                castRhs));
+  else
+    IR(b, BINOP(typeSizeof(merged), signedOp, irOperandCopy(out), castLhs,
+                castRhs));
+  typeFree(merged);
+  return out;
 }
 /**
  * translate an equality comparison
@@ -1157,7 +1254,8 @@ static IROperator binopToComparison(BinOpType binop, bool floating,
 static IROperand *translateEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
                               IROperand *rhs, Type const *rhsType,
                               FileListEntry *file) {
-  return NULL;  // TODO
+  return translateComparison(b, lhs, lhsType, rhs, rhsType, IO_FE, IO_E, IO_E,
+                             file);
 }
 /**
  * translate an inequality comparison
@@ -1172,7 +1270,8 @@ static IROperand *translateEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
 static IROperand *translateNeq(IRBlock *b, IROperand *lhs, Type const *lhsType,
                                IROperand *rhs, Type const *rhsType,
                                FileListEntry *file) {
-  return NULL;  // TODO
+  return translateComparison(b, lhs, lhsType, rhs, rhsType, IO_FNE, IO_NE,
+                             IO_NE, file);
 }
 /**
  * translate a less than comparison
@@ -1187,7 +1286,8 @@ static IROperand *translateNeq(IRBlock *b, IROperand *lhs, Type const *lhsType,
 static IROperand *translateLt(IRBlock *b, IROperand *lhs, Type const *lhsType,
                               IROperand *rhs, Type const *rhsType,
                               FileListEntry *file) {
-  return NULL;  // TODO
+  return translateComparison(b, lhs, lhsType, rhs, rhsType, IO_FL, IO_L, IO_B,
+                             file);
 }
 /**
  * translate a greater than comparison
@@ -1202,7 +1302,8 @@ static IROperand *translateLt(IRBlock *b, IROperand *lhs, Type const *lhsType,
 static IROperand *translateGt(IRBlock *b, IROperand *lhs, Type const *lhsType,
                               IROperand *rhs, Type const *rhsType,
                               FileListEntry *file) {
-  return NULL;  // TODO
+  return translateComparison(b, lhs, lhsType, rhs, rhsType, IO_FG, IO_G, IO_A,
+                             file);
 }
 /**
  * translate a less than or equal to comparison
@@ -1217,7 +1318,8 @@ static IROperand *translateGt(IRBlock *b, IROperand *lhs, Type const *lhsType,
 static IROperand *translateLtEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
                                 IROperand *rhs, Type const *rhsType,
                                 FileListEntry *file) {
-  return NULL;  // TODO
+  return translateComparison(b, lhs, lhsType, rhs, rhsType, IO_FLE, IO_LE,
+                             IO_BE, file);
 }
 /**
  * translate a greater than or equal to comparison
@@ -1232,7 +1334,8 @@ static IROperand *translateLtEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
 static IROperand *translateGtEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
                                 IROperand *rhs, Type const *rhsType,
                                 FileListEntry *file) {
-  return NULL;  // TODO
+  return translateComparison(b, lhs, lhsType, rhs, rhsType, IO_FGE, IO_GE,
+                             IO_AE, file);
 }
 /**
  * translate a three-way comparison

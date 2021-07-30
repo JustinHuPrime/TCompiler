@@ -616,8 +616,8 @@ Type *comparisonTypeMerge(Type const *a, Type const *b) {
   a = stripCV(a);
   b = stripCV(b);
 
-  if ((typeNumeric(a) || typeCharacter(a) || a->kind == TK_POINTER) &&
-      (typeNumeric(b) || typeCharacter(b) || b->kind == TK_POINTER)) {
+  if ((typeNumeric(a) || typeCharacter(a)) &&
+      (typeNumeric(b) || typeCharacter(b))) {
     return ternaryTypeMerge(a, b);
   } else if (typeBoolean(a) && typeBoolean(b)) {
     return typeCopy(a);
