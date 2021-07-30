@@ -178,18 +178,18 @@ static void classify(Type const *t, TypeClass *out) {
 
   TypeClass *typeLayout = layout(t);
   out[0] = X86_64_LINUX_TC_SSE;
-  for (size_t idx = 0; idx < size && idx < 8; ++idx) {
+  for (size_t idx = 0; idx < size && idx < X86_64_LINUX_REGISTER_WIDTH; ++idx) {
     if (typeLayout[idx] == X86_64_LINUX_TC_GP) {
       out[0] = X86_64_LINUX_TC_GP;
       break;
     }
     // note - will always see an SSE or a GP - we never need to align to more
-    // than 8 bytes
+    // than REGISTER_WIDTH bytes
   }
 
-  if (size > 8) {
+  if (size > X86_64_LINUX_REGISTER_WIDTH) {
     out[1] = X86_64_LINUX_TC_SSE;
-    for (size_t idx = 8; idx < size; ++idx) {
+    for (size_t idx = X86_64_LINUX_REGISTER_WIDTH; idx < size; ++idx) {
       if (typeLayout[idx] == X86_64_LINUX_TC_GP) {
         out[1] = X86_64_LINUX_TC_GP;
         break;
@@ -239,17 +239,15 @@ void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
 
   size_t gpArgIdx = 0;
   size_t sseArgIdx = 0;
-  size_t stackOffset = 8;
+  size_t stackOffset = X86_64_LINUX_REGISTER_WIDTH;
 
   Type const *returnType = entry->data.function.returnType;
   TypeClass returnTypeClass[2];
   classify(returnType, returnTypeClass);
 
   if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY) {
-    IR(b,
-       MOVE(POINTER_WIDTH,
-            TEMP(returnValueAddressTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-            REG(GP_ARG_REGS[gpArgIdx++])));
+    IR(b, MOVE(TEMPPTR(returnValueAddressTemp),
+               REG(GP_ARG_REGS[gpArgIdx++], POINTER_WIDTH)));
   }
 
   // for each argument, left to right
@@ -257,9 +255,6 @@ void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
   Vector *argumentEntries = &entry->data.function.argumentEntries;
   for (size_t idx = 0; idx < argumentTypes->size; ++idx) {
     Type const *argType = argumentTypes->elements[idx];
-    size_t size = typeSizeof(argType);
-    size_t alignment = typeAlignof(argType);
-    AllocHint allocation = typeAllocation(argType);
     SymbolTableEntry *argumentEntry = argumentEntries->elements[idx];
 
     TypeClass argTypeClass[2];
@@ -274,36 +269,45 @@ void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
         sseArgIdx + numSSE > SSE_ARG_REG_MAX) {
       // either must be passed in memory, or ran out of room to pass in
       // registers
-      IR(b, STK_LOAD(size,
-                     TEMP(argumentEntry->data.variable.temp = fresh(file),
-                          alignment, size, allocation),
-                     OFFSET((int64_t)stackOffset)));
-      stackOffset = incrementToMultiple(stackOffset + size, 8);
+      IR(b,
+         STK_LOAD(TEMPOF(fresh(file), argType), OFFSET((int64_t)stackOffset)));
+      stackOffset = incrementToMultiple(stackOffset + typeSizeof(argType),
+                                        X86_64_LINUX_STACK_ALIGNMENT);
     } else {
       // passed in registers
       size_t temp = (argumentEntry->data.variable.temp = fresh(file));
       if (argTypeClass[0] == X86_64_LINUX_TC_GP &&
           argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
-        IR(b, MOVE(size, TEMP(temp, alignment, size, allocation),
-                   REG(GP_ARG_REGS[gpArgIdx++])));
+        IR(b, MOVE(TEMPOF(temp, argType),
+                   REG(GP_ARG_REGS[gpArgIdx++], typeSizeof(argType))));
       } else if (argTypeClass[0] == X86_64_LINUX_TC_GP) {
-        IR(b, OFFSET_LOAD(8, TEMP(temp, alignment, size, allocation),
-                          REG(GP_ARG_REGS[gpArgIdx++]), OFFSET(0)));
+        IR(b, OFFSET_LOAD(
+                  TEMPOF(temp, argType),
+                  REG(GP_ARG_REGS[gpArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
+                  OFFSET(0)));
       } else if (argTypeClass[0] == X86_64_LINUX_TC_SSE &&
                  argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
-        IR(b, MOVE(size, TEMP(temp, alignment, size, allocation),
-                   REG(SSE_ARG_REGS[sseArgIdx++])));
+        IR(b, MOVE(TEMPOF(temp, argType),
+                   REG(SSE_ARG_REGS[sseArgIdx++], typeSizeof(argType))));
       } else if (argTypeClass[0] == X86_64_LINUX_TC_SSE) {
-        IR(b, OFFSET_LOAD(8, TEMP(temp, alignment, size, allocation),
-                          REG(SSE_ARG_REGS[sseArgIdx++]), OFFSET(0)));
+        IR(b, OFFSET_LOAD(
+                  TEMPOF(temp, argType),
+                  REG(SSE_ARG_REGS[sseArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
+                  OFFSET(0)));
       }
 
       if (argTypeClass[1] == X86_64_LINUX_TC_GP) {
-        IR(b, OFFSET_LOAD(size - 8, TEMP(temp, alignment, size, allocation),
-                          REG(GP_ARG_REGS[gpArgIdx++]), OFFSET(8)));
+        IR(b,
+           OFFSET_LOAD(TEMPOF(temp, argType),
+                       REG(GP_ARG_REGS[gpArgIdx++],
+                           typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
+                       OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
       } else if (argTypeClass[1] == X86_64_LINUX_TC_SSE) {
-        IR(b, OFFSET_LOAD(size - 8, TEMP(temp, alignment, size, allocation),
-                          REG(SSE_ARG_REGS[sseArgIdx++]), OFFSET(8)));
+        IR(b,
+           OFFSET_LOAD(TEMPOF(temp, argType),
+                       REG(SSE_ARG_REGS[sseArgIdx++],
+                           typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
+                       OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
       }
     }
   }
@@ -325,47 +329,44 @@ void x86_64LinuxGenerateFunctionExit(Vector *blocks,
     TypeClass returnTypeClass[2];
     classify(returnType, returnTypeClass);
 
-    size_t size = typeSizeof(returnType);
-    size_t alignment = typeAlignof(returnType);
-    AllocHint allocation = typeAllocation(returnType);
-
     if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY) {
       // returned in memory (pointer was given to us above)
-      IR(b,
-         MEM_STORE(
-             size,
-             TEMP(returnValueAddressTemp, POINTER_WIDTH, POINTER_WIDTH, AH_GP),
-             TEMP(returnValueTemp, alignment, size, allocation), OFFSET(0)));
+      IR(b, MEM_STORE(TEMPPTR(returnValueAddressTemp),
+                      TEMPOF(returnValueTemp, returnType), OFFSET(0)));
     } else {
       // returned in registers
       size_t gpReturnIdx = 0;
       size_t sseReturnIdx = 0;
       if (returnTypeClass[0] == X86_64_LINUX_TC_GP &&
           returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
-        IR(b, MOVE(POINTER_WIDTH, REG(GP_RETURN_REGS[gpReturnIdx++]),
-                   TEMP(returnValueTemp, alignment, size, allocation)));
+        IR(b, MOVE(REG(GP_RETURN_REGS[gpReturnIdx++], typeSizeof(returnType)),
+                   TEMPOF(returnValueTemp, returnType)));
       } else if (returnTypeClass[0] == X86_64_LINUX_TC_GP) {
-        IR(b, OFFSET_LOAD(8, REG(GP_RETURN_REGS[gpReturnIdx++]),
-                          TEMP(returnValueTemp, alignment, size, allocation),
-                          OFFSET(0)));
+        IR(b, OFFSET_LOAD(REG(GP_RETURN_REGS[gpReturnIdx++],
+                              X86_64_LINUX_REGISTER_WIDTH),
+                          TEMPOF(returnValueTemp, returnType), OFFSET(0)));
       } else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE &&
                  returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS) {
-        IR(b, MOVE(POINTER_WIDTH, REG(SSE_RETURN_REGS[sseReturnIdx++]),
-                   TEMP(returnValueTemp, alignment, size, allocation)));
+        IR(b, MOVE(REG(SSE_RETURN_REGS[sseReturnIdx++], typeSizeof(returnType)),
+                   TEMPOF(returnValueTemp, returnType)));
       } else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE) {
-        IR(b, OFFSET_LOAD(8, REG(SSE_RETURN_REGS[sseReturnIdx++]),
-                          TEMP(returnValueTemp, alignment, size, allocation),
-                          OFFSET(0)));
+        IR(b, OFFSET_LOAD(REG(SSE_RETURN_REGS[sseReturnIdx++],
+                              X86_64_LINUX_REGISTER_WIDTH),
+                          TEMPOF(returnValueTemp, returnType), OFFSET(0)));
       }
 
       if (returnTypeClass[1] == X86_64_LINUX_TC_GP) {
-        IR(b, OFFSET_LOAD(size - 8, REG(GP_RETURN_REGS[gpReturnIdx++]),
-                          TEMP(returnValueTemp, alignment, size, allocation),
-                          OFFSET(8)));
+        IR(b, OFFSET_LOAD(
+                  REG(GP_RETURN_REGS[gpReturnIdx++],
+                      typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH),
+                  TEMPOF(returnValueTemp, returnType),
+                  OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
       } else if (returnTypeClass[1] == X86_64_LINUX_TC_SSE) {
-        IR(b, OFFSET_LOAD(size - 8, REG(SSE_RETURN_REGS[sseReturnIdx++]),
-                          TEMP(returnValueTemp, alignment, size, allocation),
-                          OFFSET(8)));
+        IR(b, OFFSET_LOAD(
+                  REG(SSE_RETURN_REGS[sseReturnIdx++],
+                      typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH),
+                  TEMPOF(returnValueTemp, returnType),
+                  OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
       }
     }
   }

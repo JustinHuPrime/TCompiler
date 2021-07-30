@@ -122,6 +122,7 @@ typedef struct IROperand {
     } temp;
     struct {
       size_t name;  // specific to the target architecture
+      size_t size;
     } reg;
     struct {
       size_t alignment;
@@ -142,7 +143,7 @@ typedef struct IROperand {
 /** ctors */
 IROperand *tempOperandCreate(size_t name, size_t alignment, size_t size,
                              AllocHint kind);
-IROperand *regOperandCreate(size_t name);
+IROperand *regOperandCreate(size_t name, size_t size);
 IROperand *constantOperandCreate(size_t alignment);
 IROperand *labelOperandCreate(char *name);
 IROperand *offsetOperandCreate(int64_t offset);
@@ -212,28 +213,18 @@ typedef enum IROperator {
   IO_FNE,
   IO_FG,
   IO_FGE,
+  IO_Z,
+  IO_NZ,
   IO_LNOT,
 
   // conversion
-  IO_SX_SHORT,
-  IO_SX_INT,
-  IO_SX_LONG,
-  IO_ZX_SHORT,
-  IO_ZX_INT,
-  IO_ZX_LONG,
-  IO_TRUNC_BYTE,
-  IO_TRUNC_SHORT,
-  IO_TRUNC_INT,
-  IO_U2FLOAT,
-  IO_U2DOUBLE,
-  IO_S2FLOAT,
-  IO_S2DOUBLE,
-  IO_F2FLOAT,
-  IO_F2DOUBLE,
-  IO_F2BYTE,
-  IO_F2SHORT,
-  IO_F2INT,
-  IO_F2LONG,
+  IO_SX,
+  IO_ZX,
+  IO_TRUNC,
+  IO_UNSIGNED2FLOATING,
+  IO_SIGNED2FLOATING,
+  IO_RESIZEFLOATING,
+  IO_FLOATING2INTEGRAL,
 
   // jumps
   IO_JUMP,
@@ -263,14 +254,13 @@ typedef enum IROperator {
 /** ir instruction */
 typedef struct {
   IROperator op;
-  size_t size;
   IROperand *dest;
   IROperand *arg1;
   IROperand *arg2;
 } IRInstruction;
 
 /** generic ctor */
-IRInstruction *irInstructionCreate(IROperator op, size_t size, IROperand *dest,
+IRInstruction *irInstructionCreate(IROperator op, IROperand *dest,
                                    IROperand *arg1, IROperand *arg2);
 /** dtor */
 void irInstructionFree(IRInstruction *);

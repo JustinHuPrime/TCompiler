@@ -1,13 +1,13 @@
 testFiles/translation/x86_64-linux/input/parameterPassingEnum.tc:
 TEXT(_T3foo3bar,
   BLOCK(5,
-    MOVE(1, TEMP(temp6, 1, 1, GP), REG(rdi)),
-    JUMP(0, LABEL(.L3)),
+    MOVE(TEMP(temp6, 1, 1, GP), REG(rdi)),
+    JUMP(LABEL(.L3)),
   ),
   BLOCK(3,
-    JUMP(0, LABEL(.L4)),
+    JUMP(LABEL(.L4)),
   ),
   BLOCK(4,
-    RETURN(0),
+    RETURN(),
   ),
 )

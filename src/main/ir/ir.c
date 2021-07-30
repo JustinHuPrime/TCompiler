@@ -168,9 +168,10 @@ IROperand *tempOperandCreate(size_t name, size_t alignment, size_t size,
   o->data.temp.kind = kind;
   return o;
 }
-IROperand *regOperandCreate(size_t name) {
+IROperand *regOperandCreate(size_t name, size_t size) {
   IROperand *o = irOperandCreate(OK_REG);
   o->data.reg.name = name;
+  o->data.reg.size = size;
   return o;
 }
 IROperand *constantOperandCreate(size_t alignment) {
@@ -201,7 +202,7 @@ IROperand *irOperandCopy(IROperand const *o) {
                                o->data.temp.size, o->data.temp.kind);
     }
     case OK_REG: {
-      return regOperandCreate(o->data.reg.name);
+      return regOperandCreate(o->data.reg.name, o->data.reg.size);
     }
     case OK_CONSTANT: {
       IROperand *retval = constantOperandCreate(o->data.constant.alignment);
@@ -247,11 +248,10 @@ void irOperandFree(IROperand *o) {
   free(o);
 }
 
-IRInstruction *irInstructionCreate(IROperator op, size_t size, IROperand *dest,
+IRInstruction *irInstructionCreate(IROperator op, IROperand *dest,
                                    IROperand *arg1, IROperand *arg2) {
   IRInstruction *i = malloc(sizeof(IRInstruction));
   i->op = op;
-  i->size = size;
   i->dest = dest;
   i->arg1 = arg1;
   i->arg2 = arg2;

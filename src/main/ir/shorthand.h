@@ -51,7 +51,7 @@ IROperand *TEMPBOOL(size_t name);
 /**
  * register
  */
-IROperand *REG(size_t name);
+IROperand *REG(size_t name, size_t size);
 /**
  * constant - single datum
  */
@@ -88,82 +88,68 @@ IRInstruction *VOLATILE(IROperand *temp);
 IRInstruction *ADDROF(IROperand *dest, IROperand *src);
 /**
  * simple move
- * @param size sizeof op
  * @param dest destination temp or reg
  * @param src source temp, reg, constant, or label
  */
-IRInstruction *MOVE(size_t size, IROperand *dest, IROperand *src);
+IRInstruction *MOVE(IROperand *dest, IROperand *src);
 /**
  * move to memory
- * @param size sizeof op
  * @param addr destination address in temp, reg, or label
  * @param src source temp, reg, constant, or label
  * @param offset offset into destination address
  */
-IRInstruction *MEM_STORE(size_t size, IROperand *addr, IROperand *src,
-                         IROperand *offset);
+IRInstruction *MEM_STORE(IROperand *addr, IROperand *src, IROperand *offset);
 /**
  * move from memory
- * @param size sizeof op
  * @param dest destination temp or reg
  * @param addr source address in temp, reg, or label
  * @param offset offset into destination address
  */
-IRInstruction *MEM_LOAD(size_t size, IROperand *dest, IROperand *addr,
-                        IROperand *offset);
+IRInstruction *MEM_LOAD(IROperand *dest, IROperand *addr, IROperand *offset);
 /**
  * store to stack
- * @param size sizeof op
  * @param offset destination stack offset as offset (0 == return address; stack
  * pointer changes due to temps will tweak the offset anyways) (interpretation
  * of signedness is architecture-specific)
  * @param src source temp, reg, constant, or label
  */
-IRInstruction *STK_STORE(size_t size, IROperand *offset, IROperand *src);
+IRInstruction *STK_STORE(IROperand *offset, IROperand *src);
 /**
  * load from stack
- * @param size sizeof op
  * @param dest destination temp or reg
  * @param offset source stack offset as offset
  */
-IRInstruction *STK_LOAD(size_t size, IROperand *dest, IROperand *offset);
+IRInstruction *STK_LOAD(IROperand *dest, IROperand *offset);
 /**
  * store into part of temp
- * @param size sizeof op
  * @param dest destination temp
  * @param src source temp, reg, constant, or label
  * @param offset offset as an offset or temp
  */
-IRInstruction *OFFSET_STORE(size_t size, IROperand *dest, IROperand *src,
-                            IROperand *offset);
+IRInstruction *OFFSET_STORE(IROperand *dest, IROperand *src, IROperand *offset);
 /**
  * load from part of temp
- * @param size sizeof op
  * @param dest destination temp or reg
  * @param src source temp
  * @param offset offset as an offset or temp
  */
-IRInstruction *OFFSET_LOAD(size_t size, IROperand *dest, IROperand *src,
-                           IROperand *offset);
+IRInstruction *OFFSET_LOAD(IROperand *dest, IROperand *src, IROperand *offset);
 /**
  * generic arithmetic/bitwise/comparison binop
- * @param size sizeof op
  * @param op operator
  * @param dest destination temp or reg
  * @param lhs left-hand temp, reg, constant, or offset
  * @param rhs right-hand temp, reg, constant, or offset
  */
-IRInstruction *BINOP(size_t size, IROperator op, IROperand *dest,
-                     IROperand *lhs, IROperand *rhs);
+IRInstruction *BINOP(IROperator op, IROperand *dest, IROperand *lhs,
+                     IROperand *rhs);
 /**
  * generic arithmetic/bitwise/logic/conversion unop
- * @param size sizeof op
  * @param op operator
  * @param dest destination temp or reg
  * @param src source temp or reg
  */
-IRInstruction *UNOP(size_t size, IROperator op, IROperand *dest,
-                    IROperand *src);
+IRInstruction *UNOP(IROperator op, IROperand *dest, IROperand *src);
 /**
  * unconditional jump to local label
  * @param dest destination numeric id
@@ -171,23 +157,20 @@ IRInstruction *UNOP(size_t size, IROperator op, IROperand *dest,
 IRInstruction *JUMP(size_t dest);
 /**
  * comparison conditional jump to local label
- * @param size sizeof comparison
  * @param op comparison operation
  * @param dest destination numeric id
  * @param lhs comparison lhs temp or reg
  * @param rhs comparison rhs temp or reg
  */
-IRInstruction *CJUMP(size_t size, IROperator op, size_t dest, IROperand *lhs,
+IRInstruction *CJUMP(IROperator op, size_t dest, IROperand *lhs,
                      IROperand *rhs);
 /**
  * unary conditional jump to local label
- * @param size sizeof condition
  * @param op IO_JZ or IO_JNZ
  * @param dest destination numeric id
  * @param condition temp to condition on (jump if zero/not zero)
  */
-IRInstruction *BJUMP(size_t size, IROperator op, size_t dest,
-                     IROperand *condition);
+IRInstruction *BJUMP(IROperator op, size_t dest, IROperand *condition);
 /**
  * call a function with the given (mangled) name
  * @param who label or temp or reg to call

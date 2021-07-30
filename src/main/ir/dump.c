@@ -115,17 +115,17 @@ static void operandDump(FILE *where, IROperand *o) {
 
 static void zeroOperandInstructionDump(FILE *where, char const *name,
                                        IRInstruction *i) {
-  fprintf(where, "%s(%zu)", name, i->size);
+  fprintf(where, "%s()", name);
 }
 static void oneOperandInstructionDump(FILE *where, char const *name,
                                       IRInstruction *i) {
-  fprintf(where, "%s(%zu, ", name, i->size);
+  fprintf(where, "%s(", name);
   operandDump(where, i->arg1);
   fprintf(where, ")");
 }
 static void twoOperandInstructionDump(FILE *where, char const *name,
                                       IRInstruction *i) {
-  fprintf(where, "%s(%zu, ", name, i->size);
+  fprintf(where, "%s(", name);
   operandDump(where, i->dest);
   fprintf(where, ", ");
   operandDump(where, i->arg1);
@@ -133,7 +133,7 @@ static void twoOperandInstructionDump(FILE *where, char const *name,
 }
 static void threeOperandInstructionDump(FILE *where, char const *name,
                                         IRInstruction *i) {
-  fprintf(where, "%s(%zu, ", name, i->size);
+  fprintf(where, "%s(", name);
   operandDump(where, i->dest);
   fprintf(where, ", ");
   operandDump(where, i->arg1);
@@ -339,89 +339,49 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       threeOperandInstructionDump(where, "FGE", i);
       break;
     }
+    case IO_Z: {
+      twoOperandInstructionDump(where, "Z", i);
+      break;
+    }
+    case IO_NZ: {
+      twoOperandInstructionDump(where, "NZ", i);
+      break;
+    }
     case IO_LNOT: {
       threeOperandInstructionDump(where, "LNOT", i);
       break;
     }
-    case IO_SX_SHORT: {
-      twoOperandInstructionDump(where, "SX_SHORT", i);
+    case IO_SX: {
+      twoOperandInstructionDump(where, "SX", i);
       break;
     }
-    case IO_SX_INT: {
-      twoOperandInstructionDump(where, "SX_INT", i);
+    case IO_ZX: {
+      twoOperandInstructionDump(where, "ZX", i);
       break;
     }
-    case IO_SX_LONG: {
-      twoOperandInstructionDump(where, "SX_LONG", i);
+    case IO_TRUNC: {
+      twoOperandInstructionDump(where, "TRUNC", i);
       break;
     }
-    case IO_ZX_SHORT: {
-      twoOperandInstructionDump(where, "ZX_SHORT", i);
+    case IO_UNSIGNED2FLOATING: {
+      twoOperandInstructionDump(where, "UNSIGNED2FLOATING", i);
       break;
     }
-    case IO_ZX_INT: {
-      twoOperandInstructionDump(where, "ZX_INT", i);
+    case IO_SIGNED2FLOATING: {
+      twoOperandInstructionDump(where, "SIGNED2FLOATING", i);
       break;
     }
-    case IO_ZX_LONG: {
-      twoOperandInstructionDump(where, "ZX_LONG", i);
+    case IO_RESIZEFLOATING: {
+      twoOperandInstructionDump(where, "RESIZEFLOATING", i);
       break;
     }
-    case IO_TRUNC_BYTE: {
-      twoOperandInstructionDump(where, "TRUNC_BYTE", i);
-      break;
-    }
-    case IO_TRUNC_SHORT: {
-      twoOperandInstructionDump(where, "TRUNC_SHORT", i);
-      break;
-    }
-    case IO_TRUNC_INT: {
-      twoOperandInstructionDump(where, "TRUNC_INT", i);
-      break;
-    }
-    case IO_U2FLOAT: {
-      twoOperandInstructionDump(where, "U2FLOAT", i);
-      break;
-    }
-    case IO_U2DOUBLE: {
-      twoOperandInstructionDump(where, "U2DOUBLE", i);
-      break;
-    }
-    case IO_S2FLOAT: {
-      twoOperandInstructionDump(where, "S2FLOAT", i);
-      break;
-    }
-    case IO_S2DOUBLE: {
-      twoOperandInstructionDump(where, "S2DOUBLE", i);
-      break;
-    }
-    case IO_F2FLOAT: {
-      twoOperandInstructionDump(where, "F2FLOAT", i);
-      break;
-    }
-    case IO_F2DOUBLE: {
-      twoOperandInstructionDump(where, "F2DOUBLE", i);
-      break;
-    }
-    case IO_F2BYTE: {
-      twoOperandInstructionDump(where, "F2BYTE", i);
-      break;
-    }
-    case IO_F2SHORT: {
-      twoOperandInstructionDump(where, "F2SHORT", i);
-      break;
-    }
-    case IO_F2INT: {
-      twoOperandInstructionDump(where, "F2INT", i);
-      break;
-    }
-    case IO_F2LONG: {
-      twoOperandInstructionDump(where, "F2LONG", i);
+    case IO_FLOATING2INTEGRAL: {
+      twoOperandInstructionDump(where, "FLOATING2INTEGRAL", i);
       break;
     }
     case IO_JUMP: {
       // note - jump is one operand, but the dest is the one operand
-      fprintf(where, "JUMP(%zu, ", i->size);
+      fprintf(where, "JUMP(");
       operandDump(where, i->dest);
       fprintf(where, ")");
       break;

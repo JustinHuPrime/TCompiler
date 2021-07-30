@@ -22,6 +22,8 @@
 #include "util/internalError.h"
 
 char const *const X86_64_LINUX_LOCAL_LABEL_FORMAT = ".L%zu";
+size_t const X86_64_LINUX_REGISTER_WIDTH = 8;
+size_t const X86_64_LINUX_STACK_ALIGNMENT = 8;
 
 static char const *const REGISTER_NAMES[] = {
     "rax",  "rbx",  "rcx",   "rdx",   "rsi",   "rdi",   "rsp",   "rbp",

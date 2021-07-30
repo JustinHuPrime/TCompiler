@@ -791,18 +791,16 @@ static IROperand *translatePointerArithmeticScale(IRBlock *b, IROperand *target,
   IROperand *out = TEMPPTR(fresh(file));
   IROperand *castTarget = TEMPPTR(fresh(file));
   if (typeSizeof(targetType) == POINTER_WIDTH)
-    IR(b, MOVE(POINTER_WIDTH, irOperandCopy(castTarget), target));
+    IR(b, MOVE(irOperandCopy(castTarget), target));
   else if (typeUnsignedIntegral(targetType))
-    IR(b, UNOP(typeSizeof(targetType), IO_ZX_LONG, irOperandCopy(castTarget),
-               target));
+    IR(b, UNOP(IO_ZX, irOperandCopy(castTarget), target));
   else
-    IR(b, UNOP(typeSizeof(targetType), IO_SX_LONG, irOperandCopy(castTarget),
-               target));
+    IR(b, UNOP(IO_SX, irOperandCopy(castTarget), target));
   if (typeUnsignedIntegral(targetType))
-    IR(b, BINOP(POINTER_WIDTH, IO_UMUL, irOperandCopy(out), castTarget,
+    IR(b, BINOP(IO_UMUL, irOperandCopy(out), castTarget,
                 CONSTANT(POINTER_WIDTH, longDatumCreate(pointedSize))));
   else
-    IR(b, BINOP(POINTER_WIDTH, IO_SMUL, irOperandCopy(out), castTarget,
+    IR(b, BINOP(IO_SMUL, irOperandCopy(out), castTarget,
                 CONSTANT(POINTER_WIDTH, longDatumCreate(pointedSize))));
   return out;
 }
@@ -821,33 +819,29 @@ static IROperand *translateIncOrDec(IRBlock *b, IROperand *target,
   IROperand *out = TEMPOF(fresh(file), targetType);
   if (typePointer(targetType)) {
     IR(b,
-       BINOP(POINTER_WIDTH, isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out),
-             target,
+       BINOP(isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out), target,
              CONSTANT(POINTER_WIDTH, longDatumCreate(typeSizeof(targetType)))));
   } else if (typeFloating(targetType)) {
     if (typeSizeof(targetType) == FLOAT_WIDTH) {
-      IR(b,
-         BINOP(FLOAT_WIDTH, isIncrement ? IO_FADD : IO_FSUB, irOperandCopy(out),
-               target, CONSTANT(FLOAT_WIDTH, intDatumCreate(FLOAT_ONE))));
+      IR(b, BINOP(isIncrement ? IO_FADD : IO_FSUB, irOperandCopy(out), target,
+                  CONSTANT(FLOAT_WIDTH, intDatumCreate(FLOAT_ONE))));
     } else {
-      IR(b, BINOP(DOUBLE_WIDTH, isIncrement ? IO_FADD : IO_FSUB,
-                  irOperandCopy(out), target,
+      IR(b, BINOP(isIncrement ? IO_FADD : IO_FSUB, irOperandCopy(out), target,
                   CONSTANT(DOUBLE_WIDTH, longDatumCreate(DOUBLE_ONE))));
     }
   } else {
     if (typeSizeof(targetType) == BYTE_WIDTH) {
-      IR(b, BINOP(BYTE_WIDTH, isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out),
-                  target, CONSTANT(BYTE_WIDTH, byteDatumCreate(1))));
+      IR(b, BINOP(isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out), target,
+                  CONSTANT(BYTE_WIDTH, byteDatumCreate(1))));
     } else if (typeSizeof(targetType) == SHORT_WIDTH) {
-      IR(b,
-         BINOP(SHORT_WIDTH, isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out),
-               target, CONSTANT(SHORT_WIDTH, shortDatumCreate(1))));
+      IR(b, BINOP(isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out), target,
+                  CONSTANT(SHORT_WIDTH, shortDatumCreate(1))));
     } else if (typeSizeof(targetType) == INT_WIDTH) {
-      IR(b, BINOP(INT_WIDTH, isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out),
-                  target, CONSTANT(INT_WIDTH, intDatumCreate(1))));
+      IR(b, BINOP(isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out), target,
+                  CONSTANT(INT_WIDTH, intDatumCreate(1))));
     } else {
-      IR(b, BINOP(LONG_WIDTH, isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out),
-                  target, CONSTANT(LONG_WIDTH, longDatumCreate(1))));
+      IR(b, BINOP(isIncrement ? IO_ADD : IO_SUB, irOperandCopy(out), target,
+                  CONSTANT(LONG_WIDTH, longDatumCreate(1))));
     }
   }
   return out;
@@ -894,9 +888,9 @@ static IROperand *translateNegation(IRBlock *b, IROperand *target,
                                     FileListEntry *file) {
   IROperand *out = TEMPOF(fresh(file), targetType);
   if (typeFloating(targetType))
-    IR(b, UNOP(typeSizeof(targetType), IO_FNEG, irOperandCopy(out), target));
+    IR(b, UNOP(IO_FNEG, irOperandCopy(out), target));
   else
-    IR(b, UNOP(typeSizeof(targetType), IO_NEG, irOperandCopy(out), target));
+    IR(b, UNOP(IO_NEG, irOperandCopy(out), target));
   return out;
 }
 /**
@@ -911,7 +905,7 @@ static IROperand *translateNegation(IRBlock *b, IROperand *target,
 static IROperand *translateLnot(IRBlock *b, IROperand *target,
                                 Type const *targetType, FileListEntry *file) {
   IROperand *out = TEMPBOOL(fresh(file));
-  IR(b, UNOP(BOOL_WIDTH, IO_LNOT, irOperandCopy(out), target));
+  IR(b, UNOP(IO_LNOT, irOperandCopy(out), target));
   return out;
 }
 /**
@@ -926,7 +920,7 @@ static IROperand *translateLnot(IRBlock *b, IROperand *target,
 static IROperand *translateBitNot(IRBlock *b, IROperand *target,
                                   Type const *targetType, FileListEntry *file) {
   IROperand *out = TEMPOF(fresh(file), targetType);
-  IR(b, UNOP(typeSizeof(targetType), IO_NOT, irOperandCopy(out), target));
+  IR(b, UNOP(IO_NOT, irOperandCopy(out), target));
   return out;
 }
 /**
@@ -976,14 +970,11 @@ static IROperand *translateMulStyleOp(IRBlock *b, IROperand *lhs,
   IROperand *castRhs = translateCast(b, rhs, rhsType, merged, file);
   IROperand *out = TEMPOF(fresh(file), merged);
   if (typeFloating(merged))
-    IR(b, BINOP(typeSizeof(merged), floatOp, irOperandCopy(out), castLhs,
-                castRhs));
+    IR(b, BINOP(floatOp, irOperandCopy(out), castLhs, castRhs));
   else if (typeUnsignedIntegral(merged))
-    IR(b, BINOP(typeSizeof(merged), unsignedOp, irOperandCopy(out), castLhs,
-                castRhs));
+    IR(b, BINOP(unsignedOp, irOperandCopy(out), castLhs, castRhs));
   else
-    IR(b, BINOP(typeSizeof(merged), signedOp, irOperandCopy(out), castLhs,
-                castRhs));
+    IR(b, BINOP(signedOp, irOperandCopy(out), castLhs, castRhs));
   typeFree(merged);
   return out;
 }
@@ -1054,13 +1045,13 @@ static IROperand *translateAddition(IRBlock *b, IROperand *lhs,
     IROperand *scaledRhs = translatePointerArithmeticScale(
         b, rhs, rhsType, typeSizeof(lhsType->data.pointer.base), file);
     IROperand *out = TEMPPTR(fresh(file));
-    IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(out), lhs, scaledRhs));
+    IR(b, BINOP(IO_ADD, irOperandCopy(out), lhs, scaledRhs));
     return out;
   } else if (typePointer(rhsType)) {
     IROperand *scaledLhs = translatePointerArithmeticScale(
         b, lhs, lhsType, typeSizeof(rhsType->data.pointer.base), file);
     IROperand *out = TEMPPTR(fresh(file));
-    IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(out), scaledLhs, rhs));
+    IR(b, BINOP(IO_ADD, irOperandCopy(out), scaledLhs, rhs));
     return out;
   } else {
     return translateMulStyleOp(b, lhs, lhsType, rhs, rhsType, IO_FADD, IO_ADD,
@@ -1083,9 +1074,9 @@ static IROperand *translateSubtraction(IRBlock *b, IROperand *lhs,
                                        FileListEntry *file) {
   if (typePointer(lhsType) && typePointer(rhsType)) {
     IROperand *unscaledOut = TEMPPTR(fresh(file));
-    IR(b, BINOP(POINTER_WIDTH, IO_SUB, irOperandCopy(unscaledOut), lhs, rhs));
+    IR(b, BINOP(IO_SUB, irOperandCopy(unscaledOut), lhs, rhs));
     IROperand *out = TEMPPTR(fresh(file));
-    IR(b, BINOP(POINTER_WIDTH, IO_SDIV, irOperandCopy(out), unscaledOut,
+    IR(b, BINOP(IO_SDIV, irOperandCopy(out), unscaledOut,
                 CONSTANT(POINTER_WIDTH, longDatumCreate(typeSizeof(
                                             lhsType->data.pointer.base)))));
     return out;
@@ -1093,7 +1084,7 @@ static IROperand *translateSubtraction(IRBlock *b, IROperand *lhs,
     IROperand *scaledRhs = translatePointerArithmeticScale(
         b, rhs, rhsType, typeSizeof(lhsType->data.pointer.base), file);
     IROperand *out = TEMPPTR(fresh(file));
-    IR(b, BINOP(POINTER_WIDTH, IO_SUB, irOperandCopy(out), lhs, scaledRhs));
+    IR(b, BINOP(IO_SUB, irOperandCopy(out), lhs, scaledRhs));
     return out;
   } else {
     return translateMulStyleOp(b, lhs, lhsType, rhs, rhsType, IO_FSUB, IO_SUB,
@@ -1119,7 +1110,7 @@ static IROperand *translateShift(IRBlock *b, IROperand *lhs,
   Type *ubyteType = keywordTypeCreate(TK_UBYTE);
   IROperand *castRhs = translateCast(b, rhs, rhsType, ubyteType, file);
   typeFree(ubyteType);
-  IR(b, BINOP(typeSizeof(lhsType), op, irOperandCopy(out), lhs, castRhs));
+  IR(b, BINOP(op, irOperandCopy(out), lhs, castRhs));
   return out;
 }
 /**
@@ -1226,18 +1217,15 @@ static IROperand *translateComparison(IRBlock *b, IROperand *lhs,
   IROperand *castRhs = translateCast(b, rhs, rhsType, merged, file);
   IROperand *out = TEMPBOOL(fresh(file));
   if (typeFloating(merged))
-    IR(b, BINOP(typeSizeof(merged), floatOp, irOperandCopy(out), castLhs,
-                castRhs));
+    IR(b, BINOP(floatOp, irOperandCopy(out), castLhs, castRhs));
   else if (typeUnsignedIntegral(merged) || typePointer(merged) ||
            typeCharacter(merged) || typeBoolean(merged) ||
            (typeEnum(merged) &&
             typeUnsignedIntegral(
                 merged->data.reference.entry->data.enumType.backingType)))
-    IR(b, BINOP(typeSizeof(merged), unsignedOp, irOperandCopy(out), castLhs,
-                castRhs));
+    IR(b, BINOP(unsignedOp, irOperandCopy(out), castLhs, castRhs));
   else
-    IR(b, BINOP(typeSizeof(merged), signedOp, irOperandCopy(out), castLhs,
-                castRhs));
+    IR(b, BINOP(signedOp, irOperandCopy(out), castLhs, castRhs));
   typeFree(merged);
   return out;
 }
@@ -1426,7 +1414,7 @@ static IROperand *getLValueOffset(IRBlock *b, LValue const *lvalue,
     return irOperandCopy(lvalue->dynamicOffset);
   } else {
     IROperand *offset = TEMPPTR(fresh(file));
-    IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(offset),
+    IR(b, BINOP(IO_ADD, irOperandCopy(offset),
                 irOperandCopy(lvalue->dynamicOffset),
                 OFFSET(lvalue->staticOffset)));
     return offset;
@@ -1446,19 +1434,16 @@ static IROperand *translateLValueLoad(IRBlock *b, LValue const *src,
   switch (src->kind) {
     case LK_TEMP: {
       if (src->staticOffset == 0 && src->dynamicOffset == NULL) {
-        IR(b, MOVE(dest->data.temp.size, irOperandCopy(dest),
-                   irOperandCopy(src->operand)));
+        IR(b, MOVE(irOperandCopy(dest), irOperandCopy(src->operand)));
       } else {
-        IR(b, OFFSET_LOAD(dest->data.temp.size, irOperandCopy(dest),
-                          irOperandCopy(src->operand),
+        IR(b, OFFSET_LOAD(irOperandCopy(dest), irOperandCopy(src->operand),
                           getLValueOffset(b, src, file)));
       }
       return dest;
     }
     case LK_MEM: {
-      IR(b,
-         MEM_LOAD(dest->data.temp.size, irOperandCopy(dest),
-                  irOperandCopy(src->operand), getLValueOffset(b, src, file)));
+      IR(b, MEM_LOAD(irOperandCopy(dest), irOperandCopy(src->operand),
+                     getLValueOffset(b, src, file)));
       return dest;
     }
     default: {
@@ -1485,14 +1470,14 @@ static IROperand *translateLValueAddr(IRBlock *b, LValue const *src,
         IROperand *addr = TEMPPTR(fresh(file));
         IROperand *offset = getLValueOffset(b, src, file);
         IR(b, ADDROF(irOperandCopy(addr), irOperandCopy(src->operand)));
-        IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(dest), addr, offset));
+        IR(b, BINOP(IO_ADD, irOperandCopy(dest), addr, offset));
       }
       return dest;
     }
     case LK_MEM: {
       IROperand *offset = getLValueOffset(b, src, file);
-      IR(b, BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(dest),
-                  irOperandCopy(src->operand), offset));
+      IR(b, BINOP(IO_ADD, irOperandCopy(dest), irOperandCopy(src->operand),
+                  offset));
       return dest;
     }
     default: {
@@ -1513,17 +1498,16 @@ static void translateLValueStore(IRBlock *b, LValue const *dest, IROperand *src,
   switch (dest->kind) {
     case LK_TEMP: {
       if (dest->staticOffset == 0 && dest->dynamicOffset == NULL) {
-        IR(b, MOVE(src->data.temp.size, irOperandCopy(dest->operand),
-                   irOperandCopy(src)));
+        IR(b, MOVE(irOperandCopy(dest->operand), irOperandCopy(src)));
       } else {
-        IR(b, OFFSET_STORE(src->data.temp.size, irOperandCopy(dest->operand),
-                           irOperandCopy(src), getLValueOffset(b, dest, file)));
+        IR(b, OFFSET_STORE(irOperandCopy(dest->operand), irOperandCopy(src),
+                           getLValueOffset(b, dest, file)));
       }
       break;
     }
     case LK_MEM: {
-      IR(b, MEM_STORE(src->data.temp.size, irOperandCopy(dest->operand),
-                      irOperandCopy(src), getLValueOffset(b, dest, file)));
+      IR(b, MEM_STORE(irOperandCopy(dest->operand), irOperandCopy(src),
+                      getLValueOffset(b, dest, file)));
       break;
     }
     default: {
@@ -1619,8 +1603,7 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
           IRBlock *b = BLOCK(shortCircuitLabel, blocks);
           IROperand *lhsVal =
               translateLValueLoad(b, lvalue, TEMPBOOL(fresh(file)), file);
-          IR(b, BJUMP(BOOL_WIDTH,
-                      e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
+          IR(b, BJUMP(e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
                       nextLabel, lhsVal));
           IR(b, JUMP(rhsLabel));
           size_t assignmentLabel = fresh(file);
@@ -1686,8 +1669,7 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
             } else {
               IROperand *newOffset = TEMPPTR(fresh(file));
               IR(b,
-                 BINOP(POINTER_WIDTH, IO_ADD, irOperandCopy(newOffset),
-                       lvalue->dynamicOffset,
+                 BINOP(IO_ADD, irOperandCopy(newOffset), lvalue->dynamicOffset,
                        translatePointerArithmeticScale(
                            b, unscaledIndex, expressionTypeof(rhs),
                            typeSizeof(
@@ -1794,7 +1776,7 @@ static void translateVariablePredicate(Vector *blocks, Node const *e,
   size_t comparisonLabel = fresh(file);
   IRBlock *b = BLOCK(comparisonLabel, blocks);
   IR(b,
-     BJUMP(typeSizeof(expressionTypeof(e)), IO_JNZ, trueLabel,
+     BJUMP(IO_JNZ, trueLabel,
            translateExpressionValue(blocks, e, label, comparisonLabel, file)));
   IR(b, JUMP(falseLabel));
 }
@@ -1835,7 +1817,7 @@ static void translateExpressionPredicate(Vector *blocks, Node const *e,
           IROperand *castRhs = translateCast(b, rawRhs, expressionTypeof(rhs),
                                              expressionTypeof(lhs), file);
           translateLValueStore(b, lvalue, castRhs, file);
-          IR(b, BJUMP(BOOL_WIDTH, IO_JNZ, trueLabel, castRhs));
+          IR(b, BJUMP(IO_JNZ, trueLabel, castRhs));
           IR(b, JUMP(falseLabel));
           lvalueFree(lvalue);
           break;
@@ -1850,16 +1832,16 @@ static void translateExpressionPredicate(Vector *blocks, Node const *e,
           IROperand *lhsVal =
               translateLValueLoad(b, lvalue, TEMPBOOL(fresh(file)), file);
           if (e->data.binOpExp.op == BO_LANDASSIGN)
-            IR(b, BJUMP(BOOL_WIDTH, IO_JZ, falseLabel, lhsVal));
+            IR(b, BJUMP(IO_JZ, falseLabel, lhsVal));
           else
-            IR(b, BJUMP(BOOL_WIDTH, IO_JNZ, trueLabel, lhsVal));
+            IR(b, BJUMP(IO_JNZ, trueLabel, lhsVal));
           IR(b, JUMP(rhsLabel));
           size_t assignmentLabel = fresh(file);
           IROperand *rhsVal = translateExpressionValue(blocks, rhs, rhsLabel,
                                                        assignmentLabel, file);
           b = BLOCK(assignmentLabel, blocks);
           translateLValueStore(b, lvalue, rhsVal, file);
-          IR(b, BJUMP(BOOL_WIDTH, IO_JNZ, trueLabel, rhsVal));
+          IR(b, BJUMP(IO_JNZ, trueLabel, rhsVal));
           IR(b, JUMP(falseLabel));
           lvalueFree(lvalue);
           break;
@@ -1896,8 +1878,7 @@ static void translateExpressionPredicate(Vector *blocks, Node const *e,
               translateCast(b, rawLhs, expressionTypeof(lhs), merged, file);
           IROperand *castedRhs =
               translateCast(b, rawRhs, expressionTypeof(rhs), merged, file);
-          IR(b, CJUMP(typeSizeof(merged),
-                      binopToCjump(e->data.binOpExp.op, typeFloating(merged),
+          IR(b, CJUMP(binopToCjump(e->data.binOpExp.op, typeFloating(merged),
                                    typeSignedIntegral(merged)),
                       trueLabel, castedLhs, castedRhs));
           IR(b, JUMP(falseLabel));
@@ -2264,19 +2245,18 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           IRBlock *b = BLOCK(shortCircuitLabel, blocks);
           IROperand *lhsVal =
               translateLValueLoad(b, lvalue, TEMPBOOL(fresh(file)), file);
-          IR(b, BJUMP(BOOL_WIDTH,
-                      e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
+          IR(b, BJUMP(e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
                       lhsLabel, irOperandCopy(lhsVal)));
           IR(b, JUMP(rhsLabel));
           b = BLOCK(lhsLabel, blocks);
-          IR(b, MOVE(BOOL_WIDTH, irOperandCopy(outTemp), lhsVal));
+          IR(b, MOVE(irOperandCopy(outTemp), lhsVal));
           IR(b, JUMP(nextLabel));
           size_t assignmentLabel = fresh(file);
           IROperand *rhsVal = translateExpressionValue(blocks, rhs, rhsLabel,
                                                        assignmentLabel, file);
           b = BLOCK(assignmentLabel, blocks);
           translateLValueStore(b, lvalue, irOperandCopy(rhsVal), file);
-          IR(b, MOVE(BOOL_WIDTH, irOperandCopy(outTemp), rhsVal));
+          IR(b, MOVE(irOperandCopy(outTemp), rhsVal));
           IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           return outTemp;
@@ -2290,18 +2270,17 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           size_t lhsLabel = fresh(file);
           size_t rhsLabel = fresh(file);
           IRBlock *b = BLOCK(shortCircuitLabel, blocks);
-          IR(b, BJUMP(BOOL_WIDTH,
-                      e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
+          IR(b, BJUMP(e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
                       lhsLabel, irOperandCopy(lhsVal)));
           IR(b, JUMP(rhsLabel));
           b = BLOCK(lhsLabel, blocks);
-          IR(b, MOVE(BOOL_WIDTH, irOperandCopy(outTemp), lhsVal));
+          IR(b, MOVE(irOperandCopy(outTemp), lhsVal));
           IR(b, JUMP(nextLabel));
           size_t assignmentLabel = fresh(file);
           IROperand *rhsVal = translateExpressionValue(blocks, rhs, rhsLabel,
                                                        assignmentLabel, file);
           b = BLOCK(assignmentLabel, blocks);
-          IR(b, MOVE(BOOL_WIDTH, irOperandCopy(outTemp), rhsVal));
+          IR(b, MOVE(irOperandCopy(outTemp), rhsVal));
           IR(b, JUMP(nextLabel));
           return outTemp;
         }
@@ -2344,13 +2323,11 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           IRBlock *b = BLOCK(resultLabel, blocks);
           IROperand *result = TEMPOF(fresh(file), expressionTypeof(e));
           if (lhsEntry->kind == SK_STRUCT)
-            IR(b, OFFSET_LOAD(typeSizeof(expressionTypeof(e)),
-                              irOperandCopy(result), whole,
+            IR(b, OFFSET_LOAD(irOperandCopy(result), whole,
                               OFFSET((int64_t)structOffsetof(
                                   lhsEntry, rhs->data.id.id))));
           else
-            IR(b, MOVE(typeSizeof(expressionTypeof(e)), irOperandCopy(result),
-                       whole));
+            IR(b, MOVE(irOperandCopy(result), whole));
           IR(b, JUMP(nextLabel));
           return result;
         }
@@ -2363,8 +2340,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
               translateExpressionValue(blocks, lhs, label, resultLabel, file);
           IRBlock *b = BLOCK(resultLabel, blocks);
           IROperand *result = TEMPOF(fresh(file), expressionTypeof(e));
-          IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(result),
-                         addr,
+          IR(b, MEM_LOAD(irOperandCopy(result), addr,
                          lhsEntry->kind == SK_STRUCT
                              ? OFFSET((int64_t)structOffsetof(lhsEntry,
                                                               rhs->data.id.id))
@@ -2386,15 +2362,13 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
                 b, rawRhs, expressionTypeof(rhs),
                 typeSizeof(stripCV(expressionTypeof(lhs))->data.pointer.base),
                 file);
-            IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)),
-                           irOperandCopy(result), lhsVal, scaledRhs));
+            IR(b, MEM_LOAD(irOperandCopy(result), lhsVal, scaledRhs));
           } else {
             IROperand *scaledRhs = translatePointerArithmeticScale(
                 b, rawRhs, expressionTypeof(rhs),
                 typeSizeof(stripCV(expressionTypeof(lhs))->data.array.type),
                 file);
-            IR(b, OFFSET_LOAD(typeSizeof(expressionTypeof(e)),
-                              irOperandCopy(result), lhsVal, scaledRhs));
+            IR(b, OFFSET_LOAD(irOperandCopy(result), lhsVal, scaledRhs));
           }
           IR(b, JUMP(nextLabel));
           return result;
@@ -2421,7 +2395,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           size_t derefLabel = fresh(file);
           IRBlock *b = BLOCK(derefLabel, blocks);
           IROperand *result = TEMPOF(fresh(file), expressionTypeof(e));
-          IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(result),
+          IR(b, MEM_LOAD(irOperandCopy(result),
                          translateExpressionValue(blocks, target, label,
                                                   derefLabel, file),
                          OFFSET(0)));
@@ -2516,8 +2490,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
       IROperand *castConsequent =
           translateCast(b, uncastConsequent, expressionTypeof(consequent),
                         expressionTypeof(e), file);
-      IR(b, MOVE(typeSizeof(expressionTypeof(e)), irOperandCopy(outTemp),
-                 castConsequent));
+      IR(b, MOVE(irOperandCopy(outTemp), castConsequent));
       IR(b, JUMP(nextLabel));
 
       size_t alternativeCastLabel = fresh(file);
@@ -2527,8 +2500,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
       IROperand *castAlternative =
           translateCast(b, uncastAlternative, expressionTypeof(alternative),
                         expressionTypeof(e), file);
-      IR(b, MOVE(typeSizeof(expressionTypeof(e)), irOperandCopy(outTemp),
-                 castAlternative));
+      IR(b, MOVE(irOperandCopy(outTemp), castAlternative));
       IR(b, JUMP(nextLabel));
       return outTemp;
     }
@@ -2686,8 +2658,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
 
           IRBlock *b = BLOCK(label, blocks);
           IROperand *out = TEMPOF(fresh(file), expressionTypeof(e));
-          IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(out),
-                         LOCAL(dataLabel), OFFSET(0)));
+          IR(b, MEM_LOAD(irOperandCopy(out), LOCAL(dataLabel), OFFSET(0)));
           IR(b, JUMP(nextLabel));
           return out;
         }
@@ -2701,13 +2672,13 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
       IROperand *dest = TEMPOF(fresh(file), expressionTypeof(e));
       if (e->data.scopedId.entry->kind == SK_VARIABLE) {
         IR(b,
-           MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
+           MEM_LOAD(irOperandCopy(dest),
                     GLOBAL(getMangledName(e->data.scopedId.entry)), OFFSET(0)));
       } else if (e->data.scopedId.entry->kind == SK_ENUMCONST) {
         switch (e->data.scopedId.entry->data.enumConst.parent->data.enumType
                     .backingType->data.keyword.keyword) {
           case TK_UBYTE: {
-            IR(b, MOVE(BYTE_WIDTH, irOperandCopy(dest),
+            IR(b, MOVE(irOperandCopy(dest),
                        CONSTANT(BYTE_WIDTH,
                                 byteDatumCreate(
                                     (uint8_t)e->data.scopedId.entry->data
@@ -2715,7 +2686,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
             break;
           }
           case TK_BYTE: {
-            IR(b, MOVE(BYTE_WIDTH, irOperandCopy(dest),
+            IR(b, MOVE(irOperandCopy(dest),
                        CONSTANT(BYTE_WIDTH,
                                 byteDatumCreate(
                                     s8ToU8((int8_t)e->data.scopedId.entry->data
@@ -2723,7 +2694,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
             break;
           }
           case TK_USHORT: {
-            IR(b, MOVE(SHORT_WIDTH, irOperandCopy(dest),
+            IR(b, MOVE(irOperandCopy(dest),
                        CONSTANT(SHORT_WIDTH,
                                 shortDatumCreate(
                                     (uint16_t)e->data.scopedId.entry->data
@@ -2731,7 +2702,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
             break;
           }
           case TK_SHORT: {
-            IR(b, MOVE(SHORT_WIDTH, irOperandCopy(dest),
+            IR(b, MOVE(irOperandCopy(dest),
                        CONSTANT(SHORT_WIDTH,
                                 shortDatumCreate(s16ToU16(
                                     (int16_t)e->data.scopedId.entry->data
@@ -2739,7 +2710,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
             break;
           }
           case TK_UINT: {
-            IR(b, MOVE(INT_WIDTH, irOperandCopy(dest),
+            IR(b, MOVE(irOperandCopy(dest),
                        CONSTANT(
                            INT_WIDTH,
                            intDatumCreate((uint32_t)e->data.scopedId.entry->data
@@ -2747,7 +2718,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
             break;
           }
           case TK_INT: {
-            IR(b, MOVE(INT_WIDTH, irOperandCopy(dest),
+            IR(b, MOVE(irOperandCopy(dest),
                        CONSTANT(INT_WIDTH,
                                 intDatumCreate(s32ToU32(
                                     (int32_t)e->data.scopedId.entry->data
@@ -2755,7 +2726,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
             break;
           }
           case TK_ULONG: {
-            IR(b, MOVE(LONG_WIDTH, irOperandCopy(dest),
+            IR(b, MOVE(irOperandCopy(dest),
                        CONSTANT(LONG_WIDTH,
                                 longDatumCreate(
                                     e->data.scopedId.entry->data.enumConst.data
@@ -2763,7 +2734,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
             break;
           }
           case TK_LONG: {
-            IR(b, MOVE(LONG_WIDTH, irOperandCopy(dest),
+            IR(b, MOVE(irOperandCopy(dest),
                        CONSTANT(LONG_WIDTH,
                                 longDatumCreate(s64ToU64(
                                     (int64_t)e->data.scopedId.entry->data
@@ -2775,7 +2746,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           }
         }
       } else {
-        IR(b, MOVE(POINTER_WIDTH, irOperandCopy(dest),
+        IR(b, MOVE(irOperandCopy(dest),
                    GLOBAL(getMangledName(e->data.scopedId.entry))));
       }
       IR(b, JUMP(nextLabel));
@@ -2786,14 +2757,13 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
       IROperand *dest = TEMPOF(fresh(file), expressionTypeof(e));
       if (e->data.id.entry->kind == SK_VARIABLE) {
         if (e->data.id.entry->data.variable.temp == 0)
-          IR(b, MEM_LOAD(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
+          IR(b, MEM_LOAD(irOperandCopy(dest),
                          GLOBAL(getMangledName(e->data.id.entry)), OFFSET(0)));
         else
-          IR(b, MOVE(typeSizeof(expressionTypeof(e)), irOperandCopy(dest),
-                     TEMPVAR(e->data.id.entry)));
+          IR(b, MOVE(irOperandCopy(dest), TEMPVAR(e->data.id.entry)));
       } else {
-        IR(b, MOVE(POINTER_WIDTH, irOperandCopy(dest),
-                   GLOBAL(getMangledName(e->data.id.entry))));
+        IR(b,
+           MOVE(irOperandCopy(dest), GLOBAL(getMangledName(e->data.id.entry))));
       }
       IR(b, JUMP(nextLabel));
       return dest;
@@ -2901,8 +2871,7 @@ static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
           IRBlock *b = BLOCK(shortCircuitLabel, blocks);
           IROperand *lhsVal =
               translateLValueLoad(b, lvalue, TEMPBOOL(fresh(file)), file);
-          IR(b, BJUMP(BOOL_WIDTH,
-                      e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
+          IR(b, BJUMP(e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
                       nextLabel, lhsVal));
           IR(b, JUMP(rhsLabel));
           size_t assignmentLabel = fresh(file);
@@ -3353,7 +3322,7 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
                   jumpTable[entryIdx + 1].value.signedVal - 1) {
             // singleton
             IRBlock *b = BLOCK(curr, blocks);
-            IR(b, CJUMP(size, IO_E, jumpTable[entryIdx].label, irOperandCopy(o),
+            IR(b, CJUMP(IO_E, jumpTable[entryIdx].label, irOperandCopy(o),
                         signedJumpTableEntryToConstant(&jumpTable[entryIdx],
                                                        size)));
             IR(b, JUMP(entryIdx == jumpTableLen - 1 ? defaultLabel
@@ -3378,14 +3347,14 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
 
             size_t gtFallthroughLabel = fresh(file);
             IRBlock *b = BLOCK(curr, blocks);
-            IR(b, CJUMP(size, IO_L, defaultLabel, irOperandCopy(o),
+            IR(b, CJUMP(IO_L, defaultLabel, irOperandCopy(o),
                         signedJumpTableEntryToConstant(&jumpTable[entryIdx],
                                                        size)));
             IR(b, JUMP(gtFallthroughLabel));
 
             size_t tableDerefLabel = fresh(file);
             b = BLOCK(gtFallthroughLabel, blocks);
-            IR(b, CJUMP(size, IO_G, next, irOperandCopy(o),
+            IR(b, CJUMP(IO_G, next, irOperandCopy(o),
                         signedJumpTableEntryToConstant(&jumpTable[end], size)));
             IR(b, JUMP(tableDerefLabel));
 
@@ -3394,24 +3363,22 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
             size_t multipliedOffset = fresh(file);
             size_t target = fresh(file);
             b = BLOCK(tableDerefLabel, blocks);
-            IR(b,
-               BINOP(
-                   size, IO_SUB, TEMPOF(target, switchedType), irOperandCopy(o),
-                   signedJumpTableEntryToConstant(&jumpTable[entryIdx], size)));
+            IR(b, BINOP(IO_SUB, TEMPOF(target, switchedType), irOperandCopy(o),
+                        signedJumpTableEntryToConstant(&jumpTable[entryIdx],
+                                                       size)));
             if (size != 8) {
               castOffset = fresh(file);
-              IR(b, UNOP(size, IO_SX_LONG, TEMPPTR(castOffset),
+              IR(b, UNOP(IO_SX, TEMPPTR(castOffset),
                          TEMPOF(offset, switchedType)));
             } else {
               castOffset = offset;
             }
 
             IR(b,
-               BINOP(POINTER_WIDTH, IO_SMUL, TEMPPTR(multipliedOffset),
-                     TEMPPTR(castOffset),
+               BINOP(IO_SMUL, TEMPPTR(multipliedOffset), TEMPPTR(castOffset),
                      CONSTANT(POINTER_WIDTH, longDatumCreate(POINTER_WIDTH))));
-            IR(b, BINOP(POINTER_WIDTH, IO_ADD, TEMPPTR(target),
-                        TEMPPTR(multipliedOffset), LOCAL(tableLabel)));
+            IR(b, BINOP(IO_ADD, TEMPPTR(target), TEMPPTR(multipliedOffset),
+                        LOCAL(tableLabel)));
             IR(b, JUMP(target));
 
             curr = next;
@@ -3425,7 +3392,7 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
                   jumpTable[entryIdx + 1].value.unsignedVal - 1) {
             // singleton
             IRBlock *b = BLOCK(curr, blocks);
-            IR(b, CJUMP(size, IO_E, jumpTable[entryIdx].label, irOperandCopy(o),
+            IR(b, CJUMP(IO_E, jumpTable[entryIdx].label, irOperandCopy(o),
                         unsignedJumpTableEntryToConstant(&jumpTable[entryIdx],
                                                          size)));
             IR(b, JUMP(entryIdx == jumpTableLen - 1 ? defaultLabel
@@ -3450,7 +3417,7 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
 
             size_t gtFallthroughLabel = fresh(file);
             IRBlock *b = BLOCK(curr, blocks);
-            IR(b, CJUMP(size, IO_B, defaultLabel, irOperandCopy(o),
+            IR(b, CJUMP(IO_B, defaultLabel, irOperandCopy(o),
                         unsignedJumpTableEntryToConstant(&jumpTable[entryIdx],
                                                          size)));
             IR(b, JUMP(gtFallthroughLabel));
@@ -3458,7 +3425,7 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
             size_t tableDerefLabel = fresh(file);
             b = BLOCK(gtFallthroughLabel, blocks);
             IR(b,
-               CJUMP(size, IO_A, next, irOperandCopy(o),
+               CJUMP(IO_A, next, irOperandCopy(o),
                      unsignedJumpTableEntryToConstant(&jumpTable[end], size)));
             IR(b, JUMP(tableDerefLabel));
 
@@ -3467,24 +3434,22 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
             size_t multipliedOffset = fresh(file);
             size_t target = fresh(file);
             b = BLOCK(tableDerefLabel, blocks);
-            IR(b, BINOP(size, IO_SUB, TEMPOF(target, switchedType),
-                        irOperandCopy(o),
+            IR(b, BINOP(IO_SUB, TEMPOF(target, switchedType), irOperandCopy(o),
                         unsignedJumpTableEntryToConstant(&jumpTable[entryIdx],
                                                          size)));
             if (size != 8) {
               castOffset = fresh(file);
-              IR(b, UNOP(size, IO_ZX_LONG, TEMPPTR(castOffset),
+              IR(b, UNOP(IO_ZX, TEMPPTR(castOffset),
                          TEMPOF(offset, switchedType)));
             } else {
               castOffset = offset;
             }
 
             IR(b,
-               BINOP(POINTER_WIDTH, IO_UMUL, TEMPPTR(multipliedOffset),
-                     TEMPPTR(castOffset),
+               BINOP(IO_UMUL, TEMPPTR(multipliedOffset), TEMPPTR(castOffset),
                      CONSTANT(POINTER_WIDTH, longDatumCreate(POINTER_WIDTH))));
-            IR(b, BINOP(POINTER_WIDTH, IO_ADD, TEMPPTR(target),
-                        TEMPPTR(multipliedOffset), LOCAL(tableLabel)));
+            IR(b, BINOP(IO_ADD, TEMPPTR(target), TEMPPTR(multipliedOffset),
+                        LOCAL(tableLabel)));
             IR(b, JUMP(target));
 
             curr = next;
@@ -3515,8 +3480,7 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
         IROperand *casted = translateCast(
             b, value, expressionTypeof(stmt->data.returnStmt.value), returnType,
             file);
-        IR(b, MOVE(casted->data.temp.size,
-                   TEMP(returnValueTemp, casted->data.temp.alignment,
+        IR(b, MOVE(TEMP(returnValueTemp, casted->data.temp.alignment,
                         casted->data.temp.size, casted->data.temp.kind),
                    casted));
         IR(b, JUMP(returnLabel));
@@ -3555,7 +3519,7 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
               IROperand *memTemp =
                   TEMP(fresh(file), typeAlignof(e->data.variable.type),
                        typeSizeof(e->data.variable.type), AH_MEM);
-              IR(b, MOVE(typeSizeof(e->data.variable.type), memTemp, o));
+              IR(b, MOVE(memTemp, o));
               IR(b, JUMP(nextLabel));
               e->data.variable.temp = memTemp->data.temp.name;
             } else {
@@ -3578,7 +3542,7 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
               IROperand *memTemp =
                   TEMP(fresh(file), typeAlignof(e->data.variable.type),
                        typeSizeof(e->data.variable.type), AH_MEM);
-              IR(b, MOVE(typeSizeof(e->data.variable.type), memTemp, o));
+              IR(b, MOVE(memTemp, o));
               IR(b, JUMP(next));
               e->data.variable.temp = memTemp->data.temp.name;
             } else {
