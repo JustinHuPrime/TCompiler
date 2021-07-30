@@ -771,7 +771,402 @@ static void translateLiteral(Node const *name, Node const *initializer,
 static IROperand *translateCast(IRBlock *b, IROperand *src,
                                 Type const *fromType, Type const *toType,
                                 FileListEntry *file) {
-  return NULL;  // TODO
+  // all casts happen on non-CV types, and to the backing type of an enum
+  fromType = stripCV(fromType);
+  if (fromType->kind == TK_REFERENCE &&
+      fromType->data.reference.entry->kind == SK_ENUM)
+    fromType = fromType->data.reference.entry->data.enumType.backingType;
+  toType = stripCV(toType);
+  if (toType->kind == TK_REFERENCE &&
+      toType->data.reference.entry->kind == SK_ENUM)
+    toType = toType->data.reference.entry->data.enumType.backingType;
+
+  if (typeIntegral(fromType) && typeIntegral(toType)) {
+    // integral to integral
+    switch (toType->data.keyword.keyword) {
+      case TK_UBYTE: {
+        switch (toType->data.keyword.keyword) {
+          case TK_UBYTE:
+          case TK_BYTE: {
+            return src;
+          }
+          case TK_USHORT:
+          case TK_SHORT:
+          case TK_UINT:
+          case TK_INT:
+          case TK_ULONG:
+          case TK_LONG: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_ZX, irOperandCopy(out), src));
+            return out;
+          }
+          default: {
+            error(__FILE__, __LINE__, "invalid integral type keyword");
+          }
+        }
+      }
+      case TK_BYTE: {
+        switch (toType->data.keyword.keyword) {
+          case TK_UBYTE:
+          case TK_BYTE: {
+            return src;
+          }
+          case TK_USHORT:
+          case TK_SHORT:
+          case TK_UINT:
+          case TK_INT:
+          case TK_ULONG:
+          case TK_LONG: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_SX, irOperandCopy(out), src));
+            return out;
+          }
+          default: {
+            error(__FILE__, __LINE__, "invalid integral type keyword");
+          }
+        }
+      }
+      case TK_USHORT: {
+        switch (toType->data.keyword.keyword) {
+          case TK_UBYTE:
+          case TK_BYTE: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_TRUNC, irOperandCopy(out), src));
+            return out;
+          }
+          case TK_USHORT:
+          case TK_SHORT: {
+            return src;
+          }
+          case TK_UINT:
+          case TK_INT:
+          case TK_ULONG:
+          case TK_LONG: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_ZX, irOperandCopy(out), src));
+            return out;
+          }
+          default: {
+            error(__FILE__, __LINE__, "invalid integral type keyword");
+          }
+        }
+      }
+      case TK_SHORT: {
+        switch (toType->data.keyword.keyword) {
+          case TK_UBYTE:
+          case TK_BYTE: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_TRUNC, irOperandCopy(out), src));
+            return out;
+          }
+          case TK_USHORT:
+          case TK_SHORT: {
+            return src;
+          }
+          case TK_UINT:
+          case TK_INT:
+          case TK_ULONG:
+          case TK_LONG: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_SX, irOperandCopy(out), src));
+            return out;
+          }
+          default: {
+            error(__FILE__, __LINE__, "invalid integral type keyword");
+          }
+        }
+      }
+      case TK_UINT: {
+        switch (toType->data.keyword.keyword) {
+          case TK_UBYTE:
+          case TK_BYTE:
+          case TK_USHORT:
+          case TK_SHORT: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_TRUNC, irOperandCopy(out), src));
+            return out;
+          }
+          case TK_UINT:
+          case TK_INT: {
+            return src;
+          }
+          case TK_ULONG:
+          case TK_LONG: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_ZX, irOperandCopy(out), src));
+            return out;
+          }
+          default: {
+            error(__FILE__, __LINE__, "invalid integral type keyword");
+          }
+        }
+      }
+      case TK_INT: {
+        switch (toType->data.keyword.keyword) {
+          case TK_UBYTE:
+          case TK_BYTE:
+          case TK_USHORT:
+          case TK_SHORT: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_TRUNC, irOperandCopy(out), src));
+            return out;
+          }
+          case TK_UINT:
+          case TK_INT: {
+            return src;
+          }
+          case TK_ULONG:
+          case TK_LONG: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_SX, irOperandCopy(out), src));
+            return out;
+          }
+          default: {
+            error(__FILE__, __LINE__, "invalid integral type keyword");
+          }
+        }
+      }
+      case TK_LONG:
+      case TK_ULONG: {
+        switch (toType->data.keyword.keyword) {
+          case TK_UBYTE:
+          case TK_BYTE:
+          case TK_USHORT:
+          case TK_SHORT:
+          case TK_UINT:
+          case TK_INT: {
+            IROperand *out = TEMPOF(fresh(file), toType);
+            IR(b, UNOP(IO_TRUNC, irOperandCopy(out), src));
+            return out;
+          }
+          case TK_ULONG:
+          case TK_LONG: {
+            return src;
+          }
+          default: {
+            error(__FILE__, __LINE__, "invalid integral type keyword");
+          }
+        }
+      }
+      default: {
+        error(__FILE__, __LINE__, "invalid integral type keyword");
+      }
+    }
+  } else if (typeIntegral(fromType) && typeFloating(toType)) {
+    // integral to float
+    IROperand *out = TEMPOF(fresh(file), toType);
+    if (typeSignedIntegral(fromType))
+      IR(b, UNOP(IO_SIGNED2FLOATING, irOperandCopy(out), src));
+    else
+      IR(b, UNOP(IO_UNSIGNED2FLOATING, irOperandCopy(out), src));
+
+    return out;
+  } else if (typeIntegral(fromType) && typeCharacter(toType)) {
+    // integral to char
+    if (toType->data.keyword.keyword == TK_CHAR) {
+      if (typeSizeof(fromType) == CHAR_WIDTH) {
+        return src;
+      } else {
+        IROperand *out = TEMPOF(fresh(file), toType);
+        IR(b, UNOP(IO_TRUNC, irOperandCopy(out), src));
+        return out;
+      }
+    } else {
+      if (typeSizeof(fromType) == WCHAR_WIDTH) {
+        return src;
+      } else if (typeSizeof(fromType) < WCHAR_WIDTH) {
+        IROperand *out = TEMPOF(fresh(file), toType);
+        IR(b, UNOP(IO_TRUNC, irOperandCopy(out), src));
+        return out;
+      } else if (typeSignedIntegral(fromType)) {
+        IROperand *out = TEMPOF(fresh(file), toType);
+        IR(b, UNOP(IO_SX, irOperandCopy(out), src));
+        return out;
+      } else {
+        IROperand *out = TEMPOF(fresh(file), toType);
+        IR(b, UNOP(IO_ZX, irOperandCopy(out), src));
+        return out;
+      }
+    }
+  } else if (typeFloating(fromType) && typeIntegral(toType)) {
+    // floating to integral
+    IROperand *out = TEMPOF(fresh(file), toType);
+    IR(b, UNOP(IO_FLOATING2INTEGRAL, irOperandCopy(out), src));
+    return out;
+  } else if (typeFloating(fromType) && typeFloating(toType)) {
+    // floating to floating
+    if (fromType->data.keyword.keyword == toType->data.keyword.keyword) {
+      return src;
+    } else {
+      IROperand *out = TEMPOF(fresh(file), toType);
+      IR(b, UNOP(IO_RESIZEFLOATING, irOperandCopy(out), src));
+      return out;
+    }
+  } else if (typeFloating(fromType) && typeCharacter(toType)) {
+    // floating to character
+    IROperand *out = TEMPOF(fresh(file), toType);
+    IR(b, UNOP(IO_FLOATING2INTEGRAL, irOperandCopy(out), src));
+    return out;
+  } else if (typeCharacter(fromType) && typeIntegral(toType)) {
+    // character to integral
+    if (fromType->data.keyword.keyword == TK_CHAR) {
+      switch (toType->data.keyword.keyword) {
+        case TK_UBYTE:
+        case TK_BYTE: {
+          return src;
+        }
+        case TK_USHORT:
+        case TK_SHORT:
+        case TK_UINT:
+        case TK_INT:
+        case TK_ULONG:
+        case TK_LONG: {
+          IROperand *out = TEMPOF(fresh(file), toType);
+          IR(b, UNOP(IO_ZX, irOperandCopy(out), src));
+          return out;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid integral type keyword");
+        }
+      }
+    } else {
+      switch (toType->data.keyword.keyword) {
+        case TK_UBYTE:
+        case TK_BYTE:
+        case TK_USHORT:
+        case TK_SHORT: {
+          IROperand *out = TEMPOF(fresh(file), toType);
+          IR(b, UNOP(IO_TRUNC, irOperandCopy(out), src));
+          return out;
+        }
+        case TK_UINT:
+        case TK_INT: {
+          return src;
+        }
+        case TK_ULONG:
+        case TK_LONG: {
+          IROperand *out = TEMPOF(fresh(file), toType);
+          IR(b, UNOP(IO_ZX, irOperandCopy(out), src));
+          return out;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid integral type keyword");
+        }
+      }
+    }
+  } else if (typeCharacter(fromType) && typeFloating(toType)) {
+    // character to floating
+    IROperand *out = TEMPOF(fresh(file), toType);
+    IR(b, UNOP(IO_UNSIGNED2FLOATING, irOperandCopy(out), src));
+    return out;
+  } else if (typeCharacter(fromType) && typeCharacter(toType)) {
+    // character to character
+    if (fromType->data.keyword.keyword == toType->data.keyword.keyword) {
+      return src;
+    } else if (fromType->data.keyword.keyword == TK_CHAR) {
+      IROperand *out = TEMPOF(fresh(file), toType);
+      IR(b, UNOP(IO_ZX, irOperandCopy(out), src));
+      return out;
+    } else {
+      IROperand *out = TEMPOF(fresh(file), toType);
+      IR(b, UNOP(IO_SX, irOperandCopy(out), src));
+      return out;
+    }
+  } else if (fromType->kind == TK_AGGREGATE && toType->kind == TK_REFERENCE) {
+    // aggregate initializer to struct
+    IROperand *out = TEMPOF(fresh(file), toType);
+    SymbolTableEntry *entry = toType->data.reference.entry;
+    size_t srcOffset = 0;
+    size_t destOffset = 0;
+    for (size_t idx = 0; idx < fromType->data.aggregate.types.size; ++idx) {
+      Type const *srcElementType = fromType->data.aggregate.types.elements[idx];
+      Type const *destElementType =
+          entry->data.structType.fieldTypes.elements[idx];
+      IROperand *uncastElement = TEMPOF(fresh(file), srcElementType);
+      IR(b, OFFSET_LOAD(irOperandCopy(uncastElement), irOperandCopy(src),
+                        OFFSET((int64_t)srcOffset)));
+      IROperand *castElement = translateCast(b, uncastElement, srcElementType,
+                                             destElementType, file);
+      IR(b, OFFSET_STORE(irOperandCopy(out), castElement,
+                         OFFSET((int64_t)destOffset)));
+      if (idx + 1 < fromType->data.aggregate.types.size) {
+        srcOffset = incrementToMultiple(
+            srcOffset + typeSizeof(srcElementType),
+            typeAlignof(fromType->data.aggregate.types.elements[idx + 1]));
+        destOffset = incrementToMultiple(
+            destOffset + typeSizeof(destElementType),
+            typeAlignof(entry->data.structType.fieldTypes.elements[idx + 1]));
+      }
+    }
+    irOperandFree(src);
+    return out;
+  } else if (fromType->kind == TK_AGGREGATE && toType->kind == TK_ARRAY) {
+    // aggregate initializer to array
+    IROperand *out = TEMPOF(fresh(file), toType);
+    Type const *destElementType = toType->data.array.type;
+    size_t srcOffset = 0;
+    size_t destOffset = 0;
+    for (size_t idx = 0; idx < fromType->data.aggregate.types.size; ++idx) {
+      Type const *srcElementType = fromType->data.aggregate.types.elements[idx];
+      IROperand *uncastElement = TEMPOF(fresh(file), srcElementType);
+      IR(b, OFFSET_LOAD(irOperandCopy(uncastElement), irOperandCopy(src),
+                        OFFSET((int64_t)srcOffset)));
+      IROperand *castElement = translateCast(b, uncastElement, srcElementType,
+                                             destElementType, file);
+      IR(b, OFFSET_STORE(irOperandCopy(out), castElement,
+                         OFFSET((int64_t)destOffset)));
+      if (idx + 1 < fromType->data.aggregate.types.size) {
+        srcOffset = incrementToMultiple(
+            srcOffset + typeSizeof(srcElementType),
+            typeAlignof(fromType->data.aggregate.types.elements[idx + 1]));
+        destOffset =
+            incrementToMultiple(destOffset + typeSizeof(destElementType),
+                                typeAlignof(destElementType));
+      }
+    }
+    return out;
+  } else if (fromType->kind == TK_ARRAY && toType->kind == TK_POINTER) {
+    // array to pointer
+    IROperand *out = TEMPOF(fresh(file), toType);
+    IR(b, UNOP(IO_ADDROF, irOperandCopy(out), src));
+    return out;
+  } else if (typeBoolean(fromType) && typeNumeric(toType)) {
+    // boolean to number
+    switch (toType->data.keyword.keyword) {
+      case TK_UBYTE:
+      case TK_BYTE: {
+        return src;
+      }
+      case TK_USHORT:
+      case TK_SHORT:
+      case TK_UINT:
+      case TK_INT:
+      case TK_ULONG:
+      case TK_LONG: {
+        IROperand *out = TEMPOF(fresh(file), toType);
+        IR(b, UNOP(IO_ZX, irOperandCopy(out), src));
+        return out;
+      }
+      case TK_FLOAT:
+      case TK_DOUBLE: {
+        IROperand *out = TEMPOF(fresh(file), toType);
+        IR(b, UNOP(IO_UNSIGNED2FLOATING, irOperandCopy(out), src));
+        return out;
+      }
+      default: {
+        error(__FILE__, __LINE__, "invalid integral type keyword");
+      }
+    }
+  } else if ((typeNumeric(fromType) || typePointer(fromType)) &&
+             typeBoolean(toType)) {
+    // integral, floating, pointer to boolean
+    IROperand *out = TEMPOF(fresh(file), toType);
+    IR(b, UNOP(IO_Z, irOperandCopy(out), src));
+    return out;
+  } else {
+    // pointer-pointer and aliasing area all no-op conversions
+    return src;
+  }
 }
 
 /**
