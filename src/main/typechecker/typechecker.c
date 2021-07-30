@@ -673,8 +673,7 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
         case BO_LT:
         case BO_GT:
         case BO_LTEQ:
-        case BO_GTEQ:
-        case BO_SPACESHIP: {
+        case BO_GTEQ: {
           Type const *lhsType =
               typecheckExpression(exp->data.binOpExp.lhs, entry);
           Type const *rhsType =
@@ -689,9 +688,7 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
             exp->data.binOpExp.comparisonType = merged;
           }
 
-          return exp->data.binOpExp.type = exp->data.binOpExp.op == BO_SPACESHIP
-                                               ? keywordTypeCreate(TK_BYTE)
-                                               : keywordTypeCreate(TK_BOOL);
+          return exp->data.binOpExp.type = keywordTypeCreate(TK_BOOL);
         }
         case BO_LSHIFT:
         case BO_LRSHIFT: {

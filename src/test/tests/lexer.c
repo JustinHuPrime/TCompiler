@@ -40,216 +40,141 @@ static void testAllTokens(void) {
 
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
-  TokenType const types[] = {
-      TT_MODULE,        TT_IMPORT,       TT_OPAQUE,
-      TT_STRUCT,        TT_UNION,        TT_ENUM,
-      TT_TYPEDEF,       TT_IF,           TT_ELSE,
-      TT_WHILE,         TT_DO,           TT_FOR,
-      TT_SWITCH,        TT_CASE,         TT_DEFAULT,
-      TT_BREAK,         TT_CONTINUE,     TT_RETURN,
-      TT_ASM,           TT_CAST,         TT_SIZEOF,
-      TT_TRUE,          TT_FALSE,        TT_NULL,
-      TT_VOID,          TT_UBYTE,        TT_BYTE,
-      TT_CHAR,          TT_USHORT,       TT_SHORT,
-      TT_UINT,          TT_INT,          TT_WCHAR,
-      TT_ULONG,         TT_LONG,         TT_FLOAT,
-      TT_DOUBLE,        TT_BOOL,         TT_CONST,
-      TT_VOLATILE,      TT_SEMI,         TT_COMMA,
-      TT_LPAREN,        TT_RPAREN,       TT_LSQUARE,
-      TT_RSQUARE,       TT_LBRACE,       TT_RBRACE,
-      TT_DOT,           TT_ARROW,        TT_INC,
-      TT_DEC,           TT_STAR,         TT_AMP,
-      TT_PLUS,          TT_MINUS,        TT_BANG,
-      TT_TILDE,         TT_NEGASSIGN,    TT_LNOTASSIGN,
-      TT_BITNOTASSIGN,  TT_SLASH,        TT_PERCENT,
-      TT_LSHIFT,        TT_ARSHIFT,      TT_LRSHIFT,
-      TT_SPACESHIP,     TT_LANGLE,       TT_RANGLE,
-      TT_LTEQ,          TT_GTEQ,         TT_EQ,
-      TT_NEQ,           TT_BAR,          TT_CARET,
-      TT_LAND,          TT_LOR,          TT_QUESTION,
-      TT_COLON,         TT_ASSIGN,       TT_MULASSIGN,
-      TT_DIVASSIGN,     TT_MODASSIGN,    TT_ADDASSIGN,
-      TT_SUBASSIGN,     TT_LSHIFTASSIGN, TT_ARSHIFTASSIGN,
-      TT_LRSHIFTASSIGN, TT_BITANDASSIGN, TT_BITXORASSIGN,
-      TT_BITORASSIGN,   TT_LANDASSIGN,   TT_LORASSIGN,
-      TT_SCOPE,         TT_ID,           TT_ID,
-      TT_LIT_STRING,    TT_LIT_WSTRING,  TT_LIT_CHAR,
-      TT_LIT_WCHAR,     TT_LIT_INT_D,    TT_LIT_INT_H,
-      TT_LIT_INT_B,     TT_LIT_INT_O,    TT_LIT_INT_0,
-      TT_LIT_DOUBLE,    TT_LIT_FLOAT,    TT_LIT_STRING,
-      TT_LIT_INT_D,     TT_LIT_STRING,   TT_EOF,
+  typedef struct {
+    TokenType type;
+    size_t const line;
+    size_t const character;
+    char const *string;
+  } TokenRecord;
+  TokenRecord const TOKENS[] = {
+      {TT_MODULE, 1, 1, NULL},
+      {TT_IMPORT, 1, 8, NULL},
+      {TT_OPAQUE, 1, 15, NULL},
+      {TT_STRUCT, 1, 22, NULL},
+      {TT_UNION, 1, 29, NULL},
+      {TT_ENUM, 1, 35, NULL},
+      {TT_TYPEDEF, 1, 40, NULL},
+      {TT_IF, 1, 48, NULL},
+      {TT_ELSE, 1, 51, NULL},
+      {TT_WHILE, 1, 56, NULL},
+      {TT_DO, 1, 62, NULL},
+      {TT_FOR, 1, 65, NULL},
+      {TT_SWITCH, 1, 69, NULL},
+      {TT_CASE, 1, 76, NULL},
+
+      {TT_DEFAULT, 2, 1, NULL},
+      {TT_BREAK, 2, 9, NULL},
+      {TT_CONTINUE, 2, 15, NULL},
+      {TT_RETURN, 2, 24, NULL},
+      {TT_ASM, 2, 31, NULL},
+      {TT_CAST, 2, 35, NULL},
+      {TT_SIZEOF, 2, 40, NULL},
+      {TT_TRUE, 2, 47, NULL},
+      {TT_FALSE, 2, 52, NULL},
+      {TT_NULL, 2, 58, NULL},
+      {TT_VOID, 2, 63, NULL},
+      {TT_UBYTE, 2, 68, NULL},
+      {TT_BYTE, 2, 74, NULL},
+
+      {TT_CHAR, 3, 1, NULL},
+      {TT_USHORT, 3, 6, NULL},
+      {TT_SHORT, 3, 13, NULL},
+      {TT_UINT, 3, 19, NULL},
+      {TT_INT, 3, 24, NULL},
+      {TT_WCHAR, 3, 28, NULL},
+      {TT_ULONG, 3, 34, NULL},
+      {TT_LONG, 3, 40, NULL},
+      {TT_FLOAT, 3, 45, NULL},
+      {TT_DOUBLE, 3, 51, NULL},
+      {TT_BOOL, 3, 58, NULL},
+      {TT_CONST, 3, 63, NULL},
+      {TT_VOLATILE, 3, 69, NULL},
+
+      {TT_SEMI, 5, 1, NULL},
+      {TT_COMMA, 5, 2, NULL},
+      {TT_LPAREN, 5, 3, NULL},
+      {TT_RPAREN, 5, 4, NULL},
+      {TT_LSQUARE, 5, 5, NULL},
+      {TT_RSQUARE, 5, 6, NULL},
+      {TT_LBRACE, 5, 7, NULL},
+      {TT_RBRACE, 5, 8, NULL},
+      {TT_DOT, 5, 9, NULL},
+      {TT_ARROW, 5, 10, NULL},
+      {TT_INC, 5, 12, NULL},
+      {TT_DEC, 5, 14, NULL},
+      {TT_STAR, 5, 16, NULL},
+      {TT_AMP, 5, 17, NULL},
+      {TT_PLUS, 5, 18, NULL},
+      {TT_MINUS, 5, 19, NULL},
+      {TT_BANG, 5, 20, NULL},
+      {TT_TILDE, 5, 21, NULL},
+      {TT_NEGASSIGN, 5, 22, NULL},
+      {TT_LNOTASSIGN, 5, 24, NULL},
+      {TT_BITNOTASSIGN, 5, 26, NULL},
+      {TT_SLASH, 5, 28, NULL},
+      {TT_PERCENT, 5, 29, NULL},
+      {TT_LSHIFT, 5, 30, NULL},
+      {TT_ARSHIFT, 5, 32, NULL},
+      {TT_LRSHIFT, 5, 35, NULL},
+      {TT_LANGLE, 5, 38, NULL},
+      {TT_RANGLE, 5, 39, NULL},
+      {TT_LTEQ, 5, 40, NULL},
+      {TT_GTEQ, 5, 42, NULL},
+      {TT_EQ, 5, 44, NULL},
+      {TT_NEQ, 5, 46, NULL},
+      {TT_BAR, 5, 48, NULL},
+      {TT_CARET, 5, 49, NULL},
+      {TT_LAND, 5, 50, NULL},
+      {TT_LOR, 5, 52, NULL},
+      {TT_QUESTION, 5, 54, NULL},
+      {TT_COLON, 5, 55, NULL},
+      {TT_ASSIGN, 5, 56, NULL},
+      {TT_MULASSIGN, 5, 57, NULL},
+      {TT_DIVASSIGN, 5, 59, NULL},
+      {TT_MODASSIGN, 5, 61, NULL},
+      {TT_ADDASSIGN, 5, 63, NULL},
+      {TT_SUBASSIGN, 5, 65, NULL},
+      {TT_LSHIFTASSIGN, 5, 67, NULL},
+      {TT_ARSHIFTASSIGN, 5, 70, NULL},
+      {TT_LRSHIFTASSIGN, 5, 73, NULL},
+      {TT_BITANDASSIGN, 5, 77, NULL},
+
+      {TT_BITXORASSIGN, 6, 1, NULL},
+      {TT_BITORASSIGN, 6, 3, NULL},
+      {TT_LANDASSIGN, 6, 5, NULL},
+      {TT_LORASSIGN, 6, 8, NULL},
+      {TT_SCOPE, 6, 11, NULL},
+
+      {TT_ID, 8, 1, "identifier"},
+      {TT_ID, 8, 30, "identifier2"},
+
+      {TT_LIT_STRING, 10, 23, "string literal"},
+      {TT_LIT_WSTRING, 10, 39, "wstring literal"},
+      {TT_LIT_CHAR, 10, 57, "c"},
+      {TT_LIT_WCHAR, 10, 60, "w"},
+      {TT_LIT_INT_D, 10, 64, "+1"},
+      {TT_LIT_INT_H, 10, 66, "-0xf"},
+      {TT_LIT_INT_B, 10, 71, "0b1"},
+      {TT_LIT_INT_O, 10, 74, "+0377"},
+
+      {TT_LIT_INT_0, 14, 1, "0"},
+      {TT_LIT_DOUBLE, 14, 3, "1.1"},
+      {TT_LIT_FLOAT, 14, 6, "+1.1f"},
+
+      {TT_LIT_STRING, 16, 1, "testFiles/lexer/allTokens.tc"},
+      {TT_LIT_INT_D, 16, 10, "16"},
+      {TT_LIT_STRING, 16, 19, "T Language Compiler (tlc) version 0.2.0"},
+      {TT_EOF, 16, 30, NULL},
   };
-  size_t const characters[] = {
-      1,  8,  15, 22, 29, 35, 40, 48, 51, 56, 62, 65, 69, 76,
 
-      1,  9,  15, 24, 31, 35, 40, 47, 52, 58, 63, 68, 74,
-
-      1,  6,  13, 19, 24, 28, 34, 40, 45, 51, 58, 63, 69,
-
-      1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 12, 14, 16, 17, 18, 19,
-      20, 21, 22, 24, 26, 28, 29, 30, 32, 35, 38, 41, 42, 43, 46, 48,
-      50, 52, 53, 54, 56, 58, 59, 60, 61, 63, 65, 67, 69, 71, 74,
-
-      1,  5,  7,  9,  11, 14, 17,
-
-      1,  30,
-
-      23, 39, 57, 60, 64, 66, 71, 74,
-
-      1,  3,  6,
-
-      1,  10, 19, 30,
-  };
-  size_t const lines[] = {
-      1,  1,  1,  1,  1,  1,  1,  1,  1, 1, 1, 1, 1, 1,
-
-      2,  2,  2,  2,  2,  2,  2,  2,  2, 2, 2, 2, 2,
-
-      3,  3,  3,  3,  3,  3,  3,  3,  3, 3, 3, 3, 3,
-
-      5,  5,  5,  5,  5,  5,  5,  5,  5, 5, 5, 5, 5, 5, 5, 5,
-      5,  5,  5,  5,  5,  5,  5,  5,  5, 5, 5, 5, 5, 5, 5, 5,
-      5,  5,  5,  5,  5,  5,  5,  5,  5, 5, 5, 5, 5, 5, 5,
-
-      6,  6,  6,  6,  6,  6,  6,
-
-      8,  8,
-
-      10, 10, 10, 10, 10, 10, 10, 10,
-
-      14, 14, 14,
-
-      16, 16, 16, 16,
-  };
-  char const *const strings[] = {
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-
-      "identifier",
-      "identifier2",
-
-      "string literal",
-      "wstring literal",
-      "c",
-      "w",
-      "+1",
-      "-0xf",
-      "0b1",
-      "+0377",
-
-      "0",
-      "1.1",
-      "+1.1f",
-
-      "testFiles/lexer/allTokens.tc",
-      "16",
-      "T Language Compiler (tlc) version 0.2.0",
-      NULL,
-  };
-  size_t const numTokens = sizeof(types) / sizeof(TokenType);
+  size_t const numTokens = sizeof(TOKENS) / sizeof(TokenRecord);
 
   bool errorFlagOK = true;
   bool typeOK = true;
   bool characterOK = true;
   bool lineOK = true;
   bool additionalDataOK = true;
-  char const *messageString = "everything";
+  char const *messageString = NULL;
   for (size_t idx = 0; idx < numTokens; ++idx) {
     Token token;
     lex(&entry, &token);
@@ -259,28 +184,28 @@ static void testAllTokens(void) {
       messageString = TOKEN_NAMES[token.type];
       break;
     }
-    if (token.type != types[idx]) {
+    if (token.type != TOKENS[idx].type) {
       typeOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;
     }
-    if (token.character != characters[idx]) {
+    if (token.character != TOKENS[idx].character) {
       characterOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;
     }
-    if (token.line != lines[idx]) {
+    if (token.line != TOKENS[idx].line) {
       lineOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;
     }
-    if ((strings[idx] == NULL) != (token.string == NULL)) {
+    if ((TOKENS[idx].string == NULL) != (token.string == NULL)) {
       additionalDataOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;
     }
-    if (strings[idx] != NULL && token.string != NULL &&
-        strcmp(strings[idx], token.string) != 0) {
+    if (TOKENS[idx].string != NULL && token.string != NULL &&
+        strcmp(TOKENS[idx].string, token.string) != 0) {
       additionalDataOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;
@@ -311,36 +236,50 @@ static void testErrors(void) {
 
   test("lexer initializes okay", lexerStateInit(&entry) == 0);
 
-  bool const errors[] = {
-      true,  false, true,  false, true,  false, true,  false, true,
-      false, true,  false, true,  false, true,  false, true,  false,
-      true,  false, true,  false, true,  false, true,  false, true,
-      false, true,  false, true,  false, true,  true,
+  typedef struct {
+    bool error;
+    TokenType type;
+    size_t const line;
+    size_t const character;
+    char const *string;
+  } TokenRecord;
+  TokenRecord const TOKENS[] = {
+      {true, TT_BAD_HEX, 1, 1, NULL},
+      {false, TT_SEMI, 1, 3, NULL},
+      {true, TT_BAD_BIN, 2, 1, NULL},
+      {false, TT_SEMI, 2, 3, NULL},
+      {true, TT_LIT_WSTRING, 3, 1, "\\u00000000"},
+      {false, TT_SEMI, 3, 13, NULL},
+      {true, TT_BAD_STRING, 4, 1, NULL},
+      {false, TT_SEMI, 4, 7, NULL},
+      {true, TT_BAD_STRING, 5, 1, NULL},
+      {false, TT_SEMI, 5, 7, NULL},
+      {true, TT_BAD_STRING, 6, 1, NULL},
+      {false, TT_SEMI, 6, 5, NULL},
+      {true, TT_LIT_STRING, 7, 1, ""},
+      {false, TT_SEMI, 8, 1, NULL},
+      {true, TT_BAD_CHAR, 9, 1, NULL},
+      {false, TT_SEMI, 9, 3, NULL},
+      {true, TT_BAD_CHAR, 10, 1, NULL},
+      {false, TT_SEMI, 10, 7, NULL},
+      {true, TT_BAD_CHAR, 11, 1, NULL},
+      {false, TT_SEMI, 11, 7, NULL},
+      {true, TT_BAD_CHAR, 12, 1, NULL},
+      {false, TT_SEMI, 12, 5, NULL},
+      {true, TT_BAD_CHAR, 13, 1, NULL},
+      {false, TT_SEMI, 14, 1, NULL},
+      {true, TT_LIT_CHAR, 15, 1, "a"},
+      {false, TT_SEMI, 16, 1, NULL},
+      {true, TT_BAD_CHAR, 17, 1, NULL},
+      {false, TT_SEMI, 17, 5, NULL},
+      {true, TT_LIT_CHAR, 18, 1, "a"},
+      {false, TT_SEMI, 18, 6, NULL},
+      {true, TT_LIT_WCHAR, 19, 1, "\\u00000000"},
+      {false, TT_SEMI, 19, 13, NULL},
+      {true, TT_SEMI, 20, 2, NULL},
+      {true, TT_EOF, 22, 30, NULL},
   };
-  TokenType const types[] = {
-      TT_BAD_HEX,    TT_SEMI, TT_BAD_BIN,    TT_SEMI, TT_LIT_WSTRING, TT_SEMI,
-      TT_BAD_STRING, TT_SEMI, TT_BAD_STRING, TT_SEMI, TT_BAD_STRING,  TT_SEMI,
-      TT_LIT_STRING, TT_SEMI, TT_BAD_CHAR,   TT_SEMI, TT_BAD_CHAR,    TT_SEMI,
-      TT_BAD_CHAR,   TT_SEMI, TT_BAD_CHAR,   TT_SEMI, TT_BAD_CHAR,    TT_SEMI,
-      TT_LIT_CHAR,   TT_SEMI, TT_BAD_CHAR,   TT_SEMI, TT_LIT_CHAR,    TT_SEMI,
-      TT_LIT_WCHAR,  TT_SEMI, TT_SEMI,       TT_EOF,
-  };
-  size_t const characters[] = {
-      1, 3, 1, 3, 1, 13, 1, 7, 1, 7, 1, 5, 1, 1, 1,  3, 1,
-      7, 1, 7, 1, 5, 1,  1, 1, 1, 1, 5, 1, 6, 1, 13, 2, 30,
-  };
-  size_t const lines[] = {
-      1,  1,  2,  2,  3,  3,  4,  4,  5,  5,  6,  6,  7,  8,  9,  9,  10,
-      10, 11, 11, 12, 12, 13, 14, 15, 16, 17, 17, 18, 18, 19, 19, 20, 22,
-  };
-  char const *const strings[] = {
-      NULL, NULL, NULL,          NULL, "\\u00000000", NULL, NULL,
-      NULL, NULL, NULL,          NULL, NULL,          "",   NULL,
-      NULL, NULL, NULL,          NULL, NULL,          NULL, NULL,
-      NULL, NULL, NULL,          "a",  NULL,          NULL, NULL,
-      "a",  NULL, "\\u00000000", NULL, NULL,          NULL,
-  };
-  size_t const numTokens = sizeof(types) / sizeof(TokenType);
+  size_t const numTokens = sizeof(TOKENS) / sizeof(TokenRecord);
 
   bool errorFlagOK = true;
   bool typeOK = true;
@@ -351,33 +290,33 @@ static void testErrors(void) {
   for (size_t idx = 0; idx < numTokens; ++idx) {
     lex(&entry, &token);
 
-    if (entry.errored != errors[idx]) {
+    if (entry.errored != TOKENS[idx].error) {
       errorFlagOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;
     }
-    if (token.type != types[idx]) {
+    if (token.type != TOKENS[idx].type) {
       typeOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;
     }
-    if (token.character != characters[idx]) {
+    if (token.character != TOKENS[idx].character) {
       characterOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;
     }
-    if (token.line != lines[idx]) {
+    if (token.line != TOKENS[idx].line) {
       lineOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;
     }
-    if ((strings[idx] == NULL) != (token.string == NULL)) {
+    if ((TOKENS[idx].string == NULL) != (token.string == NULL)) {
       additionalDataOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;
     }
-    if (strings[idx] != NULL && token.string != NULL &&
-        strcmp(strings[idx], token.string) != 0) {
+    if (TOKENS[idx].string != NULL && token.string != NULL &&
+        strcmp(TOKENS[idx].string, token.string) != 0) {
       additionalDataOK = false;
       messageString = TOKEN_NAMES[token.type];
       break;

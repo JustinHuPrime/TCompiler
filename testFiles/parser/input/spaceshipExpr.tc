@@ -1,5 +1,0 @@
-module foo;
-
-void bar(int i, int j) {
-  i <=> j <=> i;
-}

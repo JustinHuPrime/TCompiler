@@ -1338,21 +1338,6 @@ static IROperand *translateGtEq(IRBlock *b, IROperand *lhs, Type const *lhsType,
                              IO_AE, file);
 }
 /**
- * translate a three-way comparison
- *
- * @param b block to add to
- * @param lhs lhs temp
- * @param lhsType type of lhs
- * @param rhs rhs temp
- * @param rhsType type of rhs
- * @returns owning temp containing result
- */
-static IROperand *translateSpaceship(IRBlock *b, IROperand *lhs,
-                                     Type const *lhsType, IROperand *rhs,
-                                     Type const *rhsType, FileListEntry *file) {
-  return NULL;  // TODO
-}
-/**
  * table of translation functions for BinOpType
  */
 IROperand *(*const BINOP_TRANSLATORS[])(IRBlock *, IROperand *, Type const *,
@@ -1384,7 +1369,6 @@ IROperand *(*const BINOP_TRANSLATORS[])(IRBlock *, IROperand *, Type const *,
     translateGt,
     translateLtEq,
     translateGtEq,
-    translateSpaceship,
     translateLShift,
     translateARShift,
     translateLRShift,
@@ -2330,7 +2314,6 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
         case BO_GT:
         case BO_LTEQ:
         case BO_GTEQ:
-        case BO_SPACESHIP:
         case BO_LSHIFT:
         case BO_ARSHIFT:
         case BO_LRSHIFT:
@@ -2847,7 +2830,6 @@ static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
         case BO_GT:
         case BO_LTEQ:
         case BO_GTEQ:
-        case BO_SPACESHIP:
         case BO_LSHIFT:
         case BO_ARSHIFT:
         case BO_LRSHIFT:

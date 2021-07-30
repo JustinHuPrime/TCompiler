@@ -588,55 +588,53 @@ Expressions perform computations and produce values. Generally, an expression in
 \hline
 \texttt{>=} & greater than or equal to & left to right & 7\\
 \hline
-\texttt{<=>} & three-way comparison & left to right & 8\\
+\texttt{<<} & left shift & left to right & 8\\
 \hline
-\texttt{<<} & left shift & left to right & 9\\
+\texttt{>>} & arithmetic right shift & left to right & 8\\
 \hline
-\texttt{>>} & arithmetic right shift & left to right & 9\\
+\texttt{>>>} & logical right shift & left to right & 8\\
 \hline
-\texttt{>>>} & logical right shift & left to right & 9\\
+\texttt{+} & addition & left to right & 9\\
 \hline
-\texttt{+} & addition & left to right & 10\\
+\texttt{-} & subtraction & left to right & 9\\
 \hline
-\texttt{-} & subtraction & left to right & 10\\
+\texttt{*} & multiplication & left to right & 10\\
 \hline
-\texttt{*} & multiplication & left to right & 11\\
+\texttt{/} & division & left to right & 10\\
 \hline
-\texttt{/} & division & left to right & 11\\
+\texttt{\%} & modulo & left to right & 10\\
 \hline
-\texttt{\%} & modulo & left to right & 11\\
+\texttt{*} & dereference & right to left & 11\\
 \hline
-\texttt{*} & dereference & right to left & 12\\
+\texttt{\&} & address of & right to left & 11\\
 \hline
-\texttt{\&} & address of & right to left & 12\\
+\texttt{++} & pre-increment & right to left & 11\\
 \hline
-\texttt{++} & pre-increment & right to left & 12\\
+\texttt{--} & pre-decrement & right to left & 11\\
 \hline
-\texttt{--} & pre-decrement & right to left & 12\\
+\texttt{-} & negation & right to left & 11\\
 \hline
-\texttt{-} & negation & right to left & 12\\
+\texttt{!} & logical not & right to left & 11\\
 \hline
-\texttt{!} & logical not & right to left & 12\\
+\texttt{\~{}} & bitwise not & right to left & 11\\
 \hline
-\texttt{\~{}} & bitwise not & right to left & 12\\
+\texttt{.} & member access & left to right & 12\\
 \hline
-\texttt{.} & member access & left to right & 13\\
+\texttt{->} & pointer member access & left to right & 12\\
 \hline
-\texttt{->} & pointer member access & left to right & 13\\
+\texttt{()} & function call & left to right & 12\\
 \hline
-\texttt{()} & function call & left to right & 13\\
+\texttt{[]} & array index & left to right & 12\\
 \hline
-\texttt{[]} & array index & left to right & 13\\
+\texttt{++} & post-increment & left to right & 12\\
 \hline
-\texttt{++} & post-increment & left to right & 13\\
+\texttt{--} & post-decrement & left to right & 12\\
 \hline
-\texttt{--} & post-decrement & left to right & 13\\
+\texttt{=-} & in-place negate & left to right & 12\\
 \hline
-\texttt{=-} & in-place negate & left to right & 13\\
+\texttt{=!} & in-place logical not & left to right & 12\\
 \hline
-\texttt{=!} & in-place logical not & left to right & 13\\
-\hline
-\texttt{=\~{}} & in-place bitwise not & left to right & 13\\
+\texttt{=\~{}} & in-place bitwise not & left to right & 12\\
 \hline
 \end{longtable}
 
@@ -695,14 +693,6 @@ The two operands are first converted into a common type (see \ref{subsection:Ari
 \lstinputlisting[breaklines=true, firstline=89, lastline=90]{"Appendix B - Syntax.ebnf"}
 
 Comparisons are valid for base types can be merged in a comparison type merge, and result in an rvalue boolean.
-
-\subsection{Three-Way Comparison Operators}
-
-\lstinputlisting[breaklines=true, firstline=91, lastline=91]{"Appendix B - Syntax.ebnf"}
-
-The three-way comparison operator expects its inputs to be numeric, characters, booleans, or pointers. It evaluates both inputs, and converts them to a common type (see Appendix D). Then, it compares these inputs. If the left hand side is less than the right hand side, it produces -1, if they are equal, 0, and if the left hand side is greater than the right hand side, it produces 1.
-
-The types must be mergeable in a comparison type merge. The operator checks like comparison operators do, and produces an rvalue byte indicating the relationship.
 
 \subsection{Shift Operators}
 

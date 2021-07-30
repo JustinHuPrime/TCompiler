@@ -115,7 +115,6 @@ typedef enum {
   BO_GT,
   BO_LTEQ,
   BO_GTEQ,
-  BO_SPACESHIP,
   BO_LSHIFT,
   BO_ARSHIFT,
   BO_LRSHIFT,

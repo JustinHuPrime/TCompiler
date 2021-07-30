@@ -2,8 +2,8 @@ module import opaque struct union enum typedef if else while do for switch case
 default break continue return asm cast sizeof true false null void ubyte byte
 char ushort short uint int wchar ulong long float double bool const volatile
 // line comment
-;,()[]{}.->++--*&+-!~=-=!=~/%<<>> >>><=><><= >===!=|^&&||?:=*=/=%=+=-=<<=>>=
->>>=&=^=|=&&=||=::
+;,()[]{}.->++--*&+-!~=-=!=~/%<<>> >>><><=>===!=|^&&||?:=*=/=%=+=-=<<=>>=>>>=&=
+^=|=&&=||=::
 
 identifier/* block comment */identifier2/* block comment
 

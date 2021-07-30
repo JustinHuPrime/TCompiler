@@ -106,7 +106,6 @@ typedef enum {
   TT_LSHIFT,
   TT_ARSHIFT,
   TT_LRSHIFT,
-  TT_SPACESHIP,
   TT_LANGLE,
   TT_RANGLE,
   TT_LTEQ,

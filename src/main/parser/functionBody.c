@@ -1554,41 +1554,6 @@ static Node *parseShiftExpression(FileListEntry *entry, Node *unparsed,
 }
 
 /**
- * parses a spaceship expression
- *
- * @param entry entry containing this node
- * @param unparsed unparsed node to read from
- * @param env environment to use
- * @param start first id in expression, or null if none provided
- *
- * @returns node or null on error
- */
-static Node *parseSpaceshipExpression(FileListEntry *entry, Node *unparsed,
-                                      Environment *env, Node *start) {
-  Node *exp = parseShiftExpression(entry, unparsed, env, start);
-  if (exp == NULL) {
-    return NULL;
-  }
-
-  while (true) {
-    Token op;
-    next(unparsed, &op);
-    if (op.type != TT_SPACESHIP) {
-      prev(unparsed, &op);
-      return exp;
-    }
-
-    Node *rhs = parseShiftExpression(entry, unparsed, env, NULL);
-    if (rhs == NULL) {
-      nodeFree(exp);
-      return NULL;
-    }
-
-    exp = binOpExpNodeCreate(BO_SPACESHIP, exp, rhs);
-  }
-}
-
-/**
  * parses a comparison expression
  *
  * @param entry entry containing this node
@@ -1600,7 +1565,7 @@ static Node *parseSpaceshipExpression(FileListEntry *entry, Node *unparsed,
  */
 static Node *parseComparisonExpression(FileListEntry *entry, Node *unparsed,
                                        Environment *env, Node *start) {
-  Node *exp = parseSpaceshipExpression(entry, unparsed, env, start);
+  Node *exp = parseShiftExpression(entry, unparsed, env, start);
   if (exp == NULL) {
     return NULL;
   }
@@ -1613,7 +1578,7 @@ static Node *parseComparisonExpression(FileListEntry *entry, Node *unparsed,
       case TT_RANGLE:
       case TT_LTEQ:
       case TT_GTEQ: {
-        Node *rhs = parseSpaceshipExpression(entry, unparsed, env, NULL);
+        Node *rhs = parseShiftExpression(entry, unparsed, env, NULL);
         if (rhs == NULL) {
           nodeFree(exp);
           return NULL;

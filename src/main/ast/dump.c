@@ -34,11 +34,11 @@ static char const *const BINOP_NAMES[] = {
     "LAND",          "LOR",          "BITAND",
     "BITOR",         "BITXOR",       "EQ",
     "NEQ",           "LT",           "GT",
-    "LTEQ",          "GTEQ",         "SPACESHIP",
-    "LSHIFT",        "ARSHIFT",      "LRSHIFT",
-    "ADD",           "SUB",          "MUL",
-    "DIV",           "MOD",          "FIELD",
-    "PTRFIELD",      "ARRAY",        "CAST",
+    "LTEQ",          "GTEQ",         "LSHIFT",
+    "ARSHIFT",       "LRSHIFT",      "ADD",
+    "SUB",           "MUL",          "DIV",
+    "MOD",           "FIELD",        "PTRFIELD",
+    "ARRAY",         "CAST",
 };
 
 static char const *const UNOP_NAMES[] = {

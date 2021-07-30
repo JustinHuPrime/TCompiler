@@ -1222,24 +1222,6 @@ static void testComparisonExprParser(void) {
   vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
-static void testSpaceshipExprParser(void) {
-  FileListEntry entries[1];
-  fileList.entries = &entries[0];
-  fileList.size = 1;
-
-  fileListEntryInit(&entries[0], "testFiles/parser/input/spaceshipExpr.tc",
-                    true);
-  testDynamic(format("parser accepts %s", entries[0].inputFilename),
-              parse() == 0);
-  testDynamic(format("no errors in %s", entries[0].inputFilename),
-              entries[0].errored == false);
-  testDynamic(
-      format("ast of %s is correct", entries[0].inputFilename),
-      dumpEqual(&entries[0], "testFiles/parser/expected/spaceshipExpr.txt"));
-  nodeFree(entries[0].ast);
-  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
-}
-
 static void testShiftExprParser(void) {
   FileListEntry entries[1];
   fileList.entries = &entries[0];
@@ -1406,7 +1388,6 @@ void testParser(void) {
   testBitwiseExprParser();
   testEqualityExprParser();
   testComparisonExprParser();
-  testSpaceshipExprParser();
   testShiftExprParser();
   testAdditionExprParser();
   testMultiplicationExprParser();
