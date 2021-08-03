@@ -23,6 +23,7 @@
 
 #include "arch/interface.h"
 #include "ir/ir.h"
+#include "util/internalError.h"
 
 static char const *const ALLOCHINT_NAMES[] = {
     "GP",
@@ -120,25 +121,37 @@ static void zeroOperandInstructionDump(FILE *where, char const *name,
 static void oneOperandInstructionDump(FILE *where, char const *name,
                                       IRInstruction *i) {
   fprintf(where, "%s(", name);
-  operandDump(where, i->arg1);
+  operandDump(where, i->args[0]);
   fprintf(where, ")");
 }
 static void twoOperandInstructionDump(FILE *where, char const *name,
                                       IRInstruction *i) {
   fprintf(where, "%s(", name);
-  operandDump(where, i->dest);
+  operandDump(where, i->args[0]);
   fprintf(where, ", ");
-  operandDump(where, i->arg1);
+  operandDump(where, i->args[1]);
   fprintf(where, ")");
 }
 static void threeOperandInstructionDump(FILE *where, char const *name,
                                         IRInstruction *i) {
   fprintf(where, "%s(", name);
-  operandDump(where, i->dest);
+  operandDump(where, i->args[0]);
   fprintf(where, ", ");
-  operandDump(where, i->arg1);
+  operandDump(where, i->args[1]);
   fprintf(where, ", ");
-  operandDump(where, i->arg2);
+  operandDump(where, i->args[2]);
+  fprintf(where, ")");
+}
+static void fourOperandInstructionDump(FILE *where, char const *name,
+                                       IRInstruction *i) {
+  fprintf(where, "%s(", name);
+  operandDump(where, i->args[0]);
+  fprintf(where, ", ");
+  operandDump(where, i->args[1]);
+  fprintf(where, ", ");
+  operandDump(where, i->args[2]);
+  fprintf(where, ", ");
+  operandDump(where, i->args[3]);
   fprintf(where, ")");
 }
 static void instructionDump(FILE *where, IRInstruction *i) {
@@ -384,82 +397,79 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       break;
     }
     case IO_JUMP: {
-      // note - jump is one operand, but the dest is the one operand
-      fprintf(where, "JUMP(");
-      operandDump(where, i->dest);
-      fprintf(where, ")");
+      oneOperandInstructionDump(where, "JUMP", i);
       break;
     }
     case IO_JL: {
-      threeOperandInstructionDump(where, "JL", i);
+      fourOperandInstructionDump(where, "JL", i);
       break;
     }
     case IO_JLE: {
-      threeOperandInstructionDump(where, "JLE", i);
+      fourOperandInstructionDump(where, "JLE", i);
       break;
     }
     case IO_JE: {
-      threeOperandInstructionDump(where, "JE", i);
+      fourOperandInstructionDump(where, "JE", i);
       break;
     }
     case IO_JNE: {
-      threeOperandInstructionDump(where, "JNE", i);
+      fourOperandInstructionDump(where, "JNE", i);
       break;
     }
     case IO_JG: {
-      threeOperandInstructionDump(where, "JG", i);
+      fourOperandInstructionDump(where, "JG", i);
       break;
     }
     case IO_JGE: {
-      threeOperandInstructionDump(where, "JGE", i);
+      fourOperandInstructionDump(where, "JGE", i);
       break;
     }
     case IO_JA: {
-      threeOperandInstructionDump(where, "JA", i);
+      fourOperandInstructionDump(where, "JA", i);
       break;
     }
     case IO_JAE: {
-      threeOperandInstructionDump(where, "JAE", i);
+      fourOperandInstructionDump(where, "JAE", i);
       break;
     }
     case IO_JB: {
-      threeOperandInstructionDump(where, "JB", i);
+      fourOperandInstructionDump(where, "JB", i);
       break;
     }
     case IO_JBE: {
-      threeOperandInstructionDump(where, "JBE", i);
+      fourOperandInstructionDump(where, "JBE", i);
       break;
     }
     case IO_JFL: {
-      threeOperandInstructionDump(where, "JFL", i);
+      fourOperandInstructionDump(where, "JFL", i);
       break;
     }
     case IO_JFLE: {
-      threeOperandInstructionDump(where, "JFLE", i);
+      fourOperandInstructionDump(where, "JFLE", i);
       break;
     }
     case IO_JFE: {
-      threeOperandInstructionDump(where, "JFE", i);
+      fourOperandInstructionDump(where, "JFE", i);
       break;
     }
     case IO_JFNE: {
-      threeOperandInstructionDump(where, "JFNE", i);
+      fourOperandInstructionDump(where, "JFNE", i);
       break;
     }
     case IO_JFG: {
-      threeOperandInstructionDump(where, "JFG", i);
+      fourOperandInstructionDump(where, "JFG", i);
       break;
     }
     case IO_JFGE: {
-      threeOperandInstructionDump(where, "JFGE", i);
+      fourOperandInstructionDump(where, "JFGE", i);
       break;
     }
     case IO_JZ: {
-      twoOperandInstructionDump(where, "JZ", i);
+      threeOperandInstructionDump(where, "JZ", i);
       break;
     }
     case IO_JNZ: {
-      twoOperandInstructionDump(where, "JNZ", i);
+      threeOperandInstructionDump(where, "JNZ", i);
       break;
     }
     case IO_CALL: {
@@ -469,6 +479,9 @@ static void instructionDump(FILE *where, IRInstruction *i) {
     case IO_RETURN: {
       zeroOperandInstructionDump(where, "RETURN", i);
       break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid IROperand enum");
     }
   }
 }

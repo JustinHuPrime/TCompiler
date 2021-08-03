@@ -158,19 +158,22 @@ IRInstruction *JUMP(size_t dest);
 /**
  * comparison conditional jump to local label
  * @param op comparison operation
- * @param dest destination numeric id
+ * @param trueDest destination numeric id if test is true
+ * @param falseDest destination id if test is false
  * @param lhs comparison lhs temp or reg
  * @param rhs comparison rhs temp or reg
  */
-IRInstruction *CJUMP(IROperator op, size_t dest, IROperand *lhs,
-                     IROperand *rhs);
+IRInstruction *CJUMP(IROperator op, size_t trueDest, size_t falseDest,
+                     IROperand *lhs, IROperand *rhs);
 /**
  * unary conditional jump to local label
  * @param op IO_JZ or IO_JNZ
- * @param dest destination numeric id
+ * @param trueDest destination numeric id if test is true
+ * @param falseDest dstination id if test is false
  * @param condition temp to condition on (jump if zero/not zero)
  */
-IRInstruction *BJUMP(IROperator op, size_t dest, IROperand *condition);
+IRInstruction *BJUMP(IROperator op, size_t trueDest, size_t falseDest,
+                     IROperand *condition);
 /**
  * call a function with the given (mangled) name
  * @param who label or temp or reg to call

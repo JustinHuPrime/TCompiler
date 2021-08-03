@@ -56,61 +56,93 @@ IROperand *LOCAL(size_t name) {
 IROperand *GLOBAL(char *name) { return labelOperandCreate(strdup(name)); }
 IROperand *OFFSET(int64_t offset) { return offsetOperandCreate(offset); }
 
+static IRInstruction *oneArgInstructionCreate(IROperator op, IROperand *arg1) {
+  IRInstruction *retval = irInstructionCreate(op);
+  retval->args[0] = arg1;
+  return retval;
+}
+static IRInstruction *twoArgInstructionCreate(IROperator op, IROperand *arg1,
+                                              IROperand *arg2) {
+  IRInstruction *retval = irInstructionCreate(op);
+  retval->args[0] = arg1;
+  retval->args[1] = arg2;
+  return retval;
+}
+static IRInstruction *threeArgInstructionCreate(IROperator op, IROperand *arg1,
+                                                IROperand *arg2,
+                                                IROperand *arg3) {
+  IRInstruction *retval = irInstructionCreate(op);
+  retval->args[0] = arg1;
+  retval->args[1] = arg2;
+  retval->args[2] = arg3;
+  return retval;
+}
+static IRInstruction *fourArgInstructionCreate(IROperator op, IROperand *arg1,
+                                               IROperand *arg2, IROperand *arg3,
+                                               IROperand *arg4) {
+  IRInstruction *retval = irInstructionCreate(op);
+  retval->args[0] = arg1;
+  retval->args[1] = arg2;
+  retval->args[2] = arg3;
+  retval->args[3] = arg4;
+  return retval;
+}
 IRInstruction *ASM(char const *assembly) {
-  return irInstructionCreate(IO_ASM, NULL,
-                             assemblyOperandCreate(strdup(assembly)), NULL);
+  return oneArgInstructionCreate(IO_ASM,
+                                 assemblyOperandCreate(strdup(assembly)));
 }
 IRInstruction *VOLATILE(IROperand *temp) {
-  return irInstructionCreate(IO_VOLATILE, NULL, temp, NULL);
+  return oneArgInstructionCreate(IO_VOLATILE, temp);
 }
 IRInstruction *ADDROF(IROperand *dest, IROperand *src) {
-  return irInstructionCreate(IO_ADDROF, dest, src, NULL);
+  return twoArgInstructionCreate(IO_ADDROF, dest, src);
 }
 IRInstruction *MOVE(IROperand *dest, IROperand *src) {
-  return irInstructionCreate(IO_MOVE, dest, src, NULL);
+  return twoArgInstructionCreate(IO_MOVE, dest, src);
 }
 IRInstruction *MEM_STORE(IROperand *addr, IROperand *src, IROperand *offset) {
-  return irInstructionCreate(IO_MEM_STORE, addr, src, offset);
+  return threeArgInstructionCreate(IO_MEM_STORE, addr, src, offset);
 }
 IRInstruction *MEM_LOAD(IROperand *dest, IROperand *addr, IROperand *offset) {
-  return irInstructionCreate(IO_MEM_LOAD, dest, addr, offset);
+  return threeArgInstructionCreate(IO_MEM_LOAD, dest, addr, offset);
 }
 IRInstruction *STK_STORE(IROperand *offset, IROperand *src) {
-  return irInstructionCreate(IO_STK_STORE, offset, src, NULL);
+  return twoArgInstructionCreate(IO_STK_STORE, offset, src);
 }
 IRInstruction *STK_LOAD(IROperand *dest, IROperand *offset) {
-  return irInstructionCreate(IO_STK_LOAD, dest, offset, NULL);
+  return twoArgInstructionCreate(IO_STK_LOAD, dest, offset);
 }
 IRInstruction *OFFSET_STORE(IROperand *dest, IROperand *src,
                             IROperand *offset) {
-  return irInstructionCreate(IO_OFFSET_STORE, dest, src, offset);
+  return threeArgInstructionCreate(IO_OFFSET_STORE, dest, src, offset);
 }
 IRInstruction *OFFSET_LOAD(IROperand *dest, IROperand *src, IROperand *offset) {
-  return irInstructionCreate(IO_OFFSET_LOAD, dest, src, offset);
+  return threeArgInstructionCreate(IO_OFFSET_LOAD, dest, src, offset);
 }
 IRInstruction *BINOP(IROperator op, IROperand *dest, IROperand *lhs,
                      IROperand *rhs) {
-  return irInstructionCreate(op, dest, lhs, rhs);
+  return threeArgInstructionCreate(op, dest, lhs, rhs);
 }
 IRInstruction *UNOP(IROperator op, IROperand *dest, IROperand *src) {
-  return irInstructionCreate(op, dest, src, NULL);
+  return twoArgInstructionCreate(op, dest, src);
 }
 IRInstruction *JUMP(size_t dest) {
-  return irInstructionCreate(IO_JUMP, LOCAL(dest), NULL, NULL);
+  return oneArgInstructionCreate(IO_JUMP, LOCAL(dest));
 }
-IRInstruction *CJUMP(IROperator op, size_t dest, IROperand *lhs,
-                     IROperand *rhs) {
-  return irInstructionCreate(op, LOCAL(dest), lhs, rhs);
+IRInstruction *CJUMP(IROperator op, size_t trueDest, size_t falseDest,
+                     IROperand *lhs, IROperand *rhs) {
+  return fourArgInstructionCreate(op, LOCAL(trueDest), LOCAL(falseDest), lhs,
+                                  rhs);
 }
-IRInstruction *BJUMP(IROperator op, size_t dest, IROperand *condition) {
-  return irInstructionCreate(op, LOCAL(dest), condition, NULL);
+IRInstruction *BJUMP(IROperator op, size_t trueDest, size_t falseDest,
+                     IROperand *condition) {
+  return threeArgInstructionCreate(op, LOCAL(trueDest), LOCAL(falseDest),
+                                   condition);
 }
 IRInstruction *CALL(IROperand *who) {
-  return irInstructionCreate(IO_CALL, NULL, who, NULL);
+  return oneArgInstructionCreate(IO_CALL, who);
 }
-IRInstruction *RETURN(void) {
-  return irInstructionCreate(IO_RETURN, NULL, NULL, NULL);
-}
+IRInstruction *RETURN(void) { return irInstructionCreate(IO_RETURN); }
 
 void IR(IRBlock *b, IRInstruction *i) { insertNodeEnd(&b->instructions, i); }
 

@@ -1999,8 +1999,7 @@ static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
           IROperand *lhsVal =
               translateLValueLoad(b, lvalue, TEMPBOOL(fresh(file)), file);
           IR(b, BJUMP(e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
-                      nextLabel, lhsVal));
-          IR(b, JUMP(rhsLabel));
+                      nextLabel, rhsLabel, lhsVal));
           size_t assignmentLabel = fresh(file);
           IROperand *rhsVal = translateExpressionValue(blocks, rhs, rhsLabel,
                                                        assignmentLabel, file);
@@ -2171,9 +2170,8 @@ static void translateVariablePredicate(Vector *blocks, Node const *e,
   size_t comparisonLabel = fresh(file);
   IRBlock *b = BLOCK(comparisonLabel, blocks);
   IR(b,
-     BJUMP(IO_JNZ, trueLabel,
+     BJUMP(IO_JNZ, trueLabel, falseLabel,
            translateExpressionValue(blocks, e, label, comparisonLabel, file)));
-  IR(b, JUMP(falseLabel));
 }
 /**
  * translate a conditional jump predicate
@@ -2212,8 +2210,7 @@ static void translateExpressionPredicate(Vector *blocks, Node const *e,
           IROperand *castRhs = translateCast(b, rawRhs, expressionTypeof(rhs),
                                              expressionTypeof(lhs), file);
           translateLValueStore(b, lvalue, castRhs, file);
-          IR(b, BJUMP(IO_JNZ, trueLabel, castRhs));
-          IR(b, JUMP(falseLabel));
+          IR(b, BJUMP(IO_JNZ, trueLabel, falseLabel, castRhs));
           lvalueFree(lvalue);
           break;
         }
@@ -2227,17 +2224,15 @@ static void translateExpressionPredicate(Vector *blocks, Node const *e,
           IROperand *lhsVal =
               translateLValueLoad(b, lvalue, TEMPBOOL(fresh(file)), file);
           if (e->data.binOpExp.op == BO_LANDASSIGN)
-            IR(b, BJUMP(IO_JZ, falseLabel, lhsVal));
+            IR(b, BJUMP(IO_JZ, falseLabel, rhsLabel, lhsVal));
           else
-            IR(b, BJUMP(IO_JNZ, trueLabel, lhsVal));
-          IR(b, JUMP(rhsLabel));
+            IR(b, BJUMP(IO_JNZ, trueLabel, rhsLabel, lhsVal));
           size_t assignmentLabel = fresh(file);
           IROperand *rhsVal = translateExpressionValue(blocks, rhs, rhsLabel,
                                                        assignmentLabel, file);
           b = BLOCK(assignmentLabel, blocks);
           translateLValueStore(b, lvalue, rhsVal, file);
-          IR(b, BJUMP(IO_JNZ, trueLabel, rhsVal));
-          IR(b, JUMP(falseLabel));
+          IR(b, BJUMP(IO_JNZ, trueLabel, falseLabel, rhsVal));
           lvalueFree(lvalue);
           break;
         }
@@ -2275,8 +2270,7 @@ static void translateExpressionPredicate(Vector *blocks, Node const *e,
               translateCast(b, rawRhs, expressionTypeof(rhs), merged, file);
           IR(b, CJUMP(binopToCjump(e->data.binOpExp.op, typeFloating(merged),
                                    typeSignedIntegral(merged)),
-                      trueLabel, castedLhs, castedRhs));
-          IR(b, JUMP(falseLabel));
+                      trueLabel, falseLabel, castedLhs, castedRhs));
           typeFree(merged);
           break;
         }
@@ -2641,8 +2635,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           IROperand *lhsVal =
               translateLValueLoad(b, lvalue, TEMPBOOL(fresh(file)), file);
           IR(b, BJUMP(e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
-                      lhsLabel, irOperandCopy(lhsVal)));
-          IR(b, JUMP(rhsLabel));
+                      lhsLabel, rhsLabel, irOperandCopy(lhsVal)));
           b = BLOCK(lhsLabel, blocks);
           IR(b, MOVE(irOperandCopy(outTemp), lhsVal));
           IR(b, JUMP(nextLabel));
@@ -2666,8 +2659,7 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
           size_t rhsLabel = fresh(file);
           IRBlock *b = BLOCK(shortCircuitLabel, blocks);
           IR(b, BJUMP(e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
-                      lhsLabel, irOperandCopy(lhsVal)));
-          IR(b, JUMP(rhsLabel));
+                      lhsLabel, rhsLabel, irOperandCopy(lhsVal)));
           b = BLOCK(lhsLabel, blocks);
           IR(b, MOVE(irOperandCopy(outTemp), lhsVal));
           IR(b, JUMP(nextLabel));
@@ -3267,8 +3259,7 @@ static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
           IROperand *lhsVal =
               translateLValueLoad(b, lvalue, TEMPBOOL(fresh(file)), file);
           IR(b, BJUMP(e->data.binOpExp.op == BO_LANDASSIGN ? IO_JZ : IO_JNZ,
-                      nextLabel, lhsVal));
-          IR(b, JUMP(rhsLabel));
+                      nextLabel, rhsLabel, lhsVal));
           size_t assignmentLabel = fresh(file);
           IROperand *rhsVal = translateExpressionValue(blocks, rhs, rhsLabel,
                                                        assignmentLabel, file);
@@ -3717,11 +3708,12 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
                   jumpTable[entryIdx + 1].value.signedVal - 1) {
             // singleton
             IRBlock *b = BLOCK(curr, blocks);
-            IR(b, CJUMP(IO_E, jumpTable[entryIdx].label, irOperandCopy(o),
+            IR(b, CJUMP(IO_E, jumpTable[entryIdx].label,
+                        entryIdx == jumpTableLen - 1 ? defaultLabel
+                                                     : (curr = fresh(file)),
+                        irOperandCopy(o),
                         signedJumpTableEntryToConstant(&jumpTable[entryIdx],
                                                        size)));
-            IR(b, JUMP(entryIdx == jumpTableLen - 1 ? defaultLabel
-                                                    : (curr = fresh(file))));
           } else {
             // not a singleton
             size_t end = entryIdx + 1;
@@ -3742,16 +3734,15 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
 
             size_t gtFallthroughLabel = fresh(file);
             IRBlock *b = BLOCK(curr, blocks);
-            IR(b, CJUMP(IO_L, defaultLabel, irOperandCopy(o),
-                        signedJumpTableEntryToConstant(&jumpTable[entryIdx],
-                                                       size)));
-            IR(b, JUMP(gtFallthroughLabel));
+            IR(b,
+               CJUMP(
+                   IO_L, defaultLabel, gtFallthroughLabel, irOperandCopy(o),
+                   signedJumpTableEntryToConstant(&jumpTable[entryIdx], size)));
 
             size_t tableDerefLabel = fresh(file);
             b = BLOCK(gtFallthroughLabel, blocks);
-            IR(b, CJUMP(IO_G, next, irOperandCopy(o),
+            IR(b, CJUMP(IO_G, next, tableDerefLabel, irOperandCopy(o),
                         signedJumpTableEntryToConstant(&jumpTable[end], size)));
-            IR(b, JUMP(tableDerefLabel));
 
             size_t offset = fresh(file);
             size_t castOffset;
@@ -3787,11 +3778,12 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
                   jumpTable[entryIdx + 1].value.unsignedVal - 1) {
             // singleton
             IRBlock *b = BLOCK(curr, blocks);
-            IR(b, CJUMP(IO_E, jumpTable[entryIdx].label, irOperandCopy(o),
+            IR(b, CJUMP(IO_E, jumpTable[entryIdx].label,
+                        entryIdx == jumpTableLen - 1 ? defaultLabel
+                                                     : (curr = fresh(file)),
+                        irOperandCopy(o),
                         unsignedJumpTableEntryToConstant(&jumpTable[entryIdx],
                                                          size)));
-            IR(b, JUMP(entryIdx == jumpTableLen - 1 ? defaultLabel
-                                                    : (curr = fresh(file))));
           } else {
             // not a singleton
             size_t end = entryIdx + 1;
@@ -3812,17 +3804,16 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
 
             size_t gtFallthroughLabel = fresh(file);
             IRBlock *b = BLOCK(curr, blocks);
-            IR(b, CJUMP(IO_B, defaultLabel, irOperandCopy(o),
-                        unsignedJumpTableEntryToConstant(&jumpTable[entryIdx],
-                                                         size)));
-            IR(b, JUMP(gtFallthroughLabel));
+            IR(b,
+               CJUMP(IO_B, defaultLabel, gtFallthroughLabel, irOperandCopy(o),
+                     unsignedJumpTableEntryToConstant(&jumpTable[entryIdx],
+                                                      size)));
 
             size_t tableDerefLabel = fresh(file);
             b = BLOCK(gtFallthroughLabel, blocks);
             IR(b,
-               CJUMP(IO_A, next, irOperandCopy(o),
+               CJUMP(IO_A, next, tableDerefLabel, irOperandCopy(o),
                      unsignedJumpTableEntryToConstant(&jumpTable[end], size)));
-            IR(b, JUMP(tableDerefLabel));
 
             size_t offset = fresh(file);
             size_t castOffset;

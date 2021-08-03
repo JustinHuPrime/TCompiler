@@ -231,7 +231,7 @@ typedef enum IROperator {
 
   // jumps
   IO_JUMP,
-  IO_JL,
+  IO_JL,  // TODO: make cjumps take comparands and true and false destinations
   IO_JLE,
   IO_JE,
   IO_JNE,
@@ -254,17 +254,20 @@ typedef enum IROperator {
   IO_CALL,
   IO_RETURN,  // no args
 } IROperator;
+
+/**
+ * get the arity of an ir operator
+ */
+size_t irOperatorArity(IROperator op);
+
 /** ir instruction */
 typedef struct {
   IROperator op;
-  IROperand *dest;
-  IROperand *arg1;
-  IROperand *arg2;
+  IROperand **args;
 } IRInstruction;
 
 /** generic ctor */
-IRInstruction *irInstructionCreate(IROperator op, IROperand *dest,
-                                   IROperand *arg1, IROperand *arg2);
+IRInstruction *irInstructionCreate(IROperator op);
 /** dtor */
 void irInstructionFree(IRInstruction *);
 
@@ -277,5 +280,14 @@ typedef struct {
 IRBlock *irBlockCreate(size_t label);
 /** dtor */
 void irBlockFree(IRBlock *);
+
+/**
+ * checks that all files in the file list have valid IR
+ *
+ * This checks that
+ *  - temps must have consistent sizing, alignment, and allocation
+ *  - all operations have valid sizing
+ */
+void validateIr(void);
 
 #endif  // TLC_IR_IR_H_

@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 
+#include "fileList.h"
 #include "util/internalError.h"
 #include "util/numericSizing.h"
 #include "util/string.h"
@@ -308,19 +309,117 @@ void irOperandFree(IROperand *o) {
   free(o);
 }
 
-IRInstruction *irInstructionCreate(IROperator op, IROperand *dest,
-                                   IROperand *arg1, IROperand *arg2) {
+size_t irOperatorArity(IROperator op) {
+  switch (op) {
+    case IO_NOP:
+    case IO_RETURN: {
+      return 0;
+    }
+    case IO_ASM:
+    case IO_LABEL:
+    case IO_VOLATILE:
+    case IO_JUMP:
+    case IO_CALL: {
+      return 1;
+    }
+    case IO_MOVE:
+    case IO_ADDROF:
+    case IO_STK_STORE:
+    case IO_STK_LOAD:
+    case IO_NEG:
+    case IO_FNEG:
+    case IO_NOT:
+    case IO_Z:
+    case IO_NZ:
+    case IO_LNOT:
+    case IO_SX:
+    case IO_ZX:
+    case IO_TRUNC:
+    case IO_UNSIGNED2FLOATING:
+    case IO_SIGNED2FLOATING:
+    case IO_RESIZEFLOATING:
+    case IO_FLOATING2INTEGRAL: {
+      return 2;
+    }
+    case IO_MEM_STORE:
+    case IO_MEM_LOAD:
+    case IO_OFFSET_STORE:
+    case IO_OFFSET_LOAD:
+    case IO_ADD:
+    case IO_FADD:
+    case IO_SUB:
+    case IO_FSUB:
+    case IO_SMUL:
+    case IO_UMUL:
+    case IO_FMUL:
+    case IO_SDIV:
+    case IO_UDIV:
+    case IO_FDIV:
+    case IO_SMOD:
+    case IO_UMOD:
+    case IO_FMOD:
+    case IO_SLL:
+    case IO_SLR:
+    case IO_SAR:
+    case IO_AND:
+    case IO_XOR:
+    case IO_OR:
+    case IO_L:
+    case IO_LE:
+    case IO_E:
+    case IO_NE:
+    case IO_G:
+    case IO_GE:
+    case IO_A:
+    case IO_AE:
+    case IO_B:
+    case IO_BE:
+    case IO_FL:
+    case IO_FLE:
+    case IO_FE:
+    case IO_FNE:
+    case IO_FG:
+    case IO_FGE:
+    case IO_JZ:
+    case IO_JNZ: {
+      return 3;
+    }
+    case IO_JL:
+    case IO_JLE:
+    case IO_JE:
+    case IO_JNE:
+    case IO_JG:
+    case IO_JGE:
+    case IO_JA:
+    case IO_JAE:
+    case IO_JB:
+    case IO_JBE:
+    case IO_JFL:
+    case IO_JFLE:
+    case IO_JFE:
+    case IO_JFNE:
+    case IO_JFG:
+    case IO_JFGE: {
+      return 4;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid IROperator enum");
+    }
+  }
+}
+
+IRInstruction *irInstructionCreate(IROperator op) {
   IRInstruction *i = malloc(sizeof(IRInstruction));
   i->op = op;
-  i->dest = dest;
-  i->arg1 = arg1;
-  i->arg2 = arg2;
+  i->args = malloc(irOperatorArity(op) * sizeof(IRInstruction *));
   return i;
 }
+static void irOperandArrayFree(IROperand **arry, size_t size) {
+  for (size_t idx = 0; idx < size; ++idx) irOperandFree(arry[idx]);
+  free(arry);
+}
 void irInstructionFree(IRInstruction *i) {
-  irOperandFree(i->dest);
-  irOperandFree(i->arg1);
-  irOperandFree(i->arg2);
+  irOperandArrayFree(i->args, irOperatorArity(i->op));
   free(i);
 }
 
@@ -333,4 +432,26 @@ IRBlock *irBlockCreate(size_t label) {
 void irBlockFree(IRBlock *b) {
   linkedListUninit(&b->instructions, (void (*)(void *))irInstructionFree);
   free(b);
+}
+
+void validateIr(void) {
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
+    FileListEntry *file = &fileList.entries[fileIdx];
+    for (size_t fragIdx = 0; fragIdx < file->irFrags.size; ++fragIdx) {
+      IRFrag *frag = file->irFrags.elements[fragIdx];
+      if (frag->type == FT_TEXT) {
+        Vector *blocks = &frag->data.text.blocks;
+        IROperand *temps = calloc(file->nextId, sizeof(IROperand *));
+        for (size_t blockIdx = 0; blockIdx < blocks->size; ++blockIdx) {
+          IRBlock *block = blocks->elements[blockIdx];
+          // TODO
+          // block->instructions;
+          // TODO: can we assume that later-added blocks are always
+          // later-executed?
+          // TODO: maybe do trace scheduling before this/dead block elimination
+          // before this?
+        }
+      }
+    }
+  }
 }
