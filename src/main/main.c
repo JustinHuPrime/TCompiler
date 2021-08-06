@@ -27,6 +27,7 @@
 #include "ast/dump.h"
 #include "fileList.h"
 #include "ir/dump.h"
+#include "ir/ir.h"
 #include "lexer/dump.h"
 #include "lexer/lexer.h"
 #include "options.h"
@@ -75,6 +76,7 @@ enum {
   CODE_FILE_ERROR,
   CODE_PARSE_ERROR,
   CODE_TYPECHECK_ERROR,
+  CODE_IR_ERROR,
 };
 
 // compile the given declaration and code files into one assembly file per code
@@ -147,6 +149,7 @@ int main(int argc, char **argv) {
 
   // translate to IR
   translate();
+  if (validateIr() != 0) return CODE_IR_ERROR;
 
   // debug-dump stop for IR
   if (options.dump == OPTION_DD_IR) {

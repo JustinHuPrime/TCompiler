@@ -107,33 +107,56 @@ typedef enum {
   OK_REG,
   OK_CONSTANT,
   OK_LABEL,
-  OK_OFFSET,
   OK_ASM,
 } OperandKind;
 /** an operand in an IR entry */
 typedef struct IROperand {
   OperandKind kind;
   union {
+    /**
+     * temporary variable
+     *
+     * alignment is a power of two
+     * size > POINTER_WIDTH ==> kind == MEM
+     */
     struct {
       size_t name;
       size_t alignment;
       size_t size;
       AllocHint kind;
     } temp;
+    /**
+     * register - can be used whereever a temp can be
+     */
     struct {
       size_t name;  // specific to the target architecture
       size_t size;
     } reg;
+    /**
+     * constant data
+     *
+     * allocation = MEM
+     * alignment is a power of two
+     */
     struct {
       size_t alignment;
       Vector data; /**< Vector of IRDatum */
     } constant;
+    /**
+     * label reference
+     *
+     * alignment = POINTER_WIDTH
+     * size = POINTER_WIDTH
+     * allocation = GP
+     */
     struct {
       char *name;
     } label;
-    struct {
-      int64_t offset;
-    } offset;
+    /**
+     * inline assembly
+     *
+     * may never be used outside of IO_ASMs
+     */
     struct {
       char *assembly;
     } assembly;
@@ -158,48 +181,202 @@ void irOperandFree(IROperand *);
 /** an ir operator */
 typedef enum IROperator {
   // miscellaneous
+  /**
+   * inline assembly
+   *
+   * one operand
+   * 0: ASM
+   */
   IO_ASM,
+  /**
+   * generic label
+   *
+   * one operand
+   * 0: LABEL
+   */
   IO_LABEL,
+  /**
+   * fake use of a temp to prevent dead-code elimination of volatile reads
+   *
+   * one operand
+   * 0: TEMP, read
+   */
   IO_VOLATILE,  // mark temp as being volatilely used
-  IO_ADDROF,    // get address of a mem temp
+  /**
+   * get the address of a mem temp
+   *
+   * two operands
+   * 0: REG, written | TEMP, written, allocation == (GP | MEM); size ==
+   *    POINTER_WIDTH
+   * 1: TEMP, read, allocation == MEM
+   */
+  IO_ADDROF,  // get address of a mem temp
+  /**
+   * no-op - removed during dead-code elimination
+   *
+   * no operands
+   */
   IO_NOP,
 
   // data transfer
+  /**
+   * whole-datum move
+   *
+   * two operands
+   * 0: REG, written | TEMP, written
+   * 1: REG, read | TEMP, read | CONST | LABEL
+   *
+   * sizeof(0) == sizeof(1)
+   */
   IO_MOVE,
+  /**
+   * store to memory
+   *
+   * three operands
+   * 0: REG, read | TEMP, read, allocation == (GP | MEM) | LABEL; size ==
+   *    POINTER_WIDTH
+   * 1: REG, read | TEMP, read | LABEL | CONST
+   * 2: REG, read | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH
+   */
   IO_MEM_STORE,
+  /**
+   * load from memory
+   *
+   * three operands
+   * 0: REG, written | TEMP, written
+   * 1: REG, read | TEMP, read, allocation == (GP | MEM) | LABEL; size ==
+   *    POINTER_WIDTH
+   * 2: REG, read | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH
+   */
   IO_MEM_LOAD,
+  /**
+   * store to stack relative to stack pointer
+   *
+   * two operands
+   * 0: REG, read | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH
+   * 1: REG, read | TEMP, read | LABEL | CONST
+   */
   IO_STK_STORE,
+  /**
+   * load from stack relative to stack pointer
+   *
+   * two operands
+   * 0: REG, written | TEMP, written
+   * 1: REG, read | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH
+   */
   IO_STK_LOAD,
+  /**
+   * store to part of temp
+   *
+   * three operands
+   * 0: TEMP, written, allocation == MEM
+   * 1: REG, read | TEMP, read | CONST | LABEL
+   * 2: REG, read | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH
+   */
   IO_OFFSET_STORE,
+  /**
+   * load from part of temp
+   *
+   * three operands
+   * 0: REG, written | TEMP, written
+   * 1: TEMP, written, allocation == MEM
+   * 2: REG, read | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH
+   */
   IO_OFFSET_LOAD,
 
   // arithmetic
+  /**
+   * integer binary arithmetic op
+   *
+   * three operands
+   * 0: REG, written | TEMP, written, allocation == (GP | MEM)
+   * 1: REG, read | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 2: REG, read | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   *
+   * sizeof(0) == sizeof(1) == sizeof(2)
+   */
   IO_ADD,
-  IO_FADD,
   IO_SUB,
-  IO_FSUB,
   IO_SMUL,
   IO_UMUL,
-  IO_FMUL,
   IO_SDIV,
   IO_UDIV,
-  IO_FDIV,
   IO_SMOD,
   IO_UMOD,
+  /**
+   * floating binary arithmetic op
+   *
+   * three operands
+   * 0: REG, written | TEMP, written, allocation == (FP | MEM)
+   * 1: REG, read | TEMP, read, allocation == (FP | MEM) | CONST
+   * 2: REG, read | TEMP, read, allocation == (FP | MEM) | CONST
+   *
+   * sizeof(0) == sizeof(1) == sizeof(2)
+   */
+  IO_FADD,
+  IO_FSUB,
+  IO_FMUL,
+  IO_FDIV,
   IO_FMOD,
+  /**
+   * integer unary arithmetic op
+   *
+   * two operands
+   * 0: REG, written | TEMP, written, allocation == (GP | MEM)
+   * 1: REG, read | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   *
+   * sizeof(0) == sizeof(1)
+   */
   IO_NEG,
+  /**
+   * floating unary arithmetic op
+   *
+   * two operands
+   * 0: REG, written | TEMP, written, allocation == (FP | MEM)
+   * 1: REG, read | TEMP, read, allocation == (FP | MEM) | CONST
+   *
+   * sizeof(0) == sizeof(1)
+   */
   IO_FNEG,
 
   // bit-twiddling
+  /**
+   * shift op
+   *
+   * three operands
+   * 0: REG, written | TEMP, written, allocation == (GP | MEM)
+   * 1: REG, read | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 2: REG, read | TEMP, read, allocation == (FP | MEM) | CONST; size ==
+   *    BYTE_WIDTH
+   *
+   * sizeof(0) == sizeof(1)
+   */
   IO_SLL,
   IO_SLR,
   IO_SAR,
+  /**
+   * binary bitwise op - identical to integer binary arithmetic op
+   */
   IO_AND,
   IO_XOR,
   IO_OR,
+  /**
+   * unary bitwise op - identical to integer unary arithmetic op
+   */
   IO_NOT,
 
   // comparisons, logic
+  /**
+   * integer binary comparison
+   *
+   * three operands
+   * 0: REG, written | TEMP, written, allocation == (GP | MEM); size ==
+   *    BYTE_WIDTH
+   * 1: REG, read | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 2: REG, read | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   *
+   * sizeof(1) == sizeof(2)
+   */
   IO_L,
   IO_LE,
   IO_E,
@@ -210,28 +387,113 @@ typedef enum IROperator {
   IO_AE,
   IO_B,
   IO_BE,
+  /**
+   * floating binary comparison
+   *
+   * three operands
+   * 0: REG, written | TEMP, written, allocation == (GP | MEM); size ==
+   *    BYTE_WIDTH
+   * 1: REG, read | TEMP, read, allocation == (FP | MEM) | CONST | LABEL
+   * 2: REG, read | TEMP, read, allocation == (FP | MEM) | CONST | LABEL
+   *
+   * sizeof(1) == sizeof(2)
+   */
   IO_FL,
   IO_FLE,
   IO_FE,
   IO_FNE,
   IO_FG,
   IO_FGE,
+  /**
+   * unary comparison
+   *
+   * two operands
+   * 0: REG, written | TEMP, written; size == BYTE_WIDTH
+   * 1: REG, read | TEMP, read | CONST | LABEL
+   */
   IO_Z,
   IO_NZ,
+  /**
+   * logical not
+   *
+   * two operands
+   * 0: REG, written | TEMP, written, allocation == (GP | MEM); size ==
+   *    BYTE_WIDTH
+   * 1: REG, read | TEMP, read, allocation == (GP | MEM) | CONST; size ==
+   *    BYTE_WIDTH
+   */
   IO_LNOT,
 
   // conversion
+  /**
+   * extends
+   *
+   * two operands
+   * 0: REG, written | TEMP, written, allocation == (GP | MEM)
+   * 1: REG, read | TEMP, read, allocation == (GP | MEM) | CONST
+   *
+   * sizeof(0) > sizeof(1)
+   */
   IO_SX,
   IO_ZX,
+  /**
+   * truncation
+   *
+   * two operands
+   * 0: REG, written | TEMP, written, allocation == (GP | MEM)
+   * 1: REG, read | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   *
+   * sizeof(0) < sizeof(1)
+   */
   IO_TRUNC,
+  /**
+   * integer to floating
+   *
+   * two operands
+   * 0: REG, written | TEMP, written, allocation == (FP | MEM)
+   * 1: REG, read | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   */
   IO_UNSIGNED2FLOATING,
   IO_SIGNED2FLOATING,
+  /**
+   * floating to floating
+   *
+   * two operands
+   * 0: REG, written | TEMP, written, allocation == (FP | MEM)
+   * 1: REG, read | TEMP, read, allocation == (FP | MEM) | CONST
+   *
+   * sizeof(0) != sizeof(1)
+   */
   IO_RESIZEFLOATING,
+  /**
+   * floating to integral
+   *
+   * two operands
+   * 0: REG, written | TEMP, written, allocation == (GP | MEM)
+   * 1: REG, read | TEMP, read, allocation == (FP | MEM) | CONST
+   */
   IO_FLOATING2INTEGRAL,
 
   // jumps
+  /**
+   * unconditional jump
+   *
+   * one operand
+   * 0: LABEL | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH
+   */
   IO_JUMP,
-  IO_JL,  // TODO: make cjumps take comparands and true and false destinations
+  /**
+   * integer binary comparison conditional jump
+   *
+   * four operands
+   * 0: LABEL
+   * 1: LABEL
+   * 2: REG, read | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 3: REG, read | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   *
+   * sizeof(2) == sizeof(3)
+   */
+  IO_JL,
   IO_JLE,
   IO_JE,
   IO_JNE,
@@ -241,17 +503,48 @@ typedef enum IROperator {
   IO_JAE,
   IO_JB,
   IO_JBE,
+  /**
+   * floating binary comparison conditional jump
+   *
+   * four operands
+   * 0: LABEL
+   * 1: LABEL
+   * 2: REG, read | TEMP, read, allocation == (FP | MEM) | CONST
+   * 3: REG, read | TEMP, read, allocation == (FP | MEM) | CONST
+   *
+   * sizeof(2) == sizeof(3)
+   */
   IO_JFL,
   IO_JFLE,
   IO_JFE,
   IO_JFNE,
   IO_JFG,
   IO_JFGE,
+  /**
+   * unary comparison conditional jump
+   *
+   * three operands
+   * 0: LABEL
+   * 1: LABEL
+   * 2: REG, read | TEMP, read | CONST | LABEL
+   */
   IO_JZ,
   IO_JNZ,
 
   // function calling
+  /**
+   * function call
+   *
+   * one operand
+   * 0: REG, read | TEMP, read, allocation == (FP | MEM) | LABEL; size ==
+   *    POINTER_WIDTH
+   */
   IO_CALL,
+  /**
+   * return from function
+   *
+   * no operands
+   */
   IO_RETURN,  // no args
 } IROperator;
 
@@ -287,7 +580,9 @@ void irBlockFree(IRBlock *);
  * This checks that
  *  - temps must have consistent sizing, alignment, and allocation
  *  - all operations have valid sizing
+ *
+ * @returns -1 on failure, 0 on success
  */
-void validateIr(void);
+int validateIr(void);
 
 #endif  // TLC_IR_IR_H_

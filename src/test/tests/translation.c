@@ -154,6 +154,9 @@ void testTranslation(void) {
       testDynamic(format("ir of %s is correct", entries[0].inputFilename),
                   dumpEqual(&entries[0], expectedName));
 
+      testDynamic(format("ir of %s is valid", entries[0].inputFilename),
+                  validateIr() == 0);
+
       free(name);
       free(expectedName);
       irFragVectorUninit(&entries[0].irFrags);

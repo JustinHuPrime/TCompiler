@@ -57,7 +57,7 @@ All warning options have three forms, a `-W...=error` form, a `-W...=warn` form,
 
 #### Debug Options
 
-The option `--debug-dump` can be set to 3 values:
+The option `--debug-dump` can be set to 4 values:
 
 * `--debug-dump=none`: default, turns off the data dump
 
@@ -66,6 +66,12 @@ The option `--debug-dump` can be set to 3 values:
 * `--debug-dump=parse`: dumps the results of the parse phase
 
 * `--debug-dump=ir`: dumps the results of the translate to IR phase
+
+Additionally, the following options can be used:
+
+* `--debug-validate-ir`: validates IR after any step that changes it
+
+* `--no-debug-validate-ir`: default, turns off IR validation
 
 <!-- * `--debug-dump=asm-1`: dumps the results of phase one assembly translation (note that phases are architecture specific)
 

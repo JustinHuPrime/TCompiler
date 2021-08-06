@@ -103,10 +103,6 @@ static void operandDump(FILE *where, IROperand *o) {
       fprintf(where, "LABEL(%s)", o->data.label.name);
       break;
     }
-    case OK_OFFSET: {
-      fprintf(where, "OFFSET(%ld)", o->data.offset.offset);
-      break;
-    }
     case OK_ASM: {
       fprintf(where, "ASM(%s)", o->data.assembly.assembly);
       break;

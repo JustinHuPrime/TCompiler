@@ -218,11 +218,6 @@ IROperand *labelOperandCreate(char *name) {
   o->data.label.name = name;
   return o;
 }
-IROperand *offsetOperandCreate(int64_t offset) {
-  IROperand *o = irOperandCreate(OK_OFFSET);
-  o->data.offset.offset = offset;
-  return o;
-}
 IROperand *assemblyOperandCreate(char *assembly) {
   IROperand *o = irOperandCreate(OK_ASM);
   o->data.assembly.assembly = assembly;
@@ -246,9 +241,6 @@ IROperand *irOperandCopy(IROperand const *o) {
     }
     case OK_LABEL: {
       return labelOperandCreate(strdup(o->data.label.name));
-    }
-    case OK_OFFSET: {
-      return offsetOperandCreate(o->data.offset.offset);
     }
     case OK_ASM: {
       return assemblyOperandCreate(strdup(o->data.assembly.assembly));
@@ -274,9 +266,6 @@ size_t irOperandSizeof(IROperand const *o) {
     }
     case OK_LABEL: {
       return POINTER_WIDTH;
-    }
-    case OK_OFFSET: {
-      return LONG_WIDTH;
     }
     case OK_ASM: {
       return 0;
@@ -434,24 +423,240 @@ void irBlockFree(IRBlock *b) {
   free(b);
 }
 
-void validateIr(void) {
+static void validateTempConsistency(IROperand *definition, IROperand *temp,
+                                    FileListEntry *file) {
+  if (definition->data.temp.size != temp->data.temp.size) {
+    fprintf(stderr,
+            "%s: internal compiler error: IR validation failed - temp %zu's "
+            "size is inconsistent\n",
+            file->inputFilename, temp->data.temp.name);
+    file->errored = true;
+  }
+  if (definition->data.temp.alignment != temp->data.temp.alignment) {
+    fprintf(stderr,
+            "%s: internal compiler error: IR validation failed - temp %zu's "
+            "alignment is inconsistent\n",
+            file->inputFilename, temp->data.temp.name);
+    file->errored = true;
+  }
+  if (definition->data.temp.kind != temp->data.temp.kind) {
+    fprintf(stderr,
+            "%s: internal compiler error: IR validation failed - temp %zu's "
+            "allocation kind is inconsistent\n",
+            file->inputFilename, temp->data.temp.name);
+    file->errored = true;
+  }
+}
+static void validateTempRead(IROperand **temps, IROperand *temp,
+                             FileListEntry *file) {
+  IROperand *definition = temps[temp->data.temp.name];
+  if (definition == NULL) {  // temp must exist
+    fprintf(stderr,
+            "%s: internal compiler error: IR validation failed - temp %zu is "
+            "used before it is initialized\n",
+            file->inputFilename, temp->data.temp.name);
+    file->errored = true;
+  } else {
+    validateTempConsistency(definition, temp, file);
+  }
+}
+static void validateTempWrite(IROperand **temps, IROperand *temp,
+                              FileListEntry *file) {
+  IROperand *definition = temps[temp->data.temp.name];
+  if (definition == NULL)
+    temps[temp->data.temp.name] = temp;
+  else
+    validateTempConsistency(definition, temp, file);
+}
+int validateIr(void) {
+  bool errored = false;
   for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     FileListEntry *file = &fileList.entries[fileIdx];
     for (size_t fragIdx = 0; fragIdx < file->irFrags.size; ++fragIdx) {
       IRFrag *frag = file->irFrags.elements[fragIdx];
       if (frag->type == FT_TEXT) {
         Vector *blocks = &frag->data.text.blocks;
-        IROperand *temps = calloc(file->nextId, sizeof(IROperand *));
+        IROperand **temps = calloc(file->nextId, sizeof(IROperand *));
         for (size_t blockIdx = 0; blockIdx < blocks->size; ++blockIdx) {
           IRBlock *block = blocks->elements[blockIdx];
-          // TODO
-          // block->instructions;
-          // TODO: can we assume that later-added blocks are always
-          // later-executed?
-          // TODO: maybe do trace scheduling before this/dead block elimination
-          // before this?
+          for (ListNode *curr = block->instructions.head->next;
+               curr != block->instructions.tail; curr = curr->next) {
+            IRInstruction *i = curr->data;
+            switch (i->op) {
+              case IO_ASM: {
+                if (i->args[0]->kind != OK_ASM) {
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation failed - "
+                          "ASM instruction does not have ASM operand\n",
+                          file->inputFilename);
+                  file->errored = true;
+                }
+                break;
+              }
+              case IO_LABEL: {
+                if (i->args[0]->kind != OK_LABEL) {
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation failed - "
+                          "LABEL instruction does not have LABEL operand\n",
+                          file->inputFilename);
+                  file->errored = true;
+                }
+                break;
+              }
+              case IO_VOLATILE: {
+                if (i->args[0]->kind != OK_TEMP) {
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation failed - "
+                          "VOLATILE instruction does not have TEMP operand\n",
+                          file->inputFilename);
+                  file->errored = true;
+                } else {
+                  validateTempRead(temps, i->args[0], file);
+                }
+                break;
+              }
+              case IO_ADDROF: {
+                if (i->args[0]->kind != OK_REG && i->args[0]->kind != OK_TEMP) {
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation failed - "
+                          "ADDROF instruction does not have TEMP or REG "
+                          "destination\n",
+                          file->inputFilename);
+                  file->errored = true;
+                } else if (i->args[0]->kind == OK_TEMP) {
+                  validateTempWrite(temps, i->args[0], file);
+                }
+                if (irOperandSizeof(i->args[0]) != POINTER_WIDTH) {
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation failed - "
+                          "ADDROF instruction destination has the wrong size - "
+                          "expected %zu, got %zu\n",
+                          file->inputFilename, POINTER_WIDTH,
+                          irOperandSizeof(i->args[0]));
+                  file->errored = true;
+                }
+
+                if (i->args[1]->kind != OK_TEMP) {
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation failed - "
+                          "ADDROF instruction does not have TEMP operand\n",
+                          file->inputFilename);
+                  file->errored = true;
+                } else if (i->args[1]->data.temp.kind != AH_MEM) {
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation failed - "
+                          "ADDROF instruction does not have MEM allocation "
+                          "kind in its TEMP operand\n",
+                          file->inputFilename);
+                  file->errored = true;
+                } else {
+                  validateTempRead(temps, i->args[1], file);
+                }
+                break;
+              }
+              case IO_NOP: {
+                // nothing to check
+                break;
+              }
+              case IO_MOVE: {
+                if (i->args[0]->kind != OK_REG && i->args[0]->kind != OK_TEMP) {
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation failed - "
+                          "MOVE instruction does not have TEMP or REG "
+                          "destination\n",
+                          file->inputFilename);
+                  file->errored = true;
+                } else if (i->args[0]->kind == OK_TEMP) {
+                  validateTempWrite(temps, i->args[0], file);
+                }
+              }
+              case IO_MEM_STORE:
+              case IO_MEM_LOAD:
+              case IO_STK_STORE:
+              case IO_STK_LOAD:
+              case IO_OFFSET_STORE:
+              case IO_OFFSET_LOAD:
+              case IO_ADD:
+              case IO_FADD:
+              case IO_SUB:
+              case IO_FSUB:
+              case IO_SMUL:
+              case IO_UMUL:
+              case IO_FMUL:
+              case IO_SDIV:
+              case IO_UDIV:
+              case IO_FDIV:
+              case IO_SMOD:
+              case IO_UMOD:
+              case IO_FMOD:
+              case IO_NEG:
+              case IO_FNEG:
+              case IO_SLL:
+              case IO_SLR:
+              case IO_SAR:
+              case IO_AND:
+              case IO_XOR:
+              case IO_OR:
+              case IO_NOT:
+              case IO_L:
+              case IO_LE:
+              case IO_E:
+              case IO_NE:
+              case IO_G:
+              case IO_GE:
+              case IO_A:
+              case IO_AE:
+              case IO_B:
+              case IO_BE:
+              case IO_FL:
+              case IO_FLE:
+              case IO_FE:
+              case IO_FNE:
+              case IO_FG:
+              case IO_FGE:
+              case IO_Z:
+              case IO_NZ:
+              case IO_LNOT:
+              case IO_SX:
+              case IO_ZX:
+              case IO_TRUNC:
+              case IO_UNSIGNED2FLOATING:
+              case IO_SIGNED2FLOATING:
+              case IO_RESIZEFLOATING:
+              case IO_FLOATING2INTEGRAL:
+              case IO_JUMP:
+              case IO_JL:
+              case IO_JLE:
+              case IO_JE:
+              case IO_JNE:
+              case IO_JG:
+              case IO_JGE:
+              case IO_JA:
+              case IO_JAE:
+              case IO_JB:
+              case IO_JBE:
+              case IO_JFL:
+              case IO_JFLE:
+              case IO_JFE:
+              case IO_JFNE:
+              case IO_JFG:
+              case IO_JFGE:
+              case IO_JZ:
+              case IO_JNZ:
+              case IO_CALL:
+              case IO_RETURN:
+              default: {
+                error(__FILE__, __LINE__, "invalid IROperator enum");
+              }
+            }
+          }
         }
       }
     }
+    errored = errored || file->errored;
   }
+
+  if (errored) return -1;
+
+  return 0;
 }

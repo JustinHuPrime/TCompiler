@@ -25,6 +25,7 @@
 #ifndef TLC_OPTIONS_H_
 #define TLC_OPTIONS_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 
 /** Warning levels */
@@ -50,6 +51,7 @@ typedef struct {
   WarningOption duplicateImport;
   WarningOption unrecognizedFile;
   DebugDumpOption dump;
+  bool debugValidateIr;
   ArchOption arch;
 } Options;
 

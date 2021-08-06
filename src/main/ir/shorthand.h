@@ -65,7 +65,7 @@ IROperand *LOCAL(size_t name);
  */
 IROperand *GLOBAL(char *name);
 /**
- * constant offset
+ * offset constant
  */
 IROperand *OFFSET(int64_t offset);
 
@@ -79,13 +79,6 @@ IRInstruction *ASM(char const *assembly);
  * @param temp temp to use
  */
 IRInstruction *VOLATILE(IROperand *temp);
-/**
- * get address of a mem temp
- *
- * @param dest destination temp or reg
- * @param src source mem temp
- */
-IRInstruction *ADDROF(IROperand *dest, IROperand *src);
 /**
  * simple move
  * @param dest destination temp or reg
@@ -154,7 +147,7 @@ IRInstruction *UNOP(IROperator op, IROperand *dest, IROperand *src);
  * unconditional jump to local label
  * @param dest destination numeric id
  */
-IRInstruction *JUMP(size_t dest);
+IRInstruction *JUMP(IROperand *dest);
 /**
  * comparison conditional jump to local label
  * @param op comparison operation

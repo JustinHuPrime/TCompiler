@@ -20,6 +20,7 @@
 #include "ir/shorthand.h"
 
 #include "arch/interface.h"
+#include "util/conversions.h"
 #include "util/numericSizing.h"
 
 IROperand *TEMP(size_t name, size_t alignment, size_t size, AllocHint kind) {
@@ -54,7 +55,9 @@ IROperand *LOCAL(size_t name) {
   return labelOperandCreate(format(localLabelFormat(), name));
 }
 IROperand *GLOBAL(char *name) { return labelOperandCreate(strdup(name)); }
-IROperand *OFFSET(int64_t offset) { return offsetOperandCreate(offset); }
+IROperand *OFFSET(int64_t offset) {
+  return CONSTANT(POINTER_WIDTH, longDatumCreate(s64ToU64(offset)));
+}
 
 static IRInstruction *oneArgInstructionCreate(IROperator op, IROperand *arg1) {
   IRInstruction *retval = irInstructionCreate(op);
@@ -126,8 +129,8 @@ IRInstruction *BINOP(IROperator op, IROperand *dest, IROperand *lhs,
 IRInstruction *UNOP(IROperator op, IROperand *dest, IROperand *src) {
   return twoArgInstructionCreate(op, dest, src);
 }
-IRInstruction *JUMP(size_t dest) {
-  return oneArgInstructionCreate(IO_JUMP, LOCAL(dest));
+IRInstruction *JUMP(IROperand *dest) {
+  return oneArgInstructionCreate(IO_JUMP, dest);
 }
 IRInstruction *CJUMP(IROperator op, size_t trueDest, size_t falseDest,
                      IROperand *lhs, IROperand *rhs) {

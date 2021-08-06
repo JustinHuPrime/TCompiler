@@ -23,8 +23,8 @@
 #include <string.h>
 
 Options options = {
-    OPTION_W_ERROR, OPTION_W_ERROR,        OPTION_W_ERROR,
-    OPTION_DD_NONE, OPTION_A_X86_64_LINUX,
+    OPTION_W_ERROR, OPTION_W_ERROR, OPTION_W_ERROR,
+    OPTION_DD_NONE, false,          OPTION_A_X86_64_LINUX,
 };
 
 int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
@@ -64,6 +64,10 @@ int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
       options.dump = OPTION_DD_PARSE;
     } else if (strcmp(argv[idx], "--debug-dump=ir") == 0) {
       options.dump = OPTION_DD_IR;
+    } else if (strcmp(argv[idx], "--debug-validate-ir") == 0) {
+      options.debugValidateIr = true;
+    } else if (strcmp(argv[idx], "--no-debug-validate-ir") == 0) {
+      options.debugValidateIr = false;
     } else if (strcmp(argv[idx], "--arch=x86_64-linux") == 0) {
       options.arch = OPTION_A_X86_64_LINUX;
     } else {

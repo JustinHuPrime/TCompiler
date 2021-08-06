@@ -273,6 +273,31 @@ static void testOptions(void) {
 
   test("command line with debug-dump=ir passes", retval == 0);
   test("debug-dump ir option is correctly set", options.dump == OPTION_DD_IR);
+
+  // --debug-validate-ir
+  argc = 3;
+  char const *const argv15[] = {
+      "./tlc",
+      "--debug-validate-ir",
+      "foo.tc",
+  };
+  retval = parseArgs(argc, argv15, &numFiles);
+
+  test("command line with debug-validate-ir passes", retval == 0);
+  test("debug-validate-ir option is correctly set",
+       options.debugValidateIr == true);
+
+  argc = 3;
+  char const *const argv16[] = {
+      "./tlc",
+      "--no-debug-validate-ir",
+      "foo.tc",
+  };
+  retval = parseArgs(argc, argv16, &numFiles);
+
+  test("command line with no-debug-validate-ir passes", retval == 0);
+  test("debug-validate-ir option is correctly unset",
+       options.debugValidateIr == false);
 }
 
 void testCommandLineArgs(void) {

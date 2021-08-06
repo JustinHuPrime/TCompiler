@@ -308,7 +308,7 @@ void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
     }
   }
 
-  IR(b, JUMP(nextLabel));
+  IR(b, JUMP(LOCAL(nextLabel)));
 }
 void x86_64LinuxGenerateFunctionExit(Vector *blocks,
                                      SymbolTableEntry const *entry,
