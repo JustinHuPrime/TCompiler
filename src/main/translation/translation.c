@@ -956,9 +956,9 @@ static IROperand *translateCast(IRBlock *b, IROperand *src,
     // integral to float
     IROperand *out = TEMPOF(fresh(file), toType);
     if (typeSignedIntegral(fromType))
-      IR(b, UNOP(IO_SIGNED2FLOATING, irOperandCopy(out), src));
+      IR(b, UNOP(IO_S2F, irOperandCopy(out), src));
     else
-      IR(b, UNOP(IO_UNSIGNED2FLOATING, irOperandCopy(out), src));
+      IR(b, UNOP(IO_U2F, irOperandCopy(out), src));
 
     return out;
   } else if (typeIntegral(fromType) && typeCharacter(toType)) {
@@ -991,7 +991,7 @@ static IROperand *translateCast(IRBlock *b, IROperand *src,
   } else if (typeFloating(fromType) && typeIntegral(toType)) {
     // floating to integral
     IROperand *out = TEMPOF(fresh(file), toType);
-    IR(b, UNOP(IO_FLOATING2INTEGRAL, irOperandCopy(out), src));
+    IR(b, UNOP(IO_F2I, irOperandCopy(out), src));
     return out;
   } else if (typeFloating(fromType) && typeFloating(toType)) {
     // floating to floating
@@ -999,13 +999,13 @@ static IROperand *translateCast(IRBlock *b, IROperand *src,
       return src;
     } else {
       IROperand *out = TEMPOF(fresh(file), toType);
-      IR(b, UNOP(IO_RESIZEFLOATING, irOperandCopy(out), src));
+      IR(b, UNOP(IO_FRESIZE, irOperandCopy(out), src));
       return out;
     }
   } else if (typeFloating(fromType) && typeCharacter(toType)) {
     // floating to character
     IROperand *out = TEMPOF(fresh(file), toType);
-    IR(b, UNOP(IO_FLOATING2INTEGRAL, irOperandCopy(out), src));
+    IR(b, UNOP(IO_F2I, irOperandCopy(out), src));
     return out;
   } else if (typeCharacter(fromType) && typeIntegral(toType)) {
     // character to integral
@@ -1057,7 +1057,7 @@ static IROperand *translateCast(IRBlock *b, IROperand *src,
   } else if (typeCharacter(fromType) && typeFloating(toType)) {
     // character to floating
     IROperand *out = TEMPOF(fresh(file), toType);
-    IR(b, UNOP(IO_UNSIGNED2FLOATING, irOperandCopy(out), src));
+    IR(b, UNOP(IO_U2F, irOperandCopy(out), src));
     return out;
   } else if (typeCharacter(fromType) && typeCharacter(toType)) {
     // character to character
@@ -1196,7 +1196,7 @@ static IROperand *translateCast(IRBlock *b, IROperand *src,
       case TK_FLOAT:
       case TK_DOUBLE: {
         IROperand *out = TEMPOF(fresh(file), toType);
-        IR(b, UNOP(IO_UNSIGNED2FLOATING, irOperandCopy(out), src));
+        IR(b, UNOP(IO_U2F, irOperandCopy(out), src));
         return out;
       }
       default: {

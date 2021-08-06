@@ -97,9 +97,6 @@ IRInstruction *ASM(char const *assembly) {
 IRInstruction *VOLATILE(IROperand *temp) {
   return oneArgInstructionCreate(IO_VOLATILE, temp);
 }
-IRInstruction *ADDROF(IROperand *dest, IROperand *src) {
-  return twoArgInstructionCreate(IO_ADDROF, dest, src);
-}
 IRInstruction *MOVE(IROperand *dest, IROperand *src) {
   return twoArgInstructionCreate(IO_MOVE, dest, src);
 }

@@ -376,19 +376,19 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       twoOperandInstructionDump(where, "TRUNC", i);
       break;
     }
-    case IO_UNSIGNED2FLOATING: {
+    case IO_U2F: {
       twoOperandInstructionDump(where, "UNSIGNED2FLOATING", i);
       break;
     }
-    case IO_SIGNED2FLOATING: {
+    case IO_S2F: {
       twoOperandInstructionDump(where, "SIGNED2FLOATING", i);
       break;
     }
-    case IO_RESIZEFLOATING: {
+    case IO_FRESIZE: {
       twoOperandInstructionDump(where, "RESIZEFLOATING", i);
       break;
     }
-    case IO_FLOATING2INTEGRAL: {
+    case IO_F2I: {
       twoOperandInstructionDump(where, "FLOATING2INTEGRAL", i);
       break;
     }
