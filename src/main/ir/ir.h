@@ -49,7 +49,7 @@ typedef struct {
       Vector data; /**< Vector of IRDatum */
     } data;
     struct {
-      Vector blocks; /**< vector of IRBlock - first one is the entry block */
+      LinkedList blocks; /**< list of IRBlock - first one is the entry block */
     } text;
   } data;
 } IRFrag;

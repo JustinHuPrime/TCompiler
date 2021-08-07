@@ -40,7 +40,7 @@ IRFrag *dataFragCreate(FragmentType type, char *name, size_t alignment) {
 }
 IRFrag *textFragCreate(char *name) {
   IRFrag *df = fragCreate(FT_TEXT, name);
-  vectorInit(&df->data.text.blocks);
+  linkedListInit(&df->data.text.blocks);
   return df;
 }
 void irFragFree(IRFrag *f) {
@@ -53,7 +53,7 @@ void irFragFree(IRFrag *f) {
       break;
     }
     case FT_TEXT: {
-      vectorUninit(&f->data.text.blocks, (void (*)(void *))irBlockFree);
+      linkedListUninit(&f->data.text.blocks, (void (*)(void *))irBlockFree);
       break;
     }
   }
@@ -811,10 +811,11 @@ int validateIr(char const *phase) {
     for (size_t fragIdx = 0; fragIdx < file->irFrags.size; ++fragIdx) {
       IRFrag *frag = file->irFrags.elements[fragIdx];
       if (frag->type == FT_TEXT) {
-        Vector *blocks = &frag->data.text.blocks;
+        LinkedList *blocks = &frag->data.text.blocks;
         IROperand **temps = calloc(file->nextId, sizeof(IROperand *));
-        for (size_t blockIdx = 0; blockIdx < blocks->size; ++blockIdx) {
-          IRBlock *block = blocks->elements[blockIdx];
+        for (ListNode *curr = blocks->head->next; curr != blocks->tail;
+             curr = curr->next) {
+          IRBlock *block = curr->data;
           for (ListNode *curr = block->instructions.head->next;
                curr != block->instructions.tail; curr = curr->next) {
             IRInstruction *i = curr->data;

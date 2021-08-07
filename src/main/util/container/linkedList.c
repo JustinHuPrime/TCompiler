@@ -55,6 +55,12 @@ void *removeNode(ListNode *n) {
   free(n);
   return retval;
 }
+size_t linkedListLength(LinkedList *l) {
+  size_t count = 0;
+  for (ListNode *curr = l->head->next; curr != l->tail; curr = curr->next)
+    count++;
+  return count;
+}
 void linkedListUninit(LinkedList *l, void (*dtor)(void *)) {
   while (l->head->next != l->tail) {
     dtor(removeNode(l->head->next));

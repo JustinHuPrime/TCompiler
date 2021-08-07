@@ -28,10 +28,10 @@
 #include "ast/symbolTable.h"
 #include "ir/ir.h"
 
-void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
+void x86_64LinuxGenerateFunctionEntry(LinkedList *blocks, SymbolTableEntry *entry,
                                       size_t returnValueAddressTemp,
                                       size_t nextLabel, FileListEntry *file);
-void x86_64LinuxGenerateFunctionExit(Vector *blocks,
+void x86_64LinuxGenerateFunctionExit(LinkedList *blocks,
                                      SymbolTableEntry const *entry,
                                      size_t returnValueAddressTemp,
                                      size_t returnValueTemp, size_t prevLink,

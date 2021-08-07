@@ -182,8 +182,8 @@ void IR(IRBlock *b, IRInstruction *i);
  * create a new block and add it to the given vector
  *
  * @param label label of the block
- * @param v vector of IRBlock to insert into
+ * @param blocks list of IRBlock to insert into
  */
-IRBlock *BLOCK(size_t label, Vector *v);
+IRBlock *BLOCK(size_t label, LinkedList *blocks);
 
 #endif  // TLC_IR_SHORTHAND_H_

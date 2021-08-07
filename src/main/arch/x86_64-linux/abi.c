@@ -231,7 +231,8 @@ static X86_64_Register SSE_RETURN_REGS[] = {
     X86_64_XMM1,
 };
 
-void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
+void x86_64LinuxGenerateFunctionEntry(LinkedList *blocks,
+                                      SymbolTableEntry *entry,
                                       size_t returnValueAddressTemp,
                                       size_t nextLabel, FileListEntry *file) {
   IRBlock *b = BLOCK(fresh(file), blocks);
@@ -309,7 +310,7 @@ void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
 
   IR(b, JUMP(LOCAL(nextLabel)));
 }
-void x86_64LinuxGenerateFunctionExit(Vector *blocks,
+void x86_64LinuxGenerateFunctionExit(LinkedList *blocks,
                                      SymbolTableEntry const *entry,
                                      size_t returnValueAddressTemp,
                                      size_t returnValueTemp, size_t label,

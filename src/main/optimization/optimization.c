@@ -26,10 +26,13 @@
 /**
  * find the index of a block given its label
  */
-static size_t indexOfBlock(Vector *blocks, size_t label) {
-  for (size_t idx = 0; idx < blocks->size; ++idx) {
-    IRBlock *b = blocks->elements[idx];
+static size_t indexOfBlock(LinkedList *blocks, size_t label) {
+  size_t idx = 0;
+  for (ListNode *curr = blocks->head->next; curr != blocks->tail;
+       curr = curr->next) {
+    IRBlock *b = curr->data;
     if (b->label == label) return idx;
+    ++idx;
   }
   error(__FILE__, __LINE__, "given block index doesn't exist");
 }
@@ -61,32 +64,36 @@ static size_t indexOfBlock(Vector *blocks, size_t label) {
  *
  * @param blocks blocks to apply optimization to (mutated)
  */
-static void shortCircuitJumps(Vector *blocks) {
+static void shortCircuitJumps(LinkedList *blocks) {
   /**
    * mapping between block index and its single jump instruction
    */
   IRInstruction **shortCircuits =
-      malloc(sizeof(IRInstruction *) * blocks->size);
+      malloc(sizeof(IRInstruction *) * linkedListLength(blocks));
 
-  for (size_t idx = 0; idx < blocks->size; ++idx) {
+  size_t idx = 0;
+  for (ListNode *curr = blocks->head->next; curr != blocks->tail;
+       curr = curr->next) {
     // for each block, if it only contains a jump, note that down in
     // shortCircuits
     // NOTE: blocks must contain at least one instruction, and that one
     // instruction must be some sort of jump
-    IRBlock *b = blocks->elements[idx];
+    IRBlock *b = curr->data;
     if (b->instructions.head->next->next == b->instructions.tail)
       shortCircuits[idx] = b->instructions.head->next->data;
     else
       shortCircuits[idx] = NULL;
+    ++idx;
   }
 
   // iterate until no more changes happen
   bool changed = true;
   while (changed) {
     changed = false;
-    for (size_t idx = 0; idx < blocks->size; ++idx) {
+    for (ListNode *curr = blocks->head->next; curr != blocks->tail;
+         curr = curr->next) {
       // for each block, if it's last jump is an unconditional jump
-      IRBlock *b = blocks->elements[idx];
+      IRBlock *b = curr->data;
       IRInstruction *last = b->instructions.tail->prev->data;
       if (last->op == IO_JUMP) {
         IROperand *targetArg = last->args[0];
@@ -106,13 +113,20 @@ static void shortCircuitJumps(Vector *blocks) {
   free(shortCircuits);
 }
 
+/**
+ * dead block elimination
+ */
+static void deadBlockElimination(LinkedList *blocks) {
+  // TODO
+}
+
 void optimize(void) {
   for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     Vector *irFrags = &fileList.entries[fileIdx].irFrags;
     for (size_t fragIdx = 0; fragIdx < irFrags->size; ++fragIdx) {
       IRFrag *frag = irFrags->elements[fragIdx];
       if (frag->type == FT_TEXT) {
-        Vector *blocks = &frag->data.text.blocks;
+        LinkedList *blocks = &frag->data.text.blocks;
         // TODO: (difficult) inlining
         // TODO: (difficult) constant propogation
         // (if only ever used in context where a constant can be used, may
@@ -130,7 +144,7 @@ void optimize(void) {
         // replace all instances of tempA afterwards with tempB)
         // TODO: (difficult) tail call optimization
         shortCircuitJumps(blocks);
-        // TODO: dead block elimination
+        deadBlockElimination(blocks);
         // TODO: dead temp elimination
       }
     }

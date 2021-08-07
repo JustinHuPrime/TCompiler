@@ -142,8 +142,8 @@ IRInstruction *RETURN(void) { return irInstructionCreate(IO_RETURN); }
 
 void IR(IRBlock *b, IRInstruction *i) { insertNodeEnd(&b->instructions, i); }
 
-IRBlock *BLOCK(size_t label, Vector *v) {
+IRBlock *BLOCK(size_t label, LinkedList *blocks) {
   IRBlock *b = irBlockCreate(label);
-  vectorInsert(v, b);
+  insertNodeEnd(blocks, b);
   return b;
 }

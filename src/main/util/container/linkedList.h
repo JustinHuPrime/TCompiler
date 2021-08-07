@@ -25,6 +25,8 @@
 #ifndef TLC_UTIL_CONTAINER_LINKEDLIST_H_
 #define TLC_UTIL_CONTAINER_LINKEDLIST_H_
 
+#include <stddef.h>
+
 /** a doubly linked list node */
 typedef struct ListNode {
   struct ListNode *next;
@@ -58,6 +60,12 @@ void insertNodeEnd(LinkedList *l, void *data);
  * @returns data of deleted node
  */
 void *removeNode(ListNode *n);
+/**
+ * sizeof
+ *
+ * @returns number of non-dummy nodes
+ */
+size_t linkedListLength(LinkedList *l);
 /**
  * dtor
  */

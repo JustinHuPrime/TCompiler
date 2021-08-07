@@ -46,7 +46,7 @@ char const *prettyPrintRegister(size_t reg) {
   }
 }
 
-void generateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
+void generateFunctionEntry(LinkedList *blocks, SymbolTableEntry *entry,
                            size_t returnValueAddressTemp, size_t nextLabel,
                            FileListEntry *file) {
   switch (options.arch) {
@@ -60,7 +60,7 @@ void generateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
     }
   }
 }
-void generateFunctionExit(Vector *blocks, SymbolTableEntry const *entry,
+void generateFunctionExit(LinkedList *blocks, SymbolTableEntry const *entry,
                           size_t returnValueAddressTemp, size_t returnValueTemp,
                           size_t prevLink, FileListEntry *file) {
   switch (options.arch) {

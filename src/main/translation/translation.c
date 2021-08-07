@@ -1968,9 +1968,9 @@ static void lvalueFree(LValue *lv) {
   free(lv);
 }
 
-static void translateExpressionVoid(Vector *, Node const *, size_t, size_t,
+static void translateExpressionVoid(LinkedList *, Node const *, size_t, size_t,
                                     FileListEntry *);
-static IROperand *translateExpressionValue(Vector *, Node const *, size_t,
+static IROperand *translateExpressionValue(LinkedList *, Node const *, size_t,
                                            size_t, FileListEntry *);
 /**
  * translate an l-value expression
@@ -1982,7 +1982,7 @@ static IROperand *translateExpressionValue(Vector *, Node const *, size_t,
  * @param file file the expression is in
  * @returns an l-value
  */
-static LValue *translateExpressionLValue(Vector *blocks, Node const *e,
+static LValue *translateExpressionLValue(LinkedList *blocks, Node const *e,
                                          size_t label, size_t nextLabel,
                                          FileListEntry *file) {
   switch (e->type) {
@@ -2217,7 +2217,7 @@ static IROperator binopToCjump(BinOpType binop, bool floating, bool signedInt) {
 /**
  * translate a boolean variable predicate
  */
-static void translateVariablePredicate(Vector *blocks, Node const *e,
+static void translateVariablePredicate(LinkedList *blocks, Node const *e,
                                        size_t label, size_t trueLabel,
                                        size_t falseLabel, FileListEntry *file) {
   size_t comparisonLabel = fresh(file);
@@ -2236,7 +2236,7 @@ static void translateVariablePredicate(Vector *blocks, Node const *e,
  * @param falseLabel label to go to if false
  * @param file file the expression is in
  */
-static void translateExpressionPredicate(Vector *blocks, Node const *e,
+static void translateExpressionPredicate(LinkedList *blocks, Node const *e,
                                          size_t label, size_t trueLabel,
                                          size_t falseLabel,
                                          FileListEntry *file) {
@@ -2610,7 +2610,7 @@ static void translateValueLiteral(Node const *e, IRFrag *df,
  * @param file file the expression is in
  * @returns temp with produced value
  */
-static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
+static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
                                            size_t label, size_t nextLabel,
                                            FileListEntry *file) {
   switch (e->type) {
@@ -3231,8 +3231,9 @@ static IROperand *translateExpressionValue(Vector *blocks, Node const *e,
  * @param nextLabel label the next block is at
  * @param file file the expression is in
  */
-static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
-                                    size_t nextLabel, FileListEntry *file) {
+static void translateExpressionVoid(LinkedList *blocks, Node const *e,
+                                    size_t label, size_t nextLabel,
+                                    FileListEntry *file) {
   switch (e->type) {
     case NT_BINOPEXP: {
       Node const *lhs = e->data.binOpExp.lhs;
@@ -3455,7 +3456,7 @@ static void translateExpressionVoid(Vector *blocks, Node const *e, size_t label,
  * @param continueLabel label to get to the start of the loop
  * @param file file the statement is in
  */
-static void translateStmt(Vector *blocks, Node *stmt, size_t label,
+static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
                           size_t nextLabel, size_t returnLabel,
                           size_t breakLabel, size_t continueLabel,
                           size_t returnValueTemp, Type const *returnType,
@@ -4053,7 +4054,7 @@ static void translateFile(FileListEntry *file) {
         IRFrag *frag = textFragCreate(
             suffixName(namePrefix, body->data.funDefn.name->data.id.id));
         vectorInsert(&file->irFrags, frag);
-        Vector *blocks = &frag->data.text.blocks;
+        LinkedList *blocks = &frag->data.text.blocks;
 
         size_t returnValueAddressTemp = fresh(file);
         size_t returnValueTemp = fresh(file);

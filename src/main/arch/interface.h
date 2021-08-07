@@ -49,7 +49,7 @@ char const *prettyPrintRegister(size_t reg);
  * @param nextLabel label to jump to
  * @param file file this is going to be in
  */
-void generateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
+void generateFunctionEntry(LinkedList *blocks, SymbolTableEntry *entry,
                            size_t returnValueAddressTemp, size_t nextLabel,
                            FileListEntry *file);
 /**
@@ -64,7 +64,7 @@ void generateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
  * @param label id that the previous block jumps to
  * @param file file this is going to be in
  */
-void generateFunctionExit(Vector *blocks, SymbolTableEntry const *entry,
+void generateFunctionExit(LinkedList *blocks, SymbolTableEntry const *entry,
                           size_t returnValueAddressTemp, size_t returnValueTemp,
                           size_t label, FileListEntry *file);
 
