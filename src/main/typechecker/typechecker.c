@@ -1596,6 +1596,18 @@ static void typecheckStmt(Node *stmt, Type const *returnType,
                                     stmt->data.returnStmt.value->character,
                                     valueType, returnType);
         }
+      } else {
+        if (!(returnType->kind == TK_KEYWORD &&
+              returnType->data.keyword.keyword == TK_VOID)) {
+          char *typeString = typeToString(returnType);
+          fprintf(stderr,
+                  "%s:%zu:%zu: error: must return a value from a function "
+                  "returining '%s'\n",
+                  entry->inputFilename, stmt->line, stmt->character,
+                  typeString);
+          free(typeString);
+          entry->errored = true;
+        }
       }
       break;
     }
