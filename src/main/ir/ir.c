@@ -409,30 +409,93 @@ void irBlockFree(IRBlock *b) {
 }
 
 static char const *const IROPERATOR_NAMES[] = {
-             "LABEL",     "VOLATILE", "UNINITIALIZED",
-    "ADDROF",      "NOP",       "MOVE",     "MEM_STORE",
-    "MEM_LOAD",    "STK_STORE", "STK_LOAD", "OFFSET_STORE",
-    "OFFSET_LOAD", "ADD",       "SUB",      "SMUL",
-    "UMUL",        "SDIV",      "UDIV",     "SMOD",
-    "UMOD",        "FADD",      "FSUB",     "FMUL",
-    "FDIV",        "FMOD",      "NEG",      "FNEG",
-    "SLL",         "SLR",       "SAR",      "AND",
-    "XOR",         "OR",        "NOT",      "L",
-    "LE",          "E",         "NE",       "G",
-    "GE",          "A",         "AE",       "B",
-    "BE",          "FL",        "FLE",      "FE",
-    "FNE",         "FG",        "FGE",      "Z",
-    "NZ",          "LNOT",      "SX",       "ZX",
-    "TRUNC",       "U2F",       "S2F",      "FRESIZE",
-    "F2I",         "JUMP",      "JL",       "JLE",
-    "JE",          "JNE",       "JG",       "JGE",
-    "JA",          "JAE",       "JB",       "JBE",
-    "JFL",         "JFLE",      "JFE",      "JFNE",
-    "JFG",         "JFGE",      "JZ",       "JNZ",
-    "CALL",        "RETURN",
+    "LABEL",
+    "VOLATILE",
+    "UNINITIALIZED",
+    "ADDROF",
+    "NOP",
+    "MOVE",
+    "MEM_STORE",
+    "MEM_LOAD",
+    "STK_STORE",
+    "STK_LOAD",
+    "OFFSET_STORE",
+    "OFFSET_LOAD",
+    "ADD",
+    "SUB",
+    "SMUL",
+    "UMUL",
+    "SDIV",
+    "UDIV",
+    "SMOD",
+    "UMOD",
+    "FADD",
+    "FSUB",
+    "FMUL",
+    "FDIV",
+    "FMOD",
+    "NEG",
+    "FNEG",
+    "SLL",
+    "SLR",
+    "SAR",
+    "AND",
+    "XOR",
+    "OR",
+    "NOT",
+    "L",
+    "LE",
+    "E",
+    "NE",
+    "G",
+    "GE",
+    "A",
+    "AE",
+    "B",
+    "BE",
+    "FL",
+    "FLE",
+    "FE",
+    "FNE",
+    "FG",
+    "FGE",
+    "Z",
+    "NZ",
+    "LNOT",
+    "SX",
+    "ZX",
+    "TRUNC",
+    "U2F",
+    "S2F",
+    "FRESIZE",
+    "F2I",
+    "JUMP",
+    "JL",
+    "JLE",
+    "JE",
+    "JNE",
+    "JG",
+    "JGE",
+    "JA",
+    "JAE",
+    "JB",
+    "JBE",
+    "JFL",
+    "JFLE",
+    "JFE",
+    "JFNE",
+    "JFG",
+    "JFGE",
+    "JZ",
+    "JNZ",
+    "CALL",
+    "RETURN",
 };
 static char const *const IROPERAND_NAMES[] = {
-    "TEMP", "REG", "CONSTANT", "LABEL", 
+    "TEMP",
+    "REG",
+    "CONSTANT",
+    "LABEL",
 };
 static char const *const ALLOCHINT_NAMES[] = {
     "GP",
@@ -441,59 +504,59 @@ static char const *const ALLOCHINT_NAMES[] = {
 };
 
 static void validateTempConsistency(IROperand *definition, IROperand *temp,
-                                    FileListEntry *file) {
+                                    char const *phase, FileListEntry *file) {
   if (definition->data.temp.size != temp->data.temp.size) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - temp %zu's "
-            "size is inconsistent\n",
-            file->inputFilename, temp->data.temp.name);
+            "%s: internal compiler error: IR validation after %s failed - temp "
+            "%zu's size is inconsistent\n",
+            file->inputFilename, phase, temp->data.temp.name);
     file->errored = true;
   }
   if (definition->data.temp.alignment != temp->data.temp.alignment) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - temp %zu's "
-            "alignment is inconsistent\n",
-            file->inputFilename, temp->data.temp.name);
+            "%s: internal compiler error: IR validation after %s failed - temp "
+            "%zu's alignment is inconsistent\n",
+            file->inputFilename, phase, temp->data.temp.name);
     file->errored = true;
   }
   if (definition->data.temp.kind != temp->data.temp.kind) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - temp %zu's "
-            "allocation kind is inconsistent\n",
-            file->inputFilename, temp->data.temp.name);
+            "%s: internal compiler error: IR validation after %s failed - temp "
+            "%zu's allocation kind is inconsistent\n",
+            file->inputFilename, phase, temp->data.temp.name);
     file->errored = true;
   }
 }
 static void validateTempRead(IROperand **temps, IROperand *temp,
-                             FileListEntry *file) {
+                             char const *phase, FileListEntry *file) {
   IROperand *definition = temps[temp->data.temp.name];
   if (definition == NULL) {  // temp must exist
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - temp %zu is "
-            "used before it is initialized\n",
-            file->inputFilename, temp->data.temp.name);
+            "%s: internal compiler error: IR validation after %s failed - temp "
+            "%zu is used before it is initialized\n",
+            file->inputFilename, phase, temp->data.temp.name);
     file->errored = true;
   } else {
-    validateTempConsistency(definition, temp, file);
+    validateTempConsistency(definition, temp, phase, file);
   }
 }
 static void validateTempWrite(IROperand **temps, IROperand *temp,
-                              FileListEntry *file) {
+                              char const *phase, FileListEntry *file) {
   IROperand *definition = temps[temp->data.temp.name];
   if (definition == NULL)
     temps[temp->data.temp.name] = temp;
   else
-    validateTempConsistency(definition, temp, file);
+    validateTempConsistency(definition, temp, phase, file);
 }
 static bool validateArgKind(IRInstruction *i, size_t idx, OperandKind kind,
-                            FileListEntry *file) {
+                            char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != kind) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - %s "
+            "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction does not have %s operand at position %zu, instead it "
             "has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], IROPERAND_NAMES[kind],
-            idx, IROPERAND_NAMES[i->args[idx]->kind]);
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op],
+            IROPERAND_NAMES[kind], idx, IROPERAND_NAMES[i->args[idx]->kind]);
     file->errored = true;
     return false;
   } else {
@@ -501,13 +564,13 @@ static bool validateArgKind(IRInstruction *i, size_t idx, OperandKind kind,
   }
 }
 static bool validateArgOffsettable(IRInstruction *i, size_t idx,
-                                   FileListEntry *file) {
+                                   char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - %s "
+            "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction does not have TEMP or REG operand at position %zu, "
             "instead it has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], idx,
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             IROPERAND_NAMES[i->args[idx]->kind]);
     file->errored = true;
     return false;
@@ -516,193 +579,201 @@ static bool validateArgOffsettable(IRInstruction *i, size_t idx,
   }
 }
 static bool validateArgWritable(IRInstruction *i, size_t idx, IROperand **temps,
-                                FileListEntry *file) {
+                                char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - %s "
+            "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction does not have TEMP or REG operand at position %zu, "
             "instead it has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], idx,
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             IROPERAND_NAMES[i->args[idx]->kind]);
     file->errored = true;
     return false;
   } else {
-    if (i->args[0]->kind == OK_TEMP) validateTempWrite(temps, i->args[0], file);
+    if (i->args[0]->kind == OK_TEMP)
+      validateTempWrite(temps, i->args[0], phase, file);
     return true;
   }
 }
 static void validateArgSize(IRInstruction *i, size_t idx, size_t size,
-                            FileListEntry *file) {
+                            char const *phase, FileListEntry *file) {
   if (irOperandSizeof(i->args[idx]) != size) {
     fprintf(stderr,
-            "%s: interal compiler error: IR validation failed - %s "
+            "%s: interal compiler error: IR validation after %s failed - %s "
             "instruction's %s operand at position %zu must have size %zu, but "
             "instead has size %zu\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op],
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op],
             IROPERAND_NAMES[i->args[idx]->kind], idx, size,
             irOperandSizeof(i->args[idx]));
     file->errored = true;
   }
 }
-static void validateTempGP(IRInstruction *i, size_t idx, FileListEntry *file) {
+static void validateTempGP(IRInstruction *i, size_t idx, char const *phase,
+                           FileListEntry *file) {
   if (i->args[idx]->data.temp.kind != AH_GP &&
       i->args[idx]->data.temp.kind != AH_MEM) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - %s "
+            "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction's TEMP operand at position %zu does not have GP or "
             "MEM allocation, instead it has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], idx,
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             ALLOCHINT_NAMES[i->args[idx]->data.temp.kind]);
     file->errored = true;
   }
 }
-static void validateTempFP(IRInstruction *i, size_t idx, FileListEntry *file) {
+static void validateTempFP(IRInstruction *i, size_t idx, char const *phase,
+                           FileListEntry *file) {
   if (i->args[idx]->data.temp.kind != AH_FP &&
       i->args[idx]->data.temp.kind != AH_MEM) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - %s "
+            "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction's TEMP operand at position %zu does not have FP or "
             "MEM allocation, instead it has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], idx,
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             ALLOCHINT_NAMES[i->args[idx]->data.temp.kind]);
     file->errored = true;
   }
 }
-static void validateTempMEM(IRInstruction *i, size_t idx, FileListEntry *file) {
+static void validateTempMEM(IRInstruction *i, size_t idx, char const *phase,
+                            FileListEntry *file) {
   if (i->args[idx]->data.temp.kind != AH_FP &&
       i->args[idx]->data.temp.kind != AH_MEM) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - %s "
+            "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction's TEMP operand at position %zu does not have MEM "
             "allocation, instead it has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], idx,
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             ALLOCHINT_NAMES[i->args[idx]->data.temp.kind]);
     file->errored = true;
   }
 }
 static void validateArgPointerRead(IRInstruction *i, size_t idx,
-                                   IROperand **temps, FileListEntry *file) {
+                                   IROperand **temps, char const *phase,
+                                   FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
       i->args[idx]->kind != OK_LABEL && i->args[idx]->kind != OK_CONSTANT) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - %s "
+            "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction does not have REG, TEMP, LABEL, or CONSTANT operand "
             "at position %zu, instead it has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], idx,
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             IROPERAND_NAMES[i->args[idx]->kind]);
     file->errored = true;
   } else {
-    validateArgSize(i, idx, POINTER_WIDTH, file);
+    validateArgSize(i, idx, POINTER_WIDTH, phase, file);
 
     if (i->args[idx]->kind == OK_TEMP) {
-      validateTempGP(i, idx, file);
-      validateTempRead(temps, i->args[idx], file);
+      validateTempGP(i, idx, phase, file);
+      validateTempRead(temps, i->args[idx], phase, file);
     }
   }
 }
 static void validateArgByteRead(IRInstruction *i, size_t idx, IROperand **temps,
-                                FileListEntry *file) {
+                                char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
       i->args[idx]->kind != OK_CONSTANT) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - %s "
+            "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction does not have REG, TEMP, or CONSTANT operand "
             "at position %zu, instead it has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], idx,
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             IROPERAND_NAMES[i->args[idx]->kind]);
     file->errored = true;
   } else {
-    validateArgSize(i, idx, BYTE_WIDTH, file);
+    validateArgSize(i, idx, BYTE_WIDTH, phase, file);
 
     if (i->args[idx]->kind == OK_TEMP) {
-      validateTempGP(i, idx, file);
-      validateTempRead(temps, i->args[idx], file);
+      validateTempGP(i, idx, phase, file);
+      validateTempRead(temps, i->args[idx], phase, file);
     }
   }
 }
 static void validateArgPointerWritten(IRInstruction *i, size_t idx,
-                                      IROperand **temps, FileListEntry *file) {
-  if (validateArgWritable(i, idx, temps, file)) {
-    validateArgSize(i, idx, POINTER_WIDTH, file);
+                                      IROperand **temps, char const *phase,
+                                      FileListEntry *file) {
+  if (validateArgWritable(i, idx, temps, phase, file)) {
+    validateArgSize(i, idx, POINTER_WIDTH, phase, file);
 
-    if (i->args[idx]->kind == OK_TEMP) validateTempGP(i, idx, file);
+    if (i->args[idx]->kind == OK_TEMP) validateTempGP(i, idx, phase, file);
   }
 }
 static void validateArgByteWritten(IRInstruction *i, size_t idx,
-                                   IROperand **temps, FileListEntry *file) {
-  if (validateArgWritable(i, idx, temps, file)) {
-    validateArgSize(i, idx, BYTE_WIDTH, file);
+                                   IROperand **temps, char const *phase,
+                                   FileListEntry *file) {
+  if (validateArgWritable(i, idx, temps, phase, file)) {
+    validateArgSize(i, idx, BYTE_WIDTH, phase, file);
 
-    if (i->args[idx]->kind == OK_TEMP) validateTempGP(i, idx, file);
+    if (i->args[idx]->kind == OK_TEMP) validateTempGP(i, idx, phase, file);
   }
 }
 static void validateArgOffset(IRInstruction *i, size_t idx, IROperand **temps,
-                              FileListEntry *file) {
+                              char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
       i->args[idx]->kind != OK_CONSTANT) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - %s "
+            "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction does not have REG, TEMP, or CONSTANT operand "
             "at position %zu, instead it has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], idx,
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             IROPERAND_NAMES[i->args[idx]->kind]);
     file->errored = true;
   } else {
-    validateArgSize(i, idx, POINTER_WIDTH, file);
+    validateArgSize(i, idx, POINTER_WIDTH, phase, file);
 
     if (i->args[idx]->kind == OK_TEMP) {
-      validateTempGP(i, idx, file);
-      validateTempRead(temps, i->args[idx], file);
+      validateTempGP(i, idx, phase, file);
+      validateTempRead(temps, i->args[idx], phase, file);
     }
   }
 }
 static void validateArgRead(IRInstruction *i, size_t idx, IROperand **temps,
-                            FileListEntry *file) {
+                            char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
       i->args[idx]->kind != OK_LABEL && i->args[idx]->kind != OK_CONSTANT) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - %s "
+            "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction does not have REG, TEMP, LABEL, or CONSTANT operand "
             "at position %zu, instead it has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], idx,
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             IROPERAND_NAMES[i->args[idx]->kind]);
     file->errored = true;
   } else {
     if (i->args[idx]->kind == OK_TEMP)
-      validateTempRead(temps, i->args[idx], file);
+      validateTempRead(temps, i->args[idx], phase, file);
   }
 }
 static void validateArgsSameSize(IRInstruction *i, size_t a, size_t b,
-                                 FileListEntry *file) {
+                                 char const *phase, FileListEntry *file) {
   if (irOperandSizeof(i->args[a]) != irOperandSizeof(i->args[b])) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - "
+            "%s: internal compiler error: IR validation after %s failed - "
             "%s instruction's argument %zu and %zu differ in size\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], a, b);
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], a, b);
     file->errored = true;
   }
 }
 static void validateArgJumpTarget(IRInstruction *i, size_t idx,
-                                  IROperand **temps, FileListEntry *file) {
+                                  IROperand **temps, char const *phase,
+                                  FileListEntry *file) {
   if (i->args[idx]->kind != OK_LABEL && i->args[idx]->kind != OK_REG &&
       i->args[idx]->kind != OK_TEMP) {
     fprintf(stderr,
-            "%s: internal compiler error: IR validation failed - "
+            "%s: internal compiler error: IR validation after %s failed - "
             "%s instruction does not have LABEL, REG, or TEMP operand at "
             "position %zu, instead it has %s\n",
-            file->inputFilename, IROPERATOR_NAMES[i->op], idx,
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             IROPERAND_NAMES[i->args[0]->kind]);
     file->errored = true;
   } else {
-    validateArgSize(i, 0, POINTER_WIDTH, file);
+    validateArgSize(i, 0, POINTER_WIDTH, phase, file);
 
     if (i->args[0]->kind == OK_TEMP) {
-      validateTempGP(i, 0, file);
-      validateTempRead(temps, i->args[0], file);
+      validateTempGP(i, 0, phase, file);
+      validateTempRead(temps, i->args[0], phase, file);
     }
   }
 }
-int validateIr(void) {
+int validateIr(char const *phase) {
   bool errored = false;
   for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     FileListEntry *file = &fileList.entries[fileIdx];
@@ -718,25 +789,25 @@ int validateIr(void) {
             IRInstruction *i = curr->data;
             switch (i->op) {
               case IO_LABEL: {
-                validateArgKind(i, 0, OK_LABEL, file);
+                validateArgKind(i, 0, OK_LABEL, phase, file);
                 break;
               }
               case IO_VOLATILE: {
-                if (validateArgKind(i, 0, OK_TEMP, file))
-                  validateTempRead(temps, i->args[0], file);
+                if (validateArgKind(i, 0, OK_TEMP, phase, file))
+                  validateTempRead(temps, i->args[0], phase, file);
                 break;
               }
               case IO_UNINITIALIZED: {
-                if (validateArgKind(i, 0, OK_TEMP, file))
-                  validateTempWrite(temps, i->args[0], file);
+                if (validateArgKind(i, 0, OK_TEMP, phase, file))
+                  validateTempWrite(temps, i->args[0], phase, file);
                 break;
               }
               case IO_ADDROF: {
-                validateArgPointerWritten(i, 0, temps, file);
+                validateArgPointerWritten(i, 0, temps, phase, file);
 
-                if (validateArgKind(i, 1, OK_TEMP, file)) {
-                  validateTempMEM(i, 1, file);
-                  validateTempRead(temps, i->args[1], file);
+                if (validateArgKind(i, 1, OK_TEMP, phase, file)) {
+                  validateTempMEM(i, 1, phase, file);
+                  validateTempRead(temps, i->args[1], phase, file);
                 }
                 break;
               }
@@ -745,59 +816,59 @@ int validateIr(void) {
                 break;
               }
               case IO_MOVE: {
-                validateArgWritable(i, 0, temps, file);
+                validateArgWritable(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, file);
+                validateArgRead(i, 1, temps, phase, file);
 
-                validateArgsSameSize(i, 0, 1, file);
+                validateArgsSameSize(i, 0, 1, phase, file);
                 break;
               }
               case IO_MEM_STORE: {
-                validateArgPointerRead(i, 0, temps, file);
+                validateArgPointerRead(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, file);
+                validateArgRead(i, 1, temps, phase, file);
 
-                validateArgOffset(i, 2, temps, file);
+                validateArgOffset(i, 2, temps, phase, file);
                 break;
               }
               case IO_MEM_LOAD: {
-                validateArgWritable(i, 0, temps, file);
+                validateArgWritable(i, 0, temps, phase, file);
 
-                validateArgPointerRead(i, 1, temps, file);
+                validateArgPointerRead(i, 1, temps, phase, file);
 
-                validateArgOffset(i, 2, temps, file);
+                validateArgOffset(i, 2, temps, phase, file);
                 break;
               }
               case IO_STK_STORE: {
-                validateArgOffset(i, 0, temps, file);
+                validateArgOffset(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, file);
+                validateArgRead(i, 1, temps, phase, file);
                 break;
               }
               case IO_STK_LOAD: {
-                validateArgWritable(i, 0, temps, file);
+                validateArgWritable(i, 0, temps, phase, file);
 
-                validateArgOffset(i, 1, temps, file);
+                validateArgOffset(i, 1, temps, phase, file);
                 break;
               }
               case IO_OFFSET_STORE: {
-                validateArgOffsettable(i, 0, file);
+                validateArgOffsettable(i, 0, phase, file);
                 if (i->args[0]->kind == OK_TEMP)
-                  validateTempWrite(temps, i->args[0], file);
+                  validateTempWrite(temps, i->args[0], phase, file);
 
-                validateArgRead(i, 1, temps, file);
+                validateArgRead(i, 1, temps, phase, file);
 
-                validateArgOffset(i, 2, temps, file);
+                validateArgOffset(i, 2, temps, phase, file);
                 break;
               }
               case IO_OFFSET_LOAD: {
-                validateArgWritable(i, 0, temps, file);
+                validateArgWritable(i, 0, temps, phase, file);
 
-                validateArgOffsettable(i, 1, file);
+                validateArgOffsettable(i, 1, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
-                  validateTempRead(temps, i->args[1], file);
+                  validateTempRead(temps, i->args[1], phase, file);
 
-                validateArgOffset(i, 2, temps, file);
+                validateArgOffset(i, 2, temps, phase, file);
                 break;
               }
               case IO_ADD:
@@ -811,21 +882,23 @@ int validateIr(void) {
               case IO_AND:
               case IO_XOR:
               case IO_OR: {
-                validateArgWritable(i, 0, temps, file);
+                validateArgWritable(i, 0, temps, phase, file);
                 if (i->args[0]->kind == OK_TEMP) {
-                  validateTempGP(i, 0, file);
-                  validateTempWrite(temps, i->args[0], file);
+                  validateTempGP(i, 0, phase, file);
+                  validateTempWrite(temps, i->args[0], phase, file);
                 }
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempGP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempGP(i, 1, phase, file);
 
-                validateArgRead(i, 2, temps, file);
-                if (i->args[2]->kind == OK_TEMP) validateTempGP(i, 2, file);
+                validateArgRead(i, 2, temps, phase, file);
+                if (i->args[2]->kind == OK_TEMP)
+                  validateTempGP(i, 2, phase, file);
 
-                validateArgsSameSize(i, 0, 1, file);
-                validateArgsSameSize(i, 0, 2, file);
-                validateArgsSameSize(i, 1, 2, file);
+                validateArgsSameSize(i, 0, 1, phase, file);
+                validateArgsSameSize(i, 0, 2, phase, file);
+                validateArgsSameSize(i, 1, 2, phase, file);
                 break;
               }
               case IO_FADD:
@@ -833,65 +906,70 @@ int validateIr(void) {
               case IO_FMUL:
               case IO_FDIV:
               case IO_FMOD: {
-                validateArgWritable(i, 0, temps, file);
+                validateArgWritable(i, 0, temps, phase, file);
                 if (i->args[0]->kind == OK_TEMP) {
-                  validateTempFP(i, 0, file);
-                  validateTempWrite(temps, i->args[0], file);
+                  validateTempFP(i, 0, phase, file);
+                  validateTempWrite(temps, i->args[0], phase, file);
                 }
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempFP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempFP(i, 1, phase, file);
 
-                validateArgRead(i, 2, temps, file);
-                if (i->args[2]->kind == OK_TEMP) validateTempFP(i, 2, file);
+                validateArgRead(i, 2, temps, phase, file);
+                if (i->args[2]->kind == OK_TEMP)
+                  validateTempFP(i, 2, phase, file);
 
-                validateArgsSameSize(i, 0, 1, file);
-                validateArgsSameSize(i, 0, 2, file);
-                validateArgsSameSize(i, 1, 2, file);
+                validateArgsSameSize(i, 0, 1, phase, file);
+                validateArgsSameSize(i, 0, 2, phase, file);
+                validateArgsSameSize(i, 1, 2, phase, file);
                 break;
               }
               case IO_NEG:
               case IO_NOT: {
-                validateArgWritable(i, 0, temps, file);
+                validateArgWritable(i, 0, temps, phase, file);
                 if (i->args[0]->kind == OK_TEMP) {
-                  validateTempGP(i, 0, file);
-                  validateTempWrite(temps, i->args[0], file);
+                  validateTempGP(i, 0, phase, file);
+                  validateTempWrite(temps, i->args[0], phase, file);
                 }
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempGP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempGP(i, 1, phase, file);
 
-                validateArgsSameSize(i, 0, 1, file);
+                validateArgsSameSize(i, 0, 1, phase, file);
                 break;
               }
               case IO_FNEG: {
-                validateArgWritable(i, 0, temps, file);
+                validateArgWritable(i, 0, temps, phase, file);
                 if (i->args[0]->kind == OK_TEMP) {
-                  validateTempFP(i, 0, file);
-                  validateTempWrite(temps, i->args[0], file);
+                  validateTempFP(i, 0, phase, file);
+                  validateTempWrite(temps, i->args[0], phase, file);
                 }
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempFP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempFP(i, 1, phase, file);
 
-                validateArgsSameSize(i, 0, 1, file);
+                validateArgsSameSize(i, 0, 1, phase, file);
                 break;
               }
               case IO_SLL:
               case IO_SLR:
               case IO_SAR: {
-                validateArgWritable(i, 0, temps, file);
+                validateArgWritable(i, 0, temps, phase, file);
                 if (i->args[0]->kind == OK_TEMP) {
-                  validateTempGP(i, 0, file);
-                  validateTempWrite(temps, i->args[0], file);
+                  validateTempGP(i, 0, phase, file);
+                  validateTempWrite(temps, i->args[0], phase, file);
                 }
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempGP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempGP(i, 1, phase, file);
 
-                validateArgByteRead(i, 2, temps, file);
+                validateArgByteRead(i, 2, temps, phase, file);
 
-                validateArgsSameSize(i, 0, 1, file);
+                validateArgsSameSize(i, 0, 1, phase, file);
                 break;
               }
               case IO_L:
@@ -904,15 +982,17 @@ int validateIr(void) {
               case IO_AE:
               case IO_B:
               case IO_BE: {
-                validateArgByteWritten(i, 0, temps, file);
+                validateArgByteWritten(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempGP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempGP(i, 1, phase, file);
 
-                validateArgRead(i, 2, temps, file);
-                if (i->args[2]->kind == OK_TEMP) validateTempGP(i, 2, file);
+                validateArgRead(i, 2, temps, phase, file);
+                if (i->args[2]->kind == OK_TEMP)
+                  validateTempGP(i, 2, phase, file);
 
-                validateArgsSameSize(i, 1, 2, file);
+                validateArgsSameSize(i, 1, 2, phase, file);
                 break;
               }
               case IO_FL:
@@ -921,104 +1001,117 @@ int validateIr(void) {
               case IO_FNE:
               case IO_FG:
               case IO_FGE: {
-                validateArgByteWritten(i, 0, temps, file);
+                validateArgByteWritten(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempFP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempFP(i, 1, phase, file);
 
-                validateArgRead(i, 2, temps, file);
-                if (i->args[2]->kind == OK_TEMP) validateTempFP(i, 2, file);
+                validateArgRead(i, 2, temps, phase, file);
+                if (i->args[2]->kind == OK_TEMP)
+                  validateTempFP(i, 2, phase, file);
 
-                validateArgsSameSize(i, 1, 2, file);
+                validateArgsSameSize(i, 1, 2, phase, file);
                 break;
               }
               case IO_Z:
               case IO_NZ: {
-                validateArgByteWritten(i, 0, temps, file);
+                validateArgByteWritten(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, file);
+                validateArgRead(i, 1, temps, phase, file);
                 break;
               }
               case IO_LNOT: {
-                validateArgByteWritten(i, 0, temps, file);
+                validateArgByteWritten(i, 0, temps, phase, file);
 
-                validateArgByteRead(i, 1, temps, file);
+                validateArgByteRead(i, 1, temps, phase, file);
                 break;
               }
               case IO_SX:
               case IO_ZX: {
-                validateArgWritable(i, 0, temps, file);
-                if (i->args[0]->kind == OK_TEMP) validateTempGP(i, 0, file);
+                validateArgWritable(i, 0, temps, phase, file);
+                if (i->args[0]->kind == OK_TEMP)
+                  validateTempGP(i, 0, phase, file);
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempGP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempGP(i, 1, phase, file);
 
                 if (irOperandSizeof(i->args[0]) <=
                     irOperandSizeof(i->args[1])) {
-                  fprintf(stderr,
-                          "%s: internal compiler error: IR validation failed - "
-                          "%s instruction's argument 0 is not larger than "
-                          "argument 1\n",
-                          file->inputFilename, IROPERATOR_NAMES[i->op]);
+                  fprintf(
+                      stderr,
+                      "%s: internal compiler error: IR validation after %s "
+                      "failed - %s instruction's argument 0 is not larger than "
+                      "argument 1\n",
+                      file->inputFilename, phase, IROPERATOR_NAMES[i->op]);
                   file->errored = true;
                 }
                 break;
               }
               case IO_TRUNC: {
-                validateArgWritable(i, 0, temps, file);
-                if (i->args[0]->kind == OK_TEMP) validateTempGP(i, 0, file);
+                validateArgWritable(i, 0, temps, phase, file);
+                if (i->args[0]->kind == OK_TEMP)
+                  validateTempGP(i, 0, phase, file);
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempGP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempGP(i, 1, phase, file);
 
                 if (irOperandSizeof(i->args[0]) >=
                     irOperandSizeof(i->args[1])) {
                   fprintf(stderr,
-                          "%s: internal compiler error: IR validation failed - "
-                          "TRUNC instruction's argument 0 is not smaller than "
-                          "argument 1\n",
-                          file->inputFilename);
+                          "%s: internal compiler error: IR validation after %s "
+                          "failed - TRUNC instruction's argument 0 is not "
+                          "smaller than argument 1\n",
+                          file->inputFilename, phase);
                   file->errored = true;
                 }
                 break;
               }
               case IO_U2F:
               case IO_S2F: {
-                validateArgWritable(i, 0, temps, file);
-                if (i->args[0]->kind == OK_TEMP) validateTempFP(i, 0, file);
+                validateArgWritable(i, 0, temps, phase, file);
+                if (i->args[0]->kind == OK_TEMP)
+                  validateTempFP(i, 0, phase, file);
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempGP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempGP(i, 1, phase, file);
                 break;
               }
               case IO_FRESIZE: {
-                validateArgWritable(i, 0, temps, file);
-                if (i->args[0]->kind == OK_TEMP) validateTempFP(i, 0, file);
+                validateArgWritable(i, 0, temps, phase, file);
+                if (i->args[0]->kind == OK_TEMP)
+                  validateTempFP(i, 0, phase, file);
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempFP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempFP(i, 1, phase, file);
 
                 if (irOperandSizeof(i->args[0]) ==
                     irOperandSizeof(i->args[1])) {
                   fprintf(stderr,
-                          "%s: internal compiler error: IR validation failed - "
-                          "TRUNC instruction's argument 0 and 1 are the same "
-                          "size\n",
-                          file->inputFilename);
+                          "%s: internal compiler error: IR validation after %s "
+                          "failed - TRUNC instruction's argument 0 and 1 are "
+                          "the same size\n",
+                          file->inputFilename, phase);
                   file->errored = true;
                 }
                 break;
               }
               case IO_F2I: {
-                validateArgWritable(i, 0, temps, file);
-                if (i->args[0]->kind == OK_TEMP) validateTempGP(i, 0, file);
+                validateArgWritable(i, 0, temps, phase, file);
+                if (i->args[0]->kind == OK_TEMP)
+                  validateTempGP(i, 0, phase, file);
 
-                validateArgRead(i, 1, temps, file);
-                if (i->args[1]->kind == OK_TEMP) validateTempFP(i, 1, file);
+                validateArgRead(i, 1, temps, phase, file);
+                if (i->args[1]->kind == OK_TEMP)
+                  validateTempFP(i, 1, phase, file);
                 break;
               }
               case IO_JUMP: {
-                validateArgJumpTarget(i, 0, temps, file);
+                validateArgJumpTarget(i, 0, temps, phase, file);
                 break;
               }
               case IO_JL:
@@ -1031,17 +1124,19 @@ int validateIr(void) {
               case IO_JAE:
               case IO_JB:
               case IO_JBE: {
-                validateArgKind(i, 0, OK_LABEL, file);
+                validateArgKind(i, 0, OK_LABEL, phase, file);
 
-                validateArgKind(i, 1, OK_LABEL, file);
+                validateArgKind(i, 1, OK_LABEL, phase, file);
 
-                validateArgRead(i, 2, temps, file);
-                if (i->args[2]->kind == OK_TEMP) validateTempGP(i, 2, file);
+                validateArgRead(i, 2, temps, phase, file);
+                if (i->args[2]->kind == OK_TEMP)
+                  validateTempGP(i, 2, phase, file);
 
-                validateArgRead(i, 3, temps, file);
-                if (i->args[3]->kind == OK_TEMP) validateTempGP(i, 3, file);
+                validateArgRead(i, 3, temps, phase, file);
+                if (i->args[3]->kind == OK_TEMP)
+                  validateTempGP(i, 3, phase, file);
 
-                validateArgsSameSize(i, 2, 3, file);
+                validateArgsSameSize(i, 2, 3, phase, file);
                 break;
               }
               case IO_JFL:
@@ -1050,30 +1145,32 @@ int validateIr(void) {
               case IO_JFNE:
               case IO_JFG:
               case IO_JFGE: {
-                validateArgKind(i, 0, OK_LABEL, file);
+                validateArgKind(i, 0, OK_LABEL, phase, file);
 
-                validateArgKind(i, 1, OK_LABEL, file);
+                validateArgKind(i, 1, OK_LABEL, phase, file);
 
-                validateArgRead(i, 2, temps, file);
-                if (i->args[2]->kind == OK_TEMP) validateTempFP(i, 2, file);
+                validateArgRead(i, 2, temps, phase, file);
+                if (i->args[2]->kind == OK_TEMP)
+                  validateTempFP(i, 2, phase, file);
 
-                validateArgRead(i, 3, temps, file);
-                if (i->args[3]->kind == OK_TEMP) validateTempFP(i, 3, file);
+                validateArgRead(i, 3, temps, phase, file);
+                if (i->args[3]->kind == OK_TEMP)
+                  validateTempFP(i, 3, phase, file);
 
-                validateArgsSameSize(i, 2, 3, file);
+                validateArgsSameSize(i, 2, 3, phase, file);
                 break;
               }
               case IO_JZ:
               case IO_JNZ: {
-                validateArgKind(i, 0, OK_LABEL, file);
+                validateArgKind(i, 0, OK_LABEL, phase, file);
 
-                validateArgKind(i, 1, OK_LABEL, file);
+                validateArgKind(i, 1, OK_LABEL, phase, file);
 
-                validateArgRead(i, 2, temps, file);
+                validateArgRead(i, 2, temps, phase, file);
                 break;
               }
               case IO_CALL: {
-                validateArgJumpTarget(i, 0, temps, file);
+                validateArgJumpTarget(i, 0, temps, phase, file);
                 break;
               }
               case IO_RETURN: {

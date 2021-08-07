@@ -155,7 +155,7 @@ void testTranslation(void) {
                   dumpEqual(&entries[0], expectedName));
 
       testDynamic(format("ir of %s is valid", entries[0].inputFilename),
-                  validateIr() == 0);
+                  validateIr("translation") == 0);
 
       free(name);
       free(expectedName);

@@ -159,8 +159,8 @@ int main(int argc, char **argv) {
     }
   }
 
-  // ir check
-  if (options.debugValidateIr && validateIr() != 0) return CODE_IR_ERROR;
+  if (options.debugValidateIr && validateIr("translation") != 0)
+    return CODE_IR_ERROR;
 
   // middle-end
 
@@ -171,11 +171,13 @@ int main(int argc, char **argv) {
   switch (options.arch) {
     case OPTION_A_X86_64_LINUX: {
       // assembly generation
+      // TODO: write this
 
       // assembly optimization part 1
       // TODO: write this
 
       // register allocation
+      // TODO: write this
 
       // assembly optimization part 2
       // TODO: write this

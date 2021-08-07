@@ -577,8 +577,9 @@ void irBlockFree(IRBlock *);
  *  - temps must have consistent sizing, alignment, and allocation
  *  - all operations have valid sizing
  *
+ * @param phase phase to name as the one at fault
  * @returns -1 on failure, 0 on success
  */
-int validateIr(void);
+int validateIr(char const *phase);
 
 #endif  // TLC_IR_IR_H_
