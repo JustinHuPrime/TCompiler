@@ -1,12 +1,6 @@
 testFiles/translation/x86_64-linux/input/nullStmt.tc:
 TEXT(_T3foo3bar,
   BLOCK(5,
-    JUMP(LABEL(.L3)),
-  ),
-  BLOCK(3,
-    JUMP(LABEL(.L4)),
-  ),
-  BLOCK(4,
     RETURN(),
   ),
 )

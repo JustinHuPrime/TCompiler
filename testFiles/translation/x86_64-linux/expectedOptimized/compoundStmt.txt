@@ -1,17 +1,11 @@
 testFiles/translation/x86_64-linux/input/compoundStmt.tc:
 TEXT(_T3foo3bar,
   BLOCK(5,
-    JUMP(LABEL(.L3)),
-  ),
-  BLOCK(3,
-    JUMP(LABEL(.L6)),
+    JUMP(LOCAL(6)),
   ),
   BLOCK(6,
     ZX(TEMP(temp7, 4, 4, GP), CONSTANT(1, BYTE(0))),
     MOVE(TEMP(temp8, 4, 4, GP), TEMP(temp7, 4, 4, GP)),
-    JUMP(LABEL(.L4)),
-  ),
-  BLOCK(4,
     RETURN(),
   ),
 )

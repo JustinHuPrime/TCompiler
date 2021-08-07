@@ -2169,10 +2169,14 @@ static LValue *translateExpressionLValue(LinkedList *blocks, Node const *e,
     }
     case NT_SCOPEDID: {
       // is never in a temp - always a global
+      IRBlock *b = BLOCK(label, blocks);
+      IR(b, JUMP(LOCAL(nextLabel)));
       return lvalueCreate(
           LK_MEM, GLOBAL(getMangledName(e->data.scopedId.entry)), 0, NULL);
     }
     case NT_ID: {
+      IRBlock *b = BLOCK(label, blocks);
+      IR(b, JUMP(LOCAL(nextLabel)));
       if (e->data.id.entry->data.variable.temp == 0) {
         return lvalueCreate(LK_MEM, GLOBAL(getMangledName(e->data.id.entry)), 0,
                             NULL);
