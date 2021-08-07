@@ -164,6 +164,10 @@ int main(int argc, char **argv) {
 
   // middle-end
 
+  // clean up AST
+  for (size_t idx = 0; idx < fileList.size; ++idx)
+    nodeFree(fileList.entries[idx].ast);
+
   // ir optimization
   // TODO: write this
 
