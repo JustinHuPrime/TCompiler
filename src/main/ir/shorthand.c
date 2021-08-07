@@ -51,10 +51,10 @@ IROperand *CONSTANT(size_t alignment, IRDatum *datum) {
   vectorInsert(&o->data.constant.data, datum);
   return o;
 }
-IROperand *LOCAL(size_t name) {
-  return labelOperandCreate(format(localLabelFormat(), name));
+IROperand *LOCAL(size_t name) { return localOperandCreate(name); }
+IROperand *GLOBAL(char const *name) {
+  return globalOperandCreate(strdup(name));
 }
-IROperand *GLOBAL(char *name) { return labelOperandCreate(strdup(name)); }
 IROperand *OFFSET(int64_t offset) {
   return CONSTANT(POINTER_WIDTH, longDatumCreate(s64ToU64(offset)));
 }

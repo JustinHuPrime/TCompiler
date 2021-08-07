@@ -100,8 +100,12 @@ static void operandDump(FILE *where, IROperand *o) {
       fprintf(where, ")");
       break;
     }
-    case OK_LABEL: {
-      fprintf(where, "LABEL(%s)", o->data.label.name);
+    case OK_GLOBAL: {
+      fprintf(where, "GLOBAL(%s)", o->data.global.name);
+      break;
+    }
+    case OK_LOCAL: {
+      fprintf(where, "LOCAL(%zu)", o->data.local.name);
       break;
     }
   }

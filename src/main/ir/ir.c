@@ -213,9 +213,14 @@ IROperand *constantOperandCreate(size_t alignment) {
   vectorInit(&o->data.constant.data);
   return o;
 }
-IROperand *labelOperandCreate(char *name) {
-  IROperand *o = irOperandCreate(OK_LABEL);
-  o->data.label.name = name;
+IROperand *globalOperandCreate(char *name) {
+  IROperand *o = irOperandCreate(OK_GLOBAL);
+  o->data.global.name = name;
+  return o;
+}
+IROperand *localOperandCreate(size_t name) {
+  IROperand *o = irOperandCreate(OK_LOCAL);
+  o->data.local.name = name;
   return o;
 }
 IROperand *irOperandCopy(IROperand const *o) {
@@ -234,8 +239,11 @@ IROperand *irOperandCopy(IROperand const *o) {
                      irDatumCopy(o->data.constant.data.elements[idx]));
       return retval;
     }
-    case OK_LABEL: {
-      return labelOperandCreate(strdup(o->data.label.name));
+    case OK_GLOBAL: {
+      return globalOperandCreate(strdup(o->data.global.name));
+    }
+    case OK_LOCAL: {
+      return localOperandCreate(o->data.local.name);
     }
     default: {
       error(__FILE__, __LINE__, "invalid IROperandKind");
@@ -256,7 +264,8 @@ size_t irOperandSizeof(IROperand const *o) {
         retval += irDatumSizeof(o->data.constant.data.elements[idx]);
       return retval;
     }
-    case OK_LABEL: {
+    case OK_GLOBAL:
+    case OK_LOCAL: {
       return POINTER_WIDTH;
     }
     default: {
@@ -272,8 +281,8 @@ void irOperandFree(IROperand *o) {
       vectorUninit(&o->data.constant.data, (void (*)(void *))irDatumFree);
       break;
     }
-    case OK_LABEL: {
-      free(o->data.label.name);
+    case OK_GLOBAL: {
+      free(o->data.global.name);
       break;
     }
     default: {
@@ -492,10 +501,7 @@ static char const *const IROPERATOR_NAMES[] = {
     "RETURN",
 };
 static char const *const IROPERAND_NAMES[] = {
-    "TEMP",
-    "REG",
-    "CONSTANT",
-    "LABEL",
+    "TEMP", "REG", "CONSTANT", "GLOBAL", "LOCAL",
 };
 static char const *const ALLOCHINT_NAMES[] = {
     "GP",
@@ -651,7 +657,8 @@ static void validateArgPointerRead(IRInstruction *i, size_t idx,
                                    IROperand **temps, char const *phase,
                                    FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
-      i->args[idx]->kind != OK_LABEL && i->args[idx]->kind != OK_CONSTANT) {
+      i->args[idx]->kind != OK_GLOBAL && i->args[idx]->kind != OK_LOCAL &&
+      i->args[idx]->kind != OK_CONSTANT) {
     fprintf(stderr,
             "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction does not have REG, TEMP, LABEL, or CONSTANT operand "
@@ -729,11 +736,29 @@ static void validateArgOffset(IRInstruction *i, size_t idx, IROperand **temps,
 static void validateArgRead(IRInstruction *i, size_t idx, IROperand **temps,
                             char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
-      i->args[idx]->kind != OK_LABEL && i->args[idx]->kind != OK_CONSTANT) {
+      i->args[idx]->kind != OK_GLOBAL && i->args[idx]->kind != OK_LOCAL &&
+      i->args[idx]->kind != OK_CONSTANT) {
     fprintf(stderr,
             "%s: internal compiler error: IR validation after %s failed - %s "
             "instruction does not have REG, TEMP, LABEL, or CONSTANT operand "
             "at position %zu, instead it has %s\n",
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
+            IROPERAND_NAMES[i->args[idx]->kind]);
+    file->errored = true;
+  } else {
+    if (i->args[idx]->kind == OK_TEMP)
+      validateTempRead(temps, i->args[idx], phase, file);
+  }
+}
+static void validateArgReadNoPtr(IRInstruction *i, size_t idx,
+                                 IROperand **temps, char const *phase,
+                                 FileListEntry *file) {
+  if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
+      i->args[idx]->kind != OK_CONSTANT) {
+    fprintf(stderr,
+            "%s: internal compiler error: IR validation after %s failed - %s "
+            "instruction does not have REG, TEMP or CONSTANT operand at "
+            "position %zu, instead it has %s\n",
             file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
             IROPERAND_NAMES[i->args[idx]->kind]);
     file->errored = true;
@@ -755,8 +780,8 @@ static void validateArgsSameSize(IRInstruction *i, size_t a, size_t b,
 static void validateArgJumpTarget(IRInstruction *i, size_t idx,
                                   IROperand **temps, char const *phase,
                                   FileListEntry *file) {
-  if (i->args[idx]->kind != OK_LABEL && i->args[idx]->kind != OK_REG &&
-      i->args[idx]->kind != OK_TEMP) {
+  if (i->args[idx]->kind != OK_GLOBAL && i->args[idx]->kind != OK_LOCAL &&
+      i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP) {
     fprintf(stderr,
             "%s: internal compiler error: IR validation after %s failed - "
             "%s instruction does not have LABEL, REG, or TEMP operand at "
@@ -789,7 +814,7 @@ int validateIr(char const *phase) {
             IRInstruction *i = curr->data;
             switch (i->op) {
               case IO_LABEL: {
-                validateArgKind(i, 0, OK_LABEL, phase, file);
+                validateArgKind(i, 0, OK_LOCAL, phase, file);
                 break;
               }
               case IO_VOLATILE: {
@@ -912,11 +937,11 @@ int validateIr(char const *phase) {
                   validateTempWrite(temps, i->args[0], phase, file);
                 }
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgReadNoPtr(i, 1, temps, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempFP(i, 1, phase, file);
 
-                validateArgRead(i, 2, temps, phase, file);
+                validateArgReadNoPtr(i, 2, temps, phase, file);
                 if (i->args[2]->kind == OK_TEMP)
                   validateTempFP(i, 2, phase, file);
 
@@ -947,7 +972,7 @@ int validateIr(char const *phase) {
                   validateTempWrite(temps, i->args[0], phase, file);
                 }
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgReadNoPtr(i, 1, temps, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempFP(i, 1, phase, file);
 
@@ -1003,11 +1028,11 @@ int validateIr(char const *phase) {
               case IO_FGE: {
                 validateArgByteWritten(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgReadNoPtr(i, 1, temps, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempFP(i, 1, phase, file);
 
-                validateArgRead(i, 2, temps, phase, file);
+                validateArgReadNoPtr(i, 2, temps, phase, file);
                 if (i->args[2]->kind == OK_TEMP)
                   validateTempFP(i, 2, phase, file);
 
@@ -1085,7 +1110,7 @@ int validateIr(char const *phase) {
                 if (i->args[0]->kind == OK_TEMP)
                   validateTempFP(i, 0, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgReadNoPtr(i, 1, temps, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempFP(i, 1, phase, file);
 
@@ -1105,7 +1130,7 @@ int validateIr(char const *phase) {
                 if (i->args[0]->kind == OK_TEMP)
                   validateTempGP(i, 0, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgReadNoPtr(i, 1, temps, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempFP(i, 1, phase, file);
                 break;
@@ -1124,9 +1149,9 @@ int validateIr(char const *phase) {
               case IO_JAE:
               case IO_JB:
               case IO_JBE: {
-                validateArgKind(i, 0, OK_LABEL, phase, file);
+                validateArgKind(i, 0, OK_LOCAL, phase, file);
 
-                validateArgKind(i, 1, OK_LABEL, phase, file);
+                validateArgKind(i, 1, OK_LOCAL, phase, file);
 
                 validateArgRead(i, 2, temps, phase, file);
                 if (i->args[2]->kind == OK_TEMP)
@@ -1145,15 +1170,15 @@ int validateIr(char const *phase) {
               case IO_JFNE:
               case IO_JFG:
               case IO_JFGE: {
-                validateArgKind(i, 0, OK_LABEL, phase, file);
+                validateArgKind(i, 0, OK_LOCAL, phase, file);
 
-                validateArgKind(i, 1, OK_LABEL, phase, file);
+                validateArgKind(i, 1, OK_LOCAL, phase, file);
 
-                validateArgRead(i, 2, temps, phase, file);
+                validateArgReadNoPtr(i, 2, temps, phase, file);
                 if (i->args[2]->kind == OK_TEMP)
                   validateTempFP(i, 2, phase, file);
 
-                validateArgRead(i, 3, temps, phase, file);
+                validateArgReadNoPtr(i, 3, temps, phase, file);
                 if (i->args[3]->kind == OK_TEMP)
                   validateTempFP(i, 3, phase, file);
 
@@ -1162,9 +1187,9 @@ int validateIr(char const *phase) {
               }
               case IO_JZ:
               case IO_JNZ: {
-                validateArgKind(i, 0, OK_LABEL, phase, file);
+                validateArgKind(i, 0, OK_LOCAL, phase, file);
 
-                validateArgKind(i, 1, OK_LABEL, phase, file);
+                validateArgKind(i, 1, OK_LOCAL, phase, file);
 
                 validateArgRead(i, 2, temps, phase, file);
                 break;

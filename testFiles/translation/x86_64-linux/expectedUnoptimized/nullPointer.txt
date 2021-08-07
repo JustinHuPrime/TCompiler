@@ -1,0 +1,2 @@
+testFiles/translation/x86_64-linux/input/nullPointer.tc:
+BSS(_T3foo3bar, 8)

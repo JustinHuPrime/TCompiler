@@ -63,7 +63,7 @@ IROperand *LOCAL(size_t name);
 /**
  * global label
  */
-IROperand *GLOBAL(char *name);
+IROperand *GLOBAL(char const *name);
 /**
  * offset constant
  */

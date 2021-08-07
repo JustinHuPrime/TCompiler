@@ -113,7 +113,7 @@ void testTranslation(void) {
 
     char *inputFolder = format("testFiles/translation/%s/input", arch->d_name);
     char *expectedFolder =
-        format("testFiles/translation/%s/expected", arch->d_name);
+        format("testFiles/translation/%s/expectedUnoptimized", arch->d_name);
 
     struct dirent **input;
     int inputLen = scandir(inputFolder, &input, noHiddenFilter, alphasort);
@@ -148,8 +148,9 @@ void testTranslation(void) {
           typecheckStatus == 0);
       translate();
 
-      char *expectedName = format("testFiles/translation/%s/expected/%s",
-                                  arch->d_name, expectedEntry->d_name);
+      char *expectedName =
+          format("testFiles/translation/%s/expectedUnoptimized/%s",
+                 arch->d_name, expectedEntry->d_name);
 
       testDynamic(format("ir of %s is correct", entries[0].inputFilename),
                   dumpEqual(&entries[0], expectedName));

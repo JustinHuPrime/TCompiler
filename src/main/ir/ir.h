@@ -106,7 +106,8 @@ typedef enum {
   OK_TEMP,
   OK_REG,
   OK_CONSTANT,
-  OK_LABEL,
+  OK_GLOBAL,
+  OK_LOCAL,
 } OperandKind;
 /** an operand in an IR entry */
 typedef struct IROperand {
@@ -150,7 +151,10 @@ typedef struct IROperand {
      */
     struct {
       char *name;
-    } label;
+    } global;
+    struct {
+      size_t name;
+    } local;
   } data;
 } IROperand;
 
@@ -159,7 +163,8 @@ IROperand *tempOperandCreate(size_t name, size_t alignment, size_t size,
                              AllocHint kind);
 IROperand *regOperandCreate(size_t name, size_t size);
 IROperand *constantOperandCreate(size_t alignment);
-IROperand *labelOperandCreate(char *name);
+IROperand *globalOperandCreate(char *name);
+IROperand *localOperandCreate(size_t name);
 IROperand *offsetOperandCreate(int64_t offset);
 /** copy */
 IROperand *irOperandCopy(IROperand const *o);
@@ -172,10 +177,10 @@ void irOperandFree(IROperand *);
 typedef enum IROperator {
   // miscellaneous
   /**
-   * generic label
+   * local label
    *
    * one operand
-   * 0: LABEL
+   * 0: LOCAL
    */
   IO_LABEL,
   /**
@@ -214,7 +219,7 @@ typedef enum IROperator {
    *
    * two operands
    * 0: REG | TEMP, written
-   * 1: REG | TEMP, read | CONST | LABEL
+   * 1: REG | TEMP, read | CONST | GLOBAL | LOCAL
    *
    * sizeof(0) == sizeof(1)
    */
@@ -223,9 +228,9 @@ typedef enum IROperator {
    * store to memory
    *
    * three operands
-   * 0: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL; size
-   *    == POINTER_WIDTH
-   * 1: REG | TEMP, read | LABEL | CONST
+   * 0: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL;
+   * size == POINTER_WIDTH
+   * 1: REG | TEMP, read | GLOBAL | LOCAL | CONST
    * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
    *    POINTER_WIDTH
    */
@@ -235,8 +240,8 @@ typedef enum IROperator {
    *
    * three operands
    * 0: REG | TEMP, written
-   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL; size
-   *    == POINTER_WIDTH
+   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL;
+   * size == POINTER_WIDTH
    * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
    *    POINTER_WIDTH
    */
@@ -247,7 +252,7 @@ typedef enum IROperator {
    * two operands
    * 0: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
    *    POINTER_WIDTH
-   * 1: REG | TEMP, read | CONST | LABEL
+   * 1: REG | TEMP, read | CONST | GLOBAL | LOCAL
    */
   IO_STK_STORE,
   /**
@@ -264,7 +269,7 @@ typedef enum IROperator {
    *
    * three operands
    * 0: REG | TEMP, written
-   * 1: REG | TEMP, read | CONST | LABEL
+   * 1: REG | TEMP, read | CONST | GLOBAL | LOCAL
    * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
    *    POINTER_WIDTH
    */
@@ -286,8 +291,8 @@ typedef enum IROperator {
    *
    * three operands
    * 0: REG | TEMP, written, allocation == (GP | MEM)
-   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
-   * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
+   * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
    *
    * sizeof(0) == sizeof(1) == sizeof(2)
    */
@@ -319,7 +324,7 @@ typedef enum IROperator {
    *
    * two operands
    * 0: REG | TEMP, written, allocation == (GP | MEM)
-   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
    *
    * sizeof(0) == sizeof(1)
    */
@@ -341,7 +346,7 @@ typedef enum IROperator {
    *
    * three operands
    * 0: REG | TEMP, written, allocation == (GP | MEM)
-   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
    * 2: REG | TEMP, read, allocation == (FP | MEM) | CONST; size ==
    *    BYTE_WIDTH
    *
@@ -368,8 +373,8 @@ typedef enum IROperator {
    * three operands
    * 0: REG | TEMP, written, allocation == (GP | MEM); size ==
    *    BYTE_WIDTH
-   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
-   * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
+   * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
    *
    * sizeof(1) == sizeof(2)
    */
@@ -389,8 +394,8 @@ typedef enum IROperator {
    * three operands
    * 0: REG | TEMP, written, allocation == (GP | MEM); size ==
    *    BYTE_WIDTH
-   * 1: REG | TEMP, read, allocation == (FP | MEM) | CONST | LABEL
-   * 2: REG | TEMP, read, allocation == (FP | MEM) | CONST | LABEL
+   * 1: REG | TEMP, read, allocation == (FP | MEM) | CONST
+   * 2: REG | TEMP, read, allocation == (FP | MEM) | CONST
    *
    * sizeof(1) == sizeof(2)
    */
@@ -405,7 +410,7 @@ typedef enum IROperator {
    *
    * two operands
    * 0: REG | TEMP, written; size == BYTE_WIDTH
-   * 1: REG | TEMP, read | CONST | LABEL
+   * 1: REG | TEMP, read | CONST | GLOBAL | LOCAL
    */
   IO_Z,
   IO_NZ,
@@ -437,7 +442,7 @@ typedef enum IROperator {
    *
    * two operands
    * 0: REG | TEMP, written, allocation == (GP | MEM)
-   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
    *
    * sizeof(0) < sizeof(1)
    */
@@ -447,7 +452,7 @@ typedef enum IROperator {
    *
    * two operands
    * 0: REG | TEMP, written, allocation == (FP | MEM)
-   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
    */
   IO_U2F,
   IO_S2F,
@@ -475,17 +480,18 @@ typedef enum IROperator {
    * unconditional jump
    *
    * one operand
-   * 0: LABEL | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH
+   * 0: GLOBAL | LOCAL | TEMP, read, allocation == (GP | MEM); size ==
+   *    POINTER_WIDTH
    */
   IO_JUMP,
   /**
    * integer binary comparison conditional jump
    *
    * four operands
-   * 0: LABEL
-   * 1: LABEL
-   * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
-   * 3: REG | TEMP, read, allocation == (GP | MEM) | CONST | LABEL
+   * 0: LOCAL
+   * 1: LOCAL
+   * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
+   * 3: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
    *
    * sizeof(2) == sizeof(3)
    */
@@ -503,8 +509,8 @@ typedef enum IROperator {
    * floating binary comparison conditional jump
    *
    * four operands
-   * 0: LABEL
-   * 1: LABEL
+   * 0: LOCAL
+   * 1: LOCAL
    * 2: REG | TEMP, read, allocation == (FP | MEM) | CONST
    * 3: REG | TEMP, read, allocation == (FP | MEM) | CONST
    *
@@ -520,9 +526,9 @@ typedef enum IROperator {
    * unary comparison conditional jump
    *
    * three operands
-   * 0: LABEL
-   * 1: LABEL
-   * 2: REG | TEMP, read | CONST | LABEL
+   * 0: LOCAL
+   * 1: LOCAL
+   * 2: REG | TEMP, read | CONST | GLOBAL | LOCAL
    */
   IO_JZ,
   IO_JNZ,
@@ -532,7 +538,7 @@ typedef enum IROperator {
    * function call
    *
    * one operand
-   * 0: REG | TEMP, read, allocation == (FP | MEM) | LABEL; size ==
+   * 0: REG | TEMP, read, allocation == (FP | MEM) | GLOBAL | LOCAL; size ==
    *    POINTER_WIDTH
    */
   IO_CALL,
