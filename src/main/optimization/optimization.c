@@ -34,7 +34,18 @@ static size_t indexOfBlock(LinkedList *blocks, size_t label) {
     if (b->label == label) return idx;
     ++idx;
   }
-  error(__FILE__, __LINE__, "given block index doesn't exist");
+  error(__FILE__, __LINE__, "given block label doesn't exist");
+}
+/**
+ * get a block given its label
+ */
+static IRBlock *findBlock(LinkedList *blocks, size_t label) {
+  for (ListNode *curr = blocks->head->next; curr != blocks->tail;
+       curr = curr->next) {
+    IRBlock *b = curr->data;
+    if (b->label == label) return b;
+  }
+  error(__FILE__, __LINE__, "given block label doesn't exist");
 }
 
 /**
@@ -114,10 +125,71 @@ static void shortCircuitJumps(LinkedList *blocks) {
 }
 
 /**
+ * mark this block and everything reachable from here as reachable
+ */
+static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks) {
+  if (seen[indexOfBlock(blocks, b->label)] == true)
+    return;  // we've been here before - break cycle
+
+  seen[indexOfBlock(blocks, b->label)] = true;
+  IRInstruction *last = b->instructions.tail->prev->data;
+  switch (last->op) {
+    case IO_JUMP: {
+      if (last->args[0]->kind == OK_LOCAL)
+        markReachable(findBlock(blocks, last->args[0]->data.local.name), seen,
+                      blocks);
+      break;
+    }
+    case IO_JL:
+    case IO_JLE:
+    case IO_JE:
+    case IO_JNE:
+    case IO_JG:
+    case IO_JGE:
+    case IO_JA:
+    case IO_JAE:
+    case IO_JB:
+    case IO_JBE:
+    case IO_JFL:
+    case IO_JFLE:
+    case IO_JFE:
+    case IO_JFNE:
+    case IO_JFG:
+    case IO_JFGE:
+    case IO_JZ:
+    case IO_JNZ: {
+      markReachable(findBlock(blocks, last->args[0]->data.local.name), seen,
+                    blocks);
+      markReachable(findBlock(blocks, last->args[1]->data.local.name), seen,
+                    blocks);
+      break;
+    }
+    default: {
+      // leaves the function - we're done here
+      break;
+    }
+  }
+}
+/**
  * dead block elimination
  */
 static void deadBlockElimination(LinkedList *blocks) {
-  // TODO
+  bool *seen = calloc(linkedListLength(blocks), sizeof(bool));
+  markReachable(blocks->head->next->data, seen, blocks);
+
+  size_t idx = 0;
+  for (ListNode *curr = blocks->head->next; curr != blocks->tail;) {
+    if (!seen[idx]) {
+      ListNode *toRemove = curr;
+      curr = curr->next;
+      irBlockFree(removeNode(toRemove));
+    } else {
+      curr = curr->next;
+    }
+    ++idx;
+  }
+
+  free(seen);
 }
 
 void optimize(void) {
