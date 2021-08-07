@@ -5,4 +5,6 @@ union u {
   float f;
 };
 
-void bar(u a) {}
+void bar(u a) {
+  bar(a);
+}

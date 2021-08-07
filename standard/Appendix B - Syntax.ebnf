@@ -87,8 +87,7 @@ ternary_expression = logical_expression
 logical_expression = bitwise_expression, { ( "&&" | "||" ), bitwise_expression } ;
 bitwise_expression = equality_expression, { ( "&" | "|" | "^" ), equality_expression } ;
 equality_expression = comparison_expression, { ( "==" | "!=" ), comparison_expression } ;
-comparison_expression = spaceship_expression, { ( "<" | ">" | "<=" | ">=" ), spaceship_expression } ;
-spaceship_expression = shift_expression, { "<=>", shift_expression } ;
+comparison_expression = shift_expression, { ( "<" | ">" | "<=" | ">=" ), shift_expression } ;
 shift_expression = addition_expression, { ( "<<" | ">>" | ">>>" ), addition_expression } ;
 addition_expression = multiplication_expression, { ( "+" | "-" ), multiplication_expression } ;
 multiplication_expression = prefix_expression, { ( "*" | "/" | "%" ), prefix_expression } ;

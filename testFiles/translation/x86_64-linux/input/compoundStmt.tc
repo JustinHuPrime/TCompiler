@@ -1,0 +1,7 @@
+module foo;
+
+void bar() {
+  {
+    int i = 0;
+  }
+}

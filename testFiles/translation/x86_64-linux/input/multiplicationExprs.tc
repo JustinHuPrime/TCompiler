@@ -1,0 +1,5 @@
+module foo;
+
+long bar(long a, long b, long c, long d) {
+  return a * b / c % d;
+}

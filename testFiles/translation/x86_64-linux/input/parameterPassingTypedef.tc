@@ -2,4 +2,6 @@ module foo;
 
 typedef int t;
 
-void bar(t a) {}
+void bar(t a) {
+  bar(a);
+}

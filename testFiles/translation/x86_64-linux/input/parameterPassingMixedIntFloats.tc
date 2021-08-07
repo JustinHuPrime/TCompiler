@@ -2,4 +2,8 @@ module foo;
 
 void bar(ubyte a, short b, uint c, long d, char e, bool f,
          float fa, double fb, float fc, float fd,
-         double fe, float ff, double fg, double fh) {}
+         double fe, float ff, double fg, double fh) {
+  bar(a, b, c, d, e, f,
+      fa, fb, fc, fd,
+      fe, ff, fg, fh);
+}

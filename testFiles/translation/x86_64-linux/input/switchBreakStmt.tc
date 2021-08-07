@@ -1,0 +1,32 @@
+module foo;
+
+ubyte bar(ubyte month) {
+  ubyte retval;
+  switch (month) {
+    case 1:
+    case 3:
+    case 5:
+    case 7:
+    case 8:
+    case 10:
+    case 12: {
+      retval = 31;
+      break;
+    }
+    case 4:
+    case 6:
+    case 9:
+    case 11: {
+      retval = 30;
+      break;
+    }
+    case 2: {
+      retval = 28;
+      break;
+    }
+    default: {
+      return 0;
+    }
+  }
+  return retval;
+}

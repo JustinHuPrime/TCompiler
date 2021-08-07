@@ -87,7 +87,8 @@ static void operandDump(FILE *where, IROperand *o) {
       break;
     }
     case OK_REG: {
-      fprintf(where, "REG(%s)", prettyPrintRegister(o->data.reg.name));
+      fprintf(where, "REG(%s, %zu)", prettyPrintRegister(o->data.reg.name),
+              o->data.reg.size);
       break;
     }
     case OK_CONSTANT: {
@@ -162,6 +163,10 @@ static void instructionDump(FILE *where, IRInstruction *i) {
     }
     case IO_VOLATILE: {
       oneOperandInstructionDump(where, "VOLATILE", i);
+      break;
+    }
+    case IO_UNINITIALIZED: {
+      oneOperandInstructionDump(where, "UNINITIALIZED", i);
       break;
     }
     case IO_ADDROF: {
@@ -253,11 +258,11 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       break;
     }
     case IO_NEG: {
-      threeOperandInstructionDump(where, "NEG", i);
+      twoOperandInstructionDump(where, "NEG", i);
       break;
     }
     case IO_FNEG: {
-      threeOperandInstructionDump(where, "FNEG", i);
+      twoOperandInstructionDump(where, "FNEG", i);
       break;
     }
     case IO_SLL: {
@@ -285,7 +290,7 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       break;
     }
     case IO_NOT: {
-      threeOperandInstructionDump(where, "NOT", i);
+      twoOperandInstructionDump(where, "NOT", i);
       break;
     }
     case IO_L: {
@@ -361,7 +366,7 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       break;
     }
     case IO_LNOT: {
-      threeOperandInstructionDump(where, "LNOT", i);
+      twoOperandInstructionDump(where, "LNOT", i);
       break;
     }
     case IO_SX: {

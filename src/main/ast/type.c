@@ -739,7 +739,7 @@ size_t structOffsetof(struct SymbolTableEntry const *e, char const *field) {
     offset = incrementToMultiple(
         offset, typeAlignof(e->data.structType.fieldTypes.elements[idx + 1]));
   }
-  error(__FILE__, __LINE__, "field given doesn't exist in struct");
+  return offset;
 }
 size_t typeAlignof(Type const *t) {
   switch (t->kind) {

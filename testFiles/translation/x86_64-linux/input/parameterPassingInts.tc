@@ -1,3 +1,5 @@
 module foo;
 
-void bar(ubyte a, short b, uint c, long d, char e, bool f) {}
+void bar(ubyte a, short b, uint c, long d, char e, bool f) {
+  bar(a, b, c, d, e, f);
+}

@@ -1,0 +1,10 @@
+module foo;
+
+int bar() {
+  int i = 2;
+  if (i % 2 == 0) {
+    return 1;
+  } else {
+    return 0;
+  }
+}

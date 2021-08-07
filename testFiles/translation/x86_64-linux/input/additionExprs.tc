@@ -1,0 +1,5 @@
+module foo;
+
+long bar(long a, long b, long c) {
+  return a + b - c;
+}

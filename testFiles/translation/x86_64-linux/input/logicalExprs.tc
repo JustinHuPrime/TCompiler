@@ -1,0 +1,5 @@
+module foo;
+
+bool bar(bool a, bool b, bool c) {
+  return a && b || c;
+}

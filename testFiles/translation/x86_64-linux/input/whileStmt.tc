@@ -1,0 +1,9 @@
+module foo;
+
+float bar(ulong ntimes) {
+  float f = 1;
+  while (ntimes-- > 0) {
+    f *= 2;
+  }
+  return f;
+}

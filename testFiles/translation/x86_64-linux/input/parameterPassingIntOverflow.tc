@@ -1,4 +1,7 @@
 module foo;
 
 void bar(ubyte a, short b, uint c, long d, char e, bool f,
-         short inMemory) {}
+         short inMemory) {
+  bar(a, b, c, d, e, f,
+      inMemory);
+}

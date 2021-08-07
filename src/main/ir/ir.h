@@ -201,7 +201,14 @@ typedef enum IROperator {
    * one operand
    * 0: TEMP, read
    */
-  IO_VOLATILE,  // mark temp as being volatilely used
+  IO_VOLATILE,
+  /**
+   * fake write to a temp to mark it as explicitly uninitialized
+   *
+   * one operand
+   * 0: TEMP, written
+   */
+  IO_UNINITIALIZED,
   /**
    * get the address of a mem temp
    *
@@ -210,7 +217,7 @@ typedef enum IROperator {
    *    POINTER_WIDTH
    * 1: TEMP, read, allocation == MEM
    */
-  IO_ADDROF,  // get address of a mem temp
+  IO_ADDROF,
   /**
    * no-op - removed during dead-code elimination
    *

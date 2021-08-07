@@ -74,11 +74,11 @@ IROperand *OFFSET(int64_t offset);
  */
 IRInstruction *ASM(char const *assembly);
 /**
- * volatile use of a temp (prevents dead-code elimination from removing the
- * temp)
+ * mark a temp in some non-code-generating way
+ * @param marker marker to use
  * @param temp temp to use
  */
-IRInstruction *VOLATILE(IROperand *temp);
+IRInstruction *MARK_TEMP(IROperator marker, IROperand *temp);
 /**
  * simple move
  * @param dest destination temp or reg

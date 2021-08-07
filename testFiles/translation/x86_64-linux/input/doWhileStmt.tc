@@ -1,0 +1,10 @@
+module foo;
+
+float bar(ulong ntimes) {
+  float f = 1;
+  do {
+    f *= 2;
+  // yes, I know this isn't correct - but it should compile
+  } while (--ntimes > 0)
+  return f;
+}

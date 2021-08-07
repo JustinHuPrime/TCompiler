@@ -2,4 +2,8 @@ module foo;
 
 void bar(float fa, double fb, float fc, float fd,
          double fe, float ff, double fg, double fh,
-         float inMemory) {}
+         float inMemory) {
+  bar(fa, fb, fc, fd,
+      fe, ff, fg, fh,
+      inMemory);
+}

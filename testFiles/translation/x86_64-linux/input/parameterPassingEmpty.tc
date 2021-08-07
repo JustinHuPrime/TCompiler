@@ -1,3 +1,5 @@
 module foo;
 
-void bar() {}
+void bar() {
+  bar();
+}

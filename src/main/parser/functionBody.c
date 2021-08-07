@@ -1110,7 +1110,8 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
               return NULL;
             }
 
-            return prefixUnOpExpNodeCreate(UO_SIZEOFTYPE, &peek, target);
+            return sizeofTypeExpNodeCreate(&peek, target,
+                                           nodeToType(target, env));
           }
           case TT_ID: {
             // maybe a type, maybe an expression - disambiguate
@@ -1169,7 +1170,8 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
                   return NULL;
                 }
 
-                return prefixUnOpExpNodeCreate(UO_SIZEOFTYPE, &peek, target);
+                return sizeofTypeExpNodeCreate(&peek, target,
+                                               nodeToType(target, env));
               }
               default: {
                 error(__FILE__, __LINE__,

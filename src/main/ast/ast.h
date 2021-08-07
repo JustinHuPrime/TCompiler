@@ -70,6 +70,7 @@ typedef enum {
   NT_BINOPEXP, /**< node for a generalized syntactic binary operation */
   NT_TERNARYEXP,
   NT_UNOPEXP, /**< node for a generalized syntactic unary operation */
+  NT_SIZEOFTYPEEXP,
   NT_FUNCALLEXP,
 
   NT_LITERAL,
@@ -158,11 +159,10 @@ typedef enum {
   UO_NEGASSIGN,
   UO_LNOTASSIGN,
   UO_BITNOTASSIGN,
-  UO_SIZEOFEXP,  /**< sizeof operator applied to an expression */
-  UO_SIZEOFTYPE, /**< sizeof operator applied to a type */
-  UO_PARENS,     /**< included only for line/character tracking, no semantic
-                  * effects
-                  */
+  UO_SIZEOFEXP, /**< sizeof operator applied to an expression */
+  UO_PARENS,    /**< included only for line/character tracking, no semantic
+                 * effects
+                 */
 } UnOpType;
 UnOpType prefixTokenToUnop(TokenType token);
 UnOpType postfixTokenToUnop(TokenType token);
@@ -352,6 +352,11 @@ typedef struct Node {
       Type *type;
     } unOpExp;
     struct {
+      Node *targetNode;
+      Type *targetType;
+      Type *type;
+    } sizeofTypeExp;
+    struct {
       struct Node *function; /**< expression */
       Vector *arguments;     /**< vector of Nodes, each is an expression */
       Type *type;
@@ -470,6 +475,8 @@ Node *ternaryExpNodeCreate(Node *predicate, Node *consequent,
                            Node *alternative);
 Node *prefixUnOpExpNodeCreate(UnOpType op, Token const *opToken, Node *target);
 Node *postfixUnOpExpNodeCreate(UnOpType op, Node *target);
+Node *sizeofTypeExpNodeCreate(Token const *opToken, Node *targetNode,
+                              Type *targetType);
 Node *funCallExpNodeCreate(Node *function, Vector *arguments);
 Node *literalNodeCreate(LiteralType type, Token const *t);
 Node *charLiteralNodeCreate(Token *t);

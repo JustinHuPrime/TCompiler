@@ -1,0 +1,8 @@
+module foo;
+
+ulong bar(ulong n) {
+  if (n <= 1)
+    return 1;
+  else
+    return n * bar(n - 1);
+}

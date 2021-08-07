@@ -262,46 +262,45 @@ void x86_64LinuxGenerateFunctionEntry(Vector *blocks, SymbolTableEntry *entry,
     size_t numSSE = (argTypeClass[0] == X86_64_LINUX_TC_SSE ? 1U : 0U) +
                     (argTypeClass[1] == X86_64_LINUX_TC_SSE ? 1U : 0U);
 
+    argumentEntry->data.variable.temp = fresh(file);
     if (argTypeClass[0] == X86_64_LINUX_TC_MEMORY ||
         gpArgIdx + numGP > GP_ARG_REG_MAX ||
         sseArgIdx + numSSE > SSE_ARG_REG_MAX) {
       // either must be passed in memory, or ran out of room to pass in
       // registers
-      IR(b,
-         STK_LOAD(TEMPOF(fresh(file), argType), OFFSET((int64_t)stackOffset)));
+      IR(b, STK_LOAD(TEMPVAR(argumentEntry), OFFSET((int64_t)stackOffset)));
       stackOffset +=
           incrementToMultiple(typeSizeof(argType), X86_64_LINUX_REGISTER_WIDTH);
     } else {
       // passed in registers
-      size_t temp = (argumentEntry->data.variable.temp = fresh(file));
       if (argTypeClass[0] == X86_64_LINUX_TC_GP &&
           argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
-        IR(b, MOVE(TEMPOF(temp, argType),
+        IR(b, MOVE(TEMPVAR(argumentEntry),
                    REG(GP_ARG_REGS[gpArgIdx++], typeSizeof(argType))));
       else if (argTypeClass[0] == X86_64_LINUX_TC_GP)
         IR(b, OFFSET_LOAD(
-                  TEMPOF(temp, argType),
+                  TEMPVAR(argumentEntry),
                   REG(GP_ARG_REGS[gpArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
                   OFFSET(0)));
       else if (argTypeClass[0] == X86_64_LINUX_TC_SSE &&
                argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
-        IR(b, MOVE(TEMPOF(temp, argType),
+        IR(b, MOVE(TEMPVAR(argumentEntry),
                    REG(SSE_ARG_REGS[sseArgIdx++], typeSizeof(argType))));
       else if (argTypeClass[0] == X86_64_LINUX_TC_SSE)
         IR(b, OFFSET_LOAD(
-                  TEMPOF(temp, argType),
+                  TEMPVAR(argumentEntry),
                   REG(SSE_ARG_REGS[sseArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
                   OFFSET(0)));
 
       if (argTypeClass[1] == X86_64_LINUX_TC_GP)
         IR(b,
-           OFFSET_LOAD(TEMPOF(temp, argType),
+           OFFSET_LOAD(TEMPVAR(argumentEntry),
                        REG(GP_ARG_REGS[gpArgIdx++],
                            typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
                        OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
       else if (argTypeClass[1] == X86_64_LINUX_TC_SSE)
         IR(b,
-           OFFSET_LOAD(TEMPOF(temp, argType),
+           OFFSET_LOAD(TEMPVAR(argumentEntry),
                        REG(SSE_ARG_REGS[sseArgIdx++],
                            typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
                        OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));

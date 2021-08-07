@@ -1,0 +1,5 @@
+module foo;
+
+long bar(long a, ubyte b, ubyte c, ubyte d) {
+  return a >> b << c >>> d;
+}

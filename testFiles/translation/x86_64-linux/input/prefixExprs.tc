@@ -1,0 +1,9 @@
+module foo;
+
+long bar(long a, long b, long c) {
+  long *ptr = &a;
+  ++*ptr;
+  --b;
+  b = -b;
+  return !(b % 2 == 0) ? ~a : b;
+}

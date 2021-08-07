@@ -4,4 +4,10 @@ void bar(ubyte a, short b, uint c, long d, char e, bool f,
          short inMemory1,
          float fa, double fb, float fc, float fd,
          double fe, float ff, double fg, double fh,
-         float inMemory2) {}
+         float inMemory2) {
+  bar(a, b, c, d, e, f,
+      inMemory1,
+      fa, fb, fc, fd,
+      fe, ff, fg, fh,
+      inMemory2);
+}

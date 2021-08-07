@@ -550,6 +550,14 @@ Node *postfixUnOpExpNodeCreate(UnOpType op, Node *target) {
   n->data.unOpExp.type = NULL;
   return n;
 }
+Node *sizeofTypeExpNodeCreate(Token const *opToken, Node *targetNode,
+                              Type *targetType) {
+  Node *n = createNode(NT_SIZEOFTYPEEXP, opToken->line, opToken->character);
+  n->data.sizeofTypeExp.targetNode = targetNode;
+  n->data.sizeofTypeExp.targetType = targetType;
+  n->data.sizeofTypeExp.type = NULL;
+  return n;
+}
 Node *funCallExpNodeCreate(Node *function, Vector *arguments) {
   Node *n = createNode(NT_FUNCALLEXP, function->line, function->character);
   n->data.funCallExp.function = function;
@@ -1394,6 +1402,12 @@ void nodeFree(Node *n) {
     case NT_UNOPEXP: {
       nodeFree(n->data.unOpExp.target);
       typeFree(n->data.unOpExp.type);
+      break;
+    }
+    case NT_SIZEOFTYPEEXP: {
+      nodeFree(n->data.sizeofTypeExp.targetNode);
+      typeFree(n->data.sizeofTypeExp.targetType);
+      typeFree(n->data.sizeofTypeExp.type);
       break;
     }
     case NT_FUNCALLEXP: {

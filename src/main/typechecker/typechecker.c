@@ -1134,9 +1134,6 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           typecheckExpression(exp->data.unOpExp.target, entry);
           return exp->data.unOpExp.type = keywordTypeCreate(TK_ULONG);
         }
-        case UO_SIZEOFTYPE: {
-          return exp->data.unOpExp.type = keywordTypeCreate(TK_ULONG);
-        }
         case UO_PARENS: {
           return exp->data.unOpExp.type = typeCopy(
                      typecheckExpression(exp->data.unOpExp.target, entry));
@@ -1145,6 +1142,9 @@ static Type const *typecheckExpression(Node *exp, FileListEntry *entry) {
           error(__FILE__, __LINE__, "invalid unop encountered");
         }
       }
+    }
+    case NT_SIZEOFTYPEEXP: {
+      return exp->data.sizeofTypeExp.type = keywordTypeCreate(TK_ULONG);
     }
     case NT_FUNCALLEXP: {
       Type const *funType =
@@ -1441,8 +1441,8 @@ static void typecheckStmt(Node *stmt, Type const *returnType,
           }
         } else {
           Vector *valueNodes = c->data.switchCase.values;
-          for (size_t valueIdx = 0; valueIdx < valueNodes->size; ++idx) {
-            Node const *valueNode = valueNodes->elements[idx];
+          for (size_t valueIdx = 0; valueIdx < valueNodes->size; ++valueIdx) {
+            Node const *valueNode = valueNodes->elements[valueIdx];
             values[currValue].line = valueNode->line;
             values[currValue].character = valueNode->character;
             switch (valueNode->type) {

@@ -94,8 +94,8 @@ IRInstruction *ASM(char const *assembly) {
   return oneArgInstructionCreate(IO_ASM,
                                  assemblyOperandCreate(strdup(assembly)));
 }
-IRInstruction *VOLATILE(IROperand *temp) {
-  return oneArgInstructionCreate(IO_VOLATILE, temp);
+IRInstruction *MARK_TEMP(IROperator marker, IROperand *temp) {
+  return oneArgInstructionCreate(marker, temp);
 }
 IRInstruction *MOVE(IROperand *dest, IROperand *src) {
   return twoArgInstructionCreate(IO_MOVE, dest, src);

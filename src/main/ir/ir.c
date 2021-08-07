@@ -307,6 +307,7 @@ size_t irOperatorArity(IROperator op) {
     case IO_ASM:
     case IO_LABEL:
     case IO_VOLATILE:
+    case IO_UNINITIALIZED:
     case IO_JUMP:
     case IO_CALL: {
       return 1;
@@ -424,87 +425,27 @@ void irBlockFree(IRBlock *b) {
 }
 
 static char const *const IROPERATOR_NAMES[] = {
-    "ASM",
-    "LABEL",
-    "VOLATILE",
-    "ADDROF",
-    "NOP",
-    "MOVE",
-    "MEM_STORE",
-    "MEM_LOAD",
-    "STK_STORE",
-    "STK_LOAD",
-    "OFFSET_STORE",
-    "OFFSET_LOAD",
-    "ADD",
-    "SUB",
-    "SMUL",
-    "UMUL",
-    "SDIV",
-    "UDIV",
-    "SMOD",
-    "UMOD",
-    "FADD",
-    "FSUB",
-    "FMUL",
-    "FDIV",
-    "FMOD",
-    "NEG",
-    "FNEG",
-    "SLL",
-    "SLR",
-    "SAR",
-    "AND",
-    "XOR",
-    "OR",
-    "NOT",
-    "L",
-    "LE",
-    "E",
-    "NE",
-    "G",
-    "GE",
-    "A",
-    "AE",
-    "B",
-    "BE",
-    "FL",
-    "FLE",
-    "FE",
-    "FNE",
-    "FG",
-    "FGE",
-    "Z",
-    "NZ",
-    "LNOT",
-    "SX",
-    "ZX",
-    "TRUNC",
-    "U2F",
-    "S2F",
-    "FRESIZE",
-    "F2I",
-    "JUMP",
-    "JL",
-    "JLE",
-    "JE",
-    "JNE",
-    "JG",
-    "JGE",
-    "JA",
-    "JAE",
-    "JB",
-    "JBE",
-    "JFL",
-    "JFLE",
-    "JFE",
-    "JFNE",
-    "JFG",
-    "JFGE",
-    "JZ",
-    "JNZ",
-    "CALL",
-    "RETURN",
+    "ASM",         "LABEL",     "VOLATILE", "UNINITIALIZED",
+    "ADDROF",      "NOP",       "MOVE",     "MEM_STORE",
+    "MEM_LOAD",    "STK_STORE", "STK_LOAD", "OFFSET_STORE",
+    "OFFSET_LOAD", "ADD",       "SUB",      "SMUL",
+    "UMUL",        "SDIV",      "UDIV",     "SMOD",
+    "UMOD",        "FADD",      "FSUB",     "FMUL",
+    "FDIV",        "FMOD",      "NEG",      "FNEG",
+    "SLL",         "SLR",       "SAR",      "AND",
+    "XOR",         "OR",        "NOT",      "L",
+    "LE",          "E",         "NE",       "G",
+    "GE",          "A",         "AE",       "B",
+    "BE",          "FL",        "FLE",      "FE",
+    "FNE",         "FG",        "FGE",      "Z",
+    "NZ",          "LNOT",      "SX",       "ZX",
+    "TRUNC",       "U2F",       "S2F",      "FRESIZE",
+    "F2I",         "JUMP",      "JL",       "JLE",
+    "JE",          "JNE",       "JG",       "JGE",
+    "JA",          "JAE",       "JB",       "JBE",
+    "JFL",         "JFLE",      "JFE",      "JFNE",
+    "JFG",         "JFGE",      "JZ",       "JNZ",
+    "CALL",        "RETURN",
 };
 static char const *const IROPERAND_NAMES[] = {
     "TEMP", "REG", "CONSTANT", "LABEL", "ASM",
@@ -805,6 +746,11 @@ int validateIr(void) {
                   validateTempRead(temps, i->args[0], file);
                 break;
               }
+              case IO_UNINITIALIZED: {
+                if (validateArgKind(i, 0, OK_TEMP, file))
+                  validateTempWrite(temps, i->args[0], file);
+                break;
+              }
               case IO_ADDROF: {
                 validateArgPointerWritten(i, 0, temps, file);
 
@@ -986,7 +932,7 @@ int validateIr(void) {
                 validateArgRead(i, 2, temps, file);
                 if (i->args[2]->kind == OK_TEMP) validateTempGP(i, 2, file);
 
-                validateArgsSameSize(i, 0, 1, file);
+                validateArgsSameSize(i, 1, 2, file);
                 break;
               }
               case IO_FL:
@@ -1003,7 +949,7 @@ int validateIr(void) {
                 validateArgRead(i, 2, temps, file);
                 if (i->args[2]->kind == OK_TEMP) validateTempFP(i, 2, file);
 
-                validateArgsSameSize(i, 0, 1, file);
+                validateArgsSameSize(i, 1, 2, file);
                 break;
               }
               case IO_Z:
@@ -1027,11 +973,11 @@ int validateIr(void) {
                 validateArgRead(i, 1, temps, file);
                 if (i->args[1]->kind == OK_TEMP) validateTempGP(i, 1, file);
 
-                if (irOperandSizeof(i->args[0]) >=
+                if (irOperandSizeof(i->args[0]) <=
                     irOperandSizeof(i->args[1])) {
                   fprintf(stderr,
                           "%s: internal compiler error: IR validation failed - "
-                          "%s instruction's argument 0 is not smaller than "
+                          "%s instruction's argument 0 is not larger than "
                           "argument 1\n",
                           file->inputFilename, IROPERATOR_NAMES[i->op]);
                   file->errored = true;
@@ -1045,11 +991,11 @@ int validateIr(void) {
                 validateArgRead(i, 1, temps, file);
                 if (i->args[1]->kind == OK_TEMP) validateTempGP(i, 1, file);
 
-                if (irOperandSizeof(i->args[0]) <=
+                if (irOperandSizeof(i->args[0]) >=
                     irOperandSizeof(i->args[1])) {
                   fprintf(stderr,
                           "%s: internal compiler error: IR validation failed - "
-                          "TRUNC instruction's argument 0 is not larger than "
+                          "TRUNC instruction's argument 0 is not smaller than "
                           "argument 1\n",
                           file->inputFilename);
                   file->errored = true;
@@ -1160,6 +1106,7 @@ int validateIr(void) {
             }
           }
         }
+        free(temps);
       }
     }
     errored = errored || file->errored;

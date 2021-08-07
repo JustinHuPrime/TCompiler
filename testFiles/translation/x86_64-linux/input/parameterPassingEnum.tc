@@ -6,4 +6,6 @@ enum e {
   C,
 };
 
-void bar(e a) {}
+void bar(e a) {
+  bar(a);
+}

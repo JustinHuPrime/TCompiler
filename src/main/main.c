@@ -149,7 +149,6 @@ int main(int argc, char **argv) {
 
   // translate to IR
   translate();
-  if (validateIr() != 0) return CODE_IR_ERROR;
 
   // debug-dump stop for IR
   if (options.dump == OPTION_DD_IR) {
@@ -159,6 +158,9 @@ int main(int argc, char **argv) {
       }
     }
   }
+
+  // ir check
+  if (options.debugValidateIr && validateIr() != 0) return CODE_IR_ERROR;
 
   // middle-end
 

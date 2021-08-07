@@ -1,0 +1,7 @@
+module foo;
+
+long bar(long a, long b) {
+  return foo::baz + (a - b) + 1 + cast<long>(sizeof(long));
+}
+
+long baz = 1;

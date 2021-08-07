@@ -5,4 +5,6 @@ struct s {
   float f;
 };
 
-void bar(s a) {}
+void bar(s a) {
+  bar(a);
+}

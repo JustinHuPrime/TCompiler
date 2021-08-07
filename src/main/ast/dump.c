@@ -42,9 +42,9 @@ static char const *const BINOP_NAMES[] = {
 };
 
 static char const *const UNOP_NAMES[] = {
-    "DEREF",      "ADDROF",       "PREINC",    "PREDEC",     "NEG",
-    "LNOT",       "BITNOT",       "POSTINC",   "POSTDEC",    "NEGASSIGN",
-    "LNOTASSIGN", "BITNOTASSIGN", "SIZEOFEXP", "SIZEOFTYPE", "PARENS",
+    "DEREF",      "ADDROF",       "PREINC",    "PREDEC",  "NEG",
+    "LNOT",       "BITNOT",       "POSTINC",   "POSTDEC", "NEGASSIGN",
+    "LNOTASSIGN", "BITNOTASSIGN", "SIZEOFEXP", "PARENS",
 };
 
 static char const *const TYPEKEYWORD_NAMES[] = {
@@ -478,6 +478,12 @@ static void nodeDump(FILE *where, Node *n) {
       fprintf(where, "UNOPEXP(%zu, %zu, %s, ", n->line, n->character,
               UNOP_NAMES[n->data.unOpExp.op]);
       nodeDump(where, n->data.unOpExp.target);
+      fprintf(where, ")");
+      break;
+    }
+    case NT_SIZEOFTYPEEXP: {
+      fprintf(where, "SIZEOFTYPEEXP(%zu, %zu, ", n->line, n->character);
+      nodeDump(where, n->data.sizeofTypeExp.targetNode);
       fprintf(where, ")");
       break;
     }

@@ -1,0 +1,21 @@
+module foo;
+
+int bar() {
+  int i, j;
+  i = 10, j = 20;
+  i *= j;
+  j /= 3;
+  i %= 15;
+  j += 2;
+  i -= 2;
+  j <<= 1;
+  i >>= 1;
+  j >>>= 2;
+  i &= 0xff;
+  j ^= 0xf;
+  i |= j;
+  bool a = i % 2 == 0;
+  a &&= j % 2 == 0;
+  a ||= i % 3 == 0;
+  return i;
+}
