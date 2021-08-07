@@ -403,12 +403,6 @@ static void nodeDump(FILE *where, Node *n) {
       fprintf(where, ")");
       break;
     }
-    case NT_ASMSTMT: {
-      char *escaped = escapeString(n->data.asmStmt.assembly);
-      fprintf(where, "ASMSTMT(%zu, %zu, %s)", n->line, n->character, escaped);
-      free(escaped);
-      break;
-    }
     case NT_VARDEFNSTMT: {
       fprintf(where, "VARDEFNSTMT(%zu, %zu, ", n->line, n->character);
       nodeDump(where, n->data.varDefnStmt.type);

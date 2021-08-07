@@ -218,11 +218,6 @@ IROperand *labelOperandCreate(char *name) {
   o->data.label.name = name;
   return o;
 }
-IROperand *assemblyOperandCreate(char *assembly) {
-  IROperand *o = irOperandCreate(OK_ASM);
-  o->data.assembly.assembly = assembly;
-  return o;
-}
 IROperand *irOperandCopy(IROperand const *o) {
   switch (o->kind) {
     case OK_TEMP: {
@@ -241,9 +236,6 @@ IROperand *irOperandCopy(IROperand const *o) {
     }
     case OK_LABEL: {
       return labelOperandCreate(strdup(o->data.label.name));
-    }
-    case OK_ASM: {
-      return assemblyOperandCreate(strdup(o->data.assembly.assembly));
     }
     default: {
       error(__FILE__, __LINE__, "invalid IROperandKind");
@@ -267,9 +259,6 @@ size_t irOperandSizeof(IROperand const *o) {
     case OK_LABEL: {
       return POINTER_WIDTH;
     }
-    case OK_ASM: {
-      return 0;
-    }
     default: {
       error(__FILE__, __LINE__, "invalid IROperandKind");
     }
@@ -287,10 +276,6 @@ void irOperandFree(IROperand *o) {
       free(o->data.label.name);
       break;
     }
-    case OK_ASM: {
-      free(o->data.assembly.assembly);
-      break;
-    }
     default: {
       break;
     }
@@ -304,7 +289,6 @@ size_t irOperatorArity(IROperator op) {
     case IO_RETURN: {
       return 0;
     }
-    case IO_ASM:
     case IO_LABEL:
     case IO_VOLATILE:
     case IO_UNINITIALIZED:
@@ -425,7 +409,7 @@ void irBlockFree(IRBlock *b) {
 }
 
 static char const *const IROPERATOR_NAMES[] = {
-    "ASM",         "LABEL",     "VOLATILE", "UNINITIALIZED",
+             "LABEL",     "VOLATILE", "UNINITIALIZED",
     "ADDROF",      "NOP",       "MOVE",     "MEM_STORE",
     "MEM_LOAD",    "STK_STORE", "STK_LOAD", "OFFSET_STORE",
     "OFFSET_LOAD", "ADD",       "SUB",      "SMUL",
@@ -448,7 +432,7 @@ static char const *const IROPERATOR_NAMES[] = {
     "CALL",        "RETURN",
 };
 static char const *const IROPERAND_NAMES[] = {
-    "TEMP", "REG", "CONSTANT", "LABEL", "ASM",
+    "TEMP", "REG", "CONSTANT", "LABEL", 
 };
 static char const *const ALLOCHINT_NAMES[] = {
     "GP",
@@ -733,10 +717,6 @@ int validateIr(void) {
                curr != block->instructions.tail; curr = curr->next) {
             IRInstruction *i = curr->data;
             switch (i->op) {
-              case IO_ASM: {
-                validateArgKind(i, 0, OK_ASM, file);
-                break;
-              }
               case IO_LABEL: {
                 validateArgKind(i, 0, OK_LABEL, file);
                 break;

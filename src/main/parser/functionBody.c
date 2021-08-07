@@ -103,7 +103,6 @@ static void panicStmt(Node *unparsed) {
       case TT_BREAK:
       case TT_CONTINUE:
       case TT_RETURN:
-      case TT_ASM:
       case TT_VOID:
       case TT_UBYTE:
       case TT_CHAR:
@@ -155,7 +154,6 @@ static void panicSwitch(Node *unparsed) {
       case TT_BREAK:
       case TT_CONTINUE:
       case TT_RETURN:
-      case TT_ASM:
       case TT_OPAQUE:
       case TT_STRUCT:
       case TT_UNION:
@@ -2571,43 +2569,6 @@ static Node *parseReturnStmt(FileListEntry *entry, Node *unparsed,
 }
 
 /**
- * parses an asm statement
- *
- * @param entry entry containing this node
- * @param unparsed unparsed node to read from
- * @param env environment to use
- * @param start first token
- *
- * @returns node or null on error
- */
-static Node *parseAsmStmt(FileListEntry *entry, Node *unparsed,
-                          Environment *env, Token *start) {
-  Token str;
-  next(unparsed, &str);
-  if (str.type != TT_LIT_STRING) {
-    errorExpectedToken(entry, TT_LIT_STRING, &str);
-
-    prev(unparsed, &str);
-    panicStmt(unparsed);
-    return NULL;
-  }
-
-  Token semi;
-  next(unparsed, &semi);
-  if (semi.type != TT_SEMI) {
-    errorExpectedToken(entry, TT_SEMI, &semi);
-
-    prev(unparsed, &semi);
-    panicStmt(unparsed);
-
-    tokenUninit(&str);
-    return NULL;
-  }
-
-  return asmStmtNodeCreate(start, &str);
-}
-
-/**
  * parses a variable definition statement
  *
  * @param entry entry containing this node
@@ -3363,9 +3324,6 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
     }
     case TT_RETURN: {
       return parseReturnStmt(entry, unparsed, env, &peek);
-    }
-    case TT_ASM: {
-      return parseAsmStmt(entry, unparsed, env, &peek);
     }
     case TT_VOID:
     case TT_UBYTE:

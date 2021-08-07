@@ -35,7 +35,6 @@ statement = compound_statement
           | break_statement
           | continue_statement
           | return_statement
-          | asm_statement
           | variable_definition_statement
           | expression_statement
           | opaque_declaration
@@ -55,7 +54,6 @@ switch_statement = "switch", "(", expression, ")", "{", switch_statement_case | 
 break_statement = "break", ";" ;
 continue_statement = "continue", ";" ;
 return_statement = "return", [ expression ], ";" ;
-asm_statement = "asm", string_literal, ";" ;
 variable_definition_statement = type, identifier, [ "=", assignment_expression ], { ",", identifier, [ "=", assignment_expression ] }, ";" ;
 expression_statement = expression, ";" ;
 

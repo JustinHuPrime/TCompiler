@@ -59,7 +59,6 @@ typedef enum {
   NT_BREAKSTMT,
   NT_CONTINUESTMT,
   NT_RETURNSTMT,
-  NT_ASMSTMT,
   NT_VARDEFNSTMT,
   NT_EXPRESSIONSTMT,
   NT_NULLSTMT,
@@ -309,9 +308,6 @@ typedef struct Node {
       struct Node *value; /**< nullable */
     } returnStmt;
     struct {
-      char *assembly;
-    } asmStmt;
-    struct {
       struct Node *type; /**< type */
       Vector *names;     /**< vector of Nodes, each is an NT_ID */
       Vector
@@ -460,7 +456,6 @@ Node *switchStmtNodeCreate(Token const *keyword, Node *condition,
 Node *breakStmtNodeCreate(Token const *keyword);
 Node *continueStmtNodeCreate(Token const *keyword);
 Node *returnStmtNodeCreate(Token const *keyword, Node *value);
-Node *asmStmtNodeCreate(Token const *keyword, Token *assembly);
 Node *varDefnStmtNodeCreate(Node *type, Vector *names, Vector *initializers);
 Node *expressionStmtNodeCreate(Node *expression);
 Node *nullStmtNodeCreate(Token const *semicolon);

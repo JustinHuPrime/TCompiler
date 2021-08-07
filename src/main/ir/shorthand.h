@@ -70,10 +70,6 @@ IROperand *GLOBAL(char *name);
 IROperand *OFFSET(int64_t offset);
 
 /**
- * inline asm
- */
-IRInstruction *ASM(char const *assembly);
-/**
  * mark a temp in some non-code-generating way
  * @param marker marker to use
  * @param temp temp to use

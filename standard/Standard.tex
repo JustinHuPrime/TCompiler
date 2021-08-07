@@ -427,19 +427,19 @@ A variable may only be initialized by a value if the value is implcitly converta
 
 \chapter{Statements}
 
-\lstinputlisting[breaklines=true, firstline=29, lastline=47]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=29, lastline=46]{"Appendix B - Syntax.ebnf"}
 
 Statements are units of execution that generally involve either side effects or flow control. Additionally, a statement may be a type or variable definition. These types or variables exist only within the containing scope.
 
 \section{Compound Statements}
 
-\lstinputlisting[breaklines=true, firstline=49, lastline=49]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=48, lastline=48]{"Appendix B - Syntax.ebnf"}
 
 The compound statement introduces a scope, and additionally bundles a set of statements into one statement.
 
 \section{If Statements}
 
-\lstinputlisting[breaklines=true, firstline=50, lastline=50]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=49, lastline=49]{"Appendix B - Syntax.ebnf"}
 
 An if statement dynamically chooses between the execution of two statements, or between executing a statement or not executing a statement. There are two forms to the if statement: the first form where there is no else, and the statement executes the statement if and only if the condition expression is true. The second form is when there is an else. The if statement will execute the first statement if and only if the condition is true, and the second statement otherwise.
 
@@ -451,7 +451,7 @@ The condition must be a value implicitly convertable to boolean.
 
 \section{While Loop Statements}
 
-\lstinputlisting[breaklines=true, firstline=51, lastline=51]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=50, lastline=50]{"Appendix B - Syntax.ebnf"}
 
 A while loop statement repeatedly executes the statement, checking the condition beforehand, and leaving the loop without executing the statement if and only if the expression is false. The loop body introduces a scope.
 
@@ -459,7 +459,7 @@ The condition must be a value implicitly convertable to boolean.
 
 \section{Do-While Loop Statements}
 
-\lstinputlisting[breaklines=true, firstline=52, lastline=52]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=51, lastline=51]{"Appendix B - Syntax.ebnf"}
 
 A do-while loop statement repeatedly executes the statement, checking the condition afterwards, and leaving the loop if and only if the expression is false
 \footnote{Unlike C, the do-while loop does not expect a semicolon after the while.}. The loop body introduces a scope.
@@ -468,7 +468,7 @@ The condition must be a value implicitly convertable to boolean.
 
 \section{For Loop Statements}
 
-\lstinputlisting[breaklines=true, firstline=53, lastline=53]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=52, lastline=52]{"Appendix B - Syntax.ebnf"}
 
 The for loop statement introduces a scope, and within that scope, the variable declaration statement resides. If the initializer is an expression, then the expression is evaluated for side-effect. Next, before each iteration of the loop, the condition is checked, then the loop body runs, then the increment expression is evaluated for side effects. Execution returns to checking for the condition. If the condition is false, the loop ends, and the increment is not run. Additionally, a continue statement will only jump to the increment expression - i.e. the end of the loop body. The loop body also introduces a scope.
 
@@ -476,7 +476,7 @@ The condition must be a value implicitly convertable to boolean, and the initial
 
 \section{Switch Statements}
 
-\lstinputlisting[breaklines=true, linerange={54-54, 61-62}]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, linerange={53-53, 60-61}]{"Appendix B - Syntax.ebnf"}
 
 A switch statement selects between several possible cases. The expression is evaluated, and it must be an integral expression. Then, the matching case is selected, and the matching statement is executed. Then, unless execution hits a break, execution proceeds down the following cases. If no case is matched, then the default and its statement is executed, and execution of the switch continues down the remaining cases. It is an error to have multiple cases with the same value, or multiple default cases. Additionally, despite the curly braces, the switch itself does not introduce a scope.
 
@@ -484,33 +484,27 @@ The condition must be an integral, character, or enumeraton type. Additionally, 
 
 \section{Break Statements}
 
-\lstinputlisting[breaklines=true, firstline=55, lastline=55]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=54, lastline=54]{"Appendix B - Syntax.ebnf"}
 
 A break statement will leave a loop or a switch statement. The break statement jumps to the first statement after the end of the loop or switch.
 
 \section{Continue Statements}
 
-\lstinputlisting[breaklines=true, firstline=56, lastline=56]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=55, lastline=55]{"Appendix B - Syntax.ebnf"}
 
 A continue statement will jump to the end of the body of a loop. Note that in a for loop, the continue statement will not skip over the increment, as that comes just after the body.
 
 \section{Return Statements}
 
-\lstinputlisting[breaklines=true, firstline=57, lastline=57]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=56, lastline=56]{"Appendix B - Syntax.ebnf"}
 
-A return statement returns from the current function. If an expression is provided, it must match the return type of the function, and the value of the expression will be the returned value. If a value is not provided, then the function must be void, or the value must have been provided in some other way - almost certainly through inline assembly.
+A return statement returns from the current function. If an expression is provided, it must match the return type of the function, and the value of the expression will be the returned value. If a value is not provided, then the function must return void.
 
 The returned value must be implicitly convertable to the return type of the function.
 
-\section{Assembly Statements}
-
-\lstinputlisting[breaklines=true, firstline=58, lastline=58]{"Appendix B - Syntax.ebnf"}
-
-An assembly statement inserts the assembly code into the generated assembly. The string literal respects escape codes, but is otherwise inserted verbatim. It is the responsibility of the user to write valid assembly code and to ensure that said assembly code will interoperate with generated assembly code.
-
 \section{Variable Declaration Statements}\label{section:Variable Declaration Statements}
 
-\lstinputlisting[breaklines=true, firstline=59, lastline=59]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=57, lastline=57]{"Appendix B - Syntax.ebnf"}
 
 A variable declaration statement creates a variable, and optionally initializes the variable with an expression. If it is not initialized, then its value is undefined. The variable exists in the enclosing scope.
 
@@ -518,7 +512,7 @@ The value a variable is initialized with must be implicitly convertable to the v
 
 \section{Expression Statement}
 
-\lstinputlisting[breaklines=true, firstline=60, lastline=60]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=58, lastline=58]{"Appendix B - Syntax.ebnf"}
 
 The expression statement is an expression followed by a semicolon. The expression is evaluated for side-effects, and only side-effects.
 
@@ -644,7 +638,7 @@ Operators combine one or more expressions, and produce a value. See the above fo
 
 \subsection{Sequencing Operator}
 
-\lstinputlisting[breaklines=true, firstline=65, lastline=67]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=63, lastline=65]{"Appendix B - Syntax.ebnf"}
 
 The sequencing operator (\texttt{,}), evaluates the left hand side for side-effects, and evaluates the right hand side for a value, and produces that value.
 
@@ -652,7 +646,7 @@ The whole expression has the same type as its right hand side, and is an lvalue 
 
 \subsection{Assignment Operators}
 
-\lstinputlisting[breaklines=true, firstline=68, lastline=83]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=66, lastline=81]{"Appendix B - Syntax.ebnf"}
 
 The plain assignment operator (\texttt{=}) evaluates the left hand side as a value to assign to, then evaluates the right hand side as a value, and assigns the result of the right hand side to the result of the left hand side.
 
@@ -666,7 +660,7 @@ A plain or compound assignment produces an lvalue which is the same as its left 
 
 \subsection{Ternary Conditional Operators}
 
-\lstinputlisting[breaklines=true, firstline=84, lastline=86]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=82, lastline=84]{"Appendix B - Syntax.ebnf"}
 
 The ternary operator acts like an if statement for expressions. It evaluates the left hand side, and if and only if the left hand side is true, it will evaluate the middle expression and produce its value. Otherwise, it will evaluate the right hand expression and produce its value. Only one of the two expressions will be evaluated.
 
@@ -674,7 +668,7 @@ A ternary expression produces the type from merging the type of its operands acc
 
 \subsection{Logical Operators}
 
-\lstinputlisting[breaklines=true, firstline=87, lastline=87]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=85, lastline=85]{"Appendix B - Syntax.ebnf"}
 
 The logical and and logical or operators perform the standard boolean operation on their left and right hand sides.
 
@@ -682,7 +676,7 @@ A logical operator produces an rvalue boolean, and both its inputs must be impli
 
 \subsection{Bitwise Operators}
 
-\lstinputlisting[breaklines=true, firstline=88, lastline=88]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=86, lastline=86]{"Appendix B - Syntax.ebnf"}
 
 The bitwise operators perform the standard operation on their left and right hand sides.
 
@@ -690,13 +684,13 @@ The two operands are first converted into a common type (see \ref{subsection:Ari
 
 \subsection{Comparison Operators}
 
-\lstinputlisting[breaklines=true, firstline=89, lastline=90]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=87, lastline=88]{"Appendix B - Syntax.ebnf"}
 
 Comparisons are valid for base types can be merged in a comparison type merge, and result in an rvalue boolean.
 
 \subsection{Shift Operators}
 
-\lstinputlisting[breaklines=true, firstline=92, lastline=92]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=89, lastline=89]{"Appendix B - Syntax.ebnf"}
 
 The left-hand-side value is bit-shifted by the number of bits given in the right-hand-side value. This value must be less than the number of bits in the left hand side value, but this is not statically enforced. In case of a left-shift operator (\texttt{<<}) or a logical-right-shift operator (\texttt{>>>}), the value is zero-filled. In case of an arithmetic-right-shift operator (\texttt{>>}), the value is sign-filled.
 
@@ -704,7 +698,7 @@ The left-hand side must be a signed integral type for arithmetic-right-shift oep
 
 \subsection{Addition Operators}
 
-\lstinputlisting[breaklines=true, firstline=93, lastline=93]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=90, lastline=90]{"Appendix B - Syntax.ebnf"}
 
 Addition and subtraction of two numeric operands performs the standard operation. Adding a pointer and an integer (in any order) or subtracting an integer from a pointer results in a new pointer after performing the standard operation, but with the integer multiplied by the size of the pointed-to type. Subtracting two pointers results in a difference which is then integer divided by the size of the pointed-to type.
 
@@ -712,7 +706,7 @@ Addition and subtraction both support two numeric operands, producing the arithm
 
 \subsection{Multiplication Operators}
 
-\lstinputlisting[breaklines=true, firstline=94, lastline=94]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=91, lastline=91]{"Appendix B - Syntax.ebnf"}
 
 Multiplication expressions perform the standard operation on any numeric values. The modulo operator performs the remainder operation - the sign of the result is the same as the sign of the left hand side.
 
@@ -720,7 +714,7 @@ The type after an arithmetic type merge must be numeric, and the result is a rva
 
 \subsection{Prefix Operators}
 
-\lstinputlisting[breaklines=true, firstline=95, lastline=103]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=92, lastline=100]{"Appendix B - Syntax.ebnf"}
 
 The dereference operator (\texttt{*}) takes the expression (must be a data pointer), and produces an lvalue from that expression. The result is of the base type of the pointer.
 
@@ -736,7 +730,7 @@ The bitwise-not operator takes the expression (must be an integral value), and f
 
 \subsection{Postfix Operators}
 
-\lstinputlisting[breaklines=true, linerange={104-104, 112-112}]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, linerange={101-101, 109-109}]{"Appendix B - Syntax.ebnf"}
 
 The member-access operator (\texttt{.}) takes a value of a type with members (structures or unions), and produces the named member. This value is assignable if the original value is assignable. The pointer member-access operator (\texttt{->}) takes a value of a pointer to a type with members, and produces the named member after dereferencing the pointer. Only the accessed member is accessed via the pointer. The produced value is always assignable. The type of this expression is the type of the member.
 
@@ -750,7 +744,7 @@ The in-place unary operators take the value, performs the unary operation on it,
 
 \section{Primary Expressions}
 
-\lstinputlisting[breaklines=true, firstline=105, lastline=111]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=102, lastline=108]{"Appendix B - Syntax.ebnf"}
 
 A primary expression is a value or expression that is unambiguously bound. These expressions have no precedence, and in the case of identifiers and literals, form the leaf nodes of expressions.
 
@@ -760,7 +754,7 @@ Scoped identifiers and identifiers name a value, and produce that value as an lv
 
 \subsection{Literals}
 
-\lstinputlisting[breaklines=true, firstline=118, lastline=128]{"Appendix B - Syntax.ebnf"}
+\lstinputlisting[breaklines=true, firstline=115, lastline=125]{"Appendix B - Syntax.ebnf"}
 
 Literals represent a constant value, either of some type, or of an aggregate initializer. Integer literals may be signed or unsigned. Integer literals are of the smallest type capable of containing their value, preferring unsigned types over signed types. A positive integer literal may be forced into being of a signed type by prefixing it with \texttt{+}.
 

@@ -3937,12 +3937,6 @@ static void translateStmt(Vector *blocks, Node *stmt, size_t label,
       }
       break;
     }
-    case NT_ASMSTMT: {
-      IRBlock *b = BLOCK(label, blocks);
-      IR(b, ASM(stmt->data.asmStmt.assembly));
-      IR(b, JUMP(LOCAL(nextLabel)));
-      break;
-    }
     case NT_VARDEFNSTMT: {
       Vector *names = stmt->data.varDefnStmt.names;
       Vector *initializers = stmt->data.varDefnStmt.initializers;

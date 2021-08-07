@@ -56,7 +56,6 @@ typedef enum {
   TT_BREAK,
   TT_CONTINUE,
   TT_RETURN,
-  TT_ASM,
   TT_CAST,
   TT_SIZEOF,
   TT_TRUE,

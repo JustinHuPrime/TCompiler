@@ -104,10 +104,6 @@ static void operandDump(FILE *where, IROperand *o) {
       fprintf(where, "LABEL(%s)", o->data.label.name);
       break;
     }
-    case OK_ASM: {
-      fprintf(where, "ASM(%s)", o->data.assembly.assembly);
-      break;
-    }
   }
 }
 
@@ -153,10 +149,6 @@ static void fourOperandInstructionDump(FILE *where, char const *name,
 }
 static void instructionDump(FILE *where, IRInstruction *i) {
   switch (i->op) {
-    case IO_ASM: {
-      oneOperandInstructionDump(where, "ASM", i);
-      break;
-    }
     case IO_LABEL: {
       oneOperandInstructionDump(where, "LABEL", i);
       break;

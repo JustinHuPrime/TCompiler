@@ -791,22 +791,6 @@ static void testReturnStmtParser(void) {
   vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
 }
 
-static void testAsmStmtParser(void) {
-  FileListEntry entries[1];
-  fileList.entries = &entries[0];
-  fileList.size = 1;
-
-  fileListEntryInit(&entries[0], "testFiles/parser/input/asm.tc", true);
-  testDynamic(format("parser accepts %s", entries[0].inputFilename),
-              parse() == 0);
-  testDynamic(format("no errors in %s", entries[0].inputFilename),
-              entries[0].errored == false);
-  testDynamic(format("ast of %s is correct", entries[0].inputFilename),
-              dumpEqual(&entries[0], "testFiles/parser/expected/asm.txt"));
-  nodeFree(entries[0].ast);
-  vectorUninit(&entries[0].irFrags, (void (*)(void *))irFragFree);
-}
-
 static void testVariableDefinitionStmtParser(void) {
   FileListEntry entries[1];
   fileList.entries = &entries[0];
@@ -1368,7 +1352,6 @@ void testParser(void) {
   testBreakStmtParser();
   testContinueStmtParser();
   testReturnStmtParser();
-  testAsmStmtParser();
   testVariableDefinitionStmtParser();
   testExpressionStmtParser();
   testOpaqueDeclStmtParser();

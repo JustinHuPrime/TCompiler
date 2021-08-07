@@ -17,10 +17,10 @@ token = keyword
 
 keyword = "module" | "import" | "opaque" | "struct" | "union" | "enum"
         | "typedef" | "if" | "else" | "while" | "do" | "for" | "switch"
-        | "case" | "default" | "break" | "continue" | "return" | "asm"
-        | "cast" | "sizeof" | "true" | "false" | "null" | "void" | "ubyte"
-        | "byte" | "char" | "ushort" | "short" | "uint" | "int" | "wchar"
-        | "ulong" | "long" | "float" | "double" | "bool" | "const" | "volatile"
+        | "case" | "default" | "break" | "continue" | "return" | "cast"
+        | "sizeof" | "true" | "false" | "null" | "void" | "ubyte" | "byte"
+        | "char" | "ushort" | "short" | "uint" | "int" | "wchar" | "ulong"
+        | "long" | "float" | "double" | "bool" | "const" | "volatile"
 ;
 
 punctuation = ";" | "," | "(" | ")" | "[" | "]" | "{" | "}" | "." | "->" | "++"

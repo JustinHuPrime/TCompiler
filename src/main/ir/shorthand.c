@@ -90,10 +90,6 @@ static IRInstruction *fourArgInstructionCreate(IROperator op, IROperand *arg1,
   retval->args[3] = arg4;
   return retval;
 }
-IRInstruction *ASM(char const *assembly) {
-  return oneArgInstructionCreate(IO_ASM,
-                                 assemblyOperandCreate(strdup(assembly)));
-}
 IRInstruction *MARK_TEMP(IROperator marker, IROperand *temp) {
   return oneArgInstructionCreate(marker, temp);
 }

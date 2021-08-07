@@ -45,7 +45,6 @@ static char const *const TOKEN_DESCRIPTORS[] = {
     "the keyword 'break'",
     "the keyword 'continue'",
     "the keyword 'return'",
-    "the keyword 'asm'",
     "the keyword 'cast'",
     "the keyword 'sizeof'",
     "the keyword 'true'",

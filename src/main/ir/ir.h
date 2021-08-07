@@ -107,7 +107,6 @@ typedef enum {
   OK_REG,
   OK_CONSTANT,
   OK_LABEL,
-  OK_ASM,
 } OperandKind;
 /** an operand in an IR entry */
 typedef struct IROperand {
@@ -152,14 +151,6 @@ typedef struct IROperand {
     struct {
       char *name;
     } label;
-    /**
-     * inline assembly
-     *
-     * may never be used outside of IO_ASMs
-     */
-    struct {
-      char *assembly;
-    } assembly;
   } data;
 } IROperand;
 
@@ -170,7 +161,6 @@ IROperand *regOperandCreate(size_t name, size_t size);
 IROperand *constantOperandCreate(size_t alignment);
 IROperand *labelOperandCreate(char *name);
 IROperand *offsetOperandCreate(int64_t offset);
-IROperand *assemblyOperandCreate(char *assembly);
 /** copy */
 IROperand *irOperandCopy(IROperand const *o);
 /** sizeof */
@@ -181,13 +171,6 @@ void irOperandFree(IROperand *);
 /** an ir operator */
 typedef enum IROperator {
   // miscellaneous
-  /**
-   * inline assembly
-   *
-   * one operand
-   * 0: ASM
-   */
-  IO_ASM,
   /**
    * generic label
    *
