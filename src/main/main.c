@@ -171,6 +171,16 @@ int main(int argc, char **argv) {
 
   // ir optimization
   optimize();
+
+  // debug-dump stop for optimized IR
+  if (options.dump == OPTION_DD_OPTIMIZATION) {
+    for (size_t idx = 0; idx < fileList.size; ++idx) {
+      if (fileList.entries[idx].isCode) {
+        irDump(stderr, &fileList.entries[idx]);
+      }
+    }
+  }
+
   if (options.debugValidateIr && validateIr("optimization") != 0)
     return CODE_IR_ERROR;
 

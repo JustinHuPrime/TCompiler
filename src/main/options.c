@@ -64,6 +64,8 @@ int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
       options.dump = OPTION_DD_PARSE;
     } else if (strcmp(argv[idx], "--debug-dump=ir") == 0) {
       options.dump = OPTION_DD_IR;
+    } else if (strcmp(argv[idx], "--debug-dump=optimization") == 0) {
+      options.dump = OPTION_DD_OPTIMIZATION;
     } else if (strcmp(argv[idx], "--debug-validate-ir") == 0) {
       options.debugValidateIr = true;
     } else if (strcmp(argv[idx], "--no-debug-validate-ir") == 0) {

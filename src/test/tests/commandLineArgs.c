@@ -298,6 +298,19 @@ static void testOptions(void) {
   test("command line with no-debug-validate-ir passes", retval == 0);
   test("debug-validate-ir option is correctly unset",
        options.debugValidateIr == false);
+
+  // --debug-dump=ir
+  argc = 3;
+  char const *const argv17[] = {
+      "./tlc",
+      "--debug-dump=optimization",
+      "foo.tc",
+  };
+  retval = parseArgs(argc, argv17, &numFiles);
+
+  test("command line with debug-dump=optimization passes", retval == 0);
+  test("debug-dump ir option is correctly set",
+       options.dump == OPTION_DD_OPTIMIZATION);
 }
 
 void testCommandLineArgs(void) {

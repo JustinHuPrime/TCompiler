@@ -40,6 +40,7 @@ typedef enum {
   OPTION_DD_LEX,
   OPTION_DD_PARSE,
   OPTION_DD_IR,
+  OPTION_DD_OPTIMIZATION,
 } DebugDumpOption;
 /** Architecture options */
 typedef enum {

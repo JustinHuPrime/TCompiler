@@ -67,6 +67,8 @@ The option `--debug-dump` can be set to 4 values:
 
 * `--debug-dump=ir`: dumps the results of the translate to IR phase
 
+* `--debug-dump=optimization`: dumps the results the IR optimization phase
+
 Additionally, the following options can be used:
 
 * `--debug-validate-ir`: validates IR after any step that changes it
