@@ -30,6 +30,7 @@
 #include "ir/ir.h"
 #include "lexer/dump.h"
 #include "lexer/lexer.h"
+#include "optimization/optimization.h"
 #include "options.h"
 #include "parser/parser.h"
 #include "translation/translation.h"
@@ -169,6 +170,11 @@ int main(int argc, char **argv) {
     nodeFree(fileList.entries[idx].ast);
 
   // ir optimization
+  optimize();
+  if (options.debugValidateIr && validateIr("optimization") != 0)
+    return CODE_IR_ERROR;
+
+  // trace scheduling
   // TODO: write this
 
   // back-end

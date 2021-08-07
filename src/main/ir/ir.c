@@ -397,6 +397,12 @@ IRInstruction *irInstructionCreate(IROperator op) {
   i->args = malloc(irOperatorArity(op) * sizeof(IRInstruction *));
   return i;
 }
+IRInstruction *irInstructionCopy(IRInstruction const *i) {
+  IRInstruction *copy = irInstructionCreate(i->op);
+  for (size_t idx = 0; idx < irOperatorArity(i->op); ++idx)
+    copy->args[idx] = irOperandCopy(i->args[idx]);
+  return copy;
+}
 static void irOperandArrayFree(IROperand **arry, size_t size) {
   for (size_t idx = 0; idx < size; ++idx) irOperandFree(arry[idx]);
   free(arry);

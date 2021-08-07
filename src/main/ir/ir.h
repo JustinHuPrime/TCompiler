@@ -563,6 +563,7 @@ typedef struct {
 
 /** generic ctor */
 IRInstruction *irInstructionCreate(IROperator op);
+IRInstruction *irInstructionCopy(IRInstruction const *i);
 /** dtor */
 void irInstructionFree(IRInstruction *);
 
