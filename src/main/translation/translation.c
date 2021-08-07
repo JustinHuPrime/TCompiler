@@ -1127,6 +1127,7 @@ static IROperand *translateCast(IRBlock *b, IROperand *src,
                                 typeAlignof(destElementType));
       }
     }
+    irOperandFree(src);
     return out;
   } else if (fromType->kind == TK_ARRAY && toType->kind == TK_POINTER) {
     // array to pointer
@@ -1946,15 +1947,15 @@ static void translateLValueStore(IRBlock *b, LValue const *dest, IROperand *src,
     case LK_TEMP: {
       if (dest->staticOffset == 0 && dest->dynamicOffset == NULL &&
           irOperandSizeof(dest->operand) == irOperandSizeof(src)) {
-        IR(b, MOVE(irOperandCopy(dest->operand), irOperandCopy(src)));
+        IR(b, MOVE(irOperandCopy(dest->operand), src));
       } else {
-        IR(b, OFFSET_STORE(irOperandCopy(dest->operand), irOperandCopy(src),
+        IR(b, OFFSET_STORE(irOperandCopy(dest->operand), src,
                            getLValueOffset(b, dest, file)));
       }
       break;
     }
     case LK_MEM: {
-      IR(b, MEM_STORE(irOperandCopy(dest->operand), irOperandCopy(src),
+      IR(b, MEM_STORE(irOperandCopy(dest->operand), src,
                       getLValueOffset(b, dest, file)));
       break;
     }
@@ -2869,6 +2870,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
               b, value, expressionTypeof(target), file);
           translateLValueStore(b, lvalue, irOperandCopy(modified), file);
           IR(b, JUMP(LOCAL(nextLabel)));
+          lvalueFree(lvalue);
           return modified;
         }
         case UO_NEG:
@@ -2898,6 +2900,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
               b, irOperandCopy(value), expressionTypeof(target), file);
           translateLValueStore(b, lvalue, modified, file);
           IR(b, JUMP(LOCAL(nextLabel)));
+          lvalueFree(lvalue);
           return value;
         }
         case UO_SIZEOFEXP: {

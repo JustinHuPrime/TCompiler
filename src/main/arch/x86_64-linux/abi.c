@@ -98,6 +98,7 @@ static TypeClass *layout(Type const *t) {
       SymbolTableEntry *entry = t->data.reference.entry;
       switch (entry->kind) {
         case SK_ENUM: {
+          free(retval);
           return layout(entry->data.enumType.backingType);
         }
         case SK_STRUCT: {
@@ -124,6 +125,7 @@ static TypeClass *layout(Type const *t) {
           return retval;
         }
         case SK_TYPEDEF: {
+          free(retval);
           return layout(entry->data.typedefType.actual);
         }
         case SK_UNION: {
@@ -145,6 +147,7 @@ static TypeClass *layout(Type const *t) {
                        optionLayout[byte] == X86_64_LINUX_TC_GP)
                 retval[byte] = X86_64_LINUX_TC_GP;
             }
+            free(optionLayout);
           }
           return retval;
         }
@@ -451,10 +454,14 @@ IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun,
 
   // setup stack allocation
   stackOffset = incrementToMultiple(stackOffset, X86_64_LINUX_STACK_ALIGNMENT);
-  if (stackOffset == 0)
+  if (stackOffset == 0) {
     stackAllocationInstruction->op = IO_NOP;
-  else
+    irOperandFree(stackAllocationInstruction->args[0]);
+    irOperandFree(stackAllocationInstruction->args[1]);
+    irOperandFree(stackAllocationInstruction->args[2]);
+  } else {
     stackAllocationSize->data.longVal = stackOffset;
+  }
 
   // actual function call
   IR(b, CALL(fun));
