@@ -455,10 +455,7 @@ IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun,
   // setup stack allocation
   stackOffset = incrementToMultiple(stackOffset, X86_64_LINUX_STACK_ALIGNMENT);
   if (stackOffset == 0) {
-    stackAllocationInstruction->op = IO_NOP;
-    irOperandFree(stackAllocationInstruction->args[0]);
-    irOperandFree(stackAllocationInstruction->args[1]);
-    irOperandFree(stackAllocationInstruction->args[2]);
+    irInstructionMakeNop(stackAllocationInstruction);
   } else {
     stackAllocationSize->data.longVal = stackOffset;
   }

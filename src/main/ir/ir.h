@@ -279,7 +279,7 @@ typedef enum IROperator {
    *
    * three operands
    * 0: REG | TEMP, written
-   * 1: REG | TEMP, written
+   * 1: REG | TEMP, read | CONST | GLOBAL | LOCAL
    * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
    *    POINTER_WIDTH
    */
@@ -566,6 +566,7 @@ IRInstruction *irInstructionCreate(IROperator op);
 IRInstruction *irInstructionCopy(IRInstruction const *i);
 /** dtor */
 void irInstructionFree(IRInstruction *);
+void irInstructionMakeNop(IRInstruction *);
 
 typedef struct {
   size_t label;

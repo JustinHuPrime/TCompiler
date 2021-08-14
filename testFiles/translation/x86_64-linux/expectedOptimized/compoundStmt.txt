@@ -4,8 +4,6 @@ TEXT(_T3foo3bar,
     JUMP(LOCAL(6)),
   ),
   BLOCK(6,
-    ZX(TEMP(temp7, 4, 4, GP), CONSTANT(1, BYTE(0))),
-    MOVE(TEMP(temp8, 4, 4, GP), TEMP(temp7, 4, 4, GP)),
     RETURN(),
   ),
 )

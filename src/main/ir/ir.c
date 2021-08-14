@@ -411,6 +411,11 @@ void irInstructionFree(IRInstruction *i) {
   irOperandArrayFree(i->args, irOperatorArity(i->op));
   free(i);
 }
+void irInstructionMakeNop(IRInstruction *i) {
+  irOperandArrayFree(i->args, irOperatorArity(i->op));
+  i->args = malloc(0);
+  i->op = IO_NOP;
+}
 
 IRBlock *irBlockCreate(size_t label) {
   IRBlock *b = malloc(sizeof(IRBlock));
