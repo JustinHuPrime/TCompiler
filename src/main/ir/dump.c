@@ -397,76 +397,148 @@ static void instructionDump(FILE *where, IRInstruction *i) {
       oneOperandInstructionDump(where, "JUMP", i);
       break;
     }
-    case IO_JL: {
-      fourOperandInstructionDump(where, "JL", i);
+    case IO_J2L: {
+      fourOperandInstructionDump(where, "J2L", i);
       break;
     }
-    case IO_JLE: {
-      fourOperandInstructionDump(where, "JLE", i);
+    case IO_J2LE: {
+      fourOperandInstructionDump(where, "J2LE", i);
       break;
     }
-    case IO_JE: {
-      fourOperandInstructionDump(where, "JE", i);
+    case IO_J2E: {
+      fourOperandInstructionDump(where, "J2E", i);
       break;
     }
-    case IO_JNE: {
-      fourOperandInstructionDump(where, "JNE", i);
+    case IO_J2NE: {
+      fourOperandInstructionDump(where, "J2NE", i);
       break;
     }
-    case IO_JG: {
-      fourOperandInstructionDump(where, "JG", i);
+    case IO_J2G: {
+      fourOperandInstructionDump(where, "J2G", i);
       break;
     }
-    case IO_JGE: {
-      fourOperandInstructionDump(where, "JGE", i);
+    case IO_J2GE: {
+      fourOperandInstructionDump(where, "J2GE", i);
       break;
     }
-    case IO_JA: {
-      fourOperandInstructionDump(where, "JA", i);
+    case IO_J2A: {
+      fourOperandInstructionDump(where, "J2A", i);
       break;
     }
-    case IO_JAE: {
-      fourOperandInstructionDump(where, "JAE", i);
+    case IO_J2AE: {
+      fourOperandInstructionDump(where, "J2AE", i);
       break;
     }
-    case IO_JB: {
-      fourOperandInstructionDump(where, "JB", i);
+    case IO_J2B: {
+      fourOperandInstructionDump(where, "J2B", i);
       break;
     }
-    case IO_JBE: {
-      fourOperandInstructionDump(where, "JBE", i);
+    case IO_J2BE: {
+      fourOperandInstructionDump(where, "J2BE", i);
       break;
     }
-    case IO_JFL: {
-      fourOperandInstructionDump(where, "JFL", i);
+    case IO_J2FL: {
+      fourOperandInstructionDump(where, "J2FL", i);
       break;
     }
-    case IO_JFLE: {
-      fourOperandInstructionDump(where, "JFLE", i);
+    case IO_J2FLE: {
+      fourOperandInstructionDump(where, "J2FLE", i);
       break;
     }
-    case IO_JFE: {
-      fourOperandInstructionDump(where, "JFE", i);
+    case IO_J2FE: {
+      fourOperandInstructionDump(where, "J2FE", i);
       break;
     }
-    case IO_JFNE: {
-      fourOperandInstructionDump(where, "JFNE", i);
+    case IO_J2FNE: {
+      fourOperandInstructionDump(where, "J2FNE", i);
       break;
     }
-    case IO_JFG: {
-      fourOperandInstructionDump(where, "JFG", i);
+    case IO_J2FG: {
+      fourOperandInstructionDump(where, "J2FG", i);
       break;
     }
-    case IO_JFGE: {
-      fourOperandInstructionDump(where, "JFGE", i);
+    case IO_J2FGE: {
+      fourOperandInstructionDump(where, "J2FGE", i);
       break;
     }
-    case IO_JZ: {
-      threeOperandInstructionDump(where, "JZ", i);
+    case IO_J2Z: {
+      threeOperandInstructionDump(where, "J2Z", i);
       break;
     }
-    case IO_JNZ: {
-      threeOperandInstructionDump(where, "JNZ", i);
+    case IO_J2NZ: {
+      threeOperandInstructionDump(where, "J2NZ", i);
+      break;
+    }
+    case IO_J1L: {
+      threeOperandInstructionDump(where, "J1L", i);
+      break;
+    }
+    case IO_J1LE: {
+      threeOperandInstructionDump(where, "J1LE", i);
+      break;
+    }
+    case IO_J1E: {
+      threeOperandInstructionDump(where, "J1E", i);
+      break;
+    }
+    case IO_J1NE: {
+      threeOperandInstructionDump(where, "J1NE", i);
+      break;
+    }
+    case IO_J1G: {
+      threeOperandInstructionDump(where, "J1G", i);
+      break;
+    }
+    case IO_J1GE: {
+      threeOperandInstructionDump(where, "J1GE", i);
+      break;
+    }
+    case IO_J1A: {
+      threeOperandInstructionDump(where, "J1A", i);
+      break;
+    }
+    case IO_J1AE: {
+      threeOperandInstructionDump(where, "J1AE", i);
+      break;
+    }
+    case IO_J1B: {
+      threeOperandInstructionDump(where, "J1B", i);
+      break;
+    }
+    case IO_J1BE: {
+      threeOperandInstructionDump(where, "J1BE", i);
+      break;
+    }
+    case IO_J1FL: {
+      threeOperandInstructionDump(where, "J1FL", i);
+      break;
+    }
+    case IO_J1FLE: {
+      threeOperandInstructionDump(where, "J1FLE", i);
+      break;
+    }
+    case IO_J1FE: {
+      threeOperandInstructionDump(where, "J1FE", i);
+      break;
+    }
+    case IO_J1FNE: {
+      threeOperandInstructionDump(where, "J1FNE", i);
+      break;
+    }
+    case IO_J1FG: {
+      threeOperandInstructionDump(where, "J1FG", i);
+      break;
+    }
+    case IO_J1FGE: {
+      threeOperandInstructionDump(where, "J1FGE", i);
+      break;
+    }
+    case IO_J1Z: {
+      twoOperandInstructionDump(where, "J1Z", i);
+      break;
+    }
+    case IO_J1NZ: {
+      twoOperandInstructionDump(where, "J1NZ", i);
       break;
     }
     case IO_CALL: {

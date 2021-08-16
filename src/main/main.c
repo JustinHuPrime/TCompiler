@@ -154,13 +154,11 @@ int main(int argc, char **argv) {
   // debug-dump stop for IR
   if (options.dump == OPTION_DD_IR) {
     for (size_t idx = 0; idx < fileList.size; ++idx) {
-      if (fileList.entries[idx].isCode) {
-        irDump(stderr, &fileList.entries[idx]);
-      }
+      if (fileList.entries[idx].isCode) irDump(stderr, &fileList.entries[idx]);
     }
   }
 
-  if (options.debugValidateIr && validateIr("translation") != 0)
+  if (options.debugValidateIr && validateBlockedIr("translation") != 0)
     return CODE_IR_ERROR;
 
   // middle-end
@@ -175,13 +173,11 @@ int main(int argc, char **argv) {
   // debug-dump stop for optimized IR
   if (options.dump == OPTION_DD_OPTIMIZATION) {
     for (size_t idx = 0; idx < fileList.size; ++idx) {
-      if (fileList.entries[idx].isCode) {
-        irDump(stderr, &fileList.entries[idx]);
-      }
+      if (fileList.entries[idx].isCode) irDump(stderr, &fileList.entries[idx]);
     }
   }
 
-  if (options.debugValidateIr && validateIr("optimization") != 0)
+  if (options.debugValidateIr && validateBlockedIr("optimization") != 0)
     return CODE_IR_ERROR;
 
   // trace scheduling

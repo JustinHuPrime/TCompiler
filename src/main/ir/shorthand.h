@@ -156,7 +156,7 @@ IRInstruction *CJUMP(IROperator op, size_t trueDest, size_t falseDest,
                      IROperand *lhs, IROperand *rhs);
 /**
  * unary conditional jump to local label
- * @param op IO_JZ or IO_JNZ
+ * @param op IO_J2Z or IO_J2NZ
  * @param trueDest destination numeric id if test is true
  * @param falseDest dstination id if test is false
  * @param condition temp to condition on (jump if zero/not zero)

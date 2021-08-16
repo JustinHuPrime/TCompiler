@@ -150,7 +150,7 @@ void testOptimization(void) {
       translate();
 
       assert("translation produced invalid ir" &&
-             validateIr("translation") == 0);
+             validateBlockedIr("translation") == 0);
 
       optimize();
 
@@ -164,7 +164,7 @@ void testOptimization(void) {
 
       testDynamic(
           format("optimized ir of %s is valid", entries[0].inputFilename),
-          validateIr("optimization") == 0);
+          validateBlockedIr("optimization") == 0);
 
       free(name);
       free(expectedName);

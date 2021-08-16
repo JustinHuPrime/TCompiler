@@ -140,24 +140,24 @@ static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks) {
                       blocks);
       break;
     }
-    case IO_JL:
-    case IO_JLE:
-    case IO_JE:
-    case IO_JNE:
-    case IO_JG:
-    case IO_JGE:
-    case IO_JA:
-    case IO_JAE:
-    case IO_JB:
-    case IO_JBE:
-    case IO_JFL:
-    case IO_JFLE:
-    case IO_JFE:
-    case IO_JFNE:
-    case IO_JFG:
-    case IO_JFGE:
-    case IO_JZ:
-    case IO_JNZ: {
+    case IO_J2L:
+    case IO_J2LE:
+    case IO_J2E:
+    case IO_J2NE:
+    case IO_J2G:
+    case IO_J2GE:
+    case IO_J2A:
+    case IO_J2AE:
+    case IO_J2B:
+    case IO_J2BE:
+    case IO_J2FL:
+    case IO_J2FLE:
+    case IO_J2FE:
+    case IO_J2FNE:
+    case IO_J2FG:
+    case IO_J2FGE:
+    case IO_J2Z:
+    case IO_J2NZ: {
       markReachable(findBlock(blocks, last->args[0]->data.local.name), seen,
                     blocks);
       markReachable(findBlock(blocks, last->args[1]->data.local.name), seen,
@@ -312,28 +312,28 @@ static void deadTempElimination(LinkedList *blocks, size_t maxTemps) {
             markTempUse(seen, i->args[0]);
             break;
           }
-          case IO_JL:
-          case IO_JLE:
-          case IO_JE:
-          case IO_JNE:
-          case IO_JG:
-          case IO_JGE:
-          case IO_JA:
-          case IO_JAE:
-          case IO_JB:
-          case IO_JBE:
-          case IO_JFL:
-          case IO_JFLE:
-          case IO_JFE:
-          case IO_JFNE:
-          case IO_JFG:
-          case IO_JFGE: {
+          case IO_J2L:
+          case IO_J2LE:
+          case IO_J2E:
+          case IO_J2NE:
+          case IO_J2G:
+          case IO_J2GE:
+          case IO_J2A:
+          case IO_J2AE:
+          case IO_J2B:
+          case IO_J2BE:
+          case IO_J2FL:
+          case IO_J2FLE:
+          case IO_J2FE:
+          case IO_J2FNE:
+          case IO_J2FG:
+          case IO_J2FGE: {
             markTempUse(seen, i->args[2]);
             markTempUse(seen, i->args[3]);
             break;
           }
-          case IO_JZ:
-          case IO_JNZ: {
+          case IO_J2Z:
+          case IO_J2NZ: {
             markTempUse(seen, i->args[1]);
             markTempUse(seen, i->args[2]);
             break;

@@ -495,16 +495,16 @@ typedef enum IROperator {
    *
    * sizeof(2) == sizeof(3)
    */
-  IO_JL,
-  IO_JLE,
-  IO_JE,
-  IO_JNE,
-  IO_JG,
-  IO_JGE,
-  IO_JA,
-  IO_JAE,
-  IO_JB,
-  IO_JBE,
+  IO_J2L,
+  IO_J2LE,
+  IO_J2E,
+  IO_J2NE,
+  IO_J2G,
+  IO_J2GE,
+  IO_J2A,
+  IO_J2AE,
+  IO_J2B,
+  IO_J2BE,
   /**
    * floating binary comparison conditional jump
    *
@@ -516,12 +516,12 @@ typedef enum IROperator {
    *
    * sizeof(2) == sizeof(3)
    */
-  IO_JFL,
-  IO_JFLE,
-  IO_JFE,
-  IO_JFNE,
-  IO_JFG,
-  IO_JFGE,
+  IO_J2FL,
+  IO_J2FLE,
+  IO_J2FE,
+  IO_J2FNE,
+  IO_J2FG,
+  IO_J2FGE,
   /**
    * unary comparison conditional jump
    *
@@ -530,8 +530,53 @@ typedef enum IROperator {
    * 1: LOCAL
    * 2: REG | TEMP, read | CONST | GLOBAL | LOCAL
    */
-  IO_JZ,
-  IO_JNZ,
+  IO_J2Z,
+  IO_J2NZ,
+  /**
+   * integer binary comparison conditional jump (fallthrough version)
+   *
+   * four operands
+   * 0: LOCAL
+   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
+   * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL
+   *
+   * sizeof(2) == sizeof(3)
+   */
+  IO_J1L,
+  IO_J1LE,
+  IO_J1E,
+  IO_J1NE,
+  IO_J1G,
+  IO_J1GE,
+  IO_J1A,
+  IO_J1AE,
+  IO_J1B,
+  IO_J1BE,
+  /**
+   * floating binary comparison conditional jump (fallthrough version)
+   *
+   * four operands
+   * 0: LOCAL
+   * 1: REG | TEMP, read, allocation == (FP | MEM) | CONST
+   * 2: REG | TEMP, read, allocation == (FP | MEM) | CONST
+   *
+   * sizeof(2) == sizeof(3)
+   */
+  IO_J1FL,
+  IO_J1FLE,
+  IO_J1FE,
+  IO_J1FNE,
+  IO_J1FG,
+  IO_J1FGE,
+  /**
+   * unary comparison conditional jump (fallthrough version)
+   *
+   * three operands
+   * 0: LOCAL
+   * 1: REG | TEMP, read | CONST | GLOBAL | LOCAL
+   */
+  IO_J1Z,
+  IO_J1NZ,
 
   // function calling
   /**
@@ -579,15 +624,35 @@ IRBlock *irBlockCreate(size_t label);
 void irBlockFree(IRBlock *);
 
 /**
- * checks that all files in the file list have valid IR
+ * checks that all files in the file list have valid IR (while IR is in basic
+ * blocks)
  *
  * This checks that
  *  - temps must have consistent sizing, alignment, and allocation
  *  - all operations have valid sizing
+ *  - there are no non-terminal jumps or returns
+ *  - there are no one-arg jumps
+ *  - there are no labels
  *
  * @param phase phase to name as the one at fault
  * @returns -1 on failure, 0 on success
  */
-int validateIr(char const *phase);
+int validateBlockedIr(char const *phase);
+
+/**
+ * checks that all files in the file list have valid IR (while IR is a single
+ * block)
+ *
+ * This checks the same things as blocked IR except:
+ *  - non-terminal jumps are allowed
+ *  - there are no two-arg jumps
+ *  - one-arg jumps are allowed
+ *  - labels are allowed
+ *  - nops are not allowed
+ *
+ * @param phase phase to name as the one at fault
+ * @returns -1 on failure, 0 on success
+ */
+int validateScheduledIr(char const *phase);
 
 #endif  // TLC_IR_IR_H_
