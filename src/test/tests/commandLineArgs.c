@@ -262,17 +262,18 @@ static void testOptions(void) {
   test("debug-dump parse option is correctly set",
        options.dump == OPTION_DD_PARSE);
 
-  // --debug-dump=ir
+  // --debug-dump=translation
   argc = 3;
   char const *const argv14[] = {
       "./tlc",
-      "--debug-dump=ir",
+      "--debug-dump=translation",
       "foo.tc",
   };
   retval = parseArgs(argc, argv14, &numFiles);
 
-  test("command line with debug-dump=ir passes", retval == 0);
-  test("debug-dump ir option is correctly set", options.dump == OPTION_DD_IR);
+  test("command line with debug-dump=translation passes", retval == 0);
+  test("debug-dump ir option is correctly set",
+       options.dump == OPTION_DD_TRANSLATION);
 
   // --debug-validate-ir
   argc = 3;
@@ -299,18 +300,45 @@ static void testOptions(void) {
   test("debug-validate-ir option is correctly unset",
        options.debugValidateIr == false);
 
-  // --debug-dump=ir
+  // --debug-dump=blocked-optimization
   argc = 3;
   char const *const argv17[] = {
       "./tlc",
-      "--debug-dump=optimization",
+      "--debug-dump=blocked-optimization",
       "foo.tc",
   };
   retval = parseArgs(argc, argv17, &numFiles);
 
-  test("command line with debug-dump=optimization passes", retval == 0);
+  test("command line with debug-dump=blocked-optimization passes", retval == 0);
   test("debug-dump ir option is correctly set",
-       options.dump == OPTION_DD_OPTIMIZATION);
+       options.dump == OPTION_DD_BLOCKED_OPTIMIZATION);
+
+  // --debug-dump=trace-scheduling
+  argc = 3;
+  char const *const argv18[] = {
+      "./tlc",
+      "--debug-dump=trace-scheduling",
+      "foo.tc",
+  };
+  retval = parseArgs(argc, argv18, &numFiles);
+
+  test("command line with debug-dump=trace-scheduling passes", retval == 0);
+  test("debug-dump ir option is correctly set",
+       options.dump == OPTION_DD_TRACE_SCHEDULING);
+
+  // --debug-dump=scheduled-optimization
+  argc = 3;
+  char const *const argv19[] = {
+      "./tlc",
+      "--debug-dump=scheduled-optimization",
+      "foo.tc",
+  };
+  retval = parseArgs(argc, argv19, &numFiles);
+
+  test("command line with debug-dump=scheduled-optimization passes",
+       retval == 0);
+  test("debug-dump ir option is correctly set",
+       options.dump == OPTION_DD_SCHEDULED_OPTIMIZATION);
 }
 
 void testCommandLineArgs(void) {

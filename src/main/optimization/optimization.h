@@ -26,8 +26,13 @@
 #define TLC_OPTIMIZATION_OPTIMIZATION_H_
 
 /**
- * optimizes the IR
+ * optimizes the blocked IR
  */
-void optimize(void);
+void optimizeBlockedIr(void);
+
+/**
+ * optimizes the trace-scheduled IR
+ */
+void optimizeScheduledIr(void);
 
 #endif  // TLC_OPTIMIZATION_OPTIMIZATION_H_

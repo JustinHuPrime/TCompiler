@@ -152,7 +152,7 @@ void testOptimization(void) {
       assert("translation produced invalid ir" &&
              validateBlockedIr("translation") == 0);
 
-      optimize();
+      optimizeBlockedIr();
 
       char *expectedName =
           format("testFiles/translation/%s/expectedOptimized/%s", arch->d_name,

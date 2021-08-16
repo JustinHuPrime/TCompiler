@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
   translate();
 
   // debug-dump stop for IR
-  if (options.dump == OPTION_DD_IR) {
+  if (options.dump == OPTION_DD_TRANSLATION) {
     for (size_t idx = 0; idx < fileList.size; ++idx) {
       if (fileList.entries[idx].isCode) irDump(stderr, &fileList.entries[idx]);
     }
@@ -167,21 +167,46 @@ int main(int argc, char **argv) {
   for (size_t idx = 0; idx < fileList.size; ++idx)
     nodeFree(fileList.entries[idx].ast);
 
-  // ir optimization
-  optimize();
+  // blocked ir optimization
+  optimizeBlockedIr();
 
   // debug-dump stop for optimized IR
-  if (options.dump == OPTION_DD_OPTIMIZATION) {
+  if (options.dump == OPTION_DD_BLOCKED_OPTIMIZATION) {
     for (size_t idx = 0; idx < fileList.size; ++idx) {
       if (fileList.entries[idx].isCode) irDump(stderr, &fileList.entries[idx]);
     }
   }
 
-  if (options.debugValidateIr && validateBlockedIr("optimization") != 0)
+  if (options.debugValidateIr &&
+      validateBlockedIr("optimization before trace scheduling") != 0)
     return CODE_IR_ERROR;
 
   // trace scheduling
-  // TODO: write this
+  traceSchedule();
+
+  // debug-dump stop for trace-scheduled IR
+  if (options.dump == OPTION_DD_TRACE_SCHEDULING) {
+    for (size_t idx = 0; idx < fileList.size; ++idx) {
+      if (fileList.entries[idx].isCode) irDump(stderr, &fileList.entries[idx]);
+    }
+  }
+
+  if (options.debugValidateIr && validateBlockedIr("trace scheduling") != 0)
+    return CODE_IR_ERROR;
+
+  // scheduled ir optimization
+  optimizeScheduledIr();
+
+  // debug-dump stop for optimized, scheduled IR
+  if (options.dump == OPTION_DD_SCHEDULED_OPTIMIZATION) {
+    for (size_t idx = 0; idx < fileList.size; ++idx) {
+      if (fileList.entries[idx].isCode) irDump(stderr, &fileList.entries[idx]);
+    }
+  }
+
+  if (options.debugValidateIr &&
+      validateBlockedIr("optimization after trace scheduling") != 0)
+    return CODE_IR_ERROR;
 
   // back-end
   switch (options.arch) {

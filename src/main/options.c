@@ -62,10 +62,14 @@ int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
       options.dump = OPTION_DD_LEX;
     } else if (strcmp(argv[idx], "--debug-dump=parse") == 0) {
       options.dump = OPTION_DD_PARSE;
-    } else if (strcmp(argv[idx], "--debug-dump=ir") == 0) {
-      options.dump = OPTION_DD_IR;
-    } else if (strcmp(argv[idx], "--debug-dump=optimization") == 0) {
-      options.dump = OPTION_DD_OPTIMIZATION;
+    } else if (strcmp(argv[idx], "--debug-dump=translation") == 0) {
+      options.dump = OPTION_DD_TRANSLATION;
+    } else if (strcmp(argv[idx], "--debug-dump=blocked-optimization") == 0) {
+      options.dump = OPTION_DD_BLOCKED_OPTIMIZATION;
+    } else if (strcmp(argv[idx], "--debug-dump=trace-scheduling") == 0) {
+      options.dump = OPTION_DD_TRACE_SCHEDULING;
+    } else if (strcmp(argv[idx], "--debug-dump=scheduled-optimization") == 0) {
+      options.dump = OPTION_DD_SCHEDULED_OPTIMIZATION;
     } else if (strcmp(argv[idx], "--debug-validate-ir") == 0) {
       options.debugValidateIr = true;
     } else if (strcmp(argv[idx], "--no-debug-validate-ir") == 0) {

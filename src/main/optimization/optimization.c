@@ -451,7 +451,7 @@ static void nopElimination(LinkedList *blocks) {
   }
 }
 
-void optimize(void) {
+void optimizeBlockedIr(void) {
   for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     FileListEntry *file = &fileList.entries[fileIdx];
     Vector *irFrags = &fileList.entries[fileIdx].irFrags;
@@ -477,8 +477,23 @@ void optimize(void) {
         // TODO: (difficult) tail call optimization
         shortCircuitJumps(blocks);
         deadBlockElimination(blocks);
+        // TODO: dead label elimination
         deadTempElimination(blocks, file->nextId);
         nopElimination(blocks);
+      }
+    }
+  }
+}
+
+void optimizeScheduledIr(void) {
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
+    FileListEntry *file = &fileList.entries[fileIdx];
+    Vector *irFrags = &fileList.entries[fileIdx].irFrags;
+    for (size_t fragIdx = 0; fragIdx < irFrags->size; ++fragIdx) {
+      IRFrag *frag = irFrags->elements[fragIdx];
+      if (frag->type == FT_TEXT) {
+        IRBlock *block = frag->data.text.blocks.head->next->data;
+        // TODO: dead label elimination
       }
     }
   }

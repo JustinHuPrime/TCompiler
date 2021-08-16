@@ -37,15 +37,24 @@ typedef struct FileListEntry FileListEntry;
  * @param file numeric IDs are unique within files
  */
 size_t fresh(FileListEntry *file);
+
 /**
  * get the mangled identifier for a global symbol
  */
 char *getMangledName(SymbolTableEntry *entry);
+
 /**
  * translates all of the files in the file list into IR
  *
  * must have valid typechecked ASTs, should always succeed
  */
 void translate(void);
+
+/**
+ * trace-schedules all of the files' IR
+ *
+ * translate must have been called first
+ */
+void traceSchedule(void);
 
 #endif  // TLC_TRANSLATION_TRANSLATION_H_

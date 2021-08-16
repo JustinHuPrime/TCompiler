@@ -4101,3 +4101,21 @@ void translate(void) {
   for (size_t idx = 0; idx < fileList.size; ++idx)
     if (fileList.entries[idx].isCode) translateFile(&fileList.entries[idx]);
 }
+
+void traceSchedule(void) {
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
+    if (fileList.entries[fileIdx].isCode) {
+      FileListEntry *file = &fileList.entries[fileIdx];
+      for (size_t fragIdx = 0; fragIdx < file->irFrags.size; ++fragIdx) {
+        IRFrag *frag = file->irFrags.elements[fragIdx];
+        if (frag->type == FT_TEXT) {
+          LinkedList blocks;
+          blocks.head = frag->data.text.blocks.head;
+          blocks.tail = frag->data.text.blocks.tail;
+          linkedListInit(&frag->data.text.blocks);
+          linkedListUninit(&blocks, (void (*)(void *))irBlockFree);
+        }
+      }
+    }
+  }
+}

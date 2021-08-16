@@ -65,9 +65,13 @@ The option `--debug-dump` can be set to 4 values:
 
 * `--debug-dump=parse`: dumps the results of the parse phase
 
-* `--debug-dump=ir`: dumps the results of the translate to IR phase
+* `--debug-dump=translation`: dumps the results of the translate to IR phase
 
-* `--debug-dump=optimization`: dumps the results the IR optimization phase
+* `--debug-dump=blocked-optimization`: dumps the results of the blocked IR optimization phase
+
+* `--debug-dump=trace-scheduling`: dumps the results of the trace scheduling phase
+
+* `--debug-dump=scheduled-optimization`: dumps the results of the scheduled IR optimization phase
 
 Additionally, the following options can be used:
 
