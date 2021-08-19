@@ -50,11 +50,4 @@ char *getMangledName(SymbolTableEntry *entry);
  */
 void translate(void);
 
-/**
- * trace-schedules all of the files' IR
- *
- * translate must have been called first
- */
-void traceSchedule(void);
-
 #endif  // TLC_TRANSLATION_TRANSLATION_H_

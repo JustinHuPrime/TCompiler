@@ -40,6 +40,8 @@ void testTypechecker(void);
 /** tests translation */
 void testTranslation(void);
 /** tests optimization */
-void testOptimization(void);
+void testOptimization1(void);
+/** tests trace scheduling */
+void testTraceScheduling(void);
 
 #endif  // TLC_TEST_TESTS_H_

@@ -1,6 +1,0 @@
-testFiles/translation/x86_64-linux/input/struct.tc:
-DATA(_T3foo3baz, 8,
-  INT(1),
-  PADDING(4),
-  LONG(2),
-)

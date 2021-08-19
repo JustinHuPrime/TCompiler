@@ -1,5 +1,5 @@
 testFiles/translation/x86_64-linux/input/parameterPassingEmpty.tc:
-TEXT(_T3foo3bar,
+TEXT(GLOBAL(_T3foo3bar),
   BLOCK(5,
     JUMP(LOCAL(3)),
   ),

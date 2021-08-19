@@ -1,0 +1,7 @@
+testFiles/translation/x86_64-linux/input/nullStmt.tc:
+TEXT(GLOBAL(_T3foo3bar),
+  BLOCK(0,
+    LABEL(LOCAL(5)),
+    RETURN(),
+  ),
+)

@@ -1,5 +1,5 @@
 testFiles/translation/x86_64-linux/input/parameterPassingStructInRegisters.tc:
-TEXT(_T3foo3bar,
+TEXT(GLOBAL(_T3foo3bar),
   BLOCK(5,
     OFFSET_LOAD(TEMP(temp6, 4, 12, MEM), REG(rdi, 8), CONSTANT(8, LONG(0))),
     OFFSET_LOAD(TEMP(temp6, 4, 12, MEM), REG(xmm0, 4), CONSTANT(8, LONG(8))),

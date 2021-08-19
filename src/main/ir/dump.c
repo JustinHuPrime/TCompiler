@@ -566,15 +566,33 @@ static void blockDump(FILE *where, IRBlock *b) {
   fprintf(where, "  ),\n");
 }
 
+static void fragNameDump(FILE *where, IRFrag *frag) {
+  switch (frag->nameType) {
+    case FNT_GLOBAL: {
+      fprintf(where, "GLOBAL(%s)", frag->name.global);
+      break;
+    }
+    case FNT_LOCAL: {
+      fprintf(where, "LOCAL(%zu)", frag->name.local);
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid FragnementNameType enum encountered");
+    }
+  }
+}
 static void fragDump(FILE *where, IRFrag *frag) {
   switch (frag->type) {
     case FT_BSS: {
-      fprintf(where, "BSS(%s, %zu)\n", frag->name, frag->data.data.alignment);
+      fprintf(where, "BSS(");
+      fragNameDump(where, frag);
+      fprintf(where, ", %zu)\n", frag->data.data.alignment);
       break;
     }
     case FT_RODATA: {
-      fprintf(where, "RODATA(%s, %zu,\n", frag->name,
-              frag->data.data.alignment);
+      fprintf(where, "RODATA(");
+      fragNameDump(where, frag);
+      fprintf(where, ", %zu,\n", frag->data.data.alignment);
       for (size_t idx = 0; idx < frag->data.data.data.size; ++idx) {
         fprintf(where, "  ");
         datumDump(where, frag->data.data.data.elements[idx]);
@@ -584,7 +602,9 @@ static void fragDump(FILE *where, IRFrag *frag) {
       break;
     }
     case FT_DATA: {
-      fprintf(where, "DATA(%s, %zu,\n", frag->name, frag->data.data.alignment);
+      fprintf(where, "DATA(");
+      fragNameDump(where, frag);
+      fprintf(where, ", %zu,\n", frag->data.data.alignment);
       for (size_t idx = 0; idx < frag->data.data.data.size; ++idx) {
         fprintf(where, "  ");
         datumDump(where, frag->data.data.data.elements[idx]);
@@ -594,7 +614,9 @@ static void fragDump(FILE *where, IRFrag *frag) {
       break;
     }
     case FT_TEXT: {
-      fprintf(where, "TEXT(%s,\n", frag->name);
+      fprintf(where, "TEXT(");
+      fragNameDump(where, frag);
+      fprintf(where, ",\n");
       for (ListNode *curr = frag->data.text.blocks.head->next;
            curr != frag->data.text.blocks.tail; curr = curr->next) {
         blockDump(where, curr->data);

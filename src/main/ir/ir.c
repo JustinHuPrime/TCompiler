@@ -26,25 +26,42 @@
 #include "util/numericSizing.h"
 #include "util/string.h"
 
-static IRFrag *fragCreate(FragmentType type, char *name) {
+static IRFrag *fragCreate(FragmentType type, FragmentNameType nameType) {
   IRFrag *df = malloc(sizeof(IRFrag));
   df->type = type;
-  df->name = name;
+  df->nameType = nameType;
   return df;
 }
-IRFrag *dataFragCreate(FragmentType type, char *name, size_t alignment) {
-  IRFrag *df = fragCreate(type, name);
+IRFrag *globalDataFragCreate(FragmentType type, char *name, size_t alignment) {
+  IRFrag *df = fragCreate(type, FNT_GLOBAL);
+  df->name.global = name;
+  df->data.data.alignment = alignment;
+  vectorInit(&df->data.data.data);
+  return df;
+}
+IRFrag *localDataFragCreate(FragmentType type, size_t name, size_t alignment) {
+  IRFrag *df = fragCreate(type, FNT_LOCAL);
+  df->name.local = name;
   df->data.data.alignment = alignment;
   vectorInit(&df->data.data.data);
   return df;
 }
 IRFrag *textFragCreate(char *name) {
-  IRFrag *df = fragCreate(FT_TEXT, name);
+  IRFrag *df = fragCreate(FT_TEXT, FNT_GLOBAL);
+  df->name.global = name;
   linkedListInit(&df->data.text.blocks);
   return df;
 }
 void irFragFree(IRFrag *f) {
-  free(f->name);
+  switch (f->nameType) {
+    case FNT_GLOBAL: {
+      free(f->name.global);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
   switch (f->type) {
     case FT_BSS:
     case FT_RODATA:
@@ -54,6 +71,9 @@ void irFragFree(IRFrag *f) {
     }
     case FT_TEXT: {
       linkedListUninit(&f->data.text.blocks, (void (*)(void *))irBlockFree);
+      break;
+    }
+    default: {
       break;
     }
   }
@@ -321,7 +341,9 @@ size_t irOperatorArity(IROperator op) {
     case IO_U2F:
     case IO_S2F:
     case IO_FRESIZE:
-    case IO_F2I: {
+    case IO_F2I:
+    case IO_J1Z:
+    case IO_J1NZ: {
       return 2;
     }
     case IO_MEM_STORE:
@@ -364,7 +386,23 @@ size_t irOperatorArity(IROperator op) {
     case IO_FG:
     case IO_FGE:
     case IO_J2Z:
-    case IO_J2NZ: {
+    case IO_J2NZ:
+    case IO_J1L:
+    case IO_J1LE:
+    case IO_J1E:
+    case IO_J1NE:
+    case IO_J1G:
+    case IO_J1GE:
+    case IO_J1A:
+    case IO_J1AE:
+    case IO_J1B:
+    case IO_J1BE:
+    case IO_J1FL:
+    case IO_J1FLE:
+    case IO_J1FE:
+    case IO_J1FNE:
+    case IO_J1FG:
+    case IO_J1FGE: {
       return 3;
     }
     case IO_J2L:
@@ -422,6 +460,24 @@ IRBlock *irBlockCreate(size_t label) {
   b->label = label;
   linkedListInit(&b->instructions);
   return b;
+}
+size_t indexOfBlock(LinkedList *blocks, size_t label) {
+  size_t idx = 0;
+  for (ListNode *curr = blocks->head->next; curr != blocks->tail;
+       curr = curr->next) {
+    IRBlock *b = curr->data;
+    if (b->label == label) return idx;
+    ++idx;
+  }
+  error(__FILE__, __LINE__, "given block label doesn't exist");
+}
+IRBlock *findBlock(LinkedList *blocks, size_t label) {
+  for (ListNode *curr = blocks->head->next; curr != blocks->tail;
+       curr = curr->next) {
+    IRBlock *b = curr->data;
+    if (b->label == label) return b;
+  }
+  return NULL;
 }
 void irBlockFree(IRBlock *b) {
   linkedListUninit(&b->instructions, (void (*)(void *))irInstructionFree);
@@ -490,24 +546,42 @@ static char const *const IROPERATOR_NAMES[] = {
     "FRESIZE",
     "F2I",
     "JUMP",
-    "JL",
-    "JLE",
-    "JE",
-    "JNE",
-    "JG",
-    "JGE",
-    "JA",
-    "JAE",
-    "JB",
-    "JBE",
-    "JFL",
-    "JFLE",
-    "JFE",
-    "JFNE",
-    "JFG",
-    "JFGE",
-    "JZ",
-    "JNZ",
+    "J2L",
+    "J2LE",
+    "J2E",
+    "J2NE",
+    "J2G",
+    "J2GE",
+    "J2A",
+    "J2AE",
+    "J2B",
+    "J2BE",
+    "J2FL",
+    "J2FLE",
+    "J2FE",
+    "J2FNE",
+    "J2FG",
+    "J2FGE",
+    "J2Z",
+    "J2NZ",
+    "J1L",
+    "J1LE",
+    "J1E",
+    "J1NE",
+    "J1G",
+    "J1GE",
+    "J1A",
+    "J1AE",
+    "J1B",
+    "J1BE",
+    "J1FL",
+    "J1FLE",
+    "J1FE",
+    "J1FNE",
+    "J1FG",
+    "J1FGE",
+    "J1Z",
+    "J1NZ",
     "CALL",
     "RETURN",
 };
@@ -664,9 +738,22 @@ static void validateTempMEM(IRInstruction *i, size_t idx, char const *phase,
     file->errored = true;
   }
 }
+static void validateLocalJumpTarget(IRInstruction *i, size_t idx,
+                                    bool *localLabels, char const *phase,
+                                    FileListEntry *file) {
+  if (i->args[idx]->kind == OK_LOCAL &&
+      !localLabels[i->args[idx]->data.local.name]) {
+    fprintf(stderr,
+            "%s: internal compiler error: IR validation after %s failed - %s "
+            "instruction's argument %zu (LOCAL %zu) is not a valid label\n",
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
+            i->args[idx]->data.local.name);
+    file->errored = true;
+  }
+}
 static void validateArgPointerRead(IRInstruction *i, size_t idx,
-                                   IROperand **temps, char const *phase,
-                                   FileListEntry *file) {
+                                   IROperand **temps, bool *localLabels,
+                                   char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
       i->args[idx]->kind != OK_GLOBAL && i->args[idx]->kind != OK_LOCAL &&
       i->args[idx]->kind != OK_CONSTANT) {
@@ -683,6 +770,8 @@ static void validateArgPointerRead(IRInstruction *i, size_t idx,
     if (i->args[idx]->kind == OK_TEMP) {
       validateTempGP(i, idx, phase, file);
       validateTempRead(temps, i->args[idx], phase, file);
+    } else if (i->args[idx]->kind == OK_LOCAL) {
+      validateLocalJumpTarget(i, idx, localLabels, phase, file);
     }
   }
 }
@@ -745,7 +834,8 @@ static void validateArgOffset(IRInstruction *i, size_t idx, IROperand **temps,
   }
 }
 static void validateArgRead(IRInstruction *i, size_t idx, IROperand **temps,
-                            char const *phase, FileListEntry *file) {
+                            bool *localLabels, char const *phase,
+                            FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
       i->args[idx]->kind != OK_GLOBAL && i->args[idx]->kind != OK_LOCAL &&
       i->args[idx]->kind != OK_CONSTANT) {
@@ -759,6 +849,8 @@ static void validateArgRead(IRInstruction *i, size_t idx, IROperand **temps,
   } else {
     if (i->args[idx]->kind == OK_TEMP)
       validateTempRead(temps, i->args[idx], phase, file);
+    else if (i->args[idx]->kind == OK_LOCAL)
+      validateLocalJumpTarget(i, idx, localLabels, phase, file);
   }
 }
 static void validateArgReadNoPtr(IRInstruction *i, size_t idx,
@@ -789,8 +881,8 @@ static void validateArgsSameSize(IRInstruction *i, size_t a, size_t b,
   }
 }
 static void validateArgJumpTarget(IRInstruction *i, size_t idx,
-                                  IROperand **temps, char const *phase,
-                                  FileListEntry *file) {
+                                  IROperand **temps, bool *localLabels,
+                                  char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_GLOBAL && i->args[idx]->kind != OK_LOCAL &&
       i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP) {
     fprintf(stderr,
@@ -798,14 +890,16 @@ static void validateArgJumpTarget(IRInstruction *i, size_t idx,
             "%s instruction does not have LABEL, REG, or TEMP operand at "
             "position %zu, instead it has %s\n",
             file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
-            IROPERAND_NAMES[i->args[0]->kind]);
+            IROPERAND_NAMES[i->args[idx]->kind]);
     file->errored = true;
   } else {
-    validateArgSize(i, 0, POINTER_WIDTH, phase, file);
+    validateArgSize(i, idx, POINTER_WIDTH, phase, file);
 
-    if (i->args[0]->kind == OK_TEMP) {
-      validateTempGP(i, 0, phase, file);
-      validateTempRead(temps, i->args[0], phase, file);
+    if (i->args[idx]->kind == OK_TEMP) {
+      validateTempGP(i, idx, phase, file);
+      validateTempRead(temps, i->args[idx], phase, file);
+    } else if (i->args[idx]->kind == OK_LOCAL) {
+      validateLocalJumpTarget(i, idx, localLabels, phase, file);
     }
   }
 }
@@ -818,12 +912,105 @@ static int validateIr(char const *phase, bool blocked) {
       if (frag->type == FT_TEXT) {
         LinkedList *blocks = &frag->data.text.blocks;
         IROperand **temps = calloc(file->nextId, sizeof(IROperand *));
-        for (ListNode *curr = blocks->head->next; curr != blocks->tail;
-             curr = curr->next) {
-          IRBlock *block = curr->data;
-          for (ListNode *curr = block->instructions.head->next;
-               curr != block->instructions.tail; curr = curr->next) {
-            IRInstruction *i = curr->data;
+
+        // localLabels is the list of existing local labels
+        // TODO: better differentiate between code labels (must be from the
+        // current function) and data labels (may be from anywhere)
+        bool *localLabels = calloc(file->nextId, sizeof(bool));
+        for (ListNode *currBlock = blocks->head->next;
+             currBlock != blocks->tail; currBlock = currBlock->next) {
+          IRBlock *block = currBlock->data;
+          if (blocked) localLabels[block->label] = true;
+          for (ListNode *currInst = block->instructions.head->next;
+               currInst != block->instructions.tail;
+               currInst = currInst->next) {
+            IRInstruction *i = currInst->data;
+            if (!blocked && i->op == IO_LABEL && i->args[0]->kind == OK_LOCAL)
+              localLabels[i->args[0]->data.local.name] = true;
+          }
+        }
+        for (size_t dataFragIdx = 0; dataFragIdx < file->irFrags.size;
+             ++dataFragIdx) {
+          IRFrag *dataFrag = file->irFrags.elements[dataFragIdx];
+          if (dataFrag->nameType == FNT_LOCAL)
+            localLabels[dataFrag->name.local] = true;
+        }
+
+        if (blocked) {
+          for (ListNode *currBlock = blocks->head->next;
+               currBlock != blocks->tail; currBlock = currBlock->next) {
+            IRBlock *block = currBlock->data;
+            IRInstruction *last = block->instructions.tail->prev->data;
+            switch (last->op) {
+              case IO_JUMP:
+              case IO_J2L:
+              case IO_J2LE:
+              case IO_J2E:
+              case IO_J2NE:
+              case IO_J2G:
+              case IO_J2GE:
+              case IO_J2A:
+              case IO_J2AE:
+              case IO_J2B:
+              case IO_J2BE:
+              case IO_J2FL:
+              case IO_J2FLE:
+              case IO_J2FE:
+              case IO_J2FNE:
+              case IO_J2FG:
+              case IO_J2FGE:
+              case IO_J2Z:
+              case IO_J2NZ:
+              case IO_J1L:
+              case IO_J1LE:
+              case IO_J1E:
+              case IO_J1NE:
+              case IO_J1G:
+              case IO_J1GE:
+              case IO_J1A:
+              case IO_J1AE:
+              case IO_J1B:
+              case IO_J1BE:
+              case IO_J1FL:
+              case IO_J1FLE:
+              case IO_J1FE:
+              case IO_J1FNE:
+              case IO_J1FG:
+              case IO_J1FGE:
+              case IO_J1Z:
+              case IO_J1NZ:
+              case IO_RETURN: {
+                break;
+              }
+              default: {
+                fprintf(
+                    stderr,
+                    "%s: internal compiler error: IR validation after %s "
+                    "failed "
+                    "- %s instruction encountered at the end of a basic block "
+                    "instead of a jump\n",
+                    file->inputFilename, phase, IROPERATOR_NAMES[last->op]);
+                file->errored = true;
+                break;
+              }
+            }
+          }
+        }
+        for (ListNode *currBlock = blocks->head->next;
+             currBlock != blocks->tail; currBlock = currBlock->next) {
+          IRBlock *block = currBlock->data;
+          for (ListNode *currInst = block->instructions.head->next;
+               currInst != block->instructions.tail;
+               currInst = currInst->next) {
+            IRInstruction *i = currInst->data;
+            if (i->op < IO_LABEL || i->op > IO_RETURN) {
+              fprintf(
+                  stderr,
+                  "%s: internal compiler error: IR validation after %s failed "
+                  "- invalid operator (numerically %d) encountered\n",
+                  file->inputFilename, phase, i->op);
+              file->errored = true;
+            }
             switch (i->op) {
               case IO_LABEL: {
                 validateArgKind(i, 0, OK_LOCAL, phase, file);
@@ -869,15 +1056,15 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_MOVE: {
                 validateArgWritable(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
 
                 validateArgsSameSize(i, 0, 1, phase, file);
                 break;
               }
               case IO_MEM_STORE: {
-                validateArgPointerRead(i, 0, temps, phase, file);
+                validateArgPointerRead(i, 0, temps, localLabels, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
 
                 validateArgOffset(i, 2, temps, phase, file);
                 break;
@@ -885,7 +1072,7 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_MEM_LOAD: {
                 validateArgWritable(i, 0, temps, phase, file);
 
-                validateArgPointerRead(i, 1, temps, phase, file);
+                validateArgPointerRead(i, 1, temps, localLabels, phase, file);
 
                 validateArgOffset(i, 2, temps, phase, file);
                 break;
@@ -893,7 +1080,7 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_STK_STORE: {
                 validateArgOffset(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
                 break;
               }
               case IO_STK_LOAD: {
@@ -907,7 +1094,7 @@ static int validateIr(char const *phase, bool blocked) {
                 if (i->args[0]->kind == OK_TEMP)
                   validateTempWrite(temps, i->args[0], phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
 
                 validateArgOffset(i, 2, temps, phase, file);
                 break;
@@ -939,11 +1126,11 @@ static int validateIr(char const *phase, bool blocked) {
                   validateTempWrite(temps, i->args[0], phase, file);
                 }
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempGP(i, 1, phase, file);
 
-                validateArgRead(i, 2, temps, phase, file);
+                validateArgRead(i, 2, temps, localLabels, phase, file);
                 if (i->args[2]->kind == OK_TEMP)
                   validateTempGP(i, 2, phase, file);
 
@@ -984,7 +1171,7 @@ static int validateIr(char const *phase, bool blocked) {
                   validateTempWrite(temps, i->args[0], phase, file);
                 }
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempGP(i, 1, phase, file);
 
@@ -1014,7 +1201,7 @@ static int validateIr(char const *phase, bool blocked) {
                   validateTempWrite(temps, i->args[0], phase, file);
                 }
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempGP(i, 1, phase, file);
 
@@ -1035,11 +1222,11 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_BE: {
                 validateArgByteWritten(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempGP(i, 1, phase, file);
 
-                validateArgRead(i, 2, temps, phase, file);
+                validateArgRead(i, 2, temps, localLabels, phase, file);
                 if (i->args[2]->kind == OK_TEMP)
                   validateTempGP(i, 2, phase, file);
 
@@ -1069,7 +1256,7 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_NZ: {
                 validateArgByteWritten(i, 0, temps, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
                 break;
               }
               case IO_LNOT: {
@@ -1084,18 +1271,18 @@ static int validateIr(char const *phase, bool blocked) {
                 if (i->args[0]->kind == OK_TEMP)
                   validateTempGP(i, 0, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempGP(i, 1, phase, file);
 
                 if (irOperandSizeof(i->args[0]) <=
                     irOperandSizeof(i->args[1])) {
-                  fprintf(
-                      stderr,
-                      "%s: internal compiler error: IR validation after %s "
-                      "failed - %s instruction's argument 0 is not larger than "
-                      "argument 1\n",
-                      file->inputFilename, phase, IROPERATOR_NAMES[i->op]);
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation after %s "
+                          "failed - %s instruction's argument 0 is not larger "
+                          "than "
+                          "argument 1\n",
+                          file->inputFilename, phase, IROPERATOR_NAMES[i->op]);
                   file->errored = true;
                 }
                 break;
@@ -1105,7 +1292,7 @@ static int validateIr(char const *phase, bool blocked) {
                 if (i->args[0]->kind == OK_TEMP)
                   validateTempGP(i, 0, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempGP(i, 1, phase, file);
 
@@ -1126,7 +1313,7 @@ static int validateIr(char const *phase, bool blocked) {
                 if (i->args[0]->kind == OK_TEMP)
                   validateTempFP(i, 0, phase, file);
 
-                validateArgRead(i, 1, temps, phase, file);
+                validateArgRead(i, 1, temps, localLabels, phase, file);
                 if (i->args[1]->kind == OK_TEMP)
                   validateTempGP(i, 1, phase, file);
                 break;
@@ -1162,9 +1349,9 @@ static int validateIr(char const *phase, bool blocked) {
                 break;
               }
               case IO_JUMP: {
-                validateArgJumpTarget(i, 0, temps, phase, file);
+                validateArgJumpTarget(i, 0, temps, localLabels, phase, file);
 
-                if (blocked && curr->next != block->instructions.tail) {
+                if (blocked && currInst->next != block->instructions.tail) {
                   fprintf(stderr,
                           "%s: internal compiler error: IR validation after %s "
                           "failed - non-terminal jump encountered in basic "
@@ -1186,34 +1373,37 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_J2BE: {
                 if (blocked) {
                   validateArgKind(i, 0, OK_LOCAL, phase, file);
+                  validateLocalJumpTarget(i, 0, localLabels, phase, file);
 
                   validateArgKind(i, 1, OK_LOCAL, phase, file);
+                  validateLocalJumpTarget(i, 1, localLabels, phase, file);
 
-                  validateArgRead(i, 2, temps, phase, file);
+                  validateArgRead(i, 2, temps, localLabels, phase, file);
                   if (i->args[2]->kind == OK_TEMP)
                     validateTempGP(i, 2, phase, file);
 
-                  validateArgRead(i, 3, temps, phase, file);
+                  validateArgRead(i, 3, temps, localLabels, phase, file);
                   if (i->args[3]->kind == OK_TEMP)
                     validateTempGP(i, 3, phase, file);
 
                   validateArgsSameSize(i, 2, 3, phase, file);
 
-                  if (curr->next != block->instructions.tail) {
+                  if (currInst->next != block->instructions.tail) {
                     fprintf(
                         stderr,
                         "%s: internal compiler error: IR validation after %s "
-                        "failed - non-terminal jump encountered in basic block "
+                        "failed - non-terminal jump encountered in basic "
+                        "block "
                         "IR\n",
                         file->inputFilename, phase);
                     file->errored = true;
                   }
                 } else {
-                  fprintf(
-                      stderr,
-                      "%s: internal compiler error: IR validation after %s "
-                      "failed - two-target jump encountered in scheduled IR\n",
-                      file->inputFilename, phase);
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation after %s "
+                          "failed - two-target jump encountered in scheduled "
+                          "IR\n",
+                          file->inputFilename, phase);
                   file->errored = true;
                 }
                 break;
@@ -1226,8 +1416,10 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_J2FGE: {
                 if (blocked) {
                   validateArgKind(i, 0, OK_LOCAL, phase, file);
+                  validateLocalJumpTarget(i, 0, localLabels, phase, file);
 
                   validateArgKind(i, 1, OK_LOCAL, phase, file);
+                  validateLocalJumpTarget(i, 1, localLabels, phase, file);
 
                   validateArgReadNoPtr(i, 2, temps, phase, file);
                   if (i->args[2]->kind == OK_TEMP)
@@ -1239,21 +1431,22 @@ static int validateIr(char const *phase, bool blocked) {
 
                   validateArgsSameSize(i, 2, 3, phase, file);
 
-                  if (curr->next != block->instructions.tail) {
+                  if (currInst->next != block->instructions.tail) {
                     fprintf(
                         stderr,
                         "%s: internal compiler error: IR validation after %s "
-                        "failed - non-terminal jump encountered in basic block "
+                        "failed - non-terminal jump encountered in basic "
+                        "block "
                         "IR\n",
                         file->inputFilename, phase);
                     file->errored = true;
                   }
                 } else {
-                  fprintf(
-                      stderr,
-                      "%s: internal compiler error: IR validation after %s "
-                      "failed - two-target jump encountered in scheduled IR\n",
-                      file->inputFilename, phase);
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation after %s "
+                          "failed - two-target jump encountered in scheduled "
+                          "IR\n",
+                          file->inputFilename, phase);
                   file->errored = true;
                 }
                 break;
@@ -1262,26 +1455,29 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_J2NZ: {
                 if (blocked) {
                   validateArgKind(i, 0, OK_LOCAL, phase, file);
+                  validateLocalJumpTarget(i, 0, localLabels, phase, file);
 
                   validateArgKind(i, 1, OK_LOCAL, phase, file);
+                  validateLocalJumpTarget(i, 1, localLabels, phase, file);
 
-                  validateArgRead(i, 2, temps, phase, file);
+                  validateArgRead(i, 2, temps, localLabels, phase, file);
 
-                  if (curr->next != block->instructions.tail) {
+                  if (currInst->next != block->instructions.tail) {
                     fprintf(
                         stderr,
                         "%s: internal compiler error: IR validation after %s "
-                        "failed - non-terminal jump encountered in basic block "
+                        "failed - non-terminal jump encountered in basic "
+                        "block "
                         "IR\n",
                         file->inputFilename, phase);
                     file->errored = true;
                   }
                 } else {
-                  fprintf(
-                      stderr,
-                      "%s: internal compiler error: IR validation after %s "
-                      "failed - two-target jump encountered in scheduled IR\n",
-                      file->inputFilename, phase);
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation after %s "
+                          "failed - two-target jump encountered in scheduled "
+                          "IR\n",
+                          file->inputFilename, phase);
                   file->errored = true;
                 }
                 break;
@@ -1298,12 +1494,13 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_J1BE: {
                 if (!blocked) {
                   validateArgKind(i, 0, OK_LOCAL, phase, file);
+                  validateLocalJumpTarget(i, 0, localLabels, phase, file);
 
-                  validateArgRead(i, 1, temps, phase, file);
+                  validateArgRead(i, 1, temps, localLabels, phase, file);
                   if (i->args[1]->kind == OK_TEMP)
                     validateTempGP(i, 1, phase, file);
 
-                  validateArgRead(i, 2, temps, phase, file);
+                  validateArgRead(i, 2, temps, localLabels, phase, file);
                   if (i->args[2]->kind == OK_TEMP)
                     validateTempGP(i, 2, phase, file);
 
@@ -1326,6 +1523,7 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_J1FGE: {
                 if (!blocked) {
                   validateArgKind(i, 0, OK_LOCAL, phase, file);
+                  validateLocalJumpTarget(i, 0, localLabels, phase, file);
 
                   validateArgReadNoPtr(i, 1, temps, phase, file);
                   if (i->args[1]->kind == OK_TEMP)
@@ -1350,8 +1548,9 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_J1NZ: {
                 if (!blocked) {
                   validateArgKind(i, 0, OK_LOCAL, phase, file);
+                  validateLocalJumpTarget(i, 0, localLabels, phase, file);
 
-                  validateArgRead(i, 1, temps, phase, file);
+                  validateArgRead(i, 1, temps, localLabels, phase, file);
                 } else {
                   fprintf(stderr,
                           "%s: internal compiler error: IR validation after %s "
@@ -1363,11 +1562,11 @@ static int validateIr(char const *phase, bool blocked) {
                 break;
               }
               case IO_CALL: {
-                validateArgJumpTarget(i, 0, temps, phase, file);
+                validateArgJumpTarget(i, 0, temps, localLabels, phase, file);
                 break;
               }
               case IO_RETURN: {
-                if (curr->next != block->instructions.tail) {
+                if (blocked && currInst->next != block->instructions.tail) {
                   fprintf(stderr,
                           "%s: internal compiler error: IR validation after %s "
                           "failed - non-terminal return encountered in %s IR\n",
@@ -1384,6 +1583,7 @@ static int validateIr(char const *phase, bool blocked) {
           }
         }
         free(temps);
+        free(localLabels);
       }
     }
     errored = errored || file->errored;

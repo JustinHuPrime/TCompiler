@@ -1,5 +1,5 @@
 testFiles/translation/x86_64-linux/input/postfixExprs.tc:
-TEXT(_T3foo3bar,
+TEXT(GLOBAL(_T3foo3bar),
   BLOCK(5,
     MOVE(TEMP(temp6, 4, 8, MEM), REG(rdi, 8)),
     MOVE(TEMP(temp7, 8, 8, GP), REG(rsi, 8)),
@@ -150,7 +150,7 @@ TEXT(_T3foo3bar,
     RETURN(),
   ),
 )
-TEXT(_T3foo3qux,
+TEXT(GLOBAL(_T3foo3qux),
   BLOCK(76,
     JUMP(LOCAL(74)),
   ),
@@ -173,7 +173,7 @@ TEXT(_T3foo3qux,
     RETURN(),
   ),
 )
-RODATA(.L78, 4,
+RODATA(LOCAL(78), 4,
   BYTE(3),
   BYTE(1),
 )

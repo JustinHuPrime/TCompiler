@@ -24,31 +24,6 @@
 #include "util/internalError.h"
 
 /**
- * find the index of a block given its label
- */
-static size_t indexOfBlock(LinkedList *blocks, size_t label) {
-  size_t idx = 0;
-  for (ListNode *curr = blocks->head->next; curr != blocks->tail;
-       curr = curr->next) {
-    IRBlock *b = curr->data;
-    if (b->label == label) return idx;
-    ++idx;
-  }
-  error(__FILE__, __LINE__, "given block label doesn't exist");
-}
-/**
- * get a block given its label
- */
-static IRBlock *findBlock(LinkedList *blocks, size_t label) {
-  for (ListNode *curr = blocks->head->next; curr != blocks->tail;
-       curr = curr->next) {
-    IRBlock *b = curr->data;
-    if (b->label == label) return b;
-  }
-  error(__FILE__, __LINE__, "given block label doesn't exist");
-}
-
-/**
  * short-circuit unconditional-jump-to-any-jump
  *
  * note: for the purposes of this optimization, RETURN is also a jump
@@ -173,9 +148,31 @@ static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks) {
 /**
  * dead block elimination
  */
-static void deadBlockElimination(LinkedList *blocks) {
+static void deadBlockElimination(LinkedList *blocks, Vector *irFrags) {
+  // mark all of the blocks we jump to as seen
   bool *seen = calloc(linkedListLength(blocks), sizeof(bool));
   markReachable(blocks->head->next->data, seen, blocks);
+
+  // deal with jump tables
+  for (size_t fragIdx = 0; fragIdx < irFrags->size; ++fragIdx) {
+    IRFrag *f = irFrags->elements[fragIdx];
+    switch (f->type) {
+      case FT_DATA:
+      case FT_RODATA: {
+        Vector *data = &f->data.data.data;
+        for (size_t datumIdx = 0; datumIdx < data->size; ++datumIdx) {
+          IRDatum *datum = data->elements[datumIdx];
+          if (datum->type == DT_LABEL) {
+            IRBlock *found = findBlock(blocks, datum->data.label);
+            if (found != NULL) markReachable(found, seen, blocks);
+          }
+        }
+      }
+      default: {
+        break;
+      }
+    }
+  }
 
   size_t idx = 0;
   for (ListNode *curr = blocks->head->next; curr != blocks->tail;) {
@@ -476,7 +473,7 @@ void optimizeBlockedIr(void) {
         // replace all instances of tempA afterwards with tempB)
         // TODO: (difficult) tail call optimization
         shortCircuitJumps(blocks);
-        deadBlockElimination(blocks);
+        deadBlockElimination(blocks, irFrags);
         // TODO: dead label elimination
         deadTempElimination(blocks, file->nextId);
         nopElimination(blocks);

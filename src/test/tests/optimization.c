@@ -38,64 +38,10 @@
 #include "tests.h"
 #include "translation/translation.h"
 #include "typechecker/typechecker.h"
+#include "util/dump.h"
+#include "util/filesystem.h"
 
-static bool dumpEqual(FileListEntry *entry, char const *expectedFilename) {
-  FILE *actualFile = tmpfile();
-  irDump(actualFile, entry);
-  fflush(actualFile);
-
-  long actualLen = ftell(actualFile);
-  assert("couldn't get length of actual" && actualLen >= 0);
-
-  rewind(actualFile);
-  char *actualBuffer = malloc((unsigned long)actualLen + 1);
-  actualBuffer[actualLen] = '\0';
-  unsigned long readLen =
-      fread(actualBuffer, sizeof(char), (unsigned long)actualLen, actualFile);
-  assert("couldn't read actual" && readLen == (unsigned long)actualLen);
-
-  if (status.bless) {
-    FILE *expectedFile = fopen(expectedFilename, "wb");
-    assert("couldn't open expected for blessing" && expectedFile != NULL);
-
-    size_t writtenLen = fwrite(actualBuffer, sizeof(char),
-                               (unsigned long)actualLen, expectedFile);
-    assert("couldn't write to expected for blessing" &&
-           writtenLen == (unsigned long)actualLen);
-
-    fclose(expectedFile);
-    free(actualBuffer);
-    fclose(actualFile);
-    return true;
-  } else {
-    FILE *expectedFile = fopen(expectedFilename, "rb");
-    assert("couldn't read expected" && expectedFile != NULL);
-
-    fseek(expectedFile, 0, SEEK_END);
-    long expectedLen = ftell(expectedFile);
-    assert("couldn't get length of expected" && expectedLen >= 0);
-
-    rewind(expectedFile);
-    char *expectedBuffer = malloc((unsigned long)expectedLen + 1);
-    expectedBuffer[expectedLen] = '\0';
-    readLen = fread(expectedBuffer, sizeof(char), (unsigned long)expectedLen,
-                    expectedFile);
-    assert("couldn't read expected" && readLen == (unsigned long)expectedLen);
-
-    bool retval = strcmp(actualBuffer, expectedBuffer) == 0;
-
-    free(expectedBuffer);
-    fclose(expectedFile);
-    free(actualBuffer);
-    fclose(actualFile);
-    return retval;
-  }
-}
-
-static int noHiddenFilter(struct dirent const *entry) {
-  return strncmp(entry->d_name, ".", 1) != 0;
-}
-void testOptimization(void) {
+void testOptimization1(void) {
   Options original;
   memcpy(&original, &options, sizeof(Options));
 
@@ -114,7 +60,7 @@ void testOptimization(void) {
 
     char *inputFolder = format("testFiles/translation/%s/input", arch->d_name);
     char *expectedFolder =
-        format("testFiles/translation/%s/expectedOptimized", arch->d_name);
+        format("testFiles/translation/%s/expectedOptimized1", arch->d_name);
 
     struct dirent **input;
     int inputLen = scandir(inputFolder, &input, noHiddenFilter, alphasort);
@@ -155,16 +101,17 @@ void testOptimization(void) {
       optimizeBlockedIr();
 
       char *expectedName =
-          format("testFiles/translation/%s/expectedOptimized/%s", arch->d_name,
+          format("testFiles/translation/%s/expectedOptimized1/%s", arch->d_name,
                  expectedEntry->d_name);
 
-      testDynamic(
-          format("optimized ir of %s is correct", entries[0].inputFilename),
-          dumpEqual(&entries[0], expectedName));
+      testDynamic(format("optimized (before scheduling) ir of %s is correct",
+                         entries[0].inputFilename),
+                  dumpEqual(&entries[0], irDump, expectedName));
 
       testDynamic(
-          format("optimized ir of %s is valid", entries[0].inputFilename),
-          validateBlockedIr("optimization") == 0);
+          format("optimized (before scheduling) ir of %s is valid",
+                 entries[0].inputFilename),
+          validateBlockedIr("optimization before trace scheduling") == 0);
 
       free(name);
       free(expectedName);

@@ -53,8 +53,10 @@ int main(int argc, char *argv[]) {
     testTypechecker();
   if (argc <= 1 || containsString((size_t)argc, argv, "translation"))
     testTranslation();
-  if (argc <= 1 || containsString((size_t)argc, argv, "optimization"))
-    testOptimization();
+  if (argc <= 1 || containsString((size_t)argc, argv, "optimization1"))
+    testOptimization1();
+  if (argc <= 1 || containsString((size_t)argc, argv, "traceScheduling"))
+    testTraceScheduling();
 
   return testStatusStatus();
 }

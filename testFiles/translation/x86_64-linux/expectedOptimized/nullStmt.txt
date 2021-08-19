@@ -1,6 +1,0 @@
-testFiles/translation/x86_64-linux/input/nullStmt.tc:
-TEXT(_T3foo3bar,
-  BLOCK(5,
-    RETURN(),
-  ),
-)

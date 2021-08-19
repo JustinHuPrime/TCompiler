@@ -1,0 +1,15 @@
+testFiles/translation/x86_64-linux/input/parameterPassingTypedef.tc:
+TEXT(GLOBAL(_T3foo3bar),
+  BLOCK(0,
+    LABEL(LOCAL(5)),
+    MOVE(TEMP(temp6, 4, 4, GP), REG(rdi, 4)),
+    LABEL(LOCAL(3)),
+    MOVE(TEMP(temp9, 8, 8, GP), GLOBAL(_T3foo3bar)),
+    LABEL(LOCAL(7)),
+    MOVE(TEMP(temp10, 4, 4, GP), TEMP(temp6, 4, 4, GP)),
+    LABEL(LOCAL(8)),
+    MOVE(REG(rdi, 4), TEMP(temp10, 4, 4, GP)),
+    CALL(TEMP(temp9, 8, 8, GP)),
+    RETURN(),
+  ),
+)

@@ -32,6 +32,11 @@
 #include "util/container/linkedList.h"
 #include "util/container/vector.h"
 
+/** the type of a fragment name */
+typedef enum {
+  FNT_LOCAL,
+  FNT_GLOBAL,
+} FragmentNameType;
 /** the type of a fragment */
 typedef enum {
   FT_BSS,
@@ -42,7 +47,11 @@ typedef enum {
 /** a fragment */
 typedef struct {
   FragmentType type;
-  char *name;
+  FragmentNameType nameType;
+  union {
+    char *global;
+    size_t local;
+  } name;
   union {
     struct {
       size_t alignment;
@@ -55,7 +64,8 @@ typedef struct {
 } IRFrag;
 
 /** ctors */
-IRFrag *dataFragCreate(FragmentType type, char *name, size_t alignment);
+IRFrag *globalDataFragCreate(FragmentType type, char *name, size_t alignment);
+IRFrag *localDataFragCreate(FragmentType type, size_t name, size_t alignment);
 IRFrag *textFragCreate(char *name);
 /** dtor */
 void irFragFree(IRFrag *);
@@ -620,6 +630,14 @@ typedef struct {
 
 /** ctor */
 IRBlock *irBlockCreate(size_t label);
+/**
+ * find the index of a block given its label
+ */
+size_t indexOfBlock(LinkedList *blocks, size_t label);
+/**
+ * get a block given its label
+ */
+IRBlock *findBlock(LinkedList *blocks, size_t label);
 /** dtor */
 void irBlockFree(IRBlock *);
 

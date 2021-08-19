@@ -1,4 +1,0 @@
-testFiles/translation/x86_64-linux/input/enum.tc:
-DATA(_T3foo3baz, 1,
-  BYTE(1),
-)

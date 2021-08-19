@@ -33,6 +33,7 @@
 #include "optimization/optimization.h"
 #include "options.h"
 #include "parser/parser.h"
+#include "translation/traceSchedule.h"
 #include "translation/translation.h"
 #include "typechecker/typechecker.h"
 #include "util/internalError.h"
@@ -182,7 +183,7 @@ int main(int argc, char **argv) {
     return CODE_IR_ERROR;
 
   // trace scheduling
-  traceSchedule();
+  traceSchedule();  // TODO: test this
 
   // debug-dump stop for trace-scheduled IR
   if (options.dump == OPTION_DD_TRACE_SCHEDULING) {
@@ -191,11 +192,11 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (options.debugValidateIr && validateBlockedIr("trace scheduling") != 0)
+  if (options.debugValidateIr && validateScheduledIr("trace scheduling") != 0)
     return CODE_IR_ERROR;
 
   // scheduled ir optimization
-  optimizeScheduledIr();
+  optimizeScheduledIr();  // TODO: write and test this
 
   // debug-dump stop for optimized, scheduled IR
   if (options.dump == OPTION_DD_SCHEDULED_OPTIMIZATION) {
@@ -205,7 +206,7 @@ int main(int argc, char **argv) {
   }
 
   if (options.debugValidateIr &&
-      validateBlockedIr("optimization after trace scheduling") != 0)
+      validateScheduledIr("optimization after trace scheduling") != 0)
     return CODE_IR_ERROR;
 
   // back-end

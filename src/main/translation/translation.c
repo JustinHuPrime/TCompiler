@@ -606,8 +606,7 @@ static void translateInitializer(Vector *data, Vector *irFrags,
       if (initializer->data.literal.literalType == LT_STRING) {
         size_t label = fresh(file);
         vectorInsert(data, labelDatumCreate(label));
-        IRFrag *df = dataFragCreate(
-            FT_RODATA, format(localLabelFormat(), label), CHAR_WIDTH);
+        IRFrag *df = localDataFragCreate(FT_RODATA, label, CHAR_WIDTH);
         vectorInsert(&df->data.data.data,
                      stringDatumCreate(
                          tstrdup(initializer->data.literal.data.stringVal)));
@@ -615,8 +614,7 @@ static void translateInitializer(Vector *data, Vector *irFrags,
       } else {
         size_t label = fresh(file);
         vectorInsert(data, labelDatumCreate(label));
-        IRFrag *df = dataFragCreate(
-            FT_RODATA, format(localLabelFormat(), label), WCHAR_WIDTH);
+        IRFrag *df = localDataFragCreate(FT_RODATA, label, WCHAR_WIDTH);
         vectorInsert(&df->data.data.data,
                      wstringDatumCreate(
                          twstrdup(initializer->data.literal.data.wstringVal)));
@@ -746,11 +744,11 @@ static void translateLiteral(Node const *name, Node const *initializer,
   Type const *type = name->data.id.entry->data.variable.type;
   IRFrag *df;
   if (initializer == NULL || initializerAllZero(initializer)) {
-    df = dataFragCreate(FT_BSS, suffixName(namePrefix, name->data.id.id),
-                        typeAlignof(type));
+    df = globalDataFragCreate(FT_BSS, suffixName(namePrefix, name->data.id.id),
+                              typeAlignof(type));
     vectorInsert(&df->data.data.data, paddingDatumCreate(typeSizeof(type)));
   } else {
-    df = dataFragCreate(
+    df = globalDataFragCreate(
         type->kind == TK_QUALIFIED && type->data.qualified.constQual ? FT_RODATA
                                                                      : FT_DATA,
         suffixName(namePrefix, name->data.id.id), typeAlignof(type));
@@ -2527,8 +2525,7 @@ static void translateValueLiteral(Node const *e, IRFrag *df,
         }
         case LT_STRING: {
           size_t dataLabel = fresh(file);
-          IRFrag *df = dataFragCreate(
-              FT_RODATA, format(localLabelFormat(), dataLabel), CHAR_WIDTH);
+          IRFrag *df = localDataFragCreate(FT_RODATA, dataLabel, CHAR_WIDTH);
           vectorInsert(
               &df->data.data.data,
               stringDatumCreate(tstrdup(e->data.literal.data.stringVal)));
@@ -2544,8 +2541,7 @@ static void translateValueLiteral(Node const *e, IRFrag *df,
         }
         case LT_WSTRING: {
           size_t dataLabel = fresh(file);
-          IRFrag *df = dataFragCreate(
-              FT_RODATA, format(localLabelFormat(), dataLabel), WCHAR_WIDTH);
+          IRFrag *df = localDataFragCreate(FT_RODATA, dataLabel, WCHAR_WIDTH);
           vectorInsert(
               &df->data.data.data,
               wstringDatumCreate(twstrdup(e->data.literal.data.wstringVal)));
@@ -3056,8 +3052,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
         }
         case LT_STRING: {
           size_t dataLabel = fresh(file);
-          IRFrag *df = dataFragCreate(
-              FT_RODATA, format(localLabelFormat(), dataLabel), CHAR_WIDTH);
+          IRFrag *df = localDataFragCreate(FT_RODATA, dataLabel, CHAR_WIDTH);
           vectorInsert(
               &df->data.data.data,
               stringDatumCreate(tstrdup(e->data.literal.data.stringVal)));
@@ -3075,8 +3070,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
         }
         case LT_WSTRING: {
           size_t dataLabel = fresh(file);
-          IRFrag *df = dataFragCreate(
-              FT_RODATA, format(localLabelFormat(), dataLabel), WCHAR_WIDTH);
+          IRFrag *df = localDataFragCreate(FT_RODATA, dataLabel, WCHAR_WIDTH);
           vectorInsert(
               &df->data.data.data,
               wstringDatumCreate(twstrdup(e->data.literal.data.wstringVal)));
@@ -3106,8 +3100,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
         }
         case LT_AGGREGATEINIT: {
           size_t dataLabel = fresh(file);
-          IRFrag *df = dataFragCreate(
-              FT_RODATA, format(localLabelFormat(), dataLabel), WCHAR_WIDTH);
+          IRFrag *df = localDataFragCreate(FT_RODATA, dataLabel, WCHAR_WIDTH);
           translateValueLiteral(e, df, file);
           vectorInsert(&file->irFrags, df);
 
@@ -3795,9 +3788,8 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
 
             size_t next = end == jumpTableLen - 1 ? defaultLabel : fresh(file);
             size_t tableLabel = fresh(file);
-            IRFrag *table = dataFragCreate(
-                FT_RODATA, format(localLabelFormat(), tableLabel),
-                POINTER_WIDTH);
+            IRFrag *table =
+                localDataFragCreate(FT_RODATA, tableLabel, POINTER_WIDTH);
             vectorInsert(&file->irFrags, table);
             for (size_t blockIdx = entryIdx; blockIdx <= end; ++blockIdx)
               vectorInsert(&table->data.data.data,
@@ -3865,9 +3857,8 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
 
             size_t next = end == jumpTableLen - 1 ? defaultLabel : fresh(file);
             size_t tableLabel = fresh(file);
-            IRFrag *table = dataFragCreate(
-                FT_RODATA, format(localLabelFormat(), tableLabel),
-                POINTER_WIDTH);
+            IRFrag *table =
+                localDataFragCreate(FT_RODATA, tableLabel, POINTER_WIDTH);
             vectorInsert(&file->irFrags, table);
             for (size_t blockIdx = entryIdx; blockIdx <= end; ++blockIdx)
               vectorInsert(&table->data.data.data,
@@ -4100,22 +4091,4 @@ void translate(void) {
   // for each code file, translate it
   for (size_t idx = 0; idx < fileList.size; ++idx)
     if (fileList.entries[idx].isCode) translateFile(&fileList.entries[idx]);
-}
-
-void traceSchedule(void) {
-  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
-    if (fileList.entries[fileIdx].isCode) {
-      FileListEntry *file = &fileList.entries[fileIdx];
-      for (size_t fragIdx = 0; fragIdx < file->irFrags.size; ++fragIdx) {
-        IRFrag *frag = file->irFrags.elements[fragIdx];
-        if (frag->type == FT_TEXT) {
-          LinkedList blocks;
-          blocks.head = frag->data.text.blocks.head;
-          blocks.tail = frag->data.text.blocks.tail;
-          linkedListInit(&frag->data.text.blocks);
-          linkedListUninit(&blocks, (void (*)(void *))irBlockFree);
-        }
-      }
-    }
-  }
 }

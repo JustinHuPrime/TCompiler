@@ -70,6 +70,10 @@ IROperand *GLOBAL(char *name);
 IROperand *OFFSET(int64_t offset);
 
 /**
+ * local label (for use during trace scheduling)
+ */
+IRInstruction *LABEL(size_t name);
+/**
  * mark a temp in some non-code-generating way
  * @param marker marker to use
  * @param temp temp to use

@@ -88,6 +88,9 @@ static IRInstruction *fourArgInstructionCreate(IROperator op, IROperand *arg1,
   retval->args[3] = arg4;
   return retval;
 }
+IRInstruction *LABEL(size_t name) {
+  return oneArgInstructionCreate(IO_LABEL, LOCAL(name));
+}
 IRInstruction *MARK_TEMP(IROperator marker, IROperand *temp) {
   return oneArgInstructionCreate(marker, temp);
 }
