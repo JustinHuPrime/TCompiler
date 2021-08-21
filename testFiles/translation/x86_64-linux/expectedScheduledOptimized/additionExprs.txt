@@ -1,0 +1,16 @@
+testFiles/translation/x86_64-linux/input/additionExprs.tc:
+TEXT(GLOBAL(_T3foo3bar),
+  BLOCK(0,
+    MOVE(TEMP(temp6, 8, 8, GP), REG(rdi, 8)),
+    MOVE(TEMP(temp7, 8, 8, GP), REG(rsi, 8)),
+    MOVE(TEMP(temp8, 8, 8, GP), REG(rdx, 8)),
+    MOVE(TEMP(temp12, 8, 8, GP), TEMP(temp6, 8, 8, GP)),
+    MOVE(TEMP(temp14, 8, 8, GP), TEMP(temp7, 8, 8, GP)),
+    ADD(TEMP(temp15, 8, 8, GP), TEMP(temp12, 8, 8, GP), TEMP(temp14, 8, 8, GP)),
+    MOVE(TEMP(temp17, 8, 8, GP), TEMP(temp8, 8, 8, GP)),
+    SUB(TEMP(temp18, 8, 8, GP), TEMP(temp15, 8, 8, GP), TEMP(temp17, 8, 8, GP)),
+    MOVE(TEMP(temp2, 8, 8, GP), TEMP(temp18, 8, 8, GP)),
+    MOVE(REG(rax, 8), TEMP(temp2, 8, 8, GP)),
+    RETURN(),
+  ),
+)

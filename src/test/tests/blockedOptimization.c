@@ -22,8 +22,6 @@
  * tests for the translator
  */
 
-#include "optimization/optimization.h"
-
 #include <assert.h>
 #include <dirent.h>
 #include <stdlib.h>
@@ -33,6 +31,7 @@
 #include "fileList.h"
 #include "ir/dump.h"
 #include "ir/ir.h"
+#include "optimization/optimization.h"
 #include "options.h"
 #include "parser/parser.h"
 #include "tests.h"
@@ -41,7 +40,7 @@
 #include "util/dump.h"
 #include "util/filesystem.h"
 
-void testOptimization1(void) {
+void testBlockedOptimization(void) {
   Options original;
   memcpy(&original, &options, sizeof(Options));
 
@@ -59,8 +58,8 @@ void testOptimization1(void) {
     }
 
     char *inputFolder = format("testFiles/translation/%s/input", arch->d_name);
-    char *expectedFolder =
-        format("testFiles/translation/%s/expectedOptimized1", arch->d_name);
+    char *expectedFolder = format(
+        "testFiles/translation/%s/expectedBlockedOptimized", arch->d_name);
 
     struct dirent **input;
     int inputLen = scandir(inputFolder, &input, noHiddenFilter, alphasort);
@@ -101,8 +100,8 @@ void testOptimization1(void) {
       optimizeBlockedIr();
 
       char *expectedName =
-          format("testFiles/translation/%s/expectedOptimized1/%s", arch->d_name,
-                 expectedEntry->d_name);
+          format("testFiles/translation/%s/expectedBlockedOptimized/%s",
+                 arch->d_name, expectedEntry->d_name);
 
       testDynamic(format("optimized (before scheduling) ir of %s is correct",
                          entries[0].inputFilename),

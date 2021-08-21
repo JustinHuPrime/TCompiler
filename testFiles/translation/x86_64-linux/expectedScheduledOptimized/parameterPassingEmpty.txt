@@ -1,0 +1,8 @@
+testFiles/translation/x86_64-linux/input/parameterPassingEmpty.tc:
+TEXT(GLOBAL(_T3foo3bar),
+  BLOCK(0,
+    MOVE(TEMP(temp8, 8, 8, GP), GLOBAL(_T3foo3bar)),
+    CALL(TEMP(temp8, 8, 8, GP)),
+    RETURN(),
+  ),
+)

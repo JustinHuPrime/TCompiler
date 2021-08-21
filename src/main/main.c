@@ -196,7 +196,7 @@ int main(int argc, char **argv) {
     return CODE_IR_ERROR;
 
   // scheduled ir optimization
-  optimizeScheduledIr();  // TODO: write and test this
+  optimizeScheduledIr();
 
   // debug-dump stop for optimized, scheduled IR
   if (options.dump == OPTION_DD_SCHEDULED_OPTIMIZATION) {

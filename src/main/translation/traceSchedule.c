@@ -118,14 +118,6 @@ static IRInstruction *oneArgJumpFromTwoArgJump(IRInstruction *i) {
     }
   }
 }
-static IRFrag *findJumpTable(Vector *frags, size_t label) {
-  for (size_t idx = 0; idx < frags->size; ++idx) {
-    IRFrag *f = frags->elements[idx];
-    // TODO: extra checks to make sure it's a jump table?
-    if (f->nameType == FNT_LOCAL && f->name.local == label) return f;
-  }
-  error(__FILE__, __LINE__, "invalid jump table reference");
-}
 static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks,
                           Vector *frags) {
   for (ListNode *currBlock = blocks->head->next; currBlock != blocks->tail;
@@ -172,7 +164,7 @@ static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks,
     }
     case IO_JUMPTABLE: {
       copyOverLastInstruction(b, out);
-      IRFrag *table = findJumpTable(frags, last->args[1]->data.local.name);
+      IRFrag *table = findFrag(frags, last->args[1]->data.local.name);
       for (size_t idx = 0; idx < table->data.data.data.size; ++idx) {
         IRDatum *datum = table->data.data.data.elements[idx];
         IRBlock *found = findBlock(blocks, datum->data.label);

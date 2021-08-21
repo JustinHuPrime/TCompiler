@@ -67,6 +67,10 @@ typedef struct {
 IRFrag *globalDataFragCreate(FragmentType type, char *name, size_t alignment);
 IRFrag *localDataFragCreate(FragmentType type, size_t name, size_t alignment);
 IRFrag *textFragCreate(char *name);
+/**
+ * given a list of frags, find the one with the label
+ */
+IRFrag *findFrag(Vector *frags, size_t label);
 /** dtor */
 void irFragFree(IRFrag *);
 void irFragVectorUninit(Vector *);

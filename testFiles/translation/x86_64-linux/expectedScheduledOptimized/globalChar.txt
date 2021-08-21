@@ -1,0 +1,4 @@
+testFiles/translation/x86_64-linux/input/globalChar.tc:
+DATA(GLOBAL(_T3foo3bar), 1,
+  BYTE(65),
+)

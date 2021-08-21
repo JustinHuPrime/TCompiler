@@ -52,6 +52,13 @@ IRFrag *textFragCreate(char *name) {
   linkedListInit(&df->data.text.blocks);
   return df;
 }
+IRFrag *findFrag(Vector *frags, size_t label) {
+  for (size_t idx = 0; idx < frags->size; ++idx) {
+    IRFrag *f = frags->elements[idx];
+    if (f->nameType == FNT_LOCAL && f->name.local == label) return f;
+  }
+  return NULL;
+}
 void irFragFree(IRFrag *f) {
   switch (f->nameType) {
     case FNT_GLOBAL: {

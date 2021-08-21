@@ -102,7 +102,8 @@ static void shortCircuitJumps(LinkedList *blocks) {
 /**
  * mark this block and everything reachable from here as reachable
  */
-static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks) {
+static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks,
+                          Vector *frags) {
   if (seen[indexOfBlock(blocks, b->label)] == true)
     return;  // we've been here before - break cycle
 
@@ -110,9 +111,17 @@ static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks) {
   IRInstruction *last = b->instructions.tail->prev->data;
   switch (last->op) {
     case IO_JUMP: {
-      if (last->args[0]->kind == OK_LOCAL)
-        markReachable(findBlock(blocks, last->args[0]->data.local.name), seen,
-                      blocks);
+      markReachable(findBlock(blocks, last->args[0]->data.local.name), seen,
+                    blocks, frags);
+      break;
+    }
+    case IO_JUMPTABLE: {
+      IRFrag *table = findFrag(frags, last->args[1]->data.local.name);
+      for (size_t idx = 0; idx < table->data.data.data.size; ++idx) {
+        IRDatum *datum = table->data.data.data.elements[idx];
+        markReachable(findBlock(blocks, datum->data.label), seen, blocks,
+                      frags);
+      }
       break;
     }
     case IO_J2L:
@@ -134,9 +143,9 @@ static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks) {
     case IO_J2Z:
     case IO_J2NZ: {
       markReachable(findBlock(blocks, last->args[0]->data.local.name), seen,
-                    blocks);
+                    blocks, frags);
       markReachable(findBlock(blocks, last->args[1]->data.local.name), seen,
-                    blocks);
+                    blocks, frags);
       break;
     }
     default: {
@@ -148,23 +157,23 @@ static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks) {
 /**
  * dead block elimination
  */
-static void deadBlockElimination(LinkedList *blocks, Vector *irFrags) {
+static void deadBlockElimination(LinkedList *blocks, Vector *frags) {
   // mark all of the blocks we jump to as seen
   bool *seen = calloc(linkedListLength(blocks), sizeof(bool));
-  markReachable(blocks->head->next->data, seen, blocks);
+  markReachable(blocks->head->next->data, seen, blocks, frags);
 
   // deal with jump tables
-  for (size_t fragIdx = 0; fragIdx < irFrags->size; ++fragIdx) {
-    IRFrag *f = irFrags->elements[fragIdx];
+  // TODO: refactor out of per-frag loop
+  for (size_t fragIdx = 0; fragIdx < frags->size; ++fragIdx) {
+    IRFrag *f = frags->elements[fragIdx];
     switch (f->type) {
-      case FT_DATA:
       case FT_RODATA: {
         Vector *data = &f->data.data.data;
         for (size_t datumIdx = 0; datumIdx < data->size; ++datumIdx) {
           IRDatum *datum = data->elements[datumIdx];
           if (datum->type == DT_LABEL) {
             IRBlock *found = findBlock(blocks, datum->data.label);
-            if (found != NULL) markReachable(found, seen, blocks);
+            if (found != NULL) markReachable(found, seen, blocks, frags);
           }
         }
       }
@@ -482,6 +491,87 @@ void optimizeBlockedIr(void) {
   }
 }
 
+static void deadLabelElimination(LinkedList *instructions, Vector *frags,
+                                 size_t maxLabels) {
+  // mark all of the blocks we jump to as seen
+  bool *seen = calloc(maxLabels, sizeof(bool));
+
+  // deal with jump tables
+  // TODO: refactor out of per-frag loop
+  for (size_t fragIdx = 0; fragIdx < frags->size; ++fragIdx) {
+    IRFrag *f = frags->elements[fragIdx];
+    switch (f->type) {
+      case FT_RODATA: {
+        Vector *data = &f->data.data.data;
+        for (size_t datumIdx = 0; datumIdx < data->size; ++datumIdx) {
+          IRDatum *datum = data->elements[datumIdx];
+          if (datum->type == DT_LABEL) seen[datum->data.label] = true;
+        }
+      }
+      default: {
+        break;
+      }
+    }
+  }
+
+  for (ListNode *curr = instructions->head->next; curr != instructions->tail;
+       curr = curr->next) {
+    IRInstruction *i = curr->data;
+    switch (i->op) {
+      case IO_JUMP: {
+        seen[i->args[0]->data.local.name] = true;
+        break;
+      }
+      case IO_JUMPTABLE: {
+        IRFrag *table = findFrag(frags, i->args[1]->data.local.name);
+        for (size_t idx = 0; idx < table->data.data.data.size; ++idx) {
+          IRDatum *datum = table->data.data.data.elements[idx];
+          seen[datum->data.label] = true;
+        }
+        break;
+      }
+      case IO_J1L:
+      case IO_J1LE:
+      case IO_J1E:
+      case IO_J1NE:
+      case IO_J1G:
+      case IO_J1GE:
+      case IO_J1A:
+      case IO_J1AE:
+      case IO_J1B:
+      case IO_J1BE:
+      case IO_J1FL:
+      case IO_J1FLE:
+      case IO_J1FE:
+      case IO_J1FNE:
+      case IO_J1FG:
+      case IO_J1FGE:
+      case IO_J1Z:
+      case IO_J1NZ: {
+        seen[i->args[0]->data.local.name] = true;
+        break;
+      }
+      default: {
+        // not a jump
+        break;
+      }
+    }
+  }
+
+  for (ListNode *curr = instructions->head->next; curr != instructions->tail;) {
+    IRInstruction *i = curr->data;
+    if (i->op == IO_LABEL && !seen[i->args[0]->data.local.name]) {
+      ListNode *toRemove = curr;
+      curr = curr->next;
+      irInstructionFree(removeNode(toRemove));
+    } else {
+      curr = curr->next;
+    }
+  }
+
+  free(seen);
+}
+
 void optimizeScheduledIr(void) {
   for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     FileListEntry *file = &fileList.entries[fileIdx];
@@ -490,7 +580,7 @@ void optimizeScheduledIr(void) {
       IRFrag *frag = irFrags->elements[fragIdx];
       if (frag->type == FT_TEXT) {
         IRBlock *block = frag->data.text.blocks.head->next->data;
-        // TODO: dead label elimination
+        deadLabelElimination(&block->instructions, irFrags, file->nextId);
       }
     }
   }

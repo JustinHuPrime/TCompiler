@@ -39,9 +39,11 @@ void testParser(void);
 void testTypechecker(void);
 /** tests translation */
 void testTranslation(void);
-/** tests optimization */
-void testOptimization1(void);
+/** tests optimization before scheduling */
+void testBlockedOptimization(void);
 /** tests trace scheduling */
 void testTraceScheduling(void);
+/** tests optimzation after scheduling */
+void testScheduledOptimization(void);
 
 #endif  // TLC_TEST_TESTS_H_

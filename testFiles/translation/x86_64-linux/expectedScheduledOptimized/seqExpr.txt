@@ -1,0 +1,17 @@
+testFiles/translation/x86_64-linux/input/seqExpr.tc:
+TEXT(GLOBAL(_T3foo3bar),
+  BLOCK(0,
+    UNINITIALIZED(TEMP(temp8, 4, 4, GP)),
+    UNINITIALIZED(TEMP(temp9, 4, 4, GP)),
+    ZX(TEMP(temp14, 4, 4, GP), CONSTANT(1, BYTE(1))),
+    MOVE(TEMP(temp8, 4, 4, GP), TEMP(temp14, 4, 4, GP)),
+    ZX(TEMP(temp17, 4, 4, GP), CONSTANT(1, BYTE(2))),
+    MOVE(TEMP(temp9, 4, 4, GP), TEMP(temp17, 4, 4, GP)),
+    MOVE(TEMP(temp20, 4, 4, GP), TEMP(temp8, 4, 4, GP)),
+    MOVE(TEMP(temp22, 4, 4, GP), TEMP(temp9, 4, 4, GP)),
+    ADD(TEMP(temp23, 4, 4, GP), TEMP(temp20, 4, 4, GP), TEMP(temp22, 4, 4, GP)),
+    MOVE(TEMP(temp2, 4, 4, GP), TEMP(temp23, 4, 4, GP)),
+    MOVE(REG(rax, 4), TEMP(temp2, 4, 4, GP)),
+    RETURN(),
+  ),
+)
