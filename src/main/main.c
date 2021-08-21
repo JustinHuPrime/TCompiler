@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
     return CODE_IR_ERROR;
 
   // trace scheduling
-  traceSchedule();  // TODO: test this
+  traceSchedule();
 
   // debug-dump stop for trace-scheduled IR
   if (options.dump == OPTION_DD_TRACE_SCHEDULING) {

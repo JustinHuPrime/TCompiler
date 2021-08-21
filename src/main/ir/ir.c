@@ -342,6 +342,7 @@ size_t irOperatorArity(IROperator op) {
     case IO_S2F:
     case IO_FRESIZE:
     case IO_F2I:
+    case IO_JUMPTABLE:
     case IO_J1Z:
     case IO_J1NZ: {
       return 2;
@@ -484,7 +485,7 @@ void irBlockFree(IRBlock *b) {
   free(b);
 }
 
-static char const *const IROPERATOR_NAMES[] = {
+char const *const IROPERATOR_NAMES[] = {
     "LABEL",
     "VOLATILE",
     "UNINITIALIZED",
@@ -546,6 +547,7 @@ static char const *const IROPERATOR_NAMES[] = {
     "FRESIZE",
     "F2I",
     "JUMP",
+    "JUMPTABLE",
     "J2L",
     "J2LE",
     "J2E",
@@ -585,10 +587,10 @@ static char const *const IROPERATOR_NAMES[] = {
     "CALL",
     "RETURN",
 };
-static char const *const IROPERAND_NAMES[] = {
+char const *const IROPERAND_NAMES[] = {
     "TEMP", "REG", "CONSTANT", "GLOBAL", "LOCAL",
 };
-static char const *const ALLOCHINT_NAMES[] = {
+char const *const ALLOCHINT_NAMES[] = {
     "GP",
     "MEM",
     "FP",
@@ -943,6 +945,7 @@ static int validateIr(char const *phase, bool blocked) {
             IRInstruction *last = block->instructions.tail->prev->data;
             switch (last->op) {
               case IO_JUMP:
+              case IO_JUMPTABLE:
               case IO_J2L:
               case IO_J2LE:
               case IO_J2E:
@@ -1349,7 +1352,24 @@ static int validateIr(char const *phase, bool blocked) {
                 break;
               }
               case IO_JUMP: {
-                validateArgJumpTarget(i, 0, temps, localLabels, phase, file);
+                validateArgKind(i, 0, OK_LOCAL, phase, file);
+                validateLocalJumpTarget(i, 0, localLabels, phase, file);
+
+                if (blocked && currInst->next != block->instructions.tail) {
+                  fprintf(stderr,
+                          "%s: internal compiler error: IR validation after %s "
+                          "failed - non-terminal jump encountered in basic "
+                          "block IR\n",
+                          file->inputFilename, phase);
+                  file->errored = true;
+                }
+                break;
+              }
+              case IO_JUMPTABLE: {
+                validateArgKind(i, 0, OK_TEMP, phase, file);
+
+                // TODO: check that this is a RODATA frag
+                validateArgKind(i, 1, OK_LOCAL, phase, file);
 
                 if (blocked && currInst->next != block->instructions.tail) {
                   fprintf(stderr,
@@ -1393,8 +1413,7 @@ static int validateIr(char const *phase, bool blocked) {
                         stderr,
                         "%s: internal compiler error: IR validation after %s "
                         "failed - non-terminal jump encountered in basic "
-                        "block "
-                        "IR\n",
+                        "block IR\n",
                         file->inputFilename, phase);
                     file->errored = true;
                   }

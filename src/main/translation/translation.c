@@ -2006,7 +2006,7 @@ static LValue *translateExpressionLValue(LinkedList *blocks, Node const *e,
           IROperand *castRhs = translateCast(b, rawRhs, expressionTypeof(rhs),
                                              expressionTypeof(lhs), file);
           translateLValueStore(b, lvalue, castRhs, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return lvalue;
         }
         case BO_MULASSIGN:
@@ -2038,7 +2038,7 @@ static LValue *translateExpressionLValue(LinkedList *blocks, Node const *e,
               translateCast(b, rawResult, merged, expressionTypeof(lhs), file);
           typeFree(merged);
           translateLValueStore(b, lvalue, castResult, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return lvalue;
         }
         case BO_LANDASSIGN:
@@ -2057,7 +2057,7 @@ static LValue *translateExpressionLValue(LinkedList *blocks, Node const *e,
                                                        assignmentLabel, file);
           b = BLOCK(assignmentLabel, blocks);
           translateLValueStore(b, lvalue, rhsVal, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return lvalue;
         }
         case BO_FIELD: {
@@ -2098,7 +2098,7 @@ static LValue *translateExpressionLValue(LinkedList *blocks, Node const *e,
                     typeSizeof(
                         stripCV(expressionTypeof(lhs))->data.pointer.base),
                     file));
-            IR(b, JUMP(LOCAL(nextLabel)));
+            IR(b, JUMP(nextLabel));
             return lvalue;
           } else {
             LValue *lvalue =
@@ -2123,7 +2123,7 @@ static LValue *translateExpressionLValue(LinkedList *blocks, Node const *e,
                            file)));
               lvalue->dynamicOffset = newOffset;
             }
-            IR(b, JUMP(LOCAL(nextLabel)));
+            IR(b, JUMP(nextLabel));
             return lvalue;
           }
         }
@@ -2154,7 +2154,7 @@ static LValue *translateExpressionLValue(LinkedList *blocks, Node const *e,
                                                : translateDecrement)(
                   b, value, expressionTypeof(target), file);
           translateLValueStore(b, lvalue, modified, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return lvalue;
         }
         case UO_PARENS: {
@@ -2169,13 +2169,13 @@ static LValue *translateExpressionLValue(LinkedList *blocks, Node const *e,
     case NT_SCOPEDID: {
       // is never in a temp - always a global
       IRBlock *b = BLOCK(label, blocks);
-      IR(b, JUMP(LOCAL(nextLabel)));
+      IR(b, JUMP(nextLabel));
       return lvalueCreate(
           LK_MEM, GLOBAL(getMangledName(e->data.scopedId.entry)), 0, NULL);
     }
     case NT_ID: {
       IRBlock *b = BLOCK(label, blocks);
-      IR(b, JUMP(LOCAL(nextLabel)));
+      IR(b, JUMP(nextLabel));
       if (e->data.id.entry->data.variable.temp == 0) {
         return lvalueCreate(LK_MEM, GLOBAL(getMangledName(e->data.id.entry)), 0,
                             NULL);
@@ -2391,9 +2391,9 @@ static void translateExpressionPredicate(LinkedList *blocks, Node const *e,
     case NT_LITERAL: {
       IRBlock *b = BLOCK(label, blocks);
       if (e->data.literal.data.boolVal)
-        IR(b, JUMP(LOCAL(trueLabel)));
+        IR(b, JUMP(trueLabel));
       else
-        IR(b, JUMP(LOCAL(falseLabel)));
+        IR(b, JUMP(falseLabel));
       break;
     }
     default: {
@@ -2636,7 +2636,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           IROperand *castRhs = translateCast(b, rawRhs, expressionTypeof(rhs),
                                              expressionTypeof(lhs), file);
           translateLValueStore(b, lvalue, castRhs, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           return castRhs;
         }
@@ -2669,7 +2669,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
               translateCast(b, rawResult, merged, expressionTypeof(lhs), file);
           typeFree(merged);
           translateLValueStore(b, lvalue, castResult, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           return castResult;
         }
@@ -2692,14 +2692,14 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
                       lhsLabel, rhsLabel, irOperandCopy(lhsVal)));
           b = BLOCK(lhsLabel, blocks);
           IR(b, MOVE(irOperandCopy(outTemp), lhsVal));
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           size_t assignmentLabel = fresh(file);
           IROperand *rhsVal = translateExpressionValue(blocks, rhs, rhsLabel,
                                                        assignmentLabel, file);
           b = BLOCK(assignmentLabel, blocks);
           translateLValueStore(b, lvalue, irOperandCopy(rhsVal), file);
           IR(b, MOVE(irOperandCopy(outTemp), rhsVal));
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           return outTemp;
         }
@@ -2716,13 +2716,13 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
                       lhsLabel, rhsLabel, irOperandCopy(lhsVal)));
           b = BLOCK(lhsLabel, blocks);
           IR(b, MOVE(irOperandCopy(outTemp), lhsVal));
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           size_t assignmentLabel = fresh(file);
           IROperand *rhsVal = translateExpressionValue(blocks, rhs, rhsLabel,
                                                        assignmentLabel, file);
           b = BLOCK(assignmentLabel, blocks);
           IR(b, MOVE(irOperandCopy(outTemp), rhsVal));
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return outTemp;
         }
         case BO_BITAND:
@@ -2752,7 +2752,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           IROperand *result = BINOP_TRANSLATORS[e->data.binOpExp.op](
               b, rawLhs, expressionTypeof(lhs), rawRhs, expressionTypeof(rhs),
               file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return result;
         }
         case BO_FIELD: {
@@ -2769,7 +2769,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
                                   lhsEntry, rhs->data.id.id))));
           else
             IR(b, MOVE(irOperandCopy(result), whole));
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return result;
         }
         case BO_PTRFIELD: {
@@ -2786,7 +2786,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
                              ? OFFSET((int64_t)structOffsetof(lhsEntry,
                                                               rhs->data.id.id))
                              : OFFSET(0)));
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return result;
         }
         case BO_ARRAY: {
@@ -2811,7 +2811,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
                 file);
             IR(b, OFFSET_LOAD(irOperandCopy(result), lhsVal, scaledRhs));
           }
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return result;
         }
         case BO_CAST: {
@@ -2821,7 +2821,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           IRBlock *b = BLOCK(resultLabel, blocks);
           IROperand *result = translateCast(b, uncast, expressionTypeof(rhs),
                                             expressionTypeof(e), file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return result;
         }
         default: {
@@ -2840,7 +2840,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
                          translateExpressionValue(blocks, target, label,
                                                   derefLabel, file),
                          OFFSET(0)));
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return result;
         }
         case UO_ADDROF: {
@@ -2851,7 +2851,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           IROperand *result =
               translateLValueAddr(b, lvalue, TEMPPTR(fresh(file)), file);
           lvalueFree(lvalue);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return result;
         }
         case UO_PREINC:
@@ -2865,7 +2865,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           IROperand *modified = UNOP_TRANSLATORS[e->data.unOpExp.op](
               b, value, expressionTypeof(target), file);
           translateLValueStore(b, lvalue, irOperandCopy(modified), file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           return modified;
         }
@@ -2878,7 +2878,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           IRBlock *b = BLOCK(opLabel, blocks);
           IROperand *o = UNOP_TRANSLATORS[e->data.unOpExp.op](
               b, translated, expressionTypeof(target), file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return o;
         }
         case UO_POSTINC:
@@ -2895,14 +2895,14 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           IROperand *modified = UNOP_TRANSLATORS[e->data.unOpExp.op](
               b, irOperandCopy(value), expressionTypeof(target), file);
           translateLValueStore(b, lvalue, modified, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           return value;
         }
         case UO_SIZEOFEXP: {
           // no actual computation is done
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(
               LONG_WIDTH,
               longDatumCreate(typeSizeof(expressionTypeof(target))));
@@ -2919,7 +2919,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
     case NT_SIZEOFTYPEEXP: {
       // no actual computation is done
       IRBlock *b = BLOCK(label, blocks);
-      IR(b, JUMP(LOCAL(nextLabel)));
+      IR(b, JUMP(nextLabel));
       return CONSTANT(
           LONG_WIDTH,
           longDatumCreate(typeSizeof(e->data.sizeofTypeExp.targetType)));
@@ -2942,7 +2942,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           translateCast(b, uncastConsequent, expressionTypeof(consequent),
                         expressionTypeof(e), file);
       IR(b, MOVE(irOperandCopy(outTemp), castConsequent));
-      IR(b, JUMP(LOCAL(nextLabel)));
+      IR(b, JUMP(nextLabel));
 
       size_t alternativeCastLabel = fresh(file);
       IROperand *uncastAlternative = translateExpressionValue(
@@ -2952,7 +2952,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           translateCast(b, uncastAlternative, expressionTypeof(alternative),
                         expressionTypeof(e), file);
       IR(b, MOVE(irOperandCopy(outTemp), castAlternative));
-      IR(b, JUMP(LOCAL(nextLabel)));
+      IR(b, JUMP(nextLabel));
       return outTemp;
     }
     case NT_FUNCALLEXP: {
@@ -2982,71 +2982,71 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
 
       IRBlock *b = BLOCK(callLabel, blocks);
       IROperand *retVal = generateFunctionCall(b, fun, args, funType, file);
-      IR(b, JUMP(LOCAL(nextLabel)));
+      IR(b, JUMP(nextLabel));
       return retVal;
     }
     case NT_LITERAL: {
       switch (e->data.literal.literalType) {
         case LT_UBYTE: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(BYTE_WIDTH,
                           byteDatumCreate(e->data.literal.data.ubyteVal));
         }
         case LT_BYTE: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(
               BYTE_WIDTH,
               byteDatumCreate(s8ToU8(e->data.literal.data.byteVal)));
         }
         case LT_USHORT: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(SHORT_WIDTH,
                           shortDatumCreate(e->data.literal.data.ushortVal));
         }
         case LT_SHORT: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(
               SHORT_WIDTH,
               shortDatumCreate(s16ToU16(e->data.literal.data.shortVal)));
         }
         case LT_UINT: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(INT_WIDTH,
                           intDatumCreate(e->data.literal.data.uintVal));
         }
         case LT_INT: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(
               INT_WIDTH, intDatumCreate(s32ToU32(e->data.literal.data.intVal)));
         }
         case LT_ULONG: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(LONG_WIDTH,
                           longDatumCreate(e->data.literal.data.ulongVal));
         }
         case LT_LONG: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(
               LONG_WIDTH,
               longDatumCreate(s64ToU64(e->data.literal.data.longVal)));
         }
         case LT_FLOAT: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(INT_WIDTH,
                           intDatumCreate(e->data.literal.data.floatBits));
         }
         case LT_DOUBLE: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(LONG_WIDTH,
                           longDatumCreate(e->data.literal.data.doubleBits));
         }
@@ -3059,12 +3059,12 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           vectorInsert(&file->irFrags, df);
 
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(POINTER_WIDTH, labelDatumCreate(dataLabel));
         }
         case LT_CHAR: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(BYTE_WIDTH,
                           byteDatumCreate(e->data.literal.data.charVal));
         }
@@ -3077,25 +3077,25 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           vectorInsert(&file->irFrags, df);
 
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(POINTER_WIDTH, labelDatumCreate(dataLabel));
         }
         case LT_WCHAR: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(INT_WIDTH,
                           intDatumCreate(e->data.literal.data.wcharVal));
         }
         case LT_BOOL: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(
               BYTE_WIDTH,
               byteDatumCreate(e->data.literal.data.boolVal ? 1 : 0));
         }
         case LT_NULL: {
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return CONSTANT(POINTER_WIDTH, longDatumCreate(0));
         }
         case LT_AGGREGATEINIT: {
@@ -3107,7 +3107,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
           IRBlock *b = BLOCK(label, blocks);
           IROperand *out = TEMPOF(fresh(file), expressionTypeof(e));
           IR(b, MEM_LOAD(irOperandCopy(out), LOCAL(dataLabel), OFFSET(0)));
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           return out;
         }
         default: {
@@ -3197,7 +3197,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
         IR(b, MOVE(irOperandCopy(dest),
                    GLOBAL(getMangledName(e->data.scopedId.entry))));
       }
-      IR(b, JUMP(LOCAL(nextLabel)));
+      IR(b, JUMP(nextLabel));
       return dest;
     }
     case NT_ID: {
@@ -3213,7 +3213,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
         IR(b,
            MOVE(irOperandCopy(dest), GLOBAL(getMangledName(e->data.id.entry))));
       }
-      IR(b, JUMP(LOCAL(nextLabel)));
+      IR(b, JUMP(nextLabel));
       return dest;
     }
     default: {
@@ -3274,7 +3274,7 @@ static void translateExpressionVoid(LinkedList *blocks, Node const *e,
           IROperand *castRhs = translateCast(b, rawRhs, expressionTypeof(rhs),
                                              expressionTypeof(lhs), file);
           translateLValueStore(b, lvalue, castRhs, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           break;
         }
@@ -3307,7 +3307,7 @@ static void translateExpressionVoid(LinkedList *blocks, Node const *e,
               translateCast(b, rawResult, merged, expressionTypeof(lhs), file);
           typeFree(merged);
           translateLValueStore(b, lvalue, castResult, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           break;
         }
@@ -3327,7 +3327,7 @@ static void translateExpressionVoid(LinkedList *blocks, Node const *e,
                                                        assignmentLabel, file);
           b = BLOCK(assignmentLabel, blocks);
           translateLValueStore(b, lvalue, rhsVal, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           break;
         }
@@ -3383,14 +3383,14 @@ static void translateExpressionVoid(LinkedList *blocks, Node const *e,
           IROperand *modified = UNOP_TRANSLATORS[e->data.unOpExp.op](
               b, value, expressionTypeof(target), file);
           translateLValueStore(b, lvalue, modified, file);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           lvalueFree(lvalue);
           break;
         }
         case UO_SIZEOFEXP: {
           // nothing to translate - target of sizeof is not evaluated
           IRBlock *b = BLOCK(label, blocks);
-          IR(b, JUMP(LOCAL(nextLabel)));
+          IR(b, JUMP(nextLabel));
           break;
         }
         default: {
@@ -3403,7 +3403,7 @@ static void translateExpressionVoid(LinkedList *blocks, Node const *e,
     case NT_LITERAL: {
       // nothing to evaluate
       IRBlock *b = BLOCK(label, blocks);
-      IR(b, JUMP(LOCAL(nextLabel)));
+      IR(b, JUMP(nextLabel));
       break;
     }
     case NT_TERNARYEXP: {
@@ -3431,10 +3431,10 @@ static void translateExpressionVoid(LinkedList *blocks, Node const *e,
         IR(b,
            MARK_TEMP(IO_VOLATILE, translateExpressionValue(
                                       blocks, e, label, volatileLabel, file)));
-        IR(b, JUMP(LOCAL(nextLabel)));
+        IR(b, JUMP(nextLabel));
       } else {
         IRBlock *b = BLOCK(label, blocks);
-        IR(b, JUMP(LOCAL(nextLabel)));
+        IR(b, JUMP(nextLabel));
       }
       break;
     }
@@ -3467,7 +3467,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
       if (stmts->size == 0) {
         // case: empty compound - just jump to the next thing
         IRBlock *b = BLOCK(label, blocks);
-        IR(b, JUMP(LOCAL(nextLabel)));
+        IR(b, JUMP(nextLabel));
       } else if (stmts->size == 1) {
         // case: single element compound - treat it as if there were no compound
         translateStmt(blocks, stmts->elements[0], label, nextLabel, returnLabel,
@@ -3828,7 +3828,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
                      CONSTANT(POINTER_WIDTH, longDatumCreate(POINTER_WIDTH))));
             IR(b, BINOP(IO_ADD, TEMPPTR(target), TEMPPTR(multipliedOffset),
                         LOCAL(tableLabel)));
-            IR(b, JUMP(TEMPPTR(target)));
+            IR(b, JUMPTABLE(TEMPPTR(target), tableLabel));
 
             curr = next;
             entryIdx = end;
@@ -3898,7 +3898,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
                      CONSTANT(POINTER_WIDTH, longDatumCreate(POINTER_WIDTH))));
             IR(b, BINOP(IO_ADD, TEMPPTR(target), TEMPPTR(multipliedOffset),
                         LOCAL(tableLabel)));
-            IR(b, JUMP(TEMPPTR(target)));
+            IR(b, JUMPTABLE(TEMPPTR(target), tableLabel));
 
             curr = next;
             entryIdx = end;
@@ -3911,12 +3911,12 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
     }
     case NT_BREAKSTMT: {
       IRBlock *b = BLOCK(label, blocks);
-      IR(b, JUMP(LOCAL(breakLabel)));
+      IR(b, JUMP(breakLabel));
       break;
     }
     case NT_CONTINUESTMT: {
       IRBlock *b = BLOCK(label, blocks);
-      IR(b, JUMP(LOCAL(continueLabel)));
+      IR(b, JUMP(continueLabel));
       break;
     }
     case NT_RETURNSTMT: {
@@ -3929,10 +3929,10 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
             b, value, expressionTypeof(stmt->data.returnStmt.value), returnType,
             file);
         IR(b, MOVE(TEMPOF(returnValueTemp, returnType), casted));
-        IR(b, JUMP(LOCAL(returnLabel)));
+        IR(b, JUMP(returnLabel));
       } else {
         IRBlock *b = BLOCK(label, blocks);
-        IR(b, JUMP(LOCAL(returnLabel)));
+        IR(b, JUMP(returnLabel));
       }
       break;
     }
@@ -3950,7 +3950,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
             e->data.variable.temp = fresh(file);
             IRBlock *b = BLOCK(curr, blocks);
             IR(b, MARK_TEMP(IO_UNINITIALIZED, TEMPVAR(e)));
-            IR(b, JUMP(LOCAL(nextLabel)));
+            IR(b, JUMP(nextLabel));
           } else {
             if (e->data.variable.escapes) {
               size_t moveToMemLabel = fresh(file);
@@ -3964,7 +3964,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
                   TEMP(fresh(file), typeAlignof(e->data.variable.type),
                        typeSizeof(e->data.variable.type), AH_MEM);
               IR(b, MOVE(memTemp, cast));
-              IR(b, JUMP(LOCAL(nextLabel)));
+              IR(b, JUMP(nextLabel));
               e->data.variable.temp = memTemp->data.temp.name;
             } else {
               size_t moveLabel = fresh(file);
@@ -3976,7 +3976,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
                                 e->data.variable.type, file);
               IROperand *temp = TEMPOF(fresh(file), e->data.variable.type);
               IR(b, MOVE(temp, cast));
-              IR(b, JUMP(LOCAL(nextLabel)));
+              IR(b, JUMP(nextLabel));
               e->data.variable.temp = temp->data.temp.name;
             }
           }
@@ -3986,7 +3986,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
             e->data.variable.temp = fresh(file);
             IRBlock *b = BLOCK(curr, blocks);
             IR(b, MARK_TEMP(IO_UNINITIALIZED, TEMPVAR(e)));
-            IR(b, JUMP(LOCAL(next)));
+            IR(b, JUMP(next));
             curr = next;
           } else {
             size_t next = fresh(file);
@@ -4002,7 +4002,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
                   TEMP(fresh(file), typeAlignof(e->data.variable.type),
                        typeSizeof(e->data.variable.type), AH_MEM);
               IR(b, MOVE(memTemp, cast));
-              IR(b, JUMP(LOCAL(next)));
+              IR(b, JUMP(next));
               e->data.variable.temp = memTemp->data.temp.name;
             } else {
               size_t moveLabel = fresh(file);
@@ -4014,7 +4014,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
                                 e->data.variable.type, file);
               IROperand *temp = TEMPOF(fresh(file), e->data.variable.type);
               IR(b, MOVE(temp, cast));
-              IR(b, JUMP(LOCAL(next)));
+              IR(b, JUMP(next));
               e->data.variable.temp = temp->data.temp.name;
               irOperandFree(o);
             }
@@ -4031,7 +4031,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
     }
     default: {
       IRBlock *b = BLOCK(label, blocks);
-      IR(b, JUMP(LOCAL(nextLabel)));
+      IR(b, JUMP(nextLabel));
       break;
     }
   }

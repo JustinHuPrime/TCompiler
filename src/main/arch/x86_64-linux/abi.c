@@ -311,7 +311,7 @@ void x86_64LinuxGenerateFunctionEntry(LinkedList *blocks,
     }
   }
 
-  IR(b, JUMP(LOCAL(nextLabel)));
+  IR(b, JUMP(nextLabel));
 }
 void x86_64LinuxGenerateFunctionExit(LinkedList *blocks,
                                      SymbolTableEntry const *entry,

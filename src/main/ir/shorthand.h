@@ -147,7 +147,13 @@ IRInstruction *UNOP(IROperator op, IROperand *dest, IROperand *src);
  * unconditional jump to local label
  * @param dest destination numeric id
  */
-IRInstruction *JUMP(IROperand *dest);
+IRInstruction *JUMP(size_t dest);
+/**
+ * jump table jump
+ * @param dest destination temp
+ * @param tableFrag table of destination possibilities
+ */
+IRInstruction *JUMPTABLE(IROperand *dest, size_t tableFrag);
 /**
  * comparison conditional jump to local label
  * @param op comparison operation

@@ -118,7 +118,16 @@ static IRInstruction *oneArgJumpFromTwoArgJump(IRInstruction *i) {
     }
   }
 }
-static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks) {
+static IRFrag *findJumpTable(Vector *frags, size_t label) {
+  for (size_t idx = 0; idx < frags->size; ++idx) {
+    IRFrag *f = frags->elements[idx];
+    // TODO: extra checks to make sure it's a jump table?
+    if (f->nameType == FNT_LOCAL && f->name.local == label) return f;
+  }
+  error(__FILE__, __LINE__, "invalid jump table reference");
+}
+static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks,
+                          Vector *frags) {
   for (ListNode *currBlock = blocks->head->next; currBlock != blocks->tail;
        currBlock = currBlock->next) {
     if (currBlock->data == b) {
@@ -155,9 +164,19 @@ static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks) {
       // otherwise, copy the jump verbatim
       if (last->args[0]->kind == OK_LOCAL) {
         IRBlock *found = findBlock(blocks, last->args[0]->data.local.name);
-        if (found != NULL) scheduleBlock(found, out, blocks);
+        if (found != NULL) scheduleBlock(found, out, blocks, frags);
       } else {
         copyOverLastInstruction(b, out);
+      }
+      break;
+    }
+    case IO_JUMPTABLE: {
+      copyOverLastInstruction(b, out);
+      IRFrag *table = findJumpTable(frags, last->args[1]->data.local.name);
+      for (size_t idx = 0; idx < table->data.data.data.size; ++idx) {
+        IRDatum *datum = table->data.data.data.elements[idx];
+        IRBlock *found = findBlock(blocks, datum->data.label);
+        if (found != NULL) scheduleBlock(found, out, blocks, frags);
       }
       break;
     }
@@ -183,12 +202,12 @@ static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks) {
       IR(out, oneArgJumpFromTwoArgJump(last));
       IRBlock *found = findBlock(blocks, last->args[1]->data.local.name);
       if (found != NULL) {
-        scheduleBlock(found, out, blocks);
+        scheduleBlock(found, out, blocks, frags);
       } else {
-        IR(out, JUMP(LOCAL(last->args[1]->data.local.name)));
+        IR(out, JUMP(last->args[1]->data.local.name));
       }
       found = findBlock(blocks, last->args[0]->data.local.name);
-      if (found != NULL) scheduleBlock(found, out, blocks);
+      if (found != NULL) scheduleBlock(found, out, blocks, frags);
       break;
     }
     case IO_RETURN: {
@@ -217,7 +236,7 @@ void traceSchedule(void) {
           blocks.tail = frag->data.text.blocks.tail;
           linkedListInit(&frag->data.text.blocks);
           IRBlock *out = BLOCK(0, &frag->data.text.blocks);
-          scheduleBlock(blocks.head->next->data, out, &blocks);
+          scheduleBlock(blocks.head->next->data, out, &blocks, &file->irFrags);
           linkedListUninit(&blocks, (void (*)(void *))irBlockFree);
         }
       }

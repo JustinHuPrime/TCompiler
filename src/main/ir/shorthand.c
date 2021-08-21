@@ -123,8 +123,11 @@ IRInstruction *BINOP(IROperator op, IROperand *dest, IROperand *lhs,
 IRInstruction *UNOP(IROperator op, IROperand *dest, IROperand *src) {
   return twoArgInstructionCreate(op, dest, src);
 }
-IRInstruction *JUMP(IROperand *dest) {
-  return oneArgInstructionCreate(IO_JUMP, dest);
+IRInstruction *JUMP(size_t dest) {
+  return oneArgInstructionCreate(IO_JUMP, LOCAL(dest));
+}
+IRInstruction *JUMPTABLE(IROperand *dest, size_t tableFrag) {
+  return twoArgInstructionCreate(IO_JUMPTABLE, dest, LOCAL(tableFrag));
 }
 IRInstruction *CJUMP(IROperator op, size_t trueDest, size_t falseDest,
                      IROperand *lhs, IROperand *rhs) {

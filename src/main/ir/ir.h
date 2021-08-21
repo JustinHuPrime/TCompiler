@@ -490,10 +490,17 @@ typedef enum IROperator {
    * unconditional jump
    *
    * one operand
-   * 0: GLOBAL | LOCAL | TEMP, read, allocation == (GP | MEM); size ==
-   *    POINTER_WIDTH
+   * 0: LOCAL
    */
   IO_JUMP,
+  /**
+   * jump table jump
+   *
+   * two operands
+   * 0: TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH
+   * 1: LOCAL
+   */
+  IO_JUMPTABLE,
   /**
    * integer binary comparison conditional jump
    *
@@ -641,9 +648,13 @@ IRBlock *findBlock(LinkedList *blocks, size_t label);
 /** dtor */
 void irBlockFree(IRBlock *);
 
+extern char const *const IROPERATOR_NAMES[];
+extern char const *const IROPERAND_NAMES[];
+extern char const *const ALLOCHINT_NAMES[];
+
 /**
- * checks that all files in the file list have valid IR (while IR is in basic
- * blocks)
+ * checks that all files in the file list have valid IR (while IR is in
+ * basic blocks)
  *
  * This checks that
  *  - temps must have consistent sizing, alignment, and allocation
