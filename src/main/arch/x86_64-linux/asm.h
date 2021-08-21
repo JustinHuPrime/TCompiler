@@ -27,7 +27,6 @@
 
 #include <stddef.h>
 
-extern char const *const X86_64_LINUX_LOCAL_LABEL_FORMAT;
 extern size_t const X86_64_LINUX_REGISTER_WIDTH;
 extern size_t const X86_64_LINUX_STACK_ALIGNMENT;
 

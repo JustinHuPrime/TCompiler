@@ -29,12 +29,6 @@
 #include "ir/ir.h"
 
 /**
- * get the format string to format local (numeric) labels
- * turns a size_t into an assembly label string
- */
-char const *localLabelFormat(void);
-
-/**
  * pretty print a register number
  */
 char const *prettyPrintRegister(size_t reg);

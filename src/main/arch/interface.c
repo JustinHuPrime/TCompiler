@@ -24,17 +24,6 @@
 #include "x86_64-linux/abi.h"
 #include "x86_64-linux/asm.h"
 
-char const *localLabelFormat(void) {
-  switch (options.arch) {
-    case OPTION_A_X86_64_LINUX: {
-      return X86_64_LINUX_LOCAL_LABEL_FORMAT;
-    }
-    default: {
-      error(__FILE__, __LINE__, "unrecognized architecture");
-    }
-  }
-}
-
 char const *prettyPrintRegister(size_t reg) {
   switch (options.arch) {
     case OPTION_A_X86_64_LINUX: {

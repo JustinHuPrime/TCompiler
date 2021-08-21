@@ -64,9 +64,7 @@ static void datumDump(FILE *where, IRDatum *datum) {
       break;
     }
     case DT_LABEL: {
-      fprintf(where, "LABEL(");
-      fprintf(where, localLabelFormat(), datum->data.label);
-      fprintf(where, ")");
+      fprintf(where, "LABEL(LOCAL(%zu))", datum->data.label);
       break;
     }
   }
