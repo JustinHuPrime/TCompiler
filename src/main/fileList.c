@@ -35,6 +35,7 @@ void fileListEntryInit(FileListEntry *entry, char const *inputName,
   entry->ast = NULL;
   entry->nextId = 1;
   vectorInit(&entry->irFrags);
+  entry->asmFile = NULL;
 }
 
 int parseFiles(size_t argc, char const *const *argv, size_t numFiles) {

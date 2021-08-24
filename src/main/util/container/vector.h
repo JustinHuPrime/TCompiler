@@ -63,4 +63,23 @@ void vectorInsert(Vector *v, void *elm);
  */
 void vectorUninit(Vector *v, void (*dtor)(void *));
 
+/** vector of size_t */
+typedef struct {
+  size_t size;
+  size_t capacity;
+  size_t *elements;
+} SizeVector;
+/**
+ * in place ctor
+ */
+void sizeVectorInit(SizeVector *v);
+/**
+ * insert - amortized constant time
+ */
+void sizeVectorInsert(SizeVector *v, size_t elm);
+/**
+ * in place dtor
+ */
+void sizeVectorUninit(SizeVector *v);
+
 #endif  // TLC_UTIL_CONTAINER_VECTOR_H_

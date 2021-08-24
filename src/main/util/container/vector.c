@@ -47,3 +47,18 @@ void vectorUninit(Vector *vector, void (*dtor)(void *)) {
   for (size_t idx = 0; idx < vector->size; ++idx) dtor(vector->elements[idx]);
   free(vector->elements);
 }
+
+void sizeVectorInit(SizeVector *vector) {
+  vector->size = 0;
+  vector->capacity = PTR_VECTOR_INIT_CAPACITY;
+  vector->elements = malloc(vector->capacity * sizeof(size_t));
+}
+void sizeVectorInsert(SizeVector *vector, size_t element) {
+  if (vector->size == vector->capacity) {
+    vector->capacity *= VECTOR_GROWTH_FACTOR;
+    vector->elements =
+        realloc(vector->elements, vector->capacity * sizeof(size_t));
+  }
+  vector->elements[vector->size++] = element;
+}
+void sizeVectorUninit(SizeVector *vector) { free(vector->elements); }

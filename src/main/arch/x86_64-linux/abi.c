@@ -207,31 +207,32 @@ static void classify(Type const *t, TypeClass *out) {
 /**
  * registers used to pass general purpose arguments
  */
-static X86_64_Register GP_ARG_REGS[] = {
-    X86_64_RDI, X86_64_RSI, X86_64_RDX, X86_64_RCX, X86_64_R8, X86_64_R9,
+static X86_64LinuxRegister GP_ARG_REGS[] = {
+    X86_64_LINUX_RDI, X86_64_LINUX_RSI, X86_64_LINUX_RDX,
+    X86_64_LINUX_RCX, X86_64_LINUX_R8,  X86_64_LINUX_R9,
 };
 static size_t GP_ARG_REG_MAX = 6;
 /**
  * registers used to pass SSE arguments
  */
-static X86_64_Register SSE_ARG_REGS[] = {
-    X86_64_XMM0, X86_64_XMM1, X86_64_XMM2, X86_64_XMM3,
-    X86_64_XMM4, X86_64_XMM5, X86_64_XMM6, X86_64_XMM7,
+static X86_64LinuxRegister SSE_ARG_REGS[] = {
+    X86_64_LINUX_XMM0, X86_64_LINUX_XMM1, X86_64_LINUX_XMM2, X86_64_LINUX_XMM3,
+    X86_64_LINUX_XMM4, X86_64_LINUX_XMM5, X86_64_LINUX_XMM6, X86_64_LINUX_XMM7,
 };
 static size_t SSE_ARG_REG_MAX = 8;
 /**
  * registers used to return general purpose arguments
  */
-static X86_64_Register GP_RETURN_REGS[] = {
-    X86_64_RAX,
-    X86_64_RDX,
+static X86_64LinuxRegister GP_RETURN_REGS[] = {
+    X86_64_LINUX_RAX,
+    X86_64_LINUX_RDX,
 };
 /**
  * registers used to return SSE arguments
  */
-static X86_64_Register SSE_RETURN_REGS[] = {
-    X86_64_XMM0,
-    X86_64_XMM1,
+static X86_64LinuxRegister SSE_RETURN_REGS[] = {
+    X86_64_LINUX_XMM0,
+    X86_64_LINUX_XMM1,
 };
 
 void x86_64LinuxGenerateFunctionEntry(LinkedList *blocks,
@@ -379,8 +380,8 @@ IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun,
 
   IRDatum *stackAllocationSize = longDatumCreate(0);
   IRInstruction *stackAllocationInstruction =
-      BINOP(IO_SUB, REG(X86_64_RSP, X86_64_LINUX_REGISTER_WIDTH),
-            REG(X86_64_RSP, X86_64_LINUX_REGISTER_WIDTH),
+      BINOP(IO_SUB, REG(X86_64_LINUX_RSP, X86_64_LINUX_REGISTER_WIDTH),
+            REG(X86_64_LINUX_RSP, X86_64_LINUX_REGISTER_WIDTH),
             CONSTANT(LONG_WIDTH, stackAllocationSize));
   IR(b, stackAllocationInstruction);
 
@@ -446,7 +447,7 @@ IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun,
   size_t returnStackOffset = 0;
   if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY) {
     IR(b, BINOP(IO_ADD, REG(GP_ARG_REGS[0], POINTER_WIDTH),
-                REG(X86_64_RSP, POINTER_WIDTH),
+                REG(X86_64_LINUX_RSP, POINTER_WIDTH),
                 CONSTANT(POINTER_WIDTH, longDatumCreate(stackOffset))));
     returnStackOffset = stackOffset;
     stackOffset += typeSizeof(returnType);
@@ -471,7 +472,7 @@ IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun,
     retval = NULL;
   } else if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY) {
     // returned in memory
-    IR(b, MEM_LOAD(irOperandCopy(retval), REG(X86_64_RSP, POINTER_WIDTH),
+    IR(b, MEM_LOAD(irOperandCopy(retval), REG(X86_64_LINUX_RSP, POINTER_WIDTH),
                    OFFSET((int64_t)returnStackOffset)));
   } else {
     // returned in registers
@@ -512,8 +513,8 @@ IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun,
 
   // deallocate stack allocation
   if (stackOffset != 0)
-    IR(b, BINOP(IO_ADD, REG(X86_64_RSP, X86_64_LINUX_REGISTER_WIDTH),
-                REG(X86_64_RSP, X86_64_LINUX_REGISTER_WIDTH),
+    IR(b, BINOP(IO_ADD, REG(X86_64_LINUX_RSP, X86_64_LINUX_REGISTER_WIDTH),
+                REG(X86_64_LINUX_RSP, X86_64_LINUX_REGISTER_WIDTH),
                 CONSTANT(LONG_WIDTH, longDatumCreate(stackOffset))));
 
   return retval;

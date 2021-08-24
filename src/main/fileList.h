@@ -40,7 +40,10 @@ typedef struct FileListEntry {
   LexerState lexerState; /**< state of the lexer - cleaned up during parse */
   Node *ast; /**< AST for this file - cleaned up at entry to the middleend */
   size_t nextId;  /**< next IR id for this file */
-  Vector irFrags; /**< vector of IRFrag - translated IR fragments */
+  Vector irFrags; /**< vector of IRFrag - translated IR fragments - cleaned up
+                     at entry to the backend */
+  void *asmFile;  /**< architecture-specific ASM data - cleaned up after ir
+                     output */
 } FileListEntry;
 
 /**

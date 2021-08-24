@@ -215,6 +215,10 @@ int main(int argc, char **argv) {
       // assembly generation
       // TODO: write this
 
+      for (size_t idx = 0; idx < fileList.size; ++idx)
+        vectorUninit(&fileList.entries[idx].irFrags,
+                     (void (*)(void *))irFragFree);
+
       // assembly optimization part 1
       // TODO: write this
 
