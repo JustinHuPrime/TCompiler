@@ -49,15 +49,13 @@ All warning options have three forms, a `-W...=error` form, a `-W...=warn` form,
 
 <!-- * `reseved-id`: something is defined using an id starting with two underscores (a reserved id). Defaults to error. -->
 
-<!-- * `void-return`: returning void in a non-void function. Defaults to error. May not be an error if inline assembly is used to setup the return value. -->
-
 <!-- * `unreachable`: unreachable statements detected. Defaults to warn. -->
 
 * `unrecognized-file`: unrecognized file extensions. Defaults to error. If not an error, unrecognized files are skipped.
 
 #### Debug Options
 
-The option `--debug-dump` can be set to 4 values:
+The option `--debug-dump` can be set to one of the following values:
 
 * `--debug-dump=none`: default, turns off the data dump
 
@@ -78,14 +76,6 @@ Additionally, the following options can be used:
 * `--debug-validate-ir`: validates IR after any step that changes it
 
 * `--no-debug-validate-ir`: default, turns off IR validation
-
-<!-- * `--debug-dump=asm-1`: dumps the results of phase one assembly translation (note that phases are architecture specific)
-
-  * In `x86_64`, phase one is initial instruction selection. -->
-
-<!-- * `--debug-dump=asm-2`: dumps the results of phase two assembly translation (note that phases are architecture specific)
-
-  * In `x86_64`, phase two is register allocation. -->
 
 ### Limits
 

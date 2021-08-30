@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "arch/interface.h"
 #include "ast/dump.h"
 #include "fileList.h"
 #include "ir/dump.h"
@@ -146,6 +147,9 @@ int main(int argc, char **argv) {
   // debug-dump stop for typechecking
   // TODO: write this
 
+  // additional warnings
+  // TODO: unreachable, reserved-id, const-return, duplicate-decl-specifier
+
   // source code optimization
   // TODO: write this
 
@@ -209,32 +213,8 @@ int main(int argc, char **argv) {
       validateScheduledIr("optimization after trace scheduling") != 0)
     return CODE_IR_ERROR;
 
-  // back-end
-  switch (options.arch) {
-    case OPTION_A_X86_64_LINUX: {
-      // assembly generation
-      // TODO: write this
-
-      for (size_t idx = 0; idx < fileList.size; ++idx)
-        vectorUninit(&fileList.entries[idx].irFrags,
-                     (void (*)(void *))irFragFree);
-
-      // assembly optimization part 1
-      // TODO: write this
-
-      // register allocation
-      // TODO: write this
-
-      // assembly optimization part 2
-      // TODO: write this
-
-      // write out
-      break;
-    }
-    default: {
-      error(__FILE__, __LINE__, "unrecognized architecture specified");
-    }
-  }
+  // hand off to arch-specific backend
+  backend();
 
   return CODE_SUCCESS;
 }

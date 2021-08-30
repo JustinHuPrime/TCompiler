@@ -76,4 +76,9 @@ void generateFunctionExit(LinkedList *blocks, SymbolTableEntry const *entry,
 IROperand *generateFunctionCall(IRBlock *b, IROperand *fun, IROperand **args,
                                 Type const *funType, FileListEntry *file);
 
+/**
+ * run the backend
+ */
+void backend(void);
+
 #endif  // TLC_ARCH_INTERFACE_H_
