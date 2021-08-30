@@ -19,12 +19,13 @@
 
 #include "arch/x86_64-linux/backend.h"
 
+#include "arch/x86_64-linux/asm.h"
 #include "fileList.h"
 #include "ir/ir.h"
 
 void x86_64LinuxBackend(void) {
   // assembly generation
-  // TODO
+  x86_64LinuxGenerateAsm();
 
   // done with IR
   for (size_t idx = 0; idx < fileList.size; ++idx)

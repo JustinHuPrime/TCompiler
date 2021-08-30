@@ -154,4 +154,9 @@ typedef struct {
 X86_64LinuxFile *x86_64LinuxFileCreate(char *header, char *footer);
 void x86_64LinuxFileFree(X86_64LinuxFile *file);
 
+/**
+ * generate assembly from IR
+ */
+void x86_64LinuxGenerateAsm(void);
+
 #endif  // TLC_ARCH_X86_64_LINUX_ASM_H_

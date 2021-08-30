@@ -19,6 +19,9 @@
 
 #include "arch/x86_64-linux/asm.h"
 
+#include "fileList.h"
+#include "ir/ir.h"
+#include "util/container/stringBuilder.h"
 #include "util/internalError.h"
 
 size_t const X86_64_LINUX_REGISTER_WIDTH = 8;
@@ -149,4 +152,154 @@ void x86_64LinuxFileFree(X86_64LinuxFile *file) {
   free(file->footer);
   vectorUninit(&file->frags, (void (*)(void *))x86_64LinuxFragFree);
   free(file);
+}
+
+static X86_64LinuxFrag *x86_64LinuxGenerateDataAsm(IRFrag *frag) {
+  char *section;
+  switch (frag->type) {
+    case FT_BSS: {
+      section = format("section .bss align=%zu\n", frag->data.data.alignment);
+      break;
+    }
+    case FT_RODATA: {
+      section =
+          format("section .rodata align=%zu\n", frag->data.data.alignment);
+      break;
+    }
+    case FT_DATA: {
+      section = format("section .data align=%zu\n", frag->data.data.alignment);
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid data fragment type");
+    }
+  }
+  char *name;
+  switch (frag->nameType) {
+    case FNT_LOCAL: {
+      name = format("L%zu:\n", frag->name.local);
+      break;
+    }
+    case FNT_GLOBAL: {
+      name = format("global %s:data (%s.end - %s)\n%s:\n", frag->name.global,
+                    frag->name.global, frag->name.global, frag->name.global);
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid fragment name type");
+    }
+  }
+  char *data = strdup("");
+  for (size_t idx = 0; idx < frag->data.data.data.size; ++idx) {
+    IRDatum *d = frag->data.data.data.elements[idx];
+    switch (d->type) {
+      case DT_BYTE: {
+        char *old = data;
+        data = format("%s\tdb %hhu\n", old, d->data.byteVal);
+        free(old);
+        break;
+      }
+      case DT_SHORT: {
+        char *old = data;
+        data = format("%s\tdw %hu\n", old, d->data.shortVal);
+        free(old);
+        break;
+      }
+      case DT_INT: {
+        char *old = data;
+        data = format("%s\tdd %u\n", old, d->data.intVal);
+        free(old);
+        break;
+      }
+      case DT_LONG: {
+        char *old = data;
+        data = format("%s\tdq %lu\n", old, d->data.longVal);
+        free(old);
+        break;
+      }
+      case DT_PADDING: {
+        char *old = data;
+        data = format("%s\tresb %zu\n", old, d->data.paddingLength);
+        free(old);
+        break;
+      }
+      case DT_STRING: {
+        for (uint8_t *in = d->data.string; *in != 0; ++in) {
+          char *old = data;
+          data = format("%s\tdb %hhu\n", old, *in);
+          free(old);
+        }
+        char *old = data;
+        data = format("%s\tdb 0\n", old);
+        free(old);
+        break;
+      }
+      case DT_WSTRING: {
+        for (uint32_t *in = d->data.wstring; *in != 0; ++in) {
+          char *old = data;
+          data = format("%s\tdd %u\n", old, *in);
+          free(old);
+        }
+        char *old = data;
+        data = format("%s\tdd 0\n", old);
+        free(old);
+        break;
+      }
+      case DT_LABEL: {
+        char *old = data;
+        data = format("%s\tdq L%zu\n", old, d->data.label);
+        free(old);
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__, "invalid datum type");
+      }
+    }
+  }
+
+  X86_64LinuxFrag *retval =
+      x86_64LinuxDataFragCreate(format("%s%s%s.end\n", section, name, data));
+  free(section);
+  free(name);
+  free(data);
+  return retval;
+}
+static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag) {
+  X86_64LinuxFrag *assembly = x86_64LinuxTextFragCreate(
+      format("section .text\nglobal %s:function\n%s:\n", frag->name.global,
+             frag->name.global),
+      strdup(".end\n"));
+  IRBlock *b = frag->data.text.blocks.head->next->data;
+  for (ListNode *currInst = b->instructions.head->next;
+       currInst != b->instructions.tail; currInst = currInst->next) {
+    IRInstruction *i = currInst->data;
+    // TODO
+  }
+  return assembly;
+}
+void x86_64LinuxGenerateAsm(void) {
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
+    FileListEntry *file = &fileList.entries[fileIdx];
+    X86_64LinuxFile *asmFile = file->asmFile =
+        x86_64LinuxFileCreate(strdup("lprefix .\n"), strdup(""));
+
+    for (size_t fragIdx = 0; fragIdx < file->irFrags.size; ++fragIdx) {
+      IRFrag *frag = file->irFrags.elements[fragIdx];
+      switch (frag->type) {
+        case FT_BSS:
+        case FT_RODATA:
+        case FT_DATA: {
+          vectorInsert(&asmFile->frags, x86_64LinuxGenerateDataAsm(frag));
+          break;
+        }
+        case FT_TEXT: {
+          vectorInsert(&asmFile->frags, x86_64LinuxGenerateTextAsm(frag));
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid fragment type");
+        }
+      }
+    }
+  }
 }
