@@ -21,8 +21,10 @@
 
 #include "fileList.h"
 #include "ir/ir.h"
+#include "translation/translation.h"
 #include "util/container/stringBuilder.h"
 #include "util/internalError.h"
+#include "util/numericSizing.h"
 
 size_t const X86_64_LINUX_REGISTER_WIDTH = 8;
 size_t const X86_64_LINUX_STACK_ALIGNMENT = 16;
@@ -50,7 +52,7 @@ X86_64LinuxOperand *x86_64LinuxRegOperandCreate(X86_64LinuxRegister reg) {
   retval->data.reg.reg = reg;
   return retval;
 }
-X86_64LinuxOperand *x86_64LinuxTempOperandCreate(IROperand *temp) {
+X86_64LinuxOperand *x86_64LinuxTempOperandCreateCopy(IROperand const *temp) {
   X86_64LinuxOperand *retval = x86_64LinuxOperandCreate(X86_64_LINUX_OK_TEMP);
   retval->data.temp.name = temp->data.temp.name;
   retval->data.temp.alignment = temp->data.temp.alignment;
@@ -58,9 +60,26 @@ X86_64LinuxOperand *x86_64LinuxTempOperandCreate(IROperand *temp) {
   retval->data.temp.kind = temp->data.temp.kind;
   return retval;
 }
+X86_64LinuxOperand *x86_64LinuxTempOperandCreatePatch(IROperand const *temp,
+                                                      size_t name,
+                                                      AllocHint kind) {
+  X86_64LinuxOperand *retval = x86_64LinuxOperandCreate(X86_64_LINUX_OK_TEMP);
+  retval->data.temp.name = name;
+  retval->data.temp.alignment = temp->data.temp.alignment;
+  retval->data.temp.size = temp->data.temp.size;
+  retval->data.temp.kind = kind;
+  return retval;
+}
 X86_64LinuxOperand *x86_64LinuxOffsetOperandCreate(int64_t offset) {
   X86_64LinuxOperand *retval = x86_64LinuxOperandCreate(X86_64_LINUX_OK_OFFSET);
   retval->data.offset.offset = offset;
+  return retval;
+}
+X86_64LinuxOperand *x86_64LinuxAddrofOperandCreate(IROperand const *who,
+                                                   int64_t offset) {
+  X86_64LinuxOperand *retval = x86_64LinuxOperandCreate(X86_64_LINUX_OK_ADDROF);
+  retval->data.addrof.who = who->data.temp.name;
+  retval->data.addrof.offset = offset;
   return retval;
 }
 void x86_64LinuxOperandFree(X86_64LinuxOperand *o) { free(o); }
@@ -264,7 +283,99 @@ static X86_64LinuxFrag *x86_64LinuxGenerateDataAsm(IRFrag *frag) {
   free(data);
   return retval;
 }
-static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag) {
+static X86_64LinuxInstruction *INST(X86_64LinuxInstructionKind kind,
+                                    char *skeleton) {
+  return x86_64LinuxInstructionCreate(kind, skeleton);
+}
+static void DEFINES(X86_64LinuxInstruction *i, X86_64LinuxOperand *arg) {
+  vectorInsert(&i->defines, arg);
+}
+static void USES(X86_64LinuxInstruction *i, X86_64LinuxOperand *arg) {
+  vectorInsert(&i->uses, arg);
+}
+static void OTHER(X86_64LinuxInstruction *i, X86_64LinuxOperand *arg) {
+  vectorInsert(&i->other, arg);
+}
+static void DONE(X86_64LinuxFrag *assembly, X86_64LinuxInstruction *i) {
+  insertNodeEnd(&assembly->data.text.instructions, i);
+}
+/**
+ * encode a non-label constant as a 64 bit unsigned integer
+ *
+ * @param constant constant to encode - must be 8 bytes or smaller
+ * @returns encoded value
+ */
+static uint64_t datumToNumber(IROperand *constant) {
+  uint8_t bytes[8];
+  memset(&bytes, 0, 8);
+
+  // encode into bytes
+  size_t next = 0;
+  for (size_t idx = 0; idx < constant->data.constant.data.size; ++idx) {
+    IRDatum const *datum = constant->data.constant.data.elements[idx];
+    switch (datum->type) {
+      case DT_BYTE: {
+        bytes[next] = datum->data.byteVal;
+        next += 1;
+        break;
+      }
+      case DT_SHORT: {
+        bytes[next] = (uint8_t)(datum->data.shortVal >> 0) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.shortVal >> 8) & 0xff;
+        next += 1;
+        break;
+      }
+      case DT_INT: {
+        bytes[next] = (uint8_t)(datum->data.intVal >> 0) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.intVal >> 8) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.intVal >> 16) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.intVal >> 24) & 0xff;
+        next += 1;
+        break;
+      }
+      case DT_LONG: {
+        bytes[next] = (uint8_t)(datum->data.longVal >> 0) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.longVal >> 8) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.longVal >> 16) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.longVal >> 24) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.longVal >> 32) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.longVal >> 40) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.longVal >> 48) & 0xff;
+        next += 1;
+        bytes[next] = (uint8_t)(datum->data.longVal >> 56) & 0xff;
+        next += 1;
+        break;
+      }
+      case DT_PADDING: {
+        next += datum->data.paddingLength;
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__, "invalid datum type");
+      }
+    }
+  }
+
+  // encode into little-endian
+  uint64_t out = 0;
+  for (size_t idx = 0; idx < 8; ++idx) {
+    out <<= 8;
+    out |= bytes[idx];
+  }
+  return out;
+}
+static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
+                                                   FileListEntry *file) {
   X86_64LinuxFrag *assembly = x86_64LinuxTextFragCreate(
       format("section .text\nglobal %s:function\n%s:\n", frag->name.global,
              frag->name.global),
@@ -272,8 +383,511 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag) {
   IRBlock *b = frag->data.text.blocks.head->next->data;
   for (ListNode *currInst = b->instructions.head->next;
        currInst != b->instructions.tail; currInst = currInst->next) {
-    IRInstruction *i = currInst->data;
-    // TODO
+    IRInstruction *ir = currInst->data;
+    X86_64LinuxInstruction *i;
+    switch (ir->op) {
+      case IO_LABEL: {
+        i = INST(X86_64_LINUX_IK_LABEL,
+                 format("L%zu:\n", ir->args[0]->data.local.name));
+        i->data.labelName = ir->args[0]->data.local.name;
+        DONE(assembly, i);
+        break;
+      }
+      case IO_VOLATILE: {
+        i = INST(X86_64_LINUX_IK_REGULAR, strdup(""));
+        USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+        DONE(assembly, i);
+        break;
+      }
+      case IO_UNINITIALIZED: {
+        break;  // not translated
+      }
+      case IO_ADDROF: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: mem temp
+
+        if (ir->args[0]->kind == OK_REG) {
+          // case: arg 0 == reg
+          // lea <reg 0>, <temp 1>
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
+          DEFINES(i, x86_64LinuxRegOperandCreate(ir->args[0]->data.reg.name));
+          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+          DONE(assembly, i);
+          // TODO: this temp must be considered "always live"
+        } else if (ir->args[0]->kind == OK_TEMP &&
+                   ir->args[0]->data.temp.kind == AH_GP) {
+          // case: arg 0 == gp temp
+          // lea <gp temp 0>, <temp 1>
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
+          DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+          DONE(assembly, i);
+          // TODO: this temp must be considered "always live"
+        } else {
+          // case: arg 0 == mem temp
+          // lea <patch temp>, <temp 1>
+          // mov <mem temp 0>, <patch temp>
+          size_t patchName = fresh(file);
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
+          DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
+                                                       AH_GP));
+          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+          insertNodeEnd(&assembly->data.text.instructions, i);
+
+          i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+          USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
+                                                    AH_GP));
+          DONE(assembly, i);
+          // TODO: this temp must be considered "always live"
+        }
+        break;
+      }
+      case IO_NOP: {
+        // TODO: don't need to eliminate nops - we do that here
+        break;  // not translated
+      }
+      case IO_MOVE: {
+        // arg 0: reg, non-mem temp, mem temp
+        // arg 1: reg, non-mem temp, mem temp, constant, global label, local
+        // label
+
+        if ((ir->args[0]->kind == OK_REG ||
+             (ir->args[0] == OK_TEMP &&
+              (ir->args[0]->data.temp.kind == AH_GP ||
+               ir->args[0]->data.temp.kind == AH_FP))) ||
+            ((ir->args[0]->kind == OK_TEMP &&
+              ir->args[0]->data.temp.kind == AH_MEM) &&
+             !(ir->args[1]->kind != OK_TEMP &&
+               ir->args[1]->data.temp.kind != AH_MEM))) {
+          // case: arg 0 == reg | non-mem temp, arg 1 == *
+          //    OR arg 0 == mem-temp, arg 1 != mem-temp
+          // mov <arg 0>, <arg 1>
+          if (ir->args[1]->kind == OK_CONSTANT) {
+            // subcase: arg 1 == const
+            // mov <arg 0>, <constant 1>
+
+            IRDatum *first = ir->args[1]->data.constant.data.elements[0];
+            if (first->type == DT_LABEL) {
+              // subsubcase: arg 1 == label constant
+              // mov <arg 0>, <label constant 1>
+              i = INST(X86_64_LINUX_IK_REGULAR,
+                       format("\tmov `d, L%zu\n", first->data.label));
+            } else {
+              // subsubcase: arg 1 != label constant
+              // mov <arg 0>, <constant 1>
+              i = INST(X86_64_LINUX_IK_REGULAR,
+                       format("\tmov `d, %zu\n", datumToNumber(ir->args[1])));
+            }
+          } else if (ir->args[1]->kind == OK_GLOBAL) {
+            // subcase: arg 1 == global
+            // mov <arg 0>, <global 1>
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tmov `d, %s\n", ir->args[1]->data.global.name));
+          } else if (ir->args[1]->kind == OK_LOCAL) {
+            // subcase: arg 1 == local
+            // mov <arg 0>, <local 1>
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tmov `d, L%zu\n", ir->args[1]->data.local.name));
+          } else {
+            // subcase: arg 1 == reg | temp
+            i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));
+            USES(i,
+                 ir->args[1]->kind == OK_REG
+                     ? x86_64LinuxRegOperandCreate(ir->args[1]->data.reg.name)
+                     : x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+          }
+          DEFINES(i,
+                  ir->args[0]->kind == OK_REG
+                      ? x86_64LinuxRegOperandCreate(ir->args[0]->data.reg.name)
+                      : x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+          DONE(assembly, i);
+        } else {
+          // case: arg 0 == mem temp, arg 1 == mem temp
+          size_t moveSize = ir->args[0]->data.temp.size;
+          if (moveSize == 1 || moveSize == 2 || moveSize == 4 ||
+              moveSize == 8) {
+            // subcase: can patch through a temp
+            // mov <patch temp>, <temp 1>
+            // mov <temp 0>, <patch temp>
+            size_t patchName = fresh(file);
+            i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
+                                                         AH_GP));
+            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+            USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
+                                                      AH_GP));
+            DONE(assembly, i);
+          } else {
+            // subcase: must do a 'memcpy'
+            // lea rsi, <temp 1>
+            // lea rdi, <temp 0>
+            // mov rcx, <sizeof move / multiple>
+            // rep movs<multiple>
+            i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
+            DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI));
+            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
+            DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI));
+            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+            DONE(assembly, i);
+
+            size_t scale;
+            if (moveSize % 8 == 0) {
+              scale = 8;
+            } else if (moveSize % 4 == 0) {
+              scale = 4;
+            } else if (moveSize % 2 == 0) {
+              scale = 2;
+            } else {
+              scale = 1;
+            }
+
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tmov `d, %zu\n", moveSize / scale));
+            DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX));
+            DONE(assembly, i);
+
+            switch (scale) {
+              case 8: {
+                i = INST(X86_64_LINUX_IK_REGULAR, strdup("\trep movsq\n"));
+                break;
+              }
+              case 4: {
+                i = INST(X86_64_LINUX_IK_REGULAR, strdup("\trep movsd\n"));
+                break;
+              }
+              case 2: {
+                i = INST(X86_64_LINUX_IK_REGULAR, strdup("\trep movsw\n"));
+                break;
+              }
+              case 1: {
+                i = INST(X86_64_LINUX_IK_REGULAR, strdup("\trep movsb\n"));
+                break;
+              }
+            }
+            USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI));
+            USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI));
+            USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX));
+            DONE(assembly, i);
+          }
+        }
+        break;
+      }
+      case IO_MEM_STORE: {
+        // TODO
+        break;
+      }
+      case IO_MEM_LOAD: {
+        // TODO
+        break;
+      }
+      case IO_STK_STORE: {
+        // TODO
+        break;
+      }
+      case IO_STK_LOAD: {
+        // TODO
+        break;
+      }
+      case IO_OFFSET_STORE: {
+        // TODO
+        break;
+      }
+      case IO_OFFSET_LOAD: {
+        // TODO
+        break;
+      }
+      case IO_ADD: {
+        // TODO
+        break;
+      }
+      case IO_SUB: {
+        // TODO
+        break;
+      }
+      case IO_SMUL: {
+        // TODO
+        break;
+      }
+      case IO_UMUL: {
+        // TODO
+        break;
+      }
+      case IO_SDIV: {
+        // TODO
+        break;
+      }
+      case IO_UDIV: {
+        // TODO
+        break;
+      }
+      case IO_SMOD: {
+        // TODO
+        break;
+      }
+      case IO_UMOD: {
+        // TODO
+        break;
+      }
+      case IO_FADD: {
+        // TODO
+        break;
+      }
+      case IO_FSUB: {
+        // TODO
+        break;
+      }
+      case IO_FMUL: {
+        // TODO
+        break;
+      }
+      case IO_FDIV: {
+        // TODO
+        break;
+      }
+      case IO_FMOD: {
+        // TODO
+        break;
+      }
+      case IO_NEG: {
+        // TODO
+        break;
+      }
+      case IO_FNEG: {
+        // TODO
+        break;
+      }
+      case IO_SLL: {
+        // TODO
+        break;
+      }
+      case IO_SLR: {
+        // TODO
+        break;
+      }
+      case IO_SAR: {
+        // TODO
+        break;
+      }
+      case IO_AND: {
+        // TODO
+        break;
+      }
+      case IO_XOR: {
+        // TODO
+        break;
+      }
+      case IO_OR: {
+        // TODO
+        break;
+      }
+      case IO_NOT: {
+        // TODO
+        break;
+      }
+      case IO_L: {
+        // TODO
+        break;
+      }
+      case IO_LE: {
+        // TODO
+        break;
+      }
+      case IO_E: {
+        // TODO
+        break;
+      }
+      case IO_NE: {
+        // TODO
+        break;
+      }
+      case IO_G: {
+        // TODO
+        break;
+      }
+      case IO_GE: {
+        // TODO
+        break;
+      }
+      case IO_A: {
+        // TODO
+        break;
+      }
+      case IO_AE: {
+        // TODO
+        break;
+      }
+      case IO_B: {
+        // TODO
+        break;
+      }
+      case IO_BE: {
+        // TODO
+        break;
+      }
+      case IO_FL: {
+        // TODO
+        break;
+      }
+      case IO_FLE: {
+        // TODO
+        break;
+      }
+      case IO_FE: {
+        // TODO
+        break;
+      }
+      case IO_FNE: {
+        // TODO
+        break;
+      }
+      case IO_FG: {
+        // TODO
+        break;
+      }
+      case IO_FGE: {
+        // TODO
+        break;
+      }
+      case IO_Z: {
+        // TODO
+        break;
+      }
+      case IO_NZ: {
+        // TODO
+        break;
+      }
+      case IO_LNOT: {
+        // TODO
+        break;
+      }
+      case IO_SX: {
+        // TODO
+        break;
+      }
+      case IO_ZX: {
+        // TODO
+        break;
+      }
+      case IO_TRUNC: {
+        // TODO
+        break;
+      }
+      case IO_U2F: {
+        // TODO
+        break;
+      }
+      case IO_S2F: {
+        // TODO
+        break;
+      }
+      case IO_FRESIZE: {
+        // TODO
+        break;
+      }
+      case IO_F2I: {
+        // TODO
+        break;
+      }
+      case IO_JUMP: {
+        // TODO
+        break;
+      }
+      case IO_JUMPTABLE: {
+        // TODO
+        break;
+      }
+      case IO_J1L: {
+        // TODO
+        break;
+      }
+      case IO_J1LE: {
+        // TODO
+        break;
+      }
+      case IO_J1E: {
+        // TODO
+        break;
+      }
+      case IO_J1NE: {
+        // TODO
+        break;
+      }
+      case IO_J1G: {
+        // TODO
+        break;
+      }
+      case IO_J1GE: {
+        // TODO
+        break;
+      }
+      case IO_J1A: {
+        // TODO
+        break;
+      }
+      case IO_J1AE: {
+        // TODO
+        break;
+      }
+      case IO_J1B: {
+        // TODO
+        break;
+      }
+      case IO_J1BE: {
+        // TODO
+        break;
+      }
+      case IO_J1FL: {
+        // TODO
+        break;
+      }
+      case IO_J1FLE: {
+        // TODO
+        break;
+      }
+      case IO_J1FE: {
+        // TODO
+        break;
+      }
+      case IO_J1FNE: {
+        // TODO
+        break;
+      }
+      case IO_J1FG: {
+        // TODO
+        break;
+      }
+      case IO_J1FGE: {
+        // TODO
+        break;
+      }
+      case IO_J1Z: {
+        // TODO
+        break;
+      }
+      case IO_J1NZ: {
+        // TODO
+        break;
+      }
+      case IO_CALL: {
+        // TODO
+        break;
+      }
+      case IO_RETURN: {
+        // TODO
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__, "invalid IR opcode");
+      }
+    }
   }
   return assembly;
 }
@@ -293,7 +907,7 @@ void x86_64LinuxGenerateAsm(void) {
           break;
         }
         case FT_TEXT: {
-          vectorInsert(&asmFile->frags, x86_64LinuxGenerateTextAsm(frag));
+          vectorInsert(&asmFile->frags, x86_64LinuxGenerateTextAsm(frag, file));
           break;
         }
         default: {

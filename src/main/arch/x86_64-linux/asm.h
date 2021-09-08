@@ -76,6 +76,7 @@ typedef enum {
   X86_64_LINUX_OK_REG,
   X86_64_LINUX_OK_TEMP,
   X86_64_LINUX_OK_OFFSET,
+  X86_64_LINUX_OK_ADDROF,
 } X86_64LinuxOperandKind;
 typedef struct {
   X86_64LinuxOperandKind kind;
@@ -92,11 +93,20 @@ typedef struct {
     struct {
       int64_t offset;
     } offset;
+    struct {
+      size_t who;
+      int64_t offset;
+    } addrof;
   } data;
 } X86_64LinuxOperand;
 X86_64LinuxOperand *x86_64LinuxRegOperandCreate(X86_64LinuxRegister reg);
-X86_64LinuxOperand *x86_64LinuxTempOperandCreate(IROperand *temp);
+X86_64LinuxOperand *x86_64LinuxTempOperandCreateCopy(IROperand const *temp);
+X86_64LinuxOperand *x86_64LinuxTempOperandCreatePatch(IROperand const *temp,
+                                                      size_t name,
+                                                      AllocHint kind);
 X86_64LinuxOperand *x86_64LinuxOffsetOperandCreate(int64_t offset);
+X86_64LinuxOperand *x86_64LinuxAddrofOperandCreate(IROperand const *who,
+                                                   int64_t offset);
 void x86_64LinuxOperandFree(X86_64LinuxOperand *o);
 
 typedef enum {
@@ -111,11 +121,16 @@ typedef enum {
 typedef struct {
   X86_64LinuxInstructionKind kind;
   /**
-   * format string
+   * format string:
+   * `d for a define
+   * `u for a use
+   * `o for other
+   * `` for a literal backtick
    */
   char *skeleton;
-  Vector defines; /**< vector of X86_64LinuxOperand */
+  Vector defines; /**< vector of X86_64LinuxOperand (only reg or temp) */
   Vector uses;    /**< vector of X86_64LinuxOperand */
+  Vector other;   /**< vector of X86_64LinuxOperand */
   union {
     SizeVector jumpTargets; /**< vector of uintptr_t */
     size_t labelName;
