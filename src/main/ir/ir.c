@@ -618,7 +618,6 @@ char const *const IROPERAND_NAMES[] = {
     "TEMP", "REG", "CONSTANT", "GLOBAL", "LOCAL",
 };
 char const *const ALLOCHINT_NAMES[] = {
-    "NONE",
     "GP",
     "MEM",
     "FP",
@@ -1075,13 +1074,6 @@ static int validateIr(char const *phase, bool blocked) {
                 break;
               }
               case IO_NOP: {
-                if (!blocked) {
-                  fprintf(stderr,
-                          "%s: internal compiler error: IR validation after %s "
-                          "failed - nop encountered in scheduled IR\n",
-                          file->inputFilename, phase);
-                  file->errored = true;
-                }
                 break;
               }
               case IO_MOVE: {

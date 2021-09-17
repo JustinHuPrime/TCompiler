@@ -1,6 +1,8 @@
 testFiles/translation/x86_64-linux/input/compoundStmt.tc:
 TEXT(GLOBAL(_T3foo3bar),
   BLOCK(0,
+    NOP(),
+    NOP(),
     RETURN(),
   ),
 )

@@ -4,6 +4,8 @@ TEXT(GLOBAL(_T3foo3bar),
     JUMP(LOCAL(6)),
   ),
   BLOCK(6,
+    NOP(),
+    NOP(),
     RETURN(),
   ),
 )
