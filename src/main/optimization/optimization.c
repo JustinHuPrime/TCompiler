@@ -436,27 +436,6 @@ static void deadTempElimination(LinkedList *blocks, size_t maxTemps) {
   }
 }
 
-/**
- * nop elimination
- */
-static void nopElimination(LinkedList *blocks) {
-  for (ListNode *currBlock = blocks->head->next; currBlock != blocks->tail;
-       currBlock = currBlock->next) {
-    IRBlock *block = currBlock->data;
-    for (ListNode *currInst = block->instructions.head->next;
-         currInst != block->instructions.tail;) {
-      IRInstruction *i = currInst->data;
-      if (i->op == IO_NOP) {
-        ListNode *toRemove = currInst;
-        currInst = currInst->next;
-        irInstructionFree(removeNode(toRemove));
-      } else {
-        currInst = currInst->next;
-      }
-    }
-  }
-}
-
 void optimizeBlockedIr(void) {
   for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     FileListEntry *file = &fileList.entries[fileIdx];
@@ -485,7 +464,6 @@ void optimizeBlockedIr(void) {
         deadBlockElimination(blocks, irFrags);
         // TODO: dead label elimination
         deadTempElimination(blocks, file->nextId);
-        nopElimination(blocks);
       }
     }
   }

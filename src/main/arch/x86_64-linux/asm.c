@@ -450,7 +450,6 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         break;
       }
       case IO_NOP: {
-        // TODO: don't need to eliminate nops - we do that here
         break;  // not translated
       }
       case IO_MOVE: {
