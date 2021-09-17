@@ -130,9 +130,14 @@ IRDatum *wstringDatumCreate(uint32_t *wstring) {
   d->data.wstring = wstring;
   return d;
 }
-IRDatum *labelDatumCreate(size_t label) {
-  IRDatum *d = datumCreate(DT_LABEL);
-  d->data.label = label;
+IRDatum *localLabelDatumCreate(size_t label) {
+  IRDatum *d = datumCreate(DT_LOCAL);
+  d->data.localLabel = label;
+  return d;
+}
+IRDatum *globalLabelDatumCreate(char *label) {
+  IRDatum *d = datumCreate(DT_GLOBAL);
+  d->data.globalLabel = label;
   return d;
 }
 void irDatumFree(IRDatum *d) {
@@ -143,6 +148,10 @@ void irDatumFree(IRDatum *d) {
     }
     case DT_WSTRING: {
       free(d->data.wstring);
+      break;
+    }
+    case DT_GLOBAL: {
+      free(d->data.globalLabel);
       break;
     }
     default: {
@@ -174,8 +183,11 @@ IRDatum *irDatumCopy(IRDatum const *d) {
     case DT_WSTRING: {
       return wstringDatumCreate(twstrdup(d->data.wstring));
     }
-    case DT_LABEL: {
-      return labelDatumCreate(d->data.label);
+    case DT_LOCAL: {
+      return localLabelDatumCreate(d->data.localLabel);
+    }
+    case DT_GLOBAL: {
+      return globalLabelDatumCreate(strdup(d->data.globalLabel));
     }
     default: {
       error(__FILE__, __LINE__, "invalid DatumType");
@@ -205,7 +217,7 @@ static size_t irDatumSizeof(IRDatum const *d) {
     case DT_WSTRING: {
       return (twstrlen(d->data.wstring) + 1) * WCHAR_WIDTH;
     }
-    case DT_LABEL: {
+    case DT_LOCAL: {
       return POINTER_WIDTH;
     }
     default: {

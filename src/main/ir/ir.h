@@ -84,7 +84,8 @@ typedef enum {
   DT_PADDING,
   DT_STRING,
   DT_WSTRING,
-  DT_LABEL,
+  DT_LOCAL,
+  DT_GLOBAL,
 } DatumType;
 /** a data element - handles endianness */
 typedef struct {
@@ -97,7 +98,8 @@ typedef struct {
     size_t paddingLength;
     uint8_t *string;
     uint32_t *wstring;
-    size_t label;  // TODO: split this into local and global labels
+    size_t localLabel;
+    char *globalLabel;
   } data;
 } IRDatum;
 
@@ -109,7 +111,7 @@ IRDatum *longDatumCreate(uint64_t val);
 IRDatum *paddingDatumCreate(size_t len);
 IRDatum *stringDatumCreate(uint8_t *string);
 IRDatum *wstringDatumCreate(uint32_t *wstring);
-IRDatum *labelDatumCreate(size_t label);
+IRDatum *localLabelDatumCreate(size_t label);
 /** copy */
 IRDatum *irDatumCopy(IRDatum const *d);
 /** dtor */

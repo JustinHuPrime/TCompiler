@@ -63,8 +63,12 @@ static void datumDump(FILE *where, IRDatum *datum) {
       fprintf(where, ")");
       break;
     }
-    case DT_LABEL: {
-      fprintf(where, "LABEL(LOCAL(%zu))", datum->data.label);
+    case DT_LOCAL: {
+      fprintf(where, "LABEL(LOCAL(%zu))", datum->data.localLabel);
+      break;
+    }
+    case DT_GLOBAL: {
+      fprintf(where, "LABEL(GLOBAL(%s))", datum->data.globalLabel);
       break;
     }
   }

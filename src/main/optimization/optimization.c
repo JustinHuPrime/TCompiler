@@ -119,7 +119,7 @@ static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks,
       IRFrag *table = findFrag(frags, last->args[1]->data.local.name);
       for (size_t idx = 0; idx < table->data.data.data.size; ++idx) {
         IRDatum *datum = table->data.data.data.elements[idx];
-        markReachable(findBlock(blocks, datum->data.label), seen, blocks,
+        markReachable(findBlock(blocks, datum->data.localLabel), seen, blocks,
                       frags);
       }
       break;
@@ -171,8 +171,8 @@ static void deadBlockElimination(LinkedList *blocks, Vector *frags) {
         Vector *data = &f->data.data.data;
         for (size_t datumIdx = 0; datumIdx < data->size; ++datumIdx) {
           IRDatum *datum = data->elements[datumIdx];
-          if (datum->type == DT_LABEL) {
-            IRBlock *found = findBlock(blocks, datum->data.label);
+          if (datum->type == DT_LOCAL) {
+            IRBlock *found = findBlock(blocks, datum->data.localLabel);
             if (found != NULL) markReachable(found, seen, blocks, frags);
           }
         }
@@ -483,7 +483,7 @@ static void deadLabelElimination(LinkedList *instructions, Vector *frags,
         Vector *data = &f->data.data.data;
         for (size_t datumIdx = 0; datumIdx < data->size; ++datumIdx) {
           IRDatum *datum = data->elements[datumIdx];
-          if (datum->type == DT_LABEL) seen[datum->data.label] = true;
+          if (datum->type == DT_LOCAL) seen[datum->data.localLabel] = true;
         }
       }
       default: {
@@ -504,7 +504,7 @@ static void deadLabelElimination(LinkedList *instructions, Vector *frags,
         IRFrag *table = findFrag(frags, i->args[1]->data.local.name);
         for (size_t idx = 0; idx < table->data.data.data.size; ++idx) {
           IRDatum *datum = table->data.data.data.elements[idx];
-          seen[datum->data.label] = true;
+          seen[datum->data.localLabel] = true;
         }
         break;
       }

@@ -167,7 +167,7 @@ static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks,
       IRFrag *table = findFrag(frags, last->args[1]->data.local.name);
       for (size_t idx = 0; idx < table->data.data.data.size; ++idx) {
         IRDatum *datum = table->data.data.data.elements[idx];
-        IRBlock *found = findBlock(blocks, datum->data.label);
+        IRBlock *found = findBlock(blocks, datum->data.localLabel);
         if (found != NULL) scheduleBlock(found, out, blocks, frags);
       }
       break;

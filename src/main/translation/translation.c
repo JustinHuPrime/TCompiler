@@ -605,7 +605,7 @@ static void translateInitializer(Vector *data, Vector *irFrags,
       // note - null pointers handled as bss blocks
       if (initializer->data.literal.literalType == LT_STRING) {
         size_t label = fresh(file);
-        vectorInsert(data, labelDatumCreate(label));
+        vectorInsert(data, localLabelDatumCreate(label));
         IRFrag *df = localDataFragCreate(FT_RODATA, label, CHAR_WIDTH);
         vectorInsert(&df->data.data.data,
                      stringDatumCreate(
@@ -613,7 +613,7 @@ static void translateInitializer(Vector *data, Vector *irFrags,
         vectorInsert(irFrags, df);
       } else {
         size_t label = fresh(file);
-        vectorInsert(data, labelDatumCreate(label));
+        vectorInsert(data, localLabelDatumCreate(label));
         IRFrag *df = localDataFragCreate(FT_RODATA, label, WCHAR_WIDTH);
         vectorInsert(&df->data.data.data,
                      wstringDatumCreate(
@@ -2531,7 +2531,7 @@ static void translateValueLiteral(Node const *e, IRFrag *df,
               stringDatumCreate(tstrdup(e->data.literal.data.stringVal)));
           vectorInsert(&file->irFrags, df);
 
-          vectorInsert(&df->data.data.data, labelDatumCreate(dataLabel));
+          vectorInsert(&df->data.data.data, localLabelDatumCreate(dataLabel));
           break;
         }
         case LT_CHAR: {
@@ -2547,7 +2547,7 @@ static void translateValueLiteral(Node const *e, IRFrag *df,
               wstringDatumCreate(twstrdup(e->data.literal.data.wstringVal)));
           vectorInsert(&file->irFrags, df);
 
-          vectorInsert(&df->data.data.data, labelDatumCreate(dataLabel));
+          vectorInsert(&df->data.data.data, localLabelDatumCreate(dataLabel));
           break;
         }
         case LT_WCHAR: {
@@ -3060,7 +3060,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
 
           IRBlock *b = BLOCK(label, blocks);
           IR(b, JUMP(nextLabel));
-          return CONSTANT(POINTER_WIDTH, labelDatumCreate(dataLabel));
+          return CONSTANT(POINTER_WIDTH, localLabelDatumCreate(dataLabel));
         }
         case LT_CHAR: {
           IRBlock *b = BLOCK(label, blocks);
@@ -3078,7 +3078,7 @@ static IROperand *translateExpressionValue(LinkedList *blocks, Node const *e,
 
           IRBlock *b = BLOCK(label, blocks);
           IR(b, JUMP(nextLabel));
-          return CONSTANT(POINTER_WIDTH, labelDatumCreate(dataLabel));
+          return CONSTANT(POINTER_WIDTH, localLabelDatumCreate(dataLabel));
         }
         case LT_WCHAR: {
           IRBlock *b = BLOCK(label, blocks);
@@ -3793,7 +3793,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
             vectorInsert(&file->irFrags, table);
             for (size_t blockIdx = entryIdx; blockIdx <= end; ++blockIdx)
               vectorInsert(&table->data.data.data,
-                           labelDatumCreate(jumpTable[blockIdx].label));
+                           localLabelDatumCreate(jumpTable[blockIdx].label));
 
             size_t gtFallthroughLabel = fresh(file);
             IRBlock *b = BLOCK(curr, blocks);
@@ -3862,7 +3862,7 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
             vectorInsert(&file->irFrags, table);
             for (size_t blockIdx = entryIdx; blockIdx <= end; ++blockIdx)
               vectorInsert(&table->data.data.data,
-                           labelDatumCreate(jumpTable[blockIdx].label));
+                           localLabelDatumCreate(jumpTable[blockIdx].label));
 
             size_t gtFallthroughLabel = fresh(file);
             IRBlock *b = BLOCK(curr, blocks);

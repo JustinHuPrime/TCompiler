@@ -230,9 +230,9 @@ static char *x86_64LinuxDataToString(Vector *v) {
         free(old);
         break;
       }
-      case DT_LABEL: {
+      case DT_LOCAL: {
         char *old = data;
-        data = format("%s\tdq L%zu\n", old, d->data.label);
+        data = format("%s\tdq L%zu\n", old, d->data.localLabel);
         free(old);
         break;
       }
@@ -473,12 +473,12 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
             // mov <arg 0>, <constant 1>
 
             IRDatum *first = ir->args[1]->data.constant.data.elements[0];
-            if (first->type == DT_LABEL &&
+            if (first->type == DT_LOCAL &&
                 ir->args[1]->data.constant.data.size == 1) {
               // subsubcase: arg 1 == label constant
               // mov <arg 0>, <label constant 1>
               i = INST(X86_64_LINUX_IK_REGULAR,
-                       format("\tmov `d, L%zu\n", first->data.label));
+                       format("\tmov `d, L%zu\n", first->data.localLabel));
             } else if (ir->args[1]->kind == OK_REG ||
                        ir->args[1]->data.temp.size == 1 ||
                        ir->args[1]->data.temp.size == 2 ||
