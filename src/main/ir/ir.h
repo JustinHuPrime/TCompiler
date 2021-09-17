@@ -97,7 +97,7 @@ typedef struct {
     size_t paddingLength;
     uint8_t *string;
     uint32_t *wstring;
-    size_t label;
+    size_t label;  // TODO: split this into local and global labels
   } data;
 } IRDatum;
 
@@ -120,7 +120,7 @@ typedef enum {
   OK_TEMP,
   OK_REG,
   OK_CONSTANT,
-  OK_GLOBAL,
+  OK_GLOBAL,  // TODO: fold GLOBAL and LOCAL into CONSTANT
   OK_LOCAL,
 } OperandKind;
 /** an operand in an IR entry */
@@ -184,6 +184,8 @@ IROperand *offsetOperandCreate(int64_t offset);
 IROperand *irOperandCopy(IROperand const *o);
 /** sizeof */
 size_t irOperandSizeof(IROperand const *o);
+/** alignof */
+size_t irOperandAlignof(IROperand const *o);
 /** dtor */
 void irOperandFree(IROperand *);
 
@@ -244,7 +246,7 @@ typedef enum IROperator {
    * three operands
    * 0: REG | TEMP, read, allocation == (GP | MEM) | CONST | GLOBAL | LOCAL;
    * size == POINTER_WIDTH
-   * 1: REG | TEMP, read | GLOBAL | LOCAL | CONST
+   * 1: REG | TEMP, read | CONST | GLOBAL | LOCAL
    * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
    *    POINTER_WIDTH
    */

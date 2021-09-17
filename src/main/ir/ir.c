@@ -300,6 +300,26 @@ size_t irOperandSizeof(IROperand const *o) {
     }
   }
 }
+size_t irOperandAlignof(IROperand const *o) {
+  switch (o->kind) {
+    case OK_TEMP: {
+      return o->data.temp.alignment;
+    }
+    case OK_REG: {
+      return o->data.reg.size;
+    }
+    case OK_CONSTANT: {
+      return o->data.constant.alignment;
+    }
+    case OK_GLOBAL:
+    case OK_LOCAL: {
+      return POINTER_WIDTH;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid IROperandKind");
+    }
+  }
+}
 void irOperandFree(IROperand *o) {
   if (o == NULL) return;
 
@@ -598,6 +618,7 @@ char const *const IROPERAND_NAMES[] = {
     "TEMP", "REG", "CONSTANT", "GLOBAL", "LOCAL",
 };
 char const *const ALLOCHINT_NAMES[] = {
+    "NONE",
     "GP",
     "MEM",
     "FP",
