@@ -89,6 +89,7 @@ typedef struct {
       size_t alignment;
       size_t size;
       AllocHint kind;
+      bool escapes;
     } temp;
     struct {
       int64_t offset;
@@ -100,7 +101,7 @@ typedef struct {
   } data;
 } X86_64LinuxOperand;
 X86_64LinuxOperand *x86_64LinuxRegOperandCreate(X86_64LinuxRegister reg);
-X86_64LinuxOperand *x86_64LinuxTempOperandCreateCopy(IROperand const *temp);
+X86_64LinuxOperand *x86_64LinuxTempOperandCreateCopy(IROperand const *temp, bool escapes);
 X86_64LinuxOperand *x86_64LinuxTempOperandCreatePatch(IROperand const *temp,
                                                       size_t name,
                                                       AllocHint kind);

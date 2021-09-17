@@ -52,12 +52,14 @@ X86_64LinuxOperand *x86_64LinuxRegOperandCreate(X86_64LinuxRegister reg) {
   retval->data.reg.reg = reg;
   return retval;
 }
-X86_64LinuxOperand *x86_64LinuxTempOperandCreateCopy(IROperand const *temp) {
+X86_64LinuxOperand *x86_64LinuxTempOperandCreateCopy(IROperand const *temp,
+                                                     bool escapes) {
   X86_64LinuxOperand *retval = x86_64LinuxOperandCreate(X86_64_LINUX_OK_TEMP);
   retval->data.temp.name = temp->data.temp.name;
   retval->data.temp.alignment = temp->data.temp.alignment;
   retval->data.temp.size = temp->data.temp.size;
   retval->data.temp.kind = temp->data.temp.kind;
+  retval->data.temp.escapes = escapes;
   return retval;
 }
 X86_64LinuxOperand *x86_64LinuxTempOperandCreatePatch(IROperand const *temp,
@@ -68,6 +70,7 @@ X86_64LinuxOperand *x86_64LinuxTempOperandCreatePatch(IROperand const *temp,
   retval->data.temp.alignment = temp->data.temp.alignment;
   retval->data.temp.size = temp->data.temp.size;
   retval->data.temp.kind = kind;
+  retval->data.temp.escapes = false;
   return retval;
 }
 X86_64LinuxOperand *x86_64LinuxOffsetOperandCreate(int64_t offset) {
@@ -402,7 +405,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
       }
       case IO_VOLATILE: {
         i = INST(X86_64_LINUX_IK_REGULAR, strdup(""));
-        USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+        USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
         DONE(assembly, i);
         break;
       }
@@ -418,18 +421,16 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
           // lea <reg 0>, <temp 1>
           i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
           DEFINES(i, x86_64LinuxRegOperandCreate(ir->args[0]->data.reg.name));
-          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], true));
           DONE(assembly, i);
-          // TODO: this temp must be considered "always live"
         } else if (ir->args[0]->kind == OK_TEMP &&
                    ir->args[0]->data.temp.kind == AH_GP) {
           // case: arg 0 == gp temp
           // lea <gp temp 0>, <temp 1>
           i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
-          DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
-          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+          DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
+          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], true));
           DONE(assembly, i);
-          // TODO: this temp must be considered "always live"
         } else {
           // case: arg 0 == mem temp
           // lea <patch temp>, <temp 1>
@@ -438,15 +439,14 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
           i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
           DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
                                                        AH_GP));
-          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], true));
           insertNodeEnd(&assembly->data.text.instructions, i);
 
           i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));
-          DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+          DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
           USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
                                                     AH_GP));
           DONE(assembly, i);
-          // TODO: this temp must be considered "always live"
         }
         break;
       }
@@ -515,7 +515,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
 
               i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
               DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI));
-              USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+              USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
               DONE(assembly, i);
 
               size_t scale;
@@ -555,11 +555,11 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
               USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI));
               USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI));
               USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX));
-              USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+              USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], false));
               DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI));
               DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI));
               DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX));
-              DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+              DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
               DONE(assembly, i);
             }
             // TODO
@@ -581,12 +581,12 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
             USES(i,
                  ir->args[1]->kind == OK_REG
                      ? x86_64LinuxRegOperandCreate(ir->args[1]->data.reg.name)
-                     : x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+                     : x86_64LinuxTempOperandCreateCopy(ir->args[1], false));
           }
           DEFINES(i,
                   ir->args[0]->kind == OK_REG
                       ? x86_64LinuxRegOperandCreate(ir->args[0]->data.reg.name)
-                      : x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+                      : x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
           DONE(assembly, i);
         } else {
           // case: arg 0 == mem temp, arg 1 == mem temp
@@ -600,11 +600,11 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
             i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));
             DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
                                                          AH_GP));
-            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], false));
             DONE(assembly, i);
 
             i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));
-            DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+            DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
             USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
                                                       AH_GP));
             DONE(assembly, i);
@@ -616,11 +616,11 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
             i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmovdqu `d, `u\n"));
             DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
                                                          AH_FP));
-            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], false));
             DONE(assembly, i);
 
             i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmovdqu `d, `u\n"));
-            DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+            DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
             USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
                                                       AH_FP));
             DONE(assembly, i);
@@ -632,12 +632,12 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
             // rep movs<multiple>
             i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
             DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI));
-            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], false));
             DONE(assembly, i);
 
             i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
             DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI));
-            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
             DONE(assembly, i);
 
             size_t scale;
@@ -677,11 +677,11 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
             USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI));
             USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI));
             USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX));
-            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1]));
+            USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], false));
             DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI));
             DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI));
             DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX));
-            DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+            DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
             DONE(assembly, i);
           }
         }
@@ -701,7 +701,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
           i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));
           DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], arg0Patch,
                                                        AH_GP));
-          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
+          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
           DONE(assembly, i);
         }
 
@@ -712,7 +712,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
           i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));
           DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[2], arg0Patch,
                                                        AH_GP));
-          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[2]));
+          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[2], false));
           DONE(assembly, i);
         }
 
