@@ -393,10 +393,11 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
     X86_64LinuxInstruction *i;
     switch (ir->op) {
       case IO_LABEL: {
-        i = INST(X86_64_LINUX_IK_LABEL,
-                 format("L%zu:\n", ir->args[0]->data.local.name));
-        i->data.labelName = ir->args[0]->data.local.name;
-        DONE(assembly, i);
+        // TODO
+        // i = INST(X86_64_LINUX_IK_LABEL,
+        //          format("L%zu:\n", ir->args[0]->data.local.name));
+        // i->data.labelName = ir->args[0]->data.local.name;
+        // DONE(assembly, i);
         break;
       }
       case IO_VOLATILE: {
@@ -561,16 +562,19 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
               DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0]));
               DONE(assembly, i);
             }
-          } else if (ir->args[1]->kind == OK_GLOBAL) {
-            // subcase: arg 1 == global
-            // mov <arg 0>, <global 1>
-            i = INST(X86_64_LINUX_IK_REGULAR,
-                     format("\tmov `d, %s\n", ir->args[1]->data.global.name));
-          } else if (ir->args[1]->kind == OK_LOCAL) {
-            // subcase: arg 1 == local
-            // mov <arg 0>, <local 1>
-            i = INST(X86_64_LINUX_IK_REGULAR,
-                     format("\tmov `d, L%zu\n", ir->args[1]->data.local.name));
+            // TODO
+            // } else if (ir->args[1]->kind == OK_GLOBAL) {
+            //   // subcase: arg 1 == global
+            //   // mov <arg 0>, <global 1>
+            //   i = INST(X86_64_LINUX_IK_REGULAR,
+            //            format("\tmov `d, %s\n",
+            //            ir->args[1]->data.global.name));
+            // } else if (ir->args[1]->kind == OK_LOCAL) {
+            //   // subcase: arg 1 == local
+            //   // mov <arg 0>, <local 1>
+            //   i = INST(X86_64_LINUX_IK_REGULAR,
+            //            format("\tmov `d, L%zu\n",
+            //            ir->args[1]->data.local.name));
           } else {
             // subcase: arg 1 == reg | temp
             i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));

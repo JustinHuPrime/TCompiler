@@ -1,7 +1,7 @@
 testFiles/translation/x86_64-linux/input/compoundStmt.tc:
 TEXT(GLOBAL(_T3foo3bar),
   BLOCK(5,
-    JUMP(LOCAL(6)),
+    JUMP(CONSTANT(8, LOCAL(6))),
   ),
   BLOCK(6,
     NOP(),

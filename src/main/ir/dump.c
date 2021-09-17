@@ -64,11 +64,11 @@ static void datumDump(FILE *where, IRDatum *datum) {
       break;
     }
     case DT_LOCAL: {
-      fprintf(where, "LABEL(LOCAL(%zu))", datum->data.localLabel);
+      fprintf(where, "LOCAL(%zu)", datum->data.localLabel);
       break;
     }
     case DT_GLOBAL: {
-      fprintf(where, "LABEL(GLOBAL(%s))", datum->data.globalLabel);
+      fprintf(where, "GLOBAL(%s)", datum->data.globalLabel);
       break;
     }
   }
@@ -94,14 +94,6 @@ static void operandDump(FILE *where, IROperand *o) {
         datumDump(where, o->data.constant.data.elements[idx]);
       }
       fprintf(where, ")");
-      break;
-    }
-    case OK_GLOBAL: {
-      fprintf(where, "GLOBAL(%s)", o->data.global.name);
-      break;
-    }
-    case OK_LOCAL: {
-      fprintf(where, "LOCAL(%zu)", o->data.local.name);
       break;
     }
   }

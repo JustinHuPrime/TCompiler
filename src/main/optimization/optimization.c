@@ -83,8 +83,8 @@ static void shortCircuitJumps(LinkedList *blocks) {
       IRInstruction *last = b->instructions.tail->prev->data;
       if (last->op == IO_JUMP) {
         IROperand *targetArg = last->args[0];
-        if (targetArg->kind == OK_LOCAL) {
-          size_t target = indexOfBlock(blocks, targetArg->data.local.name);
+        if (irOperandIsLocal(targetArg)) {
+          size_t target = indexOfBlock(blocks, localOperandName(targetArg));
           if (shortCircuits[target] != NULL) {
             irInstructionFree(last);
             b->instructions.tail->prev->data =
@@ -111,12 +111,12 @@ static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks,
   IRInstruction *last = b->instructions.tail->prev->data;
   switch (last->op) {
     case IO_JUMP: {
-      markReachable(findBlock(blocks, last->args[0]->data.local.name), seen,
+      markReachable(findBlock(blocks, localOperandName(last->args[0])), seen,
                     blocks, frags);
       break;
     }
     case IO_JUMPTABLE: {
-      IRFrag *table = findFrag(frags, last->args[1]->data.local.name);
+      IRFrag *table = findFrag(frags, localOperandName(last->args[1]));
       for (size_t idx = 0; idx < table->data.data.data.size; ++idx) {
         IRDatum *datum = table->data.data.data.elements[idx];
         markReachable(findBlock(blocks, datum->data.localLabel), seen, blocks,
@@ -142,9 +142,9 @@ static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks,
     case IO_J2FGE:
     case IO_J2Z:
     case IO_J2NZ: {
-      markReachable(findBlock(blocks, last->args[0]->data.local.name), seen,
+      markReachable(findBlock(blocks, localOperandName(last->args[0])), seen,
                     blocks, frags);
-      markReachable(findBlock(blocks, last->args[1]->data.local.name), seen,
+      markReachable(findBlock(blocks, localOperandName(last->args[1])), seen,
                     blocks, frags);
       break;
     }
@@ -497,11 +497,11 @@ static void deadLabelElimination(LinkedList *instructions, Vector *frags,
     IRInstruction *i = curr->data;
     switch (i->op) {
       case IO_JUMP: {
-        seen[i->args[0]->data.local.name] = true;
+        seen[localOperandName(i->args[0])] = true;
         break;
       }
       case IO_JUMPTABLE: {
-        IRFrag *table = findFrag(frags, i->args[1]->data.local.name);
+        IRFrag *table = findFrag(frags, localOperandName(i->args[1]));
         for (size_t idx = 0; idx < table->data.data.data.size; ++idx) {
           IRDatum *datum = table->data.data.data.elements[idx];
           seen[datum->data.localLabel] = true;
@@ -526,7 +526,7 @@ static void deadLabelElimination(LinkedList *instructions, Vector *frags,
       case IO_J1FGE:
       case IO_J1Z:
       case IO_J1NZ: {
-        seen[i->args[0]->data.local.name] = true;
+        seen[localOperandName(i->args[0])] = true;
         break;
       }
       default: {
@@ -538,7 +538,7 @@ static void deadLabelElimination(LinkedList *instructions, Vector *frags,
 
   for (ListNode *curr = instructions->head->next; curr != instructions->tail;) {
     IRInstruction *i = curr->data;
-    if (i->op == IO_LABEL && !seen[i->args[0]->data.local.name]) {
+    if (i->op == IO_LABEL && !seen[localOperandName(i->args[0])]) {
       ListNode *toRemove = curr;
       curr = curr->next;
       irInstructionFree(removeNode(toRemove));

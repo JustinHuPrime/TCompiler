@@ -51,8 +51,12 @@ IROperand *CONSTANT(size_t alignment, IRDatum *datum) {
   vectorInsert(&o->data.constant.data, datum);
   return o;
 }
-IROperand *LOCAL(size_t name) { return localOperandCreate(name); }
-IROperand *GLOBAL(char *name) { return globalOperandCreate(name); }
+IROperand *LOCAL(size_t name) {
+  return CONSTANT(POINTER_WIDTH, localLabelDatumCreate(name));
+}
+IROperand *GLOBAL(char *name) {
+  return CONSTANT(POINTER_WIDTH, globalLabelDatumCreate(name));
+}
 IROperand *OFFSET(int64_t offset) {
   return CONSTANT(POINTER_WIDTH, longDatumCreate(s64ToU64(offset)));
 }

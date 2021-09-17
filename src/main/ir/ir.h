@@ -112,6 +112,7 @@ IRDatum *paddingDatumCreate(size_t len);
 IRDatum *stringDatumCreate(uint8_t *string);
 IRDatum *wstringDatumCreate(uint32_t *wstring);
 IRDatum *localLabelDatumCreate(size_t label);
+IRDatum *globalLabelDatumCreate(char *label);
 /** copy */
 IRDatum *irDatumCopy(IRDatum const *d);
 /** dtor */
@@ -122,8 +123,6 @@ typedef enum {
   OK_TEMP,
   OK_REG,
   OK_CONSTANT,
-  OK_GLOBAL,  // TODO: fold GLOBAL and LOCAL into CONSTANT
-  OK_LOCAL,
 } OperandKind;
 /** an operand in an IR entry */
 typedef struct IROperand {
@@ -158,19 +157,6 @@ typedef struct IROperand {
       size_t alignment;
       Vector data; /**< Vector of IRDatum */
     } constant;
-    /**
-     * label reference
-     *
-     * alignment = POINTER_WIDTH
-     * size = POINTER_WIDTH
-     * allocation = GP
-     */
-    struct {
-      char *name;
-    } global;
-    struct {
-      size_t name;
-    } local;
   } data;
 } IROperand;
 
@@ -188,6 +174,26 @@ IROperand *irOperandCopy(IROperand const *o);
 size_t irOperandSizeof(IROperand const *o);
 /** alignof */
 size_t irOperandAlignof(IROperand const *o);
+/**
+ * is this operand a label and only a label
+ */
+bool irOperandIsLabel(IROperand const *o);
+/**
+ * is this operand a global and only a global
+ */
+bool irOperandIsGlobal(IROperand const *o);
+/**
+ * is this operand a local and only a local
+ */
+bool irOperandIsLocal(IROperand const *o);
+/**
+ * get the name of this label
+ */
+char const *globalOperandName(IROperand const *o);
+/**
+ * get the name of this label
+ */
+size_t localOperandName(IROperand const *o);
 /** dtor */
 void irOperandFree(IROperand *);
 

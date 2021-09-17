@@ -2,7 +2,7 @@ testFiles/translation/x86_64-linux/input/parameterPassingTypedef.tc:
 TEXT(GLOBAL(_T3foo3bar),
   BLOCK(0,
     MOVE(TEMP(temp6, 4, 4, GP), REG(rdi, 4)),
-    MOVE(TEMP(temp9, 8, 8, GP), GLOBAL(_T3foo3bar)),
+    MOVE(TEMP(temp9, 8, 8, GP), CONSTANT(8, GLOBAL(_T3foo3bar))),
     MOVE(TEMP(temp10, 4, 4, GP), TEMP(temp6, 4, 4, GP)),
     NOP(),
     MOVE(REG(rdi, 4), TEMP(temp10, 4, 4, GP)),

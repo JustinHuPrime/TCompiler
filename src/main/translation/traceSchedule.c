@@ -154,8 +154,8 @@ static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks,
     case IO_JUMP: {
       // if it's a jump to a local, schedule that block and skip the jump,
       // otherwise, copy the jump verbatim
-      if (last->args[0]->kind == OK_LOCAL) {
-        IRBlock *found = findBlock(blocks, last->args[0]->data.local.name);
+      if (irOperandIsLocal(last->args[0])) {
+        IRBlock *found = findBlock(blocks, localOperandName(last->args[0]));
         if (found != NULL) scheduleBlock(found, out, blocks, frags);
       } else {
         copyOverLastInstruction(b, out);
@@ -164,7 +164,7 @@ static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks,
     }
     case IO_JUMPTABLE: {
       copyOverLastInstruction(b, out);
-      IRFrag *table = findFrag(frags, last->args[1]->data.local.name);
+      IRFrag *table = findFrag(frags, localOperandName(last->args[1]));
       for (size_t idx = 0; idx < table->data.data.data.size; ++idx) {
         IRDatum *datum = table->data.data.data.elements[idx];
         IRBlock *found = findBlock(blocks, datum->data.localLabel);
@@ -192,13 +192,13 @@ static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks,
     case IO_J2NZ: {
       // both must be jumps to locals - assume falsehood is more likely
       IR(out, oneArgJumpFromTwoArgJump(last));
-      IRBlock *found = findBlock(blocks, last->args[1]->data.local.name);
+      IRBlock *found = findBlock(blocks, localOperandName(last->args[1]));
       if (found != NULL) {
         scheduleBlock(found, out, blocks, frags);
       } else {
-        IR(out, JUMP(last->args[1]->data.local.name));
+        IR(out, JUMP(localOperandName(last->args[1])));
       }
-      found = findBlock(blocks, last->args[0]->data.local.name);
+      found = findBlock(blocks, localOperandName(last->args[0]));
       if (found != NULL) scheduleBlock(found, out, blocks, frags);
       break;
     }
