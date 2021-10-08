@@ -1,0 +1,11 @@
+module foo;
+
+struct s {
+  char a;
+  char b;
+  char c;
+};
+
+void bar(s a) {
+  bar(a);
+}

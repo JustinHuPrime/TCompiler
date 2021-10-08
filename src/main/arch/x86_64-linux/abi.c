@@ -235,6 +235,31 @@ static X86_64LinuxRegister SSE_RETURN_REGS[] = {
     X86_64_LINUX_XMM1,
 };
 
+static bool isDirectRegisterMovableSize(size_t size) {
+  if (size <= 8)
+    return size == 1 || size == 2 || size == 4 || size == 8;
+  else
+    return size - 8 == 1 || size - 8 == 2 || size - 8 == 4 || size - 8 == 8;
+}
+static size_t padToDirectRegisterMovableSize(size_t size) {
+  if (size <= 1)
+    return 1;
+  else if (size <= 2)
+    return 2;
+  else if (size <= 4)
+    return 4;
+  else if (size <= 8)
+    return 8;
+  else if (size - 8 <= 1)
+    return 8 + 1;
+  else if (size - 8 <= 2)
+    return 8 + 2;
+  else if (size - 8 <= 4)
+    return 8 + 4;
+  else
+    return 8 + 8;
+}
+
 void x86_64LinuxGenerateFunctionEntry(LinkedList *blocks,
                                       SymbolTableEntry *entry,
                                       size_t returnValueAddressTemp,
@@ -267,7 +292,9 @@ void x86_64LinuxGenerateFunctionEntry(LinkedList *blocks,
     size_t numSSE = (argTypeClass[0] == X86_64_LINUX_TC_SSE ? 1U : 0U) +
                     (argTypeClass[1] == X86_64_LINUX_TC_SSE ? 1U : 0U);
 
-    argumentEntry->data.variable.temp = fresh(file);
+    argumentEntry->data.variable.temp =
+        fresh(file);  // TODO: increase the size of the temp if the argument is
+                      // too small
     if (argTypeClass[0] == X86_64_LINUX_TC_MEMORY ||
         gpArgIdx + numGP > GP_ARG_REG_MAX ||
         sseArgIdx + numSSE > SSE_ARG_REG_MAX) {
@@ -278,37 +305,55 @@ void x86_64LinuxGenerateFunctionEntry(LinkedList *blocks,
           incrementToMultiple(typeSizeof(argType), X86_64_LINUX_REGISTER_WIDTH);
     } else {
       // passed in registers
+      IROperand *passingTemp;
+      if (isDirectRegisterMovableSize(typeSizeof(argType)))
+        passingTemp = TEMPVAR(argumentEntry);
+      else
+        passingTemp = TEMP(fresh(file), typeAlignof(argType),
+                           padToDirectRegisterMovableSize(typeSizeof(argType)),
+                           typeAllocation(argType));
+
       if (argTypeClass[0] == X86_64_LINUX_TC_GP &&
           argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
-        IR(b, MOVE(TEMPVAR(argumentEntry),
-                   REG(GP_ARG_REGS[gpArgIdx++], typeSizeof(argType))));
+        IR(b, MOVE(irOperandCopy(passingTemp),
+                   REG(GP_ARG_REGS[gpArgIdx++],
+                       padToDirectRegisterMovableSize(typeSizeof(argType)))));
       else if (argTypeClass[0] == X86_64_LINUX_TC_GP)
         IR(b, OFFSET_STORE(
-                  TEMPVAR(argumentEntry),
+                  irOperandCopy(passingTemp),
                   REG(GP_ARG_REGS[gpArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
                   OFFSET(0)));
       else if (argTypeClass[0] == X86_64_LINUX_TC_SSE &&
                argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
-        IR(b, MOVE(TEMPVAR(argumentEntry),
-                   REG(SSE_ARG_REGS[sseArgIdx++], typeSizeof(argType))));
+        IR(b, MOVE(irOperandCopy(passingTemp),
+                   REG(SSE_ARG_REGS[sseArgIdx++],
+                       padToDirectRegisterMovableSize(typeSizeof(argType)))));
       else if (argTypeClass[0] == X86_64_LINUX_TC_SSE)
         IR(b, OFFSET_STORE(
-                  TEMPVAR(argumentEntry),
+                  irOperandCopy(passingTemp),
                   REG(SSE_ARG_REGS[sseArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
                   OFFSET(0)));
 
       if (argTypeClass[1] == X86_64_LINUX_TC_GP)
-        IR(b,
-           OFFSET_STORE(TEMPVAR(argumentEntry),
-                        REG(GP_ARG_REGS[gpArgIdx++],
-                            typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
-                        OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+        IR(b, OFFSET_STORE(
+                  irOperandCopy(passingTemp),
+                  REG(GP_ARG_REGS[gpArgIdx++],
+                      padToDirectRegisterMovableSize(
+                          typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH)),
+                  OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
       else if (argTypeClass[1] == X86_64_LINUX_TC_SSE)
-        IR(b,
-           OFFSET_STORE(TEMPVAR(argumentEntry),
-                        REG(SSE_ARG_REGS[sseArgIdx++],
-                            typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
-                        OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+        IR(b, OFFSET_STORE(
+                  irOperandCopy(passingTemp),
+                  REG(SSE_ARG_REGS[sseArgIdx++],
+                      padToDirectRegisterMovableSize(
+                          typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH)),
+                  OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+
+      if (passingTemp->data.temp.name != argumentEntry->data.variable.temp)
+        // had to be passed to a larger temp
+        IR(b, OFFSET_LOAD(TEMPVAR(argumentEntry), passingTemp, OFFSET(0)));
+      else
+        irOperandFree(passingTemp);
     }
   }
 
@@ -317,7 +362,7 @@ void x86_64LinuxGenerateFunctionEntry(LinkedList *blocks,
 void x86_64LinuxGenerateFunctionExit(LinkedList *blocks,
                                      SymbolTableEntry const *entry,
                                      size_t returnValueAddressTemp,
-                                     size_t returnValueTemp, size_t label,
+                                     size_t returnValueTempName, size_t label,
                                      FileListEntry *file) {
   IRBlock *b = BLOCK(label, blocks);
   Type const *returnType = entry->data.function.returnType;
@@ -332,40 +377,58 @@ void x86_64LinuxGenerateFunctionExit(LinkedList *blocks,
     if (returnTypeClass[0] == X86_64_LINUX_TC_MEMORY) {
       // returned in memory (pointer was given to us above)
       IR(b, MEM_STORE(TEMPPTR(returnValueAddressTemp),
-                      TEMPOF(returnValueTemp, returnType), OFFSET(0)));
+                      TEMPOF(returnValueTempName, returnType), OFFSET(0)));
     } else {
       // returned in registers
       size_t gpReturnIdx = 0;
       size_t sseReturnIdx = 0;
+
+      IROperand *returnValueTemp;
+      if (!isDirectRegisterMovableSize(typeSizeof(returnType))) {
+        returnValueTemp =
+            TEMP(fresh(file), typeAlignof(returnType),
+                 padToDirectRegisterMovableSize(typeSizeof(returnType)),
+                 typeAllocation(returnType));
+        IR(b, OFFSET_STORE(irOperandCopy(returnValueTemp),
+                           TEMPOF(returnValueTempName, returnType), OFFSET(0)));
+
+      } else {
+        returnValueTemp = TEMPOF(returnValueTempName, returnType);
+      }
+
       if (returnTypeClass[0] == X86_64_LINUX_TC_GP &&
           returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
-        IR(b, MOVE(REG(GP_RETURN_REGS[gpReturnIdx++], typeSizeof(returnType)),
-                   TEMPOF(returnValueTemp, returnType)));
+        IR(b, MOVE(REG(GP_RETURN_REGS[gpReturnIdx++],
+                       padToDirectRegisterMovableSize(typeSizeof(returnType))),
+                   returnValueTemp));
       else if (returnTypeClass[0] == X86_64_LINUX_TC_GP)
         IR(b, OFFSET_LOAD(REG(GP_RETURN_REGS[gpReturnIdx++],
                               X86_64_LINUX_REGISTER_WIDTH),
-                          TEMPOF(returnValueTemp, returnType), OFFSET(0)));
+                          irOperandCopy(returnValueTemp), OFFSET(0)));
       else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE &&
                returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
-        IR(b, MOVE(REG(SSE_RETURN_REGS[sseReturnIdx++], typeSizeof(returnType)),
-                   TEMPOF(returnValueTemp, returnType)));
+        IR(b, MOVE(REG(SSE_RETURN_REGS[sseReturnIdx++],
+                       padToDirectRegisterMovableSize(typeSizeof(returnType))),
+                   returnValueTemp));
       else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE)
         IR(b, OFFSET_LOAD(REG(SSE_RETURN_REGS[sseReturnIdx++],
                               X86_64_LINUX_REGISTER_WIDTH),
-                          TEMPOF(returnValueTemp, returnType), OFFSET(0)));
+                          irOperandCopy(returnValueTemp), OFFSET(0)));
 
       if (returnTypeClass[1] == X86_64_LINUX_TC_GP)
-        IR(b, OFFSET_LOAD(
-                  REG(GP_RETURN_REGS[gpReturnIdx++],
-                      typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH),
-                  TEMPOF(returnValueTemp, returnType),
-                  OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+        IR(b,
+           OFFSET_LOAD(
+               REG(GP_RETURN_REGS[gpReturnIdx++],
+                   padToDirectRegisterMovableSize(typeSizeof(returnType) -
+                                                  X86_64_LINUX_REGISTER_WIDTH)),
+               returnValueTemp, OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
       else if (returnTypeClass[1] == X86_64_LINUX_TC_SSE)
-        IR(b, OFFSET_LOAD(
-                  REG(SSE_RETURN_REGS[sseReturnIdx++],
-                      typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH),
-                  TEMPOF(returnValueTemp, returnType),
-                  OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+        IR(b,
+           OFFSET_LOAD(
+               REG(SSE_RETURN_REGS[sseReturnIdx++],
+                   padToDirectRegisterMovableSize(typeSizeof(returnType) -
+                                                  X86_64_LINUX_REGISTER_WIDTH)),
+               returnValueTemp, OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
     }
   }
   IR(b, RETURN());
@@ -414,31 +477,47 @@ IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun,
           incrementToMultiple(typeSizeof(argType), X86_64_LINUX_REGISTER_WIDTH);
     } else {
       // passed in registers
+
+      IROperand *passingTemp;
+      if (!isDirectRegisterMovableSize(typeSizeof(argType))) {
+        passingTemp = TEMP(fresh(file), typeAlignof(argType),
+                           padToDirectRegisterMovableSize(typeSizeof(argType)),
+                           typeAllocation(argType));
+        IR(b, OFFSET_STORE(irOperandCopy(passingTemp), arg, OFFSET(0)));
+      } else {
+        passingTemp = arg;
+      }
       if (argTypeClass[0] == X86_64_LINUX_TC_GP &&
           argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
-        IR(b, MOVE(REG(GP_ARG_REGS[gpArgIdx++], typeSizeof(argType)), arg));
+        IR(b, MOVE(REG(GP_ARG_REGS[gpArgIdx++],
+                       padToDirectRegisterMovableSize(typeSizeof(argType))),
+                   passingTemp));
       else if (argTypeClass[0] == X86_64_LINUX_TC_GP)
         IR(b, OFFSET_LOAD(
                   REG(GP_ARG_REGS[gpArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
-                  irOperandCopy(arg), OFFSET(0)));
+                  irOperandCopy(passingTemp), OFFSET(0)));
       else if (argTypeClass[0] == X86_64_LINUX_TC_SSE &&
                argTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
-        IR(b, MOVE(REG(SSE_ARG_REGS[sseArgIdx++], typeSizeof(argType)), arg));
+        IR(b, MOVE(REG(SSE_ARG_REGS[sseArgIdx++],
+                       padToDirectRegisterMovableSize(typeSizeof(argType))),
+                   passingTemp));
       else if (argTypeClass[0] == X86_64_LINUX_TC_SSE)
         IR(b, OFFSET_LOAD(
                   REG(SSE_ARG_REGS[sseArgIdx++], X86_64_LINUX_REGISTER_WIDTH),
-                  irOperandCopy(arg), OFFSET(0)));
+                  irOperandCopy(passingTemp), OFFSET(0)));
 
       if (argTypeClass[1] == X86_64_LINUX_TC_GP)
-        IR(b,
-           OFFSET_LOAD(REG(GP_ARG_REGS[gpArgIdx++],
-                           typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
-                       arg, OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+        IR(b, OFFSET_LOAD(
+                  REG(GP_ARG_REGS[gpArgIdx++],
+                      padToDirectRegisterMovableSize(
+                          typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH)),
+                  passingTemp, OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
       else if (argTypeClass[1] == X86_64_LINUX_TC_SSE)
-        IR(b,
-           OFFSET_LOAD(REG(SSE_ARG_REGS[sseArgIdx++],
-                           typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH),
-                       arg, OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+        IR(b, OFFSET_LOAD(
+                  REG(SSE_ARG_REGS[sseArgIdx++],
+                      padToDirectRegisterMovableSize(
+                          typeSizeof(argType) - X86_64_LINUX_REGISTER_WIDTH)),
+                  passingTemp, OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
     }
   }
   free(args);
@@ -478,37 +557,55 @@ IROperand *x86_64LinuxGenerateFunctionCall(IRBlock *b, IROperand *fun,
     // returned in registers
     size_t gpReturnIdx = 0;
     size_t sseReturnIdx = 0;
+    IROperand *returningTemp;
+    if (isDirectRegisterMovableSize(typeSizeof(returnType))) {
+      returningTemp = retval;
+    } else {
+      returningTemp =
+          TEMP(fresh(file), typeAlignof(returnType),
+               padToDirectRegisterMovableSize(typeSizeof(returnType)),
+               typeAllocation(returnType));
+    }
+
     if (returnTypeClass[0] == X86_64_LINUX_TC_GP &&
         returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
-      IR(b, MOVE(irOperandCopy(retval),
-                 REG(GP_RETURN_REGS[gpReturnIdx++], typeSizeof(returnType))));
+      IR(b, MOVE(irOperandCopy(returningTemp),
+                 REG(GP_RETURN_REGS[gpReturnIdx++],
+                     padToDirectRegisterMovableSize(typeSizeof(returnType)))));
     else if (returnTypeClass[0] == X86_64_LINUX_TC_GP)
       IR(b, OFFSET_STORE(
-                irOperandCopy(retval),
+                irOperandCopy(returningTemp),
                 REG(GP_RETURN_REGS[gpReturnIdx++], X86_64_LINUX_REGISTER_WIDTH),
                 OFFSET(0)));
     else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE &&
              returnTypeClass[1] == X86_64_LINUX_TC_NO_CLASS)
-      IR(b, MOVE(irOperandCopy(retval),
-                 REG(SSE_RETURN_REGS[sseReturnIdx++], typeSizeof(returnType))));
+      IR(b, MOVE(irOperandCopy(returningTemp),
+                 REG(SSE_RETURN_REGS[sseReturnIdx++],
+                     padToDirectRegisterMovableSize(typeSizeof(returnType)))));
     else if (returnTypeClass[0] == X86_64_LINUX_TC_SSE)
-      IR(b, OFFSET_STORE(irOperandCopy(retval),
+      IR(b, OFFSET_STORE(irOperandCopy(returningTemp),
                          REG(SSE_RETURN_REGS[sseReturnIdx++],
                              X86_64_LINUX_REGISTER_WIDTH),
                          OFFSET(0)));
 
     if (returnTypeClass[1] == X86_64_LINUX_TC_GP)
-      IR(b,
-         OFFSET_STORE(irOperandCopy(retval),
-                      REG(GP_RETURN_REGS[gpReturnIdx++],
-                          typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH),
-                      OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+      IR(b, OFFSET_STORE(
+                irOperandCopy(returningTemp),
+                REG(GP_RETURN_REGS[gpReturnIdx++],
+                    padToDirectRegisterMovableSize(
+                        typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH)),
+                OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
     else if (returnTypeClass[1] == X86_64_LINUX_TC_SSE)
-      IR(b,
-         OFFSET_STORE(irOperandCopy(retval),
-                      REG(SSE_RETURN_REGS[sseReturnIdx++],
-                          typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH),
-                      OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+      IR(b, OFFSET_STORE(
+                irOperandCopy(returningTemp),
+                REG(SSE_RETURN_REGS[sseReturnIdx++],
+                    padToDirectRegisterMovableSize(
+                        typeSizeof(returnType) - X86_64_LINUX_REGISTER_WIDTH)),
+                OFFSET((int64_t)X86_64_LINUX_REGISTER_WIDTH)));
+
+    if (returningTemp != retval)
+      // had to be passed to a larger temp
+      IR(b, OFFSET_LOAD(irOperandCopy(retval), returningTemp, OFFSET(0)));
   }
 
   // deallocate stack allocation
