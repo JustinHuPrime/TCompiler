@@ -42,4 +42,8 @@ void x86_64LinuxBackend(void) {
 
   // write out
   // TODO
+
+  // cleanup
+  for (size_t idx = 0; idx < fileList.size; ++idx)
+    x86_64LinuxFileFree(fileList.entries[idx].asmFile);
 }

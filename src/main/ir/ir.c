@@ -667,10 +667,43 @@ static void validateTempRead(IROperand **temps, IROperand *temp,
 static void validateTempWrite(IROperand **temps, IROperand *temp,
                               char const *phase, FileListEntry *file) {
   IROperand *definition = temps[temp->data.temp.name];
-  if (definition == NULL)
+  if (definition == NULL) {
     temps[temp->data.temp.name] = temp;
-  else
+    if (temp->data.temp.kind != AH_MEM && temp->data.temp.size != BYTE_WIDTH &&
+        temp->data.temp.size != SHORT_WIDTH &&
+        temp->data.temp.size != INT_WIDTH &&
+        temp->data.temp.size != LONG_WIDTH) {
+      fprintf(
+          stderr,
+          "%s: internal compiler error: IR validation after %s failed - temp "
+          "%zu's size is not 1, 2, 4, or 8, and it's not a mem temp (actual "
+          "size is %zu)\n",
+          file->inputFilename, phase, temp->data.temp.name,
+          temp->data.temp.size);
+      file->errored = true;
+    }
+    if (temp->data.temp.alignment & (temp->data.temp.alignment - 1) != 0) {
+      // check to see if alignment is a power of two (i.e. has only one bit set)
+      fprintf(
+          stderr,
+          "%s: internal compiler error: IR validation after %s failed - temp "
+          "%zu's alignment is not a power of two (actual alignment is %zu)\n",
+          file->inputFilename, phase, temp->data.temp.name,
+          temp->data.temp.alignment);
+      file->errored = true;
+    }
+    if (temp->data.temp.alignment > temp->data.temp.size) {
+      fprintf(stderr,
+              "%s: internal compiler error: IR validation after %s failed - "
+              "temp %zu's alignment is greater than its size (actual alignment "
+              "is %zu, size is %zu)\n",
+              file->inputFilename, phase, temp->data.temp.name,
+              temp->data.temp.alignment, temp->data.temp.size);
+      file->errored = true;
+    }
+  } else {
     validateTempConsistency(definition, temp, phase, file);
+  }
 }
 static bool validateArgKind(IRInstruction *i, size_t idx, OperandKind kind,
                             char const *phase, FileListEntry *file) {
@@ -1031,13 +1064,11 @@ static int validateIr(char const *phase, bool blocked) {
                 break;
               }
               default: {
-                fprintf(
-                    stderr,
-                    "%s: internal compiler error: IR validation after %s "
-                    "failed "
-                    "- %s instruction encountered at the end of a basic block "
-                    "instead of a jump\n",
-                    file->inputFilename, phase, IROPERATOR_NAMES[last->op]);
+                fprintf(stderr,
+                        "%s: internal compiler error: IR validation after %s "
+                        "failed - %s instruction encountered at the end of a "
+                        "basic block instead of a jump\n",
+                        file->inputFilename, phase, IROPERATOR_NAMES[last->op]);
                 file->errored = true;
                 break;
               }
