@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 
+#include "arch/interface.h"
 #include "fileList.h"
 #include "util/internalError.h"
 #include "util/numericSizing.h"
@@ -682,7 +683,7 @@ static void validateTempWrite(IROperand **temps, IROperand *temp,
           temp->data.temp.size);
       file->errored = true;
     }
-    if (temp->data.temp.alignment & (temp->data.temp.alignment - 1) != 0) {
+    if ((temp->data.temp.alignment & (temp->data.temp.alignment - 1)) != 0) {
       // check to see if alignment is a power of two (i.e. has only one bit set)
       fprintf(
           stderr,
@@ -705,7 +706,7 @@ static void validateTempWrite(IROperand **temps, IROperand *temp,
     validateTempConsistency(definition, temp, phase, file);
   }
 }
-static bool validateArgKind(IRInstruction *i, size_t idx, OperandKind kind,
+static bool validateArgKind(IRInstruction const *i, size_t idx, OperandKind kind,
                             char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != kind) {
     fprintf(stderr,
@@ -720,8 +721,8 @@ static bool validateArgKind(IRInstruction *i, size_t idx, OperandKind kind,
     return true;
   }
 }
-static bool validateArgLocal(IRInstruction *i, size_t idx, char const *phase,
-                             FileListEntry *file) {
+static bool validateArgLocal(IRInstruction const *i, size_t idx,
+                             char const *phase, FileListEntry *file) {
   if (!irOperandIsLocal(i->args[idx])) {
     fprintf(
         stderr,
@@ -736,7 +737,7 @@ static bool validateArgLocal(IRInstruction *i, size_t idx, char const *phase,
     return true;
   }
 }
-static bool validateArgOffsettable(IRInstruction *i, size_t idx,
+static bool validateArgOffsettable(IRInstruction const *i, size_t idx,
                                    char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP) {
     fprintf(stderr,
@@ -751,8 +752,9 @@ static bool validateArgOffsettable(IRInstruction *i, size_t idx,
     return true;
   }
 }
-static bool validateArgWritable(IRInstruction *i, size_t idx, IROperand **temps,
-                                char const *phase, FileListEntry *file) {
+static bool validateArgWritable(IRInstruction const *i, size_t idx,
+                                IROperand **temps, char const *phase,
+                                FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP) {
     fprintf(stderr,
             "%s: internal compiler error: IR validation after %s failed - %s "
@@ -768,7 +770,7 @@ static bool validateArgWritable(IRInstruction *i, size_t idx, IROperand **temps,
     return true;
   }
 }
-static void validateArgSize(IRInstruction *i, size_t idx, size_t size,
+static void validateArgSize(IRInstruction const *i, size_t idx, size_t size,
                             char const *phase, FileListEntry *file) {
   if (irOperandSizeof(i->args[idx]) != size) {
     fprintf(stderr,
@@ -781,8 +783,8 @@ static void validateArgSize(IRInstruction *i, size_t idx, size_t size,
     file->errored = true;
   }
 }
-static void validateTempGP(IRInstruction *i, size_t idx, char const *phase,
-                           FileListEntry *file) {
+static void validateTempGP(IRInstruction const *i, size_t idx,
+                           char const *phase, FileListEntry *file) {
   if (i->args[idx]->data.temp.kind != AH_GP &&
       i->args[idx]->data.temp.kind != AH_MEM) {
     fprintf(stderr,
@@ -794,8 +796,8 @@ static void validateTempGP(IRInstruction *i, size_t idx, char const *phase,
     file->errored = true;
   }
 }
-static void validateTempFP(IRInstruction *i, size_t idx, char const *phase,
-                           FileListEntry *file) {
+static void validateTempFP(IRInstruction const *i, size_t idx,
+                           char const *phase, FileListEntry *file) {
   if (i->args[idx]->data.temp.kind != AH_FP &&
       i->args[idx]->data.temp.kind != AH_MEM) {
     fprintf(stderr,
@@ -807,8 +809,8 @@ static void validateTempFP(IRInstruction *i, size_t idx, char const *phase,
     file->errored = true;
   }
 }
-static void validateTempMEM(IRInstruction *i, size_t idx, char const *phase,
-                            FileListEntry *file) {
+static void validateTempMEM(IRInstruction const *i, size_t idx,
+                            char const *phase, FileListEntry *file) {
   if (i->args[idx]->data.temp.kind != AH_FP &&
       i->args[idx]->data.temp.kind != AH_MEM) {
     fprintf(stderr,
@@ -820,7 +822,7 @@ static void validateTempMEM(IRInstruction *i, size_t idx, char const *phase,
     file->errored = true;
   }
 }
-static void validateLocalJumpTarget(IRInstruction *i, size_t idx,
+static void validateLocalJumpTarget(IRInstruction const *i, size_t idx,
                                     bool *localLabels, char const *phase,
                                     FileListEntry *file) {
   if (irOperandIsLocal(i->args[idx]) &&
@@ -833,7 +835,7 @@ static void validateLocalJumpTarget(IRInstruction *i, size_t idx,
     file->errored = true;
   }
 }
-static void validateArgPointerRead(IRInstruction *i, size_t idx,
+static void validateArgPointerRead(IRInstruction const *i, size_t idx,
                                    IROperand **temps, bool *localLabels,
                                    char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
@@ -856,7 +858,7 @@ static void validateArgPointerRead(IRInstruction *i, size_t idx,
     }
   }
 }
-static void validateArgByteRead(IRInstruction *i, size_t idx, IROperand **temps,
+static void validateArgByteRead(IRInstruction const  *i, size_t idx, IROperand **temps,
                                 char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
       i->args[idx]->kind != OK_CONSTANT) {
@@ -876,7 +878,7 @@ static void validateArgByteRead(IRInstruction *i, size_t idx, IROperand **temps,
     }
   }
 }
-static void validateArgPointerWritten(IRInstruction *i, size_t idx,
+static void validateArgPointerWritten(IRInstruction const *i, size_t idx,
                                       IROperand **temps, char const *phase,
                                       FileListEntry *file) {
   if (validateArgWritable(i, idx, temps, phase, file)) {
@@ -885,7 +887,7 @@ static void validateArgPointerWritten(IRInstruction *i, size_t idx,
     if (i->args[idx]->kind == OK_TEMP) validateTempGP(i, idx, phase, file);
   }
 }
-static void validateArgByteWritten(IRInstruction *i, size_t idx,
+static void validateArgByteWritten(IRInstruction const *i, size_t idx,
                                    IROperand **temps, char const *phase,
                                    FileListEntry *file) {
   if (validateArgWritable(i, idx, temps, phase, file)) {
@@ -894,8 +896,9 @@ static void validateArgByteWritten(IRInstruction *i, size_t idx,
     if (i->args[idx]->kind == OK_TEMP) validateTempGP(i, idx, phase, file);
   }
 }
-static void validateArgOffset(IRInstruction *i, size_t idx, IROperand **temps,
-                              char const *phase, FileListEntry *file) {
+static void validateArgOffset(IRInstruction const *i, size_t idx,
+                              IROperand **temps, char const *phase,
+                              FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
       i->args[idx]->kind != OK_CONSTANT) {
     fprintf(stderr,
@@ -914,9 +917,9 @@ static void validateArgOffset(IRInstruction *i, size_t idx, IROperand **temps,
     }
   }
 }
-static void validateArgRead(IRInstruction *i, size_t idx, IROperand **temps,
-                            bool *localLabels, char const *phase,
-                            FileListEntry *file) {
+static void validateArgRead(IRInstruction const *i, size_t idx,
+                            IROperand **temps, bool *localLabels,
+                            char const *phase, FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
       i->args[idx]->kind != OK_CONSTANT) {
     fprintf(stderr,
@@ -933,7 +936,7 @@ static void validateArgRead(IRInstruction *i, size_t idx, IROperand **temps,
       validateLocalJumpTarget(i, idx, localLabels, phase, file);
   }
 }
-static void validateArgReadNoPtr(IRInstruction *i, size_t idx,
+static void validateArgReadNoPtr(IRInstruction const *i, size_t idx,
                                  IROperand **temps, char const *phase,
                                  FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
@@ -950,7 +953,7 @@ static void validateArgReadNoPtr(IRInstruction *i, size_t idx,
       validateTempRead(temps, i->args[idx], phase, file);
   }
 }
-static void validateArgsSameSize(IRInstruction *i, size_t a, size_t b,
+static void validateArgsSameSize(IRInstruction const *i, size_t a, size_t b,
                                  char const *phase, FileListEntry *file) {
   if (irOperandSizeof(i->args[a]) != irOperandSizeof(i->args[b])) {
     fprintf(stderr,
@@ -960,7 +963,7 @@ static void validateArgsSameSize(IRInstruction *i, size_t a, size_t b,
     file->errored = true;
   }
 }
-static void validateArgJumpTarget(IRInstruction *i, size_t idx,
+static void validateArgJumpTarget(IRInstruction const *i, size_t idx,
                                   IROperand **temps, bool *localLabels,
                                   char const *phase, FileListEntry *file) {
   if (!irOperandIsGlobal(i->args[idx]) && !irOperandIsLocal(i->args[idx]) &&
@@ -988,9 +991,9 @@ static int validateIr(char const *phase, bool blocked) {
   for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     FileListEntry *file = &fileList.entries[fileIdx];
     for (size_t fragIdx = 0; fragIdx < file->irFrags.size; ++fragIdx) {
-      IRFrag *frag = file->irFrags.elements[fragIdx];
+      IRFrag const *frag = file->irFrags.elements[fragIdx];
       if (frag->type == FT_TEXT) {
-        LinkedList *blocks = &frag->data.text.blocks;
+        LinkedList const *blocks = &frag->data.text.blocks;
         IROperand **temps = calloc(file->nextId, sizeof(IROperand *));
 
         // localLabels is the list of existing local labels
@@ -1081,7 +1084,7 @@ static int validateIr(char const *phase, bool blocked) {
           for (ListNode *currInst = block->instructions.head->next;
                currInst != block->instructions.tail;
                currInst = currInst->next) {
-            IRInstruction *i = currInst->data;
+            IRInstruction const *i = currInst->data;
             if (i->op < IO_LABEL || i->op > IO_RETURN) {
               fprintf(
                   stderr,
@@ -1679,7 +1682,7 @@ static int validateIr(char const *phase, bool blocked) {
 
   if (errored) return -1;
 
-  return 0;
+  return validateIRArchSpecific(phase, blocked);
 }
 
 int validateBlockedIr(char const *phase) { return validateIr(phase, true); }

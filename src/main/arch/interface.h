@@ -77,6 +77,15 @@ IROperand *generateFunctionCall(IRBlock *b, IROperand *fun, IROperand **args,
                                 Type const *funType, FileListEntry *file);
 
 /**
+ * validate generated IR
+ *
+ * @param phase phase to blame for errors
+ * @param blocked is the IR in basic blocks?
+ * @returns -1 on failure, 0 on success
+ */
+int validateIRArchSpecific(char const *phase, bool blocked);
+
+/**
  * run the backend
  */
 void backend(void);

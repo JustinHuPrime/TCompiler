@@ -24,6 +24,7 @@
 #include "x86_64-linux/abi.h"
 #include "x86_64-linux/asm.h"
 #include "x86_64-linux/backend.h"
+#include "x86_64-linux/irValidation.h"
 
 char const *prettyPrintRegister(size_t reg) {
   switch (options.arch) {
@@ -75,6 +76,18 @@ IROperand *generateFunctionCall(IRBlock *b, IROperand *fun, IROperand **args,
     }
   }
 }
+
+int validateIRArchSpecific(char const *phase, bool blocked) {
+  switch (options.arch) {
+    case OPTION_A_X86_64_LINUX: {
+      return x86_64LinuxValidateIRArchSpecific(phase, blocked);
+    }
+    default: {
+      error(__FILE__, __LINE__, "unrecognized architecture");
+    }
+  }
+}
+
 void backend(void) {
   switch (options.arch) {
     case OPTION_A_X86_64_LINUX: {
