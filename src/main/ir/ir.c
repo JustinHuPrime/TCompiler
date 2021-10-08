@@ -706,8 +706,9 @@ static void validateTempWrite(IROperand **temps, IROperand *temp,
     validateTempConsistency(definition, temp, phase, file);
   }
 }
-static bool validateArgKind(IRInstruction const *i, size_t idx, OperandKind kind,
-                            char const *phase, FileListEntry *file) {
+static bool validateArgKind(IRInstruction const *i, size_t idx,
+                            OperandKind kind, char const *phase,
+                            FileListEntry *file) {
   if (i->args[idx]->kind != kind) {
     fprintf(stderr,
             "%s: internal compiler error: IR validation after %s failed - %s "
@@ -731,21 +732,6 @@ static bool validateArgLocal(IRInstruction const *i, size_t idx,
         "has %s\n",
         file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
         IROPERAND_NAMES[i->args[idx]->kind]);
-    file->errored = true;
-    return false;
-  } else {
-    return true;
-  }
-}
-static bool validateArgOffsettable(IRInstruction const *i, size_t idx,
-                                   char const *phase, FileListEntry *file) {
-  if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP) {
-    fprintf(stderr,
-            "%s: internal compiler error: IR validation after %s failed - %s "
-            "instruction does not have TEMP or REG operand at position %zu, "
-            "instead it has %s\n",
-            file->inputFilename, phase, IROPERATOR_NAMES[i->op], idx,
-            IROPERAND_NAMES[i->args[idx]->kind]);
     file->errored = true;
     return false;
   } else {
@@ -858,8 +844,9 @@ static void validateArgPointerRead(IRInstruction const *i, size_t idx,
     }
   }
 }
-static void validateArgByteRead(IRInstruction const  *i, size_t idx, IROperand **temps,
-                                char const *phase, FileListEntry *file) {
+static void validateArgByteRead(IRInstruction const *i, size_t idx,
+                                IROperand **temps, char const *phase,
+                                FileListEntry *file) {
   if (i->args[idx]->kind != OK_REG && i->args[idx]->kind != OK_TEMP &&
       i->args[idx]->kind != OK_CONSTANT) {
     fprintf(stderr,
@@ -1165,9 +1152,10 @@ static int validateIr(char const *phase, bool blocked) {
                 break;
               }
               case IO_OFFSET_STORE: {
-                validateArgOffsettable(i, 0, phase, file);
-                if (i->args[0]->kind == OK_TEMP)
+                if (validateArgKind(i, 0, OK_TEMP, phase, file)) {
+                  validateTempMEM(i, 0, phase, file);
                   validateTempWrite(temps, i->args[0], phase, file);
+                }
 
                 validateArgRead(i, 1, temps, localLabels, phase, file);
 
@@ -1177,9 +1165,10 @@ static int validateIr(char const *phase, bool blocked) {
               case IO_OFFSET_LOAD: {
                 validateArgWritable(i, 0, temps, phase, file);
 
-                validateArgOffsettable(i, 1, phase, file);
-                if (i->args[1]->kind == OK_TEMP)
-                  validateTempRead(temps, i->args[1], phase, file);
+                if (validateArgKind(i, 1, OK_TEMP, phase, file)) {
+                  validateTempMEM(i, 1, phase, file);
+                  validateTempWrite(temps, i->args[1], phase, file);
+                }
 
                 validateArgOffset(i, 2, temps, phase, file);
                 break;

@@ -292,7 +292,7 @@ typedef enum IROperator {
    * store to part of temp
    *
    * three operands
-   * 0: REG | TEMP, written
+   * 0: mem TEMP, written
    * 1: REG | TEMP, read | CONST
    * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
    *    POINTER_WIDTH
@@ -303,7 +303,7 @@ typedef enum IROperator {
    *
    * three operands
    * 0: REG | TEMP, written
-   * 1: REG | TEMP, read | CONST
+   * 1: mem TEMP, read
    * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
    *    POINTER_WIDTH
    */
