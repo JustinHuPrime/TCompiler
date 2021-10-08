@@ -40,21 +40,36 @@ char const *x86_64LinuxPrettyPrintRegister(size_t reg) {
   return REGISTER_NAMES[reg];
 }
 
-static X86_64LinuxOperand *x86_64LinuxOperandCreate(
+static X86_64LinuxOperand *x86_64LinuxOperandCreateBase(
     X86_64LinuxOperandKind kind) {
   X86_64LinuxOperand *retval = malloc(sizeof(X86_64LinuxOperand));
   retval->kind = kind;
   return retval;
 }
-
-X86_64LinuxOperand *x86_64LinuxRegOperandCreate(X86_64LinuxRegister reg) {
-  X86_64LinuxOperand *retval = x86_64LinuxOperandCreate(X86_64_LINUX_OK_REG);
+static X86_64LinuxOperand *x86_64LinuxRegOperandCreate(X86_64LinuxRegister reg,
+                                                       size_t size) {
+  X86_64LinuxOperand *retval =
+      x86_64LinuxOperandCreateBase(X86_64_LINUX_OK_REG);
   retval->data.reg.reg = reg;
+  if (size <= 1) {
+    retval->data.reg.size = 1;
+  } else if (size <= 2) {
+    retval->data.reg.size = 2;
+  } else if (size <= 4) {
+    retval->data.reg.size = 4;
+  } else if (size <= 8) {
+    retval->data.reg.size = 8;
+  } else if (size <= 16 && reg >= X86_64_LINUX_XMM0) {
+    retval->data.reg.size = 16;
+  } else {
+    error(__FILE__, __LINE__, "Invalid register size");
+  }
   return retval;
 }
-X86_64LinuxOperand *x86_64LinuxTempOperandCreateCopy(IROperand const *temp,
-                                                     bool escapes) {
-  X86_64LinuxOperand *retval = x86_64LinuxOperandCreate(X86_64_LINUX_OK_TEMP);
+static X86_64LinuxOperand *x86_64LinuxTempOperandCreate(IROperand const *temp,
+                                                        bool escapes) {
+  X86_64LinuxOperand *retval =
+      x86_64LinuxOperandCreateBase(X86_64_LINUX_OK_TEMP);
   retval->data.temp.name = temp->data.temp.name;
   retval->data.temp.alignment = temp->data.temp.alignment;
   retval->data.temp.size = temp->data.temp.size;
@@ -62,10 +77,14 @@ X86_64LinuxOperand *x86_64LinuxTempOperandCreateCopy(IROperand const *temp,
   retval->data.temp.escapes = escapes;
   return retval;
 }
-X86_64LinuxOperand *x86_64LinuxTempOperandCreatePatch(IROperand const *temp,
-                                                      size_t name,
-                                                      AllocHint kind) {
-  X86_64LinuxOperand *retval = x86_64LinuxOperandCreate(X86_64_LINUX_OK_TEMP);
+static X86_64LinuxOperand *x86_64LinuxTempOperandCreateEscaping(
+    IROperand const *temp) {
+  return x86_64LinuxTempOperandCreate(temp, true);
+}
+static X86_64LinuxOperand *x86_64LinuxTempOperandCreatePatch(
+    IROperand const *temp, size_t name, AllocHint kind) {
+  X86_64LinuxOperand *retval =
+      x86_64LinuxOperandCreateBase(X86_64_LINUX_OK_TEMP);
   retval->data.temp.name = name;
   retval->data.temp.alignment = temp->data.temp.alignment;
   retval->data.temp.size = temp->data.temp.size;
@@ -73,41 +92,29 @@ X86_64LinuxOperand *x86_64LinuxTempOperandCreatePatch(IROperand const *temp,
   retval->data.temp.escapes = false;
   return retval;
 }
-X86_64LinuxOperand *x86_64LinuxOffsetOperandCreate(int64_t offset) {
-  X86_64LinuxOperand *retval = x86_64LinuxOperandCreate(X86_64_LINUX_OK_OFFSET);
+static X86_64LinuxOperand *x86_64LinuxOffsetOperandCreate(int64_t offset) {
+  X86_64LinuxOperand *retval =
+      x86_64LinuxOperandCreateBase(X86_64_LINUX_OK_OFFSET);
   retval->data.offset.offset = offset;
   return retval;
 }
-X86_64LinuxOperand *x86_64LinuxAddrofOperandCreate(IROperand const *who,
-                                                   int64_t offset) {
-  X86_64LinuxOperand *retval = x86_64LinuxOperandCreate(X86_64_LINUX_OK_ADDROF);
-  retval->data.addrof.who = who->data.temp.name;
-  retval->data.addrof.offset = offset;
-  return retval;
-}
-void x86_64LinuxOperandFree(X86_64LinuxOperand *o) { free(o); }
-
-X86_64LinuxInstruction *x86_64LinuxInstructionCreate(
-    X86_64LinuxInstructionKind kind, char *skeleton) {
-  X86_64LinuxInstruction *retval = malloc(sizeof(X86_64LinuxInstruction));
-  retval->kind = kind;
-  retval->skeleton = skeleton;
-  vectorInit(&retval->defines);
-  vectorInit(&retval->uses);
-  switch (retval->kind) {
-    case X86_64_LINUX_IK_JUMP:
-    case X86_64_LINUX_IK_JUMPTABLE:
-    case X86_64_LINUX_IK_CJUMP: {
-      sizeVectorInit(&retval->data.jumpTargets);
-      break;
+static X86_64LinuxOperand *x86_64LinuxOperandCreate(IROperand const *op) {
+  switch (op->kind) {
+    case OK_REG: {
+      return x86_64LinuxRegOperandCreate(op->data.reg.name, op->data.reg.size);
     }
+    case OK_TEMP: {
+      return x86_64LinuxTempOperandCreate(op, false);
+    }
+    case OK_CONSTANT:
     default: {
-      break;
+      error(__FILE__, __LINE__, "unexpected operand kind");
     }
   }
-  return retval;
 }
-void x86_64LinuxInstructionFree(X86_64LinuxInstruction *i) {
+static void x86_64LinuxOperandFree(X86_64LinuxOperand *o) { free(o); }
+
+static void x86_64LinuxInstructionFree(X86_64LinuxInstruction *i) {
   free(i->skeleton);
   vectorUninit(&i->defines, (void (*)(void *))x86_64LinuxOperandFree);
   vectorUninit(&i->uses, (void (*)(void *))x86_64LinuxOperandFree);
@@ -130,19 +137,19 @@ static X86_64LinuxFrag *x86_64LinuxFragCreate(X86_64LinuxFragKind kind) {
   retval->kind = kind;
   return retval;
 }
-X86_64LinuxFrag *x86_64LinuxDataFragCreate(char *data) {
+static X86_64LinuxFrag *x86_64LinuxDataFragCreate(char *data) {
   X86_64LinuxFrag *retval = x86_64LinuxFragCreate(X86_64_LINUX_FK_DATA);
   retval->data.data.data = data;
   return retval;
 }
-X86_64LinuxFrag *x86_64LinuxTextFragCreate(char *header, char *footer) {
+static X86_64LinuxFrag *x86_64LinuxTextFragCreate(char *header, char *footer) {
   X86_64LinuxFrag *retval = x86_64LinuxFragCreate(X86_64_LINUX_FK_TEXT);
   retval->data.text.header = header;
   retval->data.text.footer = footer;
   linkedListInit(&retval->data.text.instructions);
   return retval;
 }
-void x86_64LinuxFragFree(X86_64LinuxFrag *frag) {
+static void x86_64LinuxFragFree(X86_64LinuxFrag *frag) {
   switch (frag->kind) {
     case X86_64_LINUX_FK_TEXT: {
       free(frag->data.text.header);
@@ -162,7 +169,7 @@ void x86_64LinuxFragFree(X86_64LinuxFrag *frag) {
   free(frag);
 }
 
-X86_64LinuxFile *x86_64LinuxFileCreate(char *header, char *footer) {
+static X86_64LinuxFile *x86_64LinuxFileCreate(char *header, char *footer) {
   X86_64LinuxFile *retval = malloc(sizeof(X86_64LinuxFile));
   retval->header = header;
   retval->footer = footer;
@@ -291,9 +298,31 @@ static X86_64LinuxFrag *x86_64LinuxGenerateDataAsm(IRFrag *frag) {
   free(data);
   return retval;
 }
+
 static X86_64LinuxInstruction *INST(X86_64LinuxInstructionKind kind,
                                     char *skeleton) {
-  return x86_64LinuxInstructionCreate(kind, skeleton);
+  X86_64LinuxInstruction *retval = malloc(sizeof(X86_64LinuxInstruction));
+  retval->kind = kind;
+  retval->skeleton = skeleton;
+  vectorInit(&retval->defines);
+  vectorInit(&retval->uses);
+  switch (retval->kind) {
+    case X86_64_LINUX_IK_JUMP:
+    case X86_64_LINUX_IK_JUMPTABLE:
+    case X86_64_LINUX_IK_CJUMP: {
+      sizeVectorInit(&retval->data.jumpTargets);
+      break;
+    }
+    case X86_64_LINUX_IK_REGULAR: {
+      retval->data.move.from = NULL;
+      retval->data.move.to = NULL;
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  return retval;
 }
 static void DEFINES(X86_64LinuxInstruction *i, X86_64LinuxOperand *arg) {
   vectorInsert(&i->defines, arg);
@@ -304,8 +333,28 @@ static void USES(X86_64LinuxInstruction *i, X86_64LinuxOperand *arg) {
 static void OTHER(X86_64LinuxInstruction *i, X86_64LinuxOperand *arg) {
   vectorInsert(&i->other, arg);
 }
+static void MOVES(X86_64LinuxInstruction *i, X86_64LinuxOperand *from,
+                  X86_64LinuxOperand *to) {
+  i->data.move.from = from;
+  i->data.move.to = to;
+}
 static void DONE(X86_64LinuxFrag *assembly, X86_64LinuxInstruction *i) {
   insertNodeEnd(&assembly->data.text.instructions, i);
+}
+static bool isMemTemp(IROperand const *o) {
+  return o->kind == OK_TEMP && o->data.temp.kind == AH_MEM;
+}
+static bool isGpTemp(IROperand const *o) {
+  return o->kind == OK_TEMP && o->data.temp.kind == AH_GP;
+}
+static bool isFpTemp(IROperand const *o) {
+  return o->kind == OK_TEMP && o->data.temp.kind == AH_FP;
+}
+static bool isGpReg(IROperand const *o) {
+  return o->kind == OK_REG && o->data.reg.name <= X86_64_LINUX_R15;
+}
+static bool isFpReg(IROperand const *o) {
+  return o->kind == OK_REG && X86_64_LINUX_XMM0 <= o->data.reg.name;
 }
 /**
  * encode a non-label constant as a 64 bit unsigned integer
@@ -382,7 +431,6 @@ static uint64_t datumToNumber(IROperand *constant) {
   }
   return out;
 }
-// TODO: factor encoding an arg's string into its own function
 static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
                                                    FileListEntry *file) {
   X86_64LinuxFrag *assembly = x86_64LinuxTextFragCreate(
@@ -396,6 +444,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
     X86_64LinuxInstruction *i;
     switch (ir->op) {
       case IO_LABEL: {
+        // arg 0: local
         i = INST(X86_64_LINUX_IK_LABEL,
                  format("L%zu:\n", localOperandName(ir->args[0])));
         i->data.labelName = localOperandName(ir->args[0]);
@@ -403,72 +452,39 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         break;
       }
       case IO_VOLATILE: {
-        i = INST(X86_64_LINUX_IK_REGULAR, strdup(""));
-        USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
+        // arg 0: temp
+        i = INST(X86_64_LINUX_IK_REGULAR, strdup(""));  // empty instruction
+        USES(i, x86_64LinuxOperandCreate(ir->args[0]));
         DONE(assembly, i);
         break;
       }
-      case IO_UNINITIALIZED: {
+      case IO_UNINITIALIZED:
+      case IO_NOP: {
         break;  // not translated
       }
       case IO_ADDROF: {
         // arg 0: reg, gp temp, mem temp
         // arg 1: mem temp
-
-        if (ir->args[0]->kind == OK_REG) {
-          // case: arg 0 == reg
-          // lea <reg 0>, <temp 1>
-          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
-          DEFINES(i, x86_64LinuxRegOperandCreate(ir->args[0]->data.reg.name));
-          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], true));
-          DONE(assembly, i);
-        } else if (ir->args[0]->kind == OK_TEMP &&
-                   ir->args[0]->data.temp.kind == AH_GP) {
-          // case: arg 0 == gp temp
-          // lea <gp temp 0>, <temp 1>
-          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
-          DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
-          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], true));
-          DONE(assembly, i);
-        } else {
-          // case: arg 0 == mem temp
-          // lea <patch temp>, <temp 1>
-          // mov <mem temp 0>, <patch temp>
-          size_t patchName = fresh(file);
-          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
-          DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
-                                                       AH_GP));
-          USES(i, x86_64LinuxTempOperandCreateCopy(ir->args[1], true));
-          insertNodeEnd(&assembly->data.text.instructions, i);
-
-          i = INST(X86_64_LINUX_IK_MOVE, strdup("\tmov `d, `u\n"));
-          DEFINES(i, x86_64LinuxTempOperandCreateCopy(ir->args[0], false));
-          USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchName,
-                                                    AH_GP));
-          DONE(assembly, i);
-        }
+        // TODO
         break;
-      }
-      case IO_NOP: {
-        break;  // not translated
       }
       case IO_MOVE: {
         // arg 0: reg, non-mem temp, mem temp
-        // arg 1: reg, non-mem temp, mem temp, constant
+        // arg 1: reg, non-mem temp, mem temp, const
         // TODO
         break;
       }
       case IO_MEM_STORE: {
-        // arg 0: reg, gp temp, mem temp, const, global, local
-        // arg 1: reg, non-mem temp, mem temp, const, global, local
+        // arg 0: reg, gp temp, mem temp, const
+        // arg 1: reg, non-mem temp, mem temp, const
         // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_MEM_LOAD: {
         // arg 0: reg, non-mem temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const, global, local
-        // arg 2: reg, gp temp, mem temp, consts
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }

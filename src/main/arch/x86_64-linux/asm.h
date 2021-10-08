@@ -76,13 +76,13 @@ typedef enum {
   X86_64_LINUX_OK_REG,
   X86_64_LINUX_OK_TEMP,
   X86_64_LINUX_OK_OFFSET,
-  X86_64_LINUX_OK_ADDROF,
 } X86_64LinuxOperandKind;
 typedef struct {
   X86_64LinuxOperandKind kind;
   union {
     struct {
       X86_64LinuxRegister reg;
+      size_t size;
     } reg;
     struct {
       size_t name;
@@ -100,23 +100,31 @@ typedef struct {
     } addrof;
   } data;
 } X86_64LinuxOperand;
-X86_64LinuxOperand *x86_64LinuxRegOperandCreate(X86_64LinuxRegister reg);
-X86_64LinuxOperand *x86_64LinuxTempOperandCreateCopy(IROperand const *temp, bool escapes);
-X86_64LinuxOperand *x86_64LinuxTempOperandCreatePatch(IROperand const *temp,
-                                                      size_t name,
-                                                      AllocHint kind);
-X86_64LinuxOperand *x86_64LinuxOffsetOperandCreate(int64_t offset);
-X86_64LinuxOperand *x86_64LinuxAddrofOperandCreate(IROperand const *who,
-                                                   int64_t offset);
-void x86_64LinuxOperandFree(X86_64LinuxOperand *o);
 
 typedef enum {
+  /**
+   * regular instruction
+   */
   X86_64_LINUX_IK_REGULAR,
-  X86_64_LINUX_IK_MOVE,
+  /**
+   * always jumps to given labelName
+   */
   X86_64_LINUX_IK_JUMP,
+  /**
+   * can jump to any local with the given numbers
+   */
   X86_64_LINUX_IK_JUMPTABLE,
+  /**
+   * might jump to given labelName
+   */
   X86_64_LINUX_IK_CJUMP,
+  /**
+   * leaves the function entirely (e.g. ret)
+   */
   X86_64_LINUX_IK_LEAVE,
+  /**
+   * label of the given labelName
+   */
   X86_64_LINUX_IK_LABEL,
 } X86_64LinuxInstructionKind;
 typedef struct {
@@ -135,11 +143,12 @@ typedef struct {
   union {
     SizeVector jumpTargets; /**< vector of uintptr_t */
     size_t labelName;
+    struct {
+      X86_64LinuxOperand *from;
+      X86_64LinuxOperand *to;
+    } move;
   } data;
 } X86_64LinuxInstruction;
-X86_64LinuxInstruction *x86_64LinuxInstructionCreate(
-    X86_64LinuxInstructionKind kind, char *skeleton);
-void x86_64LinuxInstructionFree(X86_64LinuxInstruction *i);
 
 typedef enum {
   X86_64_LINUX_FK_TEXT,
@@ -158,16 +167,12 @@ typedef struct {
     } text;
   } data;
 } X86_64LinuxFrag;
-X86_64LinuxFrag *x86_64LinuxDataFragCreate(char *data);
-X86_64LinuxFrag *x86_64LinuxTextFragCreate(char *header, char *footer);
-void x86_64LinuxFragFree(X86_64LinuxFrag *frag);
 
 typedef struct {
   char *header;
   char *footer;
   Vector frags;
 } X86_64LinuxFile;
-X86_64LinuxFile *x86_64LinuxFileCreate(char *header, char *footer);
 void x86_64LinuxFileFree(X86_64LinuxFile *file);
 
 /**
