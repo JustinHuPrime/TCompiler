@@ -371,7 +371,7 @@ typedef enum IROperator {
    * three operands
    * 0: REG | TEMP, written, allocation == (GP | MEM)
    * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST
-   * 2: REG | TEMP, read, allocation == (FP | MEM) | CONST; size ==
+   * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
    *    BYTE_WIDTH
    *
    * sizeof(0) == sizeof(1)
@@ -614,7 +614,7 @@ typedef enum IROperator {
    * function call
    *
    * one operand
-   * 0: REG | TEMP, read, allocation == (FP | MEM) | GLOBAL | LOCAL; size ==
+   * 0: REG | TEMP, read, allocation == (GP | MEM) | GLOBAL | LOCAL; size ==
    *    POINTER_WIDTH
    */
   IO_CALL,

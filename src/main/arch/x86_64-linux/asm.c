@@ -489,299 +489,735 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         break;
       }
       case IO_STK_STORE: {
+        // arg 0: reg, gp temp, mem temp, const
+        // arg 1: reg, non-mem temp, mem temp, const
         // TODO
         break;
       }
       case IO_STK_LOAD: {
+        // arg 0: reg, non-mem temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_OFFSET_STORE: {
+        // arg 0: mem temp
+        // arg 1: reg, non-mem temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_OFFSET_LOAD: {
+        // arg 0: reg, non-mem temp, mem temp
+        // arg 1: mem temp
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_ADD: {
-        // TODO
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
+
+        // mov <arg 0>, <arg 1>
+        // add <arg 0>, <arg 2>
+
+        if (ir->args[0]->kind == OK_REG || isGpTemp(ir->args[0])) {
+          if (ir->args[1]->kind == OK_REG || ir->args[1]->kind == OK_TEMP) {
+            if (ir->args[2]->kind == OK_REG || ir->args[2]->kind == OK_TEMP) {
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              DONE(assembly, i);
+            } else {
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR,
+                       format("add `d, %lu", datumToNumber(ir->args[2])));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              DONE(assembly, i);
+            }
+          } else {
+            if (ir->args[2]->kind == OK_REG || ir->args[2]->kind == OK_TEMP) {
+              i = INST(X86_64_LINUX_IK_REGULAR,
+                       format("mov `d, %lu", datumToNumber(ir->args[1])));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              DONE(assembly, i);
+            } else {
+              i = INST(X86_64_LINUX_IK_REGULAR,
+                       format("mov `d, %lu", datumToNumber(ir->args[1]) +
+                                                 datumToNumber(ir->args[2])));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              DONE(assembly, i);
+            }
+          }
+        } else {
+          if (ir->args[1]->kind == OK_REG || isGpTemp(ir->args[1])) {
+            if (ir->args[2]->kind == OK_REG || isGpTemp(ir->args[2])) {
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              DONE(assembly, i);
+            } else if (isMemTemp(ir->args[2])) {
+              size_t patchTemp = fresh(file);
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+            } else {
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR,
+                       format("add `d, %lu", datumToNumber(ir->args[2])));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              DONE(assembly, i);
+            }
+          } else if (isMemTemp(ir->args[1])) {
+            if (ir->args[2]->kind == OK_REG || ir->args[2]->kind == OK_TEMP) {
+              size_t patchTemp = fresh(file);
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+            } else {
+              size_t patchTemp = fresh(file);
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR,
+                       format("add `d, %lu", datumToNumber(ir->args[2])));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+            }
+          } else {
+            if (ir->args[2]->kind == OK_REG) {
+              size_t patchTemp = fresh(file);
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+            } else {
+              size_t patchTemp = fresh(file);
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR,
+                       format("add `d, %lu", datumToNumber(ir->args[2])));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              MOVES(i, i->uses.elements[0], i->defines.elements[0]);
+              DONE(assembly, i);
+            }
+          }
+        }
         break;
       }
       case IO_SUB: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SMUL: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_UMUL: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SDIV: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_UDIV: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SMOD: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_UMOD: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FADD: {
+        // arg 0: reg, fp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FSUB: {
+        // arg 0: reg, fp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FMUL: {
+        // arg 0: reg, fp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FDIV: {
+        // arg 0: reg, fp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FMOD: {
+        // arg 0: reg, fp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_NEG: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FNEG: {
+        // arg 0: reg, fp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SLL: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SLR: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SAR: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_AND: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_XOR: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_OR: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_NOT: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_L: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_LE: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_E: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_NE: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_G: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_GE: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_A: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_AE: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_B: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_BE: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FL: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FLE: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FE: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FNE: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FG: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FGE: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_Z: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, non-mem temp, mem temp, const
         // TODO
         break;
       }
       case IO_NZ: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, non-mem temp, mem temp, const
         // TODO
         break;
       }
       case IO_LNOT: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SX: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_ZX: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_TRUNC: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_U2F: {
+        // arg 0: reg, fp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_S2F: {
+        // arg 0: reg, fp temp, mem temp
+        // arg 1: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FRESIZE: {
+        // arg 0: reg, fp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_F2I: {
+        // arg 0: reg, gp temp, mem temp
+        // arg 1: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_JUMP: {
+        // arg 0: local
         // TODO
         break;
       }
       case IO_JUMPTABLE: {
+        // arg 0: gp temp, mem temp
+        // arg 1: local
         // TODO
         break;
       }
       case IO_J1L: {
+        // arg 0: local
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1LE: {
+        // arg 0: local
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1E: {
+        // arg 0: local
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1NE: {
+        // arg 0: local
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1G: {
+        // arg 0: local
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1GE: {
+        // arg 0: local
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1A: {
+        // arg 0: local
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1AE: {
+        // arg 0: local
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1B: {
+        // arg 0: local
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1BE: {
+        // arg 0: local
+        // arg 1: reg, gp temp, mem temp, const
+        // arg 2: reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FL: {
+        // arg 0: local
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FLE: {
+        // arg 0: local
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FE: {
+        // arg 0: local
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FNE: {
+        // arg 0: local
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FG: {
+        // arg 0: local
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FGE: {
+        // arg 0: local
+        // arg 1: reg, fp temp, mem temp, const
+        // arg 2: reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1Z: {
+        // arg 0: local
+        // arg 1: reg, non-mem temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1NZ: {
+        // arg 0: local
+        // arg 1: reg, non-mem temp, mem temp, const
         // TODO
         break;
       }
       case IO_CALL: {
-        // TODO
+        // arg 0: reg, gp temp, mem temp, global, local
+        if (ir->args[0]->kind == OK_REG || ir->args[0]->kind == OK_TEMP) {
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tcall `u\n"));
+          USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+        } else {
+          // either a global or a local
+          IRDatum *who = ir->args[0]->data.constant.data.elements[0];
+          if (who->type == DT_GLOBAL) {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tcall %s\n", who->data.globalLabel));
+          } else {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tcall .L%zu\n", who->data.localLabel));
+          }
+        }
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RAX, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDX, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R8, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R9, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R10, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R11, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM0, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM1, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM2, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM3, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM4, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM5, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM6, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM7, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM8, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM9, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM10, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM11, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM12, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM13, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM14, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM15, 8));
+        DONE(assembly, i);
         break;
       }
       case IO_RETURN: {
-        // TODO
+        // no args
+        i = INST(X86_64_LINUX_IK_LEAVE, strdup("\tret\n"));
+        DONE(assembly, i);
         break;
       }
       default: {
