@@ -467,7 +467,29 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
       case IO_ADDROF: {
         // arg 0: reg, gp temp, mem temp
         // arg 1: mem temp
-        // TODO
+
+        if (ir->args[0]->kind == OK_REG || isGpTemp(ir->args[0])) {
+          // to register-ish
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("lea `d, `u"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          DONE(assembly, i);
+        } else {
+          // to memory
+          size_t patchTemp = fresh(file);
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+          DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                       AH_GP));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                    AH_GP));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+        }
         break;
       }
       case IO_MOVE: {
