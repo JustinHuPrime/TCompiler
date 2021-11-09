@@ -435,8 +435,62 @@ static uint64_t x86_64LinuxConstantToNumber(IROperand *constant) {
   }
   return out;
 }
+
+/**
+ * generates the rest of a memcpy, returning the actual movs instruction
+ *
+ * assumes that RSI and RDI are already set
+ */
+static X86_64LinuxInstruction *x86_64LinuxGenerateMemcpy(
+    X86_64LinuxFrag *assembly, size_t size) {
+  X86_64LinuxInstruction *i;
+
+  size_t factor;
+  char const *postfix;
+  if (size % 8 == 0) {
+    factor = 8;
+    postfix = "q";
+  } else if (size % 4 == 0) {
+    factor = 4;
+    postfix = "d";
+  } else if (size % 2 == 0) {
+    factor = 2;
+    postfix = "w";
+  } else {
+    factor = 1;
+    postfix = "b";
+  }
+
+  i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, %lu\n", size / factor));
+  DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX, 8));
+  DONE(assembly, i);
+
+  i = INST(X86_64_LINUX_IK_REGULAR, format("\trep mov%s\n", postfix));
+  USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI, 8));
+  USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI, 8));
+  USES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX, 8));
+  DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI, 8));
+  DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI, 8));
+  DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX, 8));
+  return i;
+}
+
+/**
+ * generate a fragment holding a constant
+ */
+static X86_64LinuxFrag *x86_64LinuxConstantToFrag(IROperand *constant,
+                                                  size_t name) {
+  char *data = x86_64LinuxDataToString(&constant->data.constant.data);
+  X86_64LinuxFrag *retval = x86_64LinuxDataFragCreate(
+      format("section .rodata align=%zu\nL%zu:\n%s.end\n",
+             constant->data.constant.alignment, name, data));
+  free(data);
+  return retval;
+}
+
 static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
                                                    FileListEntry *file) {
+  X86_64LinuxFile *asmFile = file->asmFile;
   X86_64LinuxFrag *assembly = x86_64LinuxTextFragCreate(
       format("section .text\nglobal %s:function\n%s:\n", frag->name.global,
              frag->name.global),
@@ -497,7 +551,126 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
       case IO_MOVE: {
         // arg 0: reg, non-mem temp, mem temp
         // arg 1: reg, non-mem temp, mem temp, const
-        // TODO
+
+        if (ir->args[0]->kind == OK_REG || isNonMemTemp(ir->args[0])) {
+          if (ir->args[1]->kind == OK_REG || ir->args[0]->kind == OK_TEMP) {
+            // register-ish/memory to register-ish
+            i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+          } else {
+            // constant to register-ish
+            if (irOperandIsLocal(ir->args[1]))
+              i = INST(
+                  X86_64_LINUX_IK_REGULAR,
+                  format("\tmov `d, L%lu\n", localOperandName(ir->args[1])));
+            else if (irOperandIsGlobal(ir->args[1]))
+              i = INST(
+                  X86_64_LINUX_IK_REGULAR,
+                  format("\tmov `d, %s\n", globalOperandName(ir->args[1])));
+            else
+              i = INST(X86_64_LINUX_IK_REGULAR,
+                       format("\tmov `d, %lu\n",
+                              x86_64LinuxConstantToNumber(ir->args[1])));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            DONE(assembly, i);
+          }
+        } else {
+          if (ir->args[1]->kind == OK_REG || isNonMemTemp(ir->args[1])) {
+            // register-ish to memory
+            i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+          } else if (isMemTemp(ir->args[1])) {
+            // memory to memory
+            if (ir->args[0]->data.temp.size == 8 ||
+                ir->args[0]->data.temp.size == 4 ||
+                ir->args[0]->data.temp.size == 2 ||
+                ir->args[0]->data.temp.size == 1) {
+              // patchable memory to memory
+              size_t patchTemp = fresh(file);
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
+              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                           patchTemp, AH_GP));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, 0, 0);
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                        AH_GP));
+              MOVES(i, 0, 0);
+              DONE(assembly, i);
+            } else {
+              // memcpy memory to memory
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
+              DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI, 8));
+              USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
+              DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI, 8));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              DONE(assembly, i);
+
+              i = x86_64LinuxGenerateMemcpy(assembly,
+                                            ir->args[0]->data.temp.size);
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, 3, 3);
+              DONE(assembly, i);
+            }
+          } else {
+            // constant to memory
+            if (ir->args[0]->data.temp.size == 8 ||
+                ir->args[0]->data.temp.size == 4 ||
+                ir->args[0]->data.temp.size == 2 ||
+                ir->args[0]->data.temp.size == 1) {
+              // regular constant to memory
+              if (irOperandIsLocal(ir->args[1]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tmov `d, L%lu\n", localOperandName(ir->args[1])));
+              else if (irOperandIsGlobal(ir->args[1]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tmov `d, %s\n", globalOperandName(ir->args[1])));
+              else
+                i = INST(X86_64_LINUX_IK_REGULAR,
+                         format("\tmov `d, %lu\n",
+                                x86_64LinuxConstantToNumber(ir->args[1])));
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              DONE(assembly, i);
+            } else {
+              // memcpy constant to memory
+              size_t constantName = fresh(file);
+              vectorInsert(&asmFile->frags, x86_64LinuxConstantToFrag(
+                                                ir->args[1], constantName));
+
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
+              DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI, 8));
+              USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              DONE(assembly, i);
+
+              i = INST(X86_64_LINUX_IK_REGULAR,
+                       format("\tlea `d, L%lu\n", constantName));
+              DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI, 8));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              DONE(assembly, i);
+
+              i = x86_64LinuxGenerateMemcpy(assembly,
+                                            ir->args[0]->data.temp.size);
+              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+              USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+              MOVES(i, 3, 3);
+              DONE(assembly, i);
+            }
+          }
+        }
         break;
       }
       case IO_MEM_STORE: {
