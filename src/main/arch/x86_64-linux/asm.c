@@ -340,6 +340,7 @@ static void MOVES(X86_64LinuxInstruction *i, size_t dest, size_t src) {
 static void DONE(X86_64LinuxFrag *assembly, X86_64LinuxInstruction *i) {
   insertNodeEnd(&assembly->data.text.instructions, i);
 }
+
 static bool isMemTemp(IROperand const *o) {
   return o->kind == OK_TEMP && o->data.temp.kind == AH_MEM;
 }
@@ -358,13 +359,14 @@ static bool isGpReg(IROperand const *o) {
 static bool isFpReg(IROperand const *o) {
   return o->kind == OK_REG && X86_64_LINUX_XMM0 <= o->data.reg.name;
 }
+
 /**
  * encode a non-label constant as a 64 bit unsigned integer
  *
  * @param constant constant to encode - must be 8 bytes or smaller
  * @returns encoded value
  */
-static uint64_t datumToNumber(IROperand *constant) {
+static uint64_t x86_64LinuxConstantToNumber(IROperand *constant) {
   uint8_t bytes[8];
   memset(&bytes, 0, 8);
 
@@ -470,20 +472,20 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
 
         if (ir->args[0]->kind == OK_REG || isGpTemp(ir->args[0])) {
           // to register-ish
-          i = INST(X86_64_LINUX_IK_REGULAR, strdup("lea `d, `u"));
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
           DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
-          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          USES(i, x86_64LinuxTempOperandCreateEscaping(ir->args[1]));
           DONE(assembly, i);
         } else {
           // to memory
           size_t patchTemp = fresh(file);
-          i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
           DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
                                                        AH_GP));
-          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          USES(i, x86_64LinuxTempOperandCreateEscaping(ir->args[1]));
           DONE(assembly, i);
 
-          i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
           DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
           USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
                                                     AH_GP));
@@ -547,27 +549,37 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
           if (ir->args[1]->kind == OK_REG || ir->args[1]->kind == OK_TEMP) {
             if (ir->args[2]->kind == OK_REG || ir->args[2]->kind == OK_TEMP) {
               // register-ish = register-ish/memory + register-ish/memory
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxOperandCreate(ir->args[1]));
               MOVES(i, 0, 0);
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tadd `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxOperandCreate(ir->args[2]));
               USES(i, x86_64LinuxOperandCreate(ir->args[0]));
               DONE(assembly, i);
             } else {
               // register-ish = register-ish/memory + constant
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxOperandCreate(ir->args[1]));
               MOVES(i, 0, 0);
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR,
-                       format("add `d, %lu", datumToNumber(ir->args[2])));
+              if (irOperandIsLocal(ir->args[2]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tadd `d, L%lu\n", localOperandName(ir->args[2])));
+              else if (irOperandIsGlobal(ir->args[2]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tmov `d, %s\n", globalOperandName(ir->args[2])));
+              else
+                i = INST(X86_64_LINUX_IK_REGULAR,
+                         format("\tmov `d, %lu\n",
+                                x86_64LinuxConstantToNumber(ir->args[2])));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxOperandCreate(ir->args[0]));
               DONE(assembly, i);
@@ -575,36 +587,81 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
           } else {
             if (ir->args[2]->kind == OK_REG || ir->args[2]->kind == OK_TEMP) {
               // register-ish = constant + register-ish/memory
-              i = INST(X86_64_LINUX_IK_REGULAR,
-                       format("mov `d, %lu", datumToNumber(ir->args[1])));
+              if (irOperandIsLocal(ir->args[1]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tmov `d, L%lu\n", localOperandName(ir->args[1])));
+              else if (irOperandIsGlobal(ir->args[1]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tmov `d, %s\n", globalOperandName(ir->args[1])));
+              else
+                i = INST(X86_64_LINUX_IK_REGULAR,
+                         format("\tmov `d, %lu\n",
+                                x86_64LinuxConstantToNumber(ir->args[1])));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tadd `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxOperandCreate(ir->args[2]));
               USES(i, x86_64LinuxOperandCreate(ir->args[0]));
               DONE(assembly, i);
             } else {
               // register-ish = constant + constant
-              i = INST(X86_64_LINUX_IK_REGULAR,
-                       format("mov `d, %lu", datumToNumber(ir->args[1]) +
-                                                 datumToNumber(ir->args[2])));
-              DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
-              DONE(assembly, i);
+              if (!irOperandIsLabel(ir->args[1]) &&
+                  !irOperandIsLabel(ir->args[2])) {
+                i = INST(X86_64_LINUX_IK_REGULAR,
+                         format("\tmov `d, %lu\n",
+                                x86_64LinuxConstantToNumber(ir->args[1]) +
+                                    x86_64LinuxConstantToNumber(ir->args[2])));
+                DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+                DONE(assembly, i);
+              } else {
+                if (irOperandIsLocal(ir->args[1]))
+                  i = INST(X86_64_LINUX_IK_REGULAR,
+                           format("\tmov `d, L%lu\n",
+                                  localOperandName(ir->args[1])));
+                else if (irOperandIsGlobal(ir->args[1]))
+                  i = INST(
+                      X86_64_LINUX_IK_REGULAR,
+                      format("\tmov `d, %s\n", globalOperandName(ir->args[1])));
+                else
+                  i = INST(X86_64_LINUX_IK_REGULAR,
+                           format("\tmov `d, %lu\n",
+                                  x86_64LinuxConstantToNumber(ir->args[1])));
+                DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+                DONE(assembly, i);
+
+                if (irOperandIsLocal(ir->args[2]))
+                  i = INST(X86_64_LINUX_IK_REGULAR,
+                           format("\tadd `d, L%lu\n",
+                                  localOperandName(ir->args[2])));
+                else if (irOperandIsGlobal(ir->args[2]))
+                  i = INST(
+                      X86_64_LINUX_IK_REGULAR,
+                      format("\tmov `d, %s\n", globalOperandName(ir->args[2])));
+                else
+                  i = INST(X86_64_LINUX_IK_REGULAR,
+                           format("\tmov `d, %lu\n",
+                                  x86_64LinuxConstantToNumber(ir->args[2])));
+                DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+                USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+                DONE(assembly, i);
+              }
             }
           }
         } else {
           if (ir->args[1]->kind == OK_REG || isGpTemp(ir->args[1])) {
             if (ir->args[2]->kind == OK_REG || isGpTemp(ir->args[2])) {
               // memory = register-ish + register-ish
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxOperandCreate(ir->args[1]));
               MOVES(i, 0, 0);
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tadd `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxOperandCreate(ir->args[2]));
               USES(i, x86_64LinuxOperandCreate(ir->args[0]));
@@ -612,14 +669,14 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
             } else if (isMemTemp(ir->args[2])) {
               // memory = register-ish + memory
               size_t patchTemp = fresh(file);
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
                                                            patchTemp, AH_GP));
               USES(i, x86_64LinuxOperandCreate(ir->args[1]));
               MOVES(i, 0, 0);
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tadd `d, `u\n"));
               DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
                                                            patchTemp, AH_GP));
               USES(i, x86_64LinuxOperandCreate(ir->args[2]));
@@ -627,7 +684,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
                                                         AH_GP));
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
                                                         AH_GP));
@@ -635,14 +692,24 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
               DONE(assembly, i);
             } else {
               // memory = register-ish + constant
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxOperandCreate(ir->args[1]));
               MOVES(i, 0, 0);
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR,
-                       format("add `d, %lu", datumToNumber(ir->args[2])));
+              if (irOperandIsLocal(ir->args[2]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tadd `d, L%lu\n", localOperandName(ir->args[2])));
+              else if (irOperandIsGlobal(ir->args[2]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tmov `d, %s\n", globalOperandName(ir->args[2])));
+              else
+                i = INST(X86_64_LINUX_IK_REGULAR,
+                         format("\tmov `d, %lu\n",
+                                x86_64LinuxConstantToNumber(ir->args[2])));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxOperandCreate(ir->args[0]));
               DONE(assembly, i);
@@ -651,14 +718,14 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
             if (ir->args[2]->kind == OK_REG || ir->args[2]->kind == OK_TEMP) {
               // memory = memory + register-ish/memory
               size_t patchTemp = fresh(file);
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
                                                            patchTemp, AH_GP));
               USES(i, x86_64LinuxOperandCreate(ir->args[1]));
               MOVES(i, 0, 0);
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tadd `d, `u\n"));
               DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
                                                            patchTemp, AH_GP));
               USES(i, x86_64LinuxOperandCreate(ir->args[2]));
@@ -666,7 +733,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
                                                         AH_GP));
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
                                                         AH_GP));
@@ -675,22 +742,32 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
             } else {
               // memory = memory + constant
               size_t patchTemp = fresh(file);
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
                                                            patchTemp, AH_GP));
               USES(i, x86_64LinuxOperandCreate(ir->args[1]));
               MOVES(i, 0, 0);
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR,
-                       format("add `d, %lu", datumToNumber(ir->args[2])));
+              if (irOperandIsLocal(ir->args[2]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tadd `d, L%lu\n", localOperandName(ir->args[2])));
+              else if (irOperandIsGlobal(ir->args[2]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tadd `d, %s\n", globalOperandName(ir->args[2])));
+              else
+                i = INST(X86_64_LINUX_IK_REGULAR,
+                         format("\tadd `d, %lu\n",
+                                x86_64LinuxConstantToNumber(ir->args[2])));
               DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
                                                            patchTemp, AH_GP));
               USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
                                                         AH_GP));
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
                                                         AH_GP));
@@ -701,13 +778,23 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
             if (ir->args[2]->kind == OK_REG || ir->args[2]->kind == OK_TEMP) {
               // memory = constant + register-ish/memory
               size_t patchTemp = fresh(file);
-              i = INST(X86_64_LINUX_IK_REGULAR,
-                       format("mov `d, %lu", datumToNumber(ir->args[1])));
+              if (irOperandIsLocal(ir->args[1]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tmov `d, L%lu\n", localOperandName(ir->args[1])));
+              else if (irOperandIsGlobal(ir->args[1]))
+                i = INST(
+                    X86_64_LINUX_IK_REGULAR,
+                    format("\tmov `d, %s\n", globalOperandName(ir->args[1])));
+              else
+                i = INST(X86_64_LINUX_IK_REGULAR,
+                         format("\tmov `d, %lu\n",
+                                x86_64LinuxConstantToNumber(ir->args[1])));
               DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
                                                            patchTemp, AH_GP));
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("add `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tadd `d, `u\n"));
               DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
                                                            patchTemp, AH_GP));
               USES(i, x86_64LinuxOperandCreate(ir->args[2]));
@@ -715,7 +802,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
                                                         AH_GP));
               DONE(assembly, i);
 
-              i = INST(X86_64_LINUX_IK_REGULAR, strdup("mov `d, `u"));
+              i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
               DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
               USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
                                                         AH_GP));
@@ -723,12 +810,46 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
               DONE(assembly, i);
             } else {
               // memory = constant + constant
-              size_t patchTemp = fresh(file);
-              i = INST(X86_64_LINUX_IK_REGULAR,
-                       format("mov `d, %lu", datumToNumber(ir->args[1]) +
-                                                 datumToNumber(ir->args[2])));
-              DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0]));
-              DONE(assembly, i);
+              if (!irOperandIsLabel(ir->args[1]) &&
+                  !irOperandIsLabel(ir->args[2])) {
+                i = INST(X86_64_LINUX_IK_REGULAR,
+                         format("\tmov `d, %lu\n",
+                                x86_64LinuxConstantToNumber(ir->args[1]) +
+                                    x86_64LinuxConstantToNumber(ir->args[2])));
+                DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+                DONE(assembly, i);
+              } else {
+                if (irOperandIsLocal(ir->args[1]))
+                  i = INST(X86_64_LINUX_IK_REGULAR,
+                           format("\tmov `d, L%lu\n",
+                                  localOperandName(ir->args[1])));
+                else if (irOperandIsGlobal(ir->args[1]))
+                  i = INST(
+                      X86_64_LINUX_IK_REGULAR,
+                      format("\tmov `d, %s\n", globalOperandName(ir->args[1])));
+                else
+                  i = INST(X86_64_LINUX_IK_REGULAR,
+                           format("\tmov `d, %lu\n",
+                                  x86_64LinuxConstantToNumber(ir->args[1])));
+                DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+                DONE(assembly, i);
+
+                if (irOperandIsLocal(ir->args[2]))
+                  i = INST(X86_64_LINUX_IK_REGULAR,
+                           format("\tadd `d, L%lu\n",
+                                  localOperandName(ir->args[2])));
+                else if (irOperandIsGlobal(ir->args[2]))
+                  i = INST(
+                      X86_64_LINUX_IK_REGULAR,
+                      format("\tmov `d, %s\n", globalOperandName(ir->args[2])));
+                else
+                  i = INST(X86_64_LINUX_IK_REGULAR,
+                           format("\tmov `d, %lu\n",
+                                  x86_64LinuxConstantToNumber(ir->args[2])));
+                DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+                USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+                DONE(assembly, i);
+              }
             }
           }
         }
@@ -1188,46 +1309,45 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
       case IO_CALL: {
         // arg 0: reg, gp temp, mem temp, global, local
         if (ir->args[0]->kind == OK_REG || ir->args[0]->kind == OK_TEMP) {
+          // register-ish
           i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tcall `u\n"));
           USES(i, x86_64LinuxOperandCreate(ir->args[0]));
         } else {
-          // either a global or a local
-          IRDatum *who = ir->args[0]->data.constant.data.elements[0];
-          if (who->type == DT_GLOBAL) {
+          // constant
+          if (irOperandIsGlobal(ir->args[0]))
             i = INST(X86_64_LINUX_IK_REGULAR,
-                     format("\tcall %s\n", who->data.globalLabel));
-          } else {
+                     format("\tcall %s\n", globalOperandName(ir->args[0])));
+          else
             i = INST(X86_64_LINUX_IK_REGULAR,
-                     format("\tcall .L%zu\n", who->data.localLabel));
-          }
+                     format("\tcall L%zu\n", localOperandName(ir->args[0])));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RAX, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDX, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R8, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R9, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R10, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R11, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM0, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM1, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM2, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM3, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM4, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM5, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM6, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM7, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM8, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM9, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM10, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM11, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM12, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM13, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM14, 8));
+          DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM15, 8));
+          DONE(assembly, i);
+          break;
         }
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RAX, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDI, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RSI, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RDX, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RCX, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R8, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R9, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R10, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_R11, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM0, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM1, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM2, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM3, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM4, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM5, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM6, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM7, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM8, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM9, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM10, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM11, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM12, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM13, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM14, 8));
-        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM15, 8));
-        DONE(assembly, i);
-        break;
       }
       case IO_RETURN: {
         // no args
