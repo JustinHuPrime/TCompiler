@@ -11,11 +11,11 @@ This repo is the source code for the T Language Compiler, `tlc`.
 
 ## Invoking
 
-`tlc` accepts up to 2^31 - 2 arguments, which can be either a file name or an option. File names are extension-sensitive. Depending on the options, the compiler may produce an error if it encouters a file it does not recogize, or it may ignore the files it does not recognize with a warning. A list of the options follows.
+`tlc` accepts up to 2^31 - 2 arguments, which can be either a file name or an option. File names are extension-sensitive. Depending on the options, the compiler may produce an error if it encounters a file it does not recognize, or it may ignore the files it does not recognize with a warning. A list of the options follows.
 
 ### Options
 
-Note that if a later option conflicts with an earlier option, the later option will apply to all files, even those before the eariler option. Additionally, all arguments after `--` are treated as files.
+Note that if a later option conflicts with an earlier option, the later option will apply to all files, even those before the earlier option. Additionally, all arguments after `--` are treated as files.
 
 #### Informational Options
 
@@ -43,11 +43,11 @@ All warning options have three forms, a `-W...=error` form, a `-W...=warn` form,
 
 <!-- * `duplicate-decl-specifier`: a data type has const or volatile applied to the same thing more than once. Defaults to warn. -->
 
-* `duplciate-file`: duplciated files given. Defaults to error. If not an error, later files have no effect.
+* `duplicate-file`: duplicated files given. Defaults to error. If not an error, later files have no effect.
 
 * `duplicate-import`: duplicated imports in a module. Defaults to ignore. If not an error, later imports have no effect.
 
-<!-- * `reseved-id`: something is defined using an id starting with two underscores (a reserved id). Defaults to error. -->
+<!-- * `reserved-id`: something is defined using an id starting with two underscores (a reserved id). Defaults to error. -->
 
 <!-- * `unreachable`: unreachable statements detected. Defaults to warn. -->
 

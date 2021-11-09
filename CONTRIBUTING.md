@@ -43,4 +43,4 @@ The compiler follows the standard pass structure, modified to support context-se
 
 ## Code Style
 
-The T Langauge Compiler uses clang-format as the code style enforcer. Your code style must match exactly with what clang-format generates. As per Google's C++ code style, indentation is in spaces, and one level of indent is two spaces. Doxygen is used to generate documentation. All header file declarations should have Doxygen documentation. Implementation file only declarations (static functions, etc.) may omit Doxygen documentation, but this is discouraged except in cases of truly trivial functions.
+The T Language Compiler uses clang-format as the code style enforcer. Your code style must match exactly with what clang-format generates. As per Google's C++ code style, indentation is in spaces, and one level of indent is two spaces. Doxygen is used to generate documentation. All header file declarations should have Doxygen documentation. Implementation file only declarations (static functions, etc.) may omit Doxygen documentation, but this is discouraged except in cases of truly trivial functions.
