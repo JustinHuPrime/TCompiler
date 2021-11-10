@@ -50,7 +50,7 @@ magic_token = "__FILE__"
 int_literal = [ "-" | "+" ], ( nonzero_digit, { digit }
                              | "0x", hex_digit, { hex_digit }
                              | "0b", binary_digit, { binary_digit }
-                             | "0", octal_digit, { octal_digit }
+                             | "0o", octal_digit, { octal_digit }
                              | "0"
                              )
 ;

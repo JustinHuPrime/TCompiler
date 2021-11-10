@@ -151,19 +151,19 @@ int octalToInteger(char *string, int8_t *sign, uint64_t *magnitudeOut) {
     case '0': {
       // 0...
       *sign = 0;  // unsigned
-      string += 1;
+      string += 2;
       break;
     }
     case '-': {
       // -0...
       *sign = -1;
-      string += 2;
+      string += 3;
       break;
     }
     case '+': {
       // +0...
       *sign = 1;
-      string += 2;
+      string += 3;
       break;
     }
     default: {

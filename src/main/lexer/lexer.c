@@ -574,14 +574,14 @@ static void lexNumber(FileListEntry *entry, Token *token) {
         lexHex(entry, token, start);
         return;
       }
+      case 'o': {
+        // [+-]0o
+        // is octal, lex it
+        lexOctal(entry, token, start);
+        return;
+      }
       default: {
-        if (second >= '0' && second <= '7') {
-          // [+-]0[0-7]
-          // is octal, return the digit and lex it
-          put(state, 1);
-          lexOctal(entry, token, start);
-          return;
-        } else if (second == '.') {
+        if (second == '.') {
           // [+-]0.
           // is a decimal, return the dot and the zero, and lex it
           put(state, 2);
