@@ -204,21 +204,21 @@ typedef enum IROperator {
    * local label
    *
    * one operand
-   * 0: LOCAL
+   * 0: LOCAL - the label
    */
   IO_LABEL,
   /**
    * fake use of a temp to prevent dead-code elimination of volatile reads
    *
    * one operand
-   * 0: TEMP, read
+   * 0: TEMP, read - temp to mark as used
    */
   IO_VOLATILE,
   /**
    * fake write to a temp to mark it as explicitly uninitialized
    *
    * one operand
-   * 0: TEMP, written
+   * 0: TEMP, written - temp to mark as uninitialized
    */
   IO_UNINITIALIZED,
   /**
@@ -226,8 +226,8 @@ typedef enum IROperator {
    *
    * two operands
    * 0: REG | TEMP, written, allocation == (GP | MEM); size ==
-   *    POINTER_WIDTH
-   * 1: TEMP, read, allocation == MEM
+   *    POINTER_WIDTH - destination pointer
+   * 1: TEMP, read, allocation == MEM - source mem temp
    */
   IO_ADDROF,
   /**
@@ -242,8 +242,8 @@ typedef enum IROperator {
    * whole-datum move
    *
    * two operands
-   * 0: REG | TEMP, written
-   * 1: REG | TEMP, read | CONST
+   * 0: REG | TEMP, written - desination
+   * 1: REG | TEMP, read | CONST - source
    *
    * sizeof(0) == sizeof(1)
    */
@@ -253,21 +253,21 @@ typedef enum IROperator {
    *
    * three operands
    * 0: REG | TEMP, read, allocation == (GP | MEM) | CONST;
-   * size == POINTER_WIDTH
-   * 1: REG | TEMP, read | CONST
+   * size == POINTER_WIDTH - destination pointer
+   * 1: REG | TEMP, read | CONST - source data
    * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
-   *    POINTER_WIDTH
+   *    POINTER_WIDTH - offset
    */
   IO_MEM_STORE,
   /**
    * load from memory
    *
    * three operands
-   * 0: REG | TEMP, written
+   * 0: REG | TEMP, written - destination data
    * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST;
-   * size == POINTER_WIDTH
+   * size == POINTER_WIDTH - source pointer
    * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST; size ==
-   *    POINTER_WIDTH
+   *    POINTER_WIDTH - offset
    */
   IO_MEM_LOAD,
   /**

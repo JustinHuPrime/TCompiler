@@ -94,10 +94,6 @@ typedef struct {
     struct {
       int64_t offset;
     } offset;
-    struct {
-      size_t who;
-      int64_t offset;
-    } addrof;
   } data;
 } X86_64LinuxOperand;
 
