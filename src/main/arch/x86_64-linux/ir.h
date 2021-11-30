@@ -17,40 +17,30 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "arch/x86_64-linux/backend.h"
+/**
+ * @file
+ * IR manipulation specific to x86_64 linux
+ */
 
-#include "arch/x86_64-linux/asm.h"
-#include "arch/x86_64-linux/ir.h"
-#include "fileList.h"
-#include "ir/ir.h"
+#ifndef TLC_ARCH_X86_64_LINUX_IR_H_
+#define TLC_ARCH_X86_64_LINUX_IR_H_
 
-void x86_64LinuxBackend(void) {
-  // three-arg -> binop
-  x86_64LinuxReduceOpArity();
+/**
+ * reduce arithmetic operations to their supported arity
+ *
+ * - reduces most three-arg arithmetic to two-arg
+ * - reduces most two-arg arithmetic to one-arg
+ * - doesn't touch conversions or comparisons - those don't have any
+ * dependencies between args
+ */
+void x86_64LinuxReduceOpArity(void);
 
-  // memory referencing rules
-  x86_64LinuxSatisfyAddressing();
+/**
+ * satisfy addressing rules
+ *
+ * most instructions are allowed at most one memory operand
+ * very few instructions are allowed constants
+ */
+void x86_64LinuxSatisfyAddressing(void);
 
-  // assembly generation
-  x86_64LinuxGenerateAsm();
-
-  // done with IR
-  for (size_t idx = 0; idx < fileList.size; ++idx)
-    vectorUninit(&fileList.entries[idx].irFrags, (void (*)(void *))irFragFree);
-
-  // assembly optimization 1
-  // TODO
-
-  // register allocation
-  // TODO
-
-  // assembly optimization 2
-  // TODO
-
-  // write out
-  // TODO
-
-  // cleanup
-  for (size_t idx = 0; idx < fileList.size; ++idx)
-    x86_64LinuxFileFree(fileList.entries[idx].asmFile);
-}
+#endif  // TLC_ARCH_X86_64_LINUX_IR_H_
