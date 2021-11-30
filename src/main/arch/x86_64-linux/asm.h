@@ -68,6 +68,7 @@ typedef enum {
   X86_64_LINUX_XMM13,
   X86_64_LINUX_XMM14,
   X86_64_LINUX_XMM15,
+  X86_64_LINUX_RFLAGS,
 } X86_64LinuxRegister;
 
 char const *x86_64LinuxPrettyPrintRegister(size_t reg);

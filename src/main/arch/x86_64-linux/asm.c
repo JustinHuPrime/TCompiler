@@ -1070,6 +1070,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM13, 8));
         DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM14, 8));
         DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_XMM15, 8));
+        DEFINES(i, x86_64LinuxRegOperandCreate(X86_64_LINUX_RFLAGS, 8));
         DONE(assembly, i);
         break;
       }
