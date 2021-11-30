@@ -195,6 +195,41 @@ IRDatum *irDatumCopy(IRDatum const *d) {
     }
   }
 }
+bool irDatumEqual(IRDatum const *a, IRDatum const *b) {
+  if (a->type != b->type) return false;
+  switch (a->type) {
+    case DT_BYTE: {
+      return a->data.byteVal == b->data.byteVal;
+    }
+    case DT_SHORT: {
+      return a->data.shortVal == b->data.shortVal;
+    }
+    case DT_INT: {
+      return a->data.intVal == b->data.intVal;
+    }
+    case DT_LONG: {
+      return a->data.longVal == b->data.longVal;
+    }
+    case DT_PADDING: {
+      return a->data.paddingLength == b->data.paddingLength;
+    }
+    case DT_STRING: {
+      return tstrcmp(a->data.string, b->data.string) == 0;
+    }
+    case DT_WSTRING: {
+      return twstrcmp(a->data.wstring, b->data.wstring) == 0;
+    }
+    case DT_LOCAL: {
+      return a->data.localLabel == b->data.localLabel;
+    }
+    case DT_GLOBAL: {
+      return strcmp(a->data.globalLabel, b->data.globalLabel) == 0;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid DatumType");
+    }
+  }
+}
 static size_t irDatumSizeof(IRDatum const *d) {
   switch (d->type) {
     case DT_BYTE: {
@@ -326,6 +361,34 @@ char const *globalOperandName(IROperand const *o) {
 }
 size_t localOperandName(IROperand const *o) {
   return ((IRDatum *)o->data.constant.data.elements[0])->data.localLabel;
+}
+bool irOperandEqual(IROperand const *a, IROperand const *b) {
+  if (a->kind != b->kind) return false;
+  switch (a->kind) {
+    case OK_TEMP: {
+      return a->data.temp.name == b->data.temp.name &&
+             a->data.temp.size == b->data.temp.size &&
+             a->data.temp.alignment == b->data.temp.alignment &&
+             a->data.temp.kind == b->data.temp.kind;
+    }
+    case OK_REG: {
+      return a->data.reg.name == b->data.reg.name &&
+             a->data.reg.size == b->data.reg.size;
+    }
+    case OK_CONSTANT: {
+      if (a->data.constant.data.size != b->data.constant.data.size)
+        return false;
+      for (size_t idx = 0; idx < a->data.constant.data.size; ++idx) {
+        if (!irDatumEqual(a->data.constant.data.elements[idx],
+                          b->data.constant.data.elements[idx]))
+          return false;
+      }
+      return true;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid IROperandKind");
+    }
+  }
 }
 void irOperandFree(IROperand *o) {
   if (o == NULL) return;

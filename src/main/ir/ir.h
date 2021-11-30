@@ -115,6 +115,8 @@ IRDatum *localLabelDatumCreate(size_t label);
 IRDatum *globalLabelDatumCreate(char *label);
 /** copy */
 IRDatum *irDatumCopy(IRDatum const *d);
+/** equality */
+bool irDatumEqual(IRDatum const *a, IRDatum const *b);
 /** dtor */
 void irDatumFree(IRDatum *);
 
@@ -194,6 +196,10 @@ char const *globalOperandName(IROperand const *o);
  * get the name of this label
  */
 size_t localOperandName(IROperand const *o);
+/**
+ * are two operands equal
+ */
+bool irOperandEqual(IROperand const *a, IROperand const *b);
 /** dtor */
 void irOperandFree(IROperand *);
 
