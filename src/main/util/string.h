@@ -96,4 +96,13 @@ uint8_t *tstrdup(uint8_t const *s);
  */
 uint32_t *twstrdup(uint32_t const *s);
 
+/**
+ * compare two T strings
+ */
+int tstrcmp(uint8_t const *a, uint8_t const *b);
+/**
+ * compare two wide T strings
+ */
+int twstrcmp(uint32_t const *a, uint32_t const *b);
+
 #endif  // TLC_UTIL_STRING_H_

@@ -336,3 +336,21 @@ uint32_t *twstrdup(uint32_t const *s) {
   *curr++ = *s++;
   return copy;
 }
+
+int tstrcmp(uint8_t const *a, uint8_t const *b) {
+  while (*a != 0 && *b != 0) {
+    if (*a != *b) return *a - *b;
+    a++;
+    b++;
+  }
+  return *a - *b;
+}
+
+int twstrcmp(uint32_t const *a, uint32_t const *b) {
+  while (*a != 0 && *b != 0) {
+    if (*a != *b) return *a - *b;
+    a++;
+    b++;
+  }
+  return *a - *b;
+}
