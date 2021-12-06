@@ -390,6 +390,18 @@ bool irOperandEqual(IROperand const *a, IROperand const *b) {
     }
   }
 }
+bool isMemTemp(IROperand const *o) {
+  return o->kind == OK_TEMP && o->data.temp.kind == AH_MEM;
+}
+bool isNonMemTemp(IROperand const *o) {
+  return o->kind == OK_TEMP && o->data.temp.kind != AH_MEM;
+}
+bool isGpTemp(IROperand const *o) {
+  return o->kind == OK_TEMP && o->data.temp.kind == AH_GP;
+}
+bool isFpTemp(IROperand const *o) {
+  return o->kind == OK_TEMP && o->data.temp.kind == AH_FP;
+}
 void irOperandFree(IROperand *o) {
   if (o == NULL) return;
 
@@ -1013,6 +1025,21 @@ static void validateArgsSameSize(IRInstruction const *i, size_t a, size_t b,
     file->errored = true;
   }
 }
+static void validateArgsSameKind(IRInstruction const *i, size_t a, size_t b,
+                                 char const *phase, FileListEntry *file) {
+  if (i->args[a]->kind == OK_TEMP && i->args[b]->kind == OK_TEMP &&
+      ((i->args[a]->data.temp.kind == AH_GP &&
+        i->args[b]->data.temp.kind == AH_FP) ||
+       (i->args[a]->data.temp.kind == AH_FP &&
+        i->args[b]->data.temp.kind == AH_GP))) {
+    fprintf(stderr,
+            "%s: internal compiler error: IR validation after %s failed - "
+            "%s instruction's argument %zu and %zu differ in type and neither "
+            "are mem temps\n",
+            file->inputFilename, phase, IROPERATOR_NAMES[i->op], a, b);
+    file->errored = true;
+  }
+}
 static void validateArgJumpTarget(IRInstruction const *i, size_t idx,
                                   IROperand **temps, bool *localLabels,
                                   char const *phase, FileListEntry *file) {
@@ -1136,11 +1163,11 @@ static int validateIr(char const *phase, bool blocked) {
                currInst = currInst->next) {
             IRInstruction const *i = currInst->data;
             if (i->op < IO_LABEL || i->op > IO_RETURN) {
-              fprintf(
-                  stderr,
-                  "%s: internal compiler error: IR validation after %s failed "
-                  "- invalid operator (numerically %d) encountered\n",
-                  file->inputFilename, phase, i->op);
+              fprintf(stderr,
+                      "%s: internal compiler error: IR validation after %s "
+                      "failed "
+                      "- invalid operator (numerically %d) encountered\n",
+                      file->inputFilename, phase, i->op);
               file->errored = true;
             }
             switch (i->op) {
@@ -1184,6 +1211,7 @@ static int validateIr(char const *phase, bool blocked) {
                 validateArgRead(i, 1, temps, localLabels, phase, file);
 
                 validateArgsSameSize(i, 0, 1, phase, file);
+                validateArgsSameKind(i, 0, 1, phase, file);
                 break;
               }
               case IO_MEM_STORE: {

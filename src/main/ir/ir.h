@@ -200,6 +200,13 @@ size_t localOperandName(IROperand const *o);
  * are two operands equal
  */
 bool irOperandEqual(IROperand const *a, IROperand const *b);
+/**
+ * temp type queries
+ */
+bool isMemTemp(IROperand const *o);
+bool isNonMemTemp(IROperand const *o);
+bool isGpTemp(IROperand const *o);
+bool isFpTemp(IROperand const *o);
 /** dtor */
 void irOperandFree(IROperand *);
 
@@ -252,6 +259,8 @@ typedef enum IROperator {
    * 1: REG | TEMP, read | CONST - source
    *
    * sizeof(0) == sizeof(1)
+   * isFpTemp(0) == isFpTemp(1)
+   * isGpTemp(0) == isGpTemp(1)
    */
   IO_MOVE,
   /**

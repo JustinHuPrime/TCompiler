@@ -20,17 +20,10 @@
 #include "arch/x86_64-linux/backend.h"
 
 #include "arch/x86_64-linux/asm.h"
-#include "arch/x86_64-linux/ir.h"
 #include "fileList.h"
 #include "ir/ir.h"
 
 void x86_64LinuxBackend(void) {
-  // three-arg -> binop
-  x86_64LinuxReduceOpArity();
-
-  // memory referencing rules
-  x86_64LinuxSatisfyAddressing();
-
   // assembly generation
   x86_64LinuxGenerateAsm();
 

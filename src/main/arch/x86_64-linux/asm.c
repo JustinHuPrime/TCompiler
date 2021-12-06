@@ -341,18 +341,6 @@ static void DONE(X86_64LinuxFrag *assembly, X86_64LinuxInstruction *i) {
   insertNodeEnd(&assembly->data.text.instructions, i);
 }
 
-static bool isMemTemp(IROperand const *o) {
-  return o->kind == OK_TEMP && o->data.temp.kind == AH_MEM;
-}
-static bool isNonMemTemp(IROperand const *o) {
-  return o->kind == OK_TEMP && o->data.temp.kind != AH_MEM;
-}
-static bool isGpTemp(IROperand const *o) {
-  return o->kind == OK_TEMP && o->data.temp.kind == AH_GP;
-}
-static bool isFpTemp(IROperand const *o) {
-  return o->kind == OK_TEMP && o->data.temp.kind == AH_FP;
-}
 static bool isGpReg(IROperand const *o) {
   return o->kind == OK_REG && o->data.reg.name <= X86_64_LINUX_R15;
 }

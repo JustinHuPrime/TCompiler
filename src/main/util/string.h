@@ -25,8 +25,8 @@
 #ifndef TLC_UTIL_STRING_H_
 #define TLC_UTIL_STRING_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 /**
  * produces a character escape sequence for a character
@@ -103,6 +103,6 @@ int tstrcmp(uint8_t const *a, uint8_t const *b);
 /**
  * compare two wide T strings
  */
-int twstrcmp(uint32_t const *a, uint32_t const *b);
+long twstrcmp(uint32_t const *a, uint32_t const *b);
 
 #endif  // TLC_UTIL_STRING_H_
