@@ -47,11 +47,10 @@ magic_token = "__FILE__"
             | "__VERSION__"
 ;
 
-int_literal = [ "-" | "+" ], ( nonzero_digit, { digit }
+int_literal = [ "-" | "+" ], ( { digit }
                              | "0x", hex_digit, { hex_digit }
                              | "0b", binary_digit, { binary_digit }
                              | "0o", octal_digit, { octal_digit }
-                             | "0"
                              )
 ;
 double_literal = [ "-" | "+" ], digit, { digit }, ".", digit, { digit } ;
@@ -64,10 +63,7 @@ wchar_literal = "'", ( alphabetic | digit | symbol | escaped | tab | escaped_wch
 alphabetic = ? any ASCII alphabetic character ?
            | ? any implementation-defined alphabetic characters ?
 ;
-nonzero_digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
-digit = "0"
-      | nonzero_digit
-;
+digit =  "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 symbol = ? any ASCII symbol plus space ?
        | ? any implementation-defined symbols or spaces ?
 ;
