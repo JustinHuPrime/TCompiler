@@ -412,7 +412,6 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry, Node *unparsed,
       if (n == NULL) errorIntOverflow(entry, &peek);
       return n;
     }
-    case TT_LIT_INT_0:
     case TT_LIT_INT_D: {
       int8_t sign;
       uint64_t magnitude;
@@ -503,7 +502,6 @@ static Node *parseAggregateInitializer(FileListEntry *entry, Node *unparsed,
       case TT_LIT_WSTRING:
       case TT_LIT_CHAR:
       case TT_LIT_WCHAR:
-      case TT_LIT_INT_0:
       case TT_LIT_INT_B:
       case TT_LIT_INT_O:
       case TT_LIT_INT_D:
@@ -584,7 +582,6 @@ static Node *parseLiteral(FileListEntry *entry, Node *unparsed,
     case TT_LIT_WCHAR:
     case TT_LIT_INT_B:
     case TT_LIT_INT_O:
-    case TT_LIT_INT_0:
     case TT_LIT_INT_D:
     case TT_LIT_INT_H:
     case TT_ID: {
@@ -983,7 +980,6 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
       case TT_LIT_WSTRING:
       case TT_LIT_CHAR:
       case TT_LIT_WCHAR:
-      case TT_LIT_INT_0:
       case TT_LIT_INT_B:
       case TT_LIT_INT_O:
       case TT_LIT_INT_D:
@@ -1187,7 +1183,6 @@ static Node *parsePrimaryExpression(FileListEntry *entry, Node *unparsed,
           case TT_CAST:
           case TT_SIZEOF:
           case TT_LPAREN:
-          case TT_LIT_INT_0:
           case TT_LIT_INT_B:
           case TT_BAD_BIN:
           case TT_LIT_INT_O:
@@ -2236,7 +2231,6 @@ static Node *parseForInitStmt(FileListEntry *entry, Node *unparsed,
     case TT_CAST:
     case TT_SIZEOF:
     case TT_LPAREN:
-    case TT_LIT_INT_0:
     case TT_LIT_INT_B:
     case TT_BAD_BIN:
     case TT_LIT_INT_O:
@@ -3385,7 +3379,6 @@ static Node *parseStmt(FileListEntry *entry, Node *unparsed, Environment *env) {
     case TT_SIZEOF:
     case TT_LPAREN:
     case TT_LSQUARE:
-    case TT_LIT_INT_0:
     case TT_LIT_INT_B:
     case TT_BAD_BIN:
     case TT_LIT_INT_O:
