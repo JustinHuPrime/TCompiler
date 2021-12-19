@@ -565,7 +565,8 @@ static void lexNumber(FileListEntry *entry, Token *token) {
       case 'b': {
         // [+-]0b
         // is binary, remove leading zeros and lex it
-        while ((next = get(state)) == '0');
+        while ((next = get(state)) == '0')
+          ;
         put(state, 1);
         lexBinary(entry, token, start);
         return;
@@ -573,7 +574,8 @@ static void lexNumber(FileListEntry *entry, Token *token) {
       case 'x': {
         // [+-]0x
         // is hex, remove leading zeros and lex it
-        while ((next = get(state)) == '0');
+        while ((next = get(state)) == '0')
+          ;
         put(state, 1);
         lexHex(entry, token, start);
         return;
@@ -581,7 +583,8 @@ static void lexNumber(FileListEntry *entry, Token *token) {
       case 'o': {
         // [+-]0o
         // is octal, remove leading zeros and lex it
-        while ((next = get(state)) == '0');
+        while ((next = get(state)) == '0')
+          ;
         put(state, 1);
         lexOctal(entry, token, start);
         return;
@@ -592,7 +595,8 @@ static void lexNumber(FileListEntry *entry, Token *token) {
         // drop leading zeros
         if (second == '0') {
           // if [+-]00 then remove leading 0's
-          while ((next = get(state)) == '0');
+          while ((next = get(state)) == '0')
+            ;
         } else {
           next = second;
         }
