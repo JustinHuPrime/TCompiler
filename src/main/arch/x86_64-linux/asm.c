@@ -509,15 +509,102 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         break;  // not translated
       }
       case IO_ADDROF: {
-        // arg 0: reg, gp temp, mem temp
+        // arg 0: gp reg, gp temp, mem temp
         // arg 1: mem temp
-        // TODO
+
+        if ((isGpReg(ir->args[0]) && isMemTemp(ir->args[1])) ||
+            (isGpTemp(ir->args[0]) && isMemTemp(ir->args[1]))) {
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
+          USES(i, x86_64LinuxTempOperandCreateEscaping(ir->args[1]));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+        } else if (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1])) {
+          size_t patchTemp = fresh(file);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tlea `d, `u\n"));
+          USES(i, x86_64LinuxTempOperandCreateEscaping(ir->args[1]));
+          DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                       AH_GP));
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, strdup("\tmov `d, `u\n"));
+          USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                    AH_GP));
+          DEFINES(i, x86_64LinuxTempOperandCreate(ir->args[0], AH_GP));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+        } else {
+          error(__FILE__, __LINE__, "unhandled arguments to addrof");
+        }
         break;
       }
       case IO_MOVE: {
-        // arg 0: reg, gp temp, fp temp, mem temp
-        // arg 1: reg, gp temp, fp temp, mem temp, const
-        // TODO
+        // arg 0: gp reg, fp reg, gp temp, fp temp, mem temp
+        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
+
+        if (isGpReg(ir->args[0]) && isGpReg(ir->args[1])) {
+          // TODO
+        } else if (isGpReg(ir->args[0]) && isFpReg(ir->args[1])) {
+          // TODO
+        } else if (isGpReg(ir->args[0]) && isGpTemp(ir->args[1])) {
+          // TODO
+        } else if (isGpReg(ir->args[0]) && isFpTemp(ir->args[1])) {
+          // TODO
+        } else if (isGpReg(ir->args[0]) && isMemTemp(ir->args[1])) {
+          // TODO
+        } else if (isGpReg(ir->args[0]) && isConst(ir->args[1])) {
+          // TODO
+        } else if (isFpReg(ir->args[0]) && isGpReg(ir->args[1])) {
+          // TODO
+        } else if (isFpReg(ir->args[0]) && isFpReg(ir->args[1])) {
+          // TODO
+        } else if (isFpReg(ir->args[0]) && isGpTemp(ir->args[1])) {
+          // TODO
+        } else if (isFpReg(ir->args[0]) && isFpTemp(ir->args[1])) {
+          // TODO
+        } else if (isFpReg(ir->args[0]) && isMemTemp(ir->args[1])) {
+          // TODO
+        } else if (isFpReg(ir->args[0]) && isConst(ir->args[1])) {
+          // TODO
+        } else if (isGpTemp(ir->args[0]) && isGpReg(ir->args[1])) {
+          // TODO
+        } else if (isGpTemp(ir->args[0]) && isFpReg(ir->args[1])) {
+          // TODO
+        } else if (isGpTemp(ir->args[0]) && isGpTemp(ir->args[1])) {
+          // TODO
+        } else if (isGpTemp(ir->args[0]) && isFpTemp(ir->args[1])) {
+          // TODO
+        } else if (isGpTemp(ir->args[0]) && isMemTemp(ir->args[1])) {
+          // TODO
+        } else if (isGpTemp(ir->args[0]) && isConst(ir->args[1])) {
+          // TODO
+        } else if (isFpTemp(ir->args[0]) && isGpReg(ir->args[1])) {
+          // TODO
+        } else if (isFpTemp(ir->args[0]) && isFpReg(ir->args[1])) {
+          // TODO
+        } else if (isFpTemp(ir->args[0]) && isGpTemp(ir->args[1])) {
+          // TODO
+        } else if (isFpTemp(ir->args[0]) && isFpTemp(ir->args[1])) {
+          // TODO
+        } else if (isFpTemp(ir->args[0]) && isMemTemp(ir->args[1])) {
+          // TODO
+        } else if (isFpTemp(ir->args[0]) && isConst(ir->args[1])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isGpReg(ir->args[1])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isFpReg(ir->args[1])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isGpTemp(ir->args[1])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isFpTemp(ir->args[1])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isConst(ir->args[1])) {
+          // TODO
+        } else {
+          error(__FILE__, __LINE__, "unhandled arguments to move");
+        }
         break;
       }
       case IO_MEM_STORE: {

@@ -23,6 +23,7 @@ The compiler follows the standard pass structure, modified to support context-se
 
 ### Folder Structure
 
+- `misc` contains miscellaneous files
 - `src` contains the source code for the compiler and its tests
   - `main` contains the compiler
     - `arch` contains architecture-specific code
