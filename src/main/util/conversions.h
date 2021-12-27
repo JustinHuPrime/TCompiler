@@ -152,6 +152,14 @@ uint32_t s32ToU32(int32_t);
 uint64_t s64ToU64(int64_t);
 
 /**
+ * converts unsigned values to their signed counterparts
+ */
+int8_t u8ToS8(uint8_t);
+int16_t u16ToS16(uint16_t);
+int32_t u32ToS32(uint32_t);
+int64_t u64ToS64(uint64_t);
+
+/**
  * int to float conversions
  */
 uint32_t uintToFloatBits(uint64_t);

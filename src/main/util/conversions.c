@@ -494,6 +494,39 @@ uint64_t s64ToU64(int64_t s) {
   return u.u;
 }
 
+int8_t u8ToS8(uint8_t u) {
+  union {
+    uint8_t u;
+    int8_t s;
+  } un;
+  un.u = u;
+  return un.s;
+}
+int16_t u16ToS16(uint16_t u) {
+  union {
+    uint16_t u;
+    int16_t s;
+  } un;
+  un.u = u;
+  return un.s;
+}
+int32_t u32ToS32(uint32_t u) {
+  union {
+    uint32_t u;
+    int32_t s;
+  } un;
+  un.u = u;
+  return un.s;
+}
+int64_t u64ToS64(uint64_t u) {
+  union {
+    uint64_t u;
+    int64_t s;
+  } un;
+  un.u = u;
+  return un.s;
+}
+
 uint32_t uintToFloatBits(uint64_t i) {
   char *s = format("%lu.0", i);
   uint32_t bits = floatStringToBits(s);
