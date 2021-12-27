@@ -76,7 +76,6 @@ char const *x86_64LinuxPrettyPrintRegister(size_t reg);
 typedef enum {
   X86_64_LINUX_OK_REG,
   X86_64_LINUX_OK_TEMP,
-  X86_64_LINUX_OK_OFFSET,
 } X86_64LinuxOperandKind;
 typedef struct {
   X86_64LinuxOperandKind kind;
@@ -136,7 +135,6 @@ typedef struct {
   char *skeleton;
   Vector defines; /**< vector of X86_64LinuxOperand (only reg or temp) */
   Vector uses;    /**< vector of X86_64LinuxOperand */
-  Vector other;   /**< vector of X86_64LinuxOperand */
   union {
     SizeVector jumpTargets; /**< vector of uintptr_t */
     size_t labelName;
