@@ -525,7 +525,7 @@ typedef enum IROperator {
    * jump table jump
    *
    * two operands
-   * 0: TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH - target
+   * 0: REG | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH - target
    * 1: LOCAL - reference to possible targets
    */
   IO_JUMPTABLE,
