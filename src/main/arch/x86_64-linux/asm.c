@@ -863,7 +863,155 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         // arg 0: gp reg, gp temp, mem temp
         // arg 1: gp reg, gp temp, mem temp, const
         // arg 2: gp reg, gp temp, mem temp, const
-        // TODO
+
+        /* (R|T) (R|T|M) (R|T|M) */
+        if ((isGpReg(ir->args[0]) || isGpTemp(ir->args[0])) &&
+            (isGpReg(ir->args[1]) || isGpTemp(ir->args[1]) ||
+             isMemTemp(ir->args[1])) &&
+            (isGpReg(ir->args[2]) || isGpTemp(ir->args[2]) ||
+             isMemTemp(ir->args[2]))) {
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\txor `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          DONE(assembly, i);
+
+          /* (R|T) C (R|T|M) */
+        } else if ((isGpReg(ir->args[0]) || isGpTemp(ir->args[0])) &&
+                   isConst(ir->args[1]) &&
+                   (isGpReg(ir->args[2]) || isGpTemp(ir->args[2]) ||
+                    isMemTemp(ir->args[2]))) {
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[1]);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, %s\n", constant));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\txor `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          DONE(assembly, i);
+
+          /* (R|T) (R|T|M) C */
+        } else if ((isGpReg(ir->args[0]) || isGpTemp(ir->args[0])) &&
+                   (isGpReg(ir->args[1]) || isGpTemp(ir->args[1]) ||
+                    isMemTemp(ir->args[1])) &&
+                   isConst(ir->args[2])) {
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[2]);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\txor `d, %s\n", constant));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+          free(constant);
+
+          /* (R|T) C C */
+        } else if ((isGpReg(ir->args[0]) || isGpTemp(ir->args[0])) &&
+                   isConst(ir->args[1]) && isConst(ir->args[2])) {
+          char *constant1 = x86_64LinuxSmallConstantToString(ir->args[1]);
+          i = INST(X86_64_LINUX_IK_REGULAR,
+                   format("\tmov `d, `%s\n", constant1));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+          free(constant1);
+
+          char *constant2 = x86_64LinuxSmallConstantToString(ir->args[2]);
+          i = INST(X86_64_LINUX_IK_REGULAR,
+                   format("\txor `d, %s\n", constant2));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+          free(constant2);
+
+          /* M (R|T) (R|T|M) */
+          // XOR into the first argument, move into memory
+        } else if (isMemTemp(ir->args[0]) &&
+                   (isGpReg(ir->args[1]) || isGpTemp(ir->args[1])) &&
+                   (isGpReg(ir->args[2]) || isGpTemp(ir->args[2]) ||
+                    isMemTemp(ir->args[2]))) {
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\txor `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          DONE(assembly, i);
+
+          /* M (R|T) C */
+        } else if (isMemTemp(ir->args[0]) &&
+                   (isGpReg(ir->args[1]) || isGpTemp(ir->args[1])) &&
+                   isConst(ir->args[2])) {
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[2]);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\txor `d, %s\n", constant));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          DONE(assembly, i);
+          free(constant);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          DONE(assembly, i);
+
+          /* M M (R|T) */
+          // XOR into the second argument, move into memory
+        } else if (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                   (isGpReg(ir->args[2]) || isGpTemp(ir->args[2]))) {
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\txor `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          DONE(assembly, i);
+
+          /* M C (R|T) */
+        } else if (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                   (isGpReg(ir->args[2]) || isGpTemp(ir->args[2]))) {
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[1]);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\txor `d, %s\n", constant));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          DONE(assembly, i);
+          free(constant);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          DONE(assembly, i);
+
+          /* M C M */
+        } else if (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                   isMemTemp(ir->args[2])) {
+          // TODO
+
+          /* M M C */
+        } else if (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                   isConst(ir->args[2])) {
+          // TODO
+
+          /* M C C */
+        } else if (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                   isConst(ir->args[2])) {
+          // TODO
+
+          /* M M M */
+        } else if (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                   isMemTemp(ir->args[2])) {
+          // TODO
+
+        } else {
+          error(__FILE__, __LINE__, "unhandled arguments to xor");
+        }
         break;
       }
       case IO_OR: {
