@@ -696,173 +696,173 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         break;
       }
       case IO_MEM_LOAD: {
-        // arg 0: reg, gp temp, fp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, fp reg, gp temp, fp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_STK_STORE: {
-        // arg 0: reg, gp temp, mem temp, const
-        // arg 1: reg, gp temp, fp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp, const
+        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_STK_LOAD: {
-        // arg 0: reg, gp temp, fp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
+        // arg 0: gp reg, fp reg, gp temp, fp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_OFFSET_STORE: {
         // arg 0: mem temp
-        // arg 1: reg, gp temp, fp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_OFFSET_LOAD: {
-        // arg 0: reg, gp temp, fp temp, mem temp
+        // arg 0: gp reg, fp reg, gp temp, fp temp, mem temp
         // arg 1: mem temp
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_ADD: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SUB: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SMUL: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_UMUL: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SDIV: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_UDIV: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SMOD: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_UMOD: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FADD: {
-        // arg 0: reg, fp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, fp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FSUB: {
-        // arg 0: reg, fp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, fp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FMUL: {
-        // arg 0: reg, fp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, fp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FDIV: {
-        // arg 0: reg, fp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, fp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FMOD: {
-        // arg 0: reg, fp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, fp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_NEG: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FNEG: {
-        // arg 0: reg, fp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
+        // arg 0: fp reg, fp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SLL: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SLR: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SAR: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_AND: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_XOR: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
 
         /* (R|T) (R|T|M) (R|T|M) */
         if ((isGpReg(ir->args[0]) || isGpTemp(ir->args[0])) &&
@@ -1015,187 +1015,189 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         break;
       }
       case IO_OR: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_NOT: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_L: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_LE: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_E: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_NE: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_G: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_GE: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_A: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_AE: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_B: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_BE: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FL: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, gp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FLE: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, gp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FE: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, gp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FNE: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, gp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FG: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, gp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FGE: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 0: fp reg, gp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_Z: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, fp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
         // TODO
+        // TODO: split this into IO_Z and IO_FZ at the IR level
         break;
       }
       case IO_NZ: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, fp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
         // TODO
+        // TODO: ditto
         break;
       }
       case IO_LNOT: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_SX: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_ZX: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_TRUNC: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_U2F: {
-        // arg 0: reg, fp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
+        // arg 0: fp reg, fp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_S2F: {
-        // arg 0: reg, fp temp, mem temp
-        // arg 1: reg, gp temp, mem temp, const
+        // arg 0: fp reg, fp temp, mem temp
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_FRESIZE: {
-        // arg 0: reg, fp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
+        // arg 0: fp reg, fp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_F2I: {
-        // arg 0: reg, gp temp, mem temp
-        // arg 1: reg, fp temp, mem temp, const
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
@@ -1205,133 +1207,135 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         break;
       }
       case IO_JUMPTABLE: {
-        // arg 0: gp temp, mem temp
+        // arg 0: gp reg, gp temp, mem temp
         // arg 1: local
         // TODO
         break;
       }
       case IO_J1L: {
         // arg 0: local
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1LE: {
         // arg 0: local
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1E: {
         // arg 0: local
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1NE: {
         // arg 0: local
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1G: {
         // arg 0: local
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1GE: {
         // arg 0: local
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1A: {
         // arg 0: local
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1AE: {
         // arg 0: local
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1B: {
         // arg 0: local
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1BE: {
         // arg 0: local
-        // arg 1: reg, gp temp, mem temp, const
-        // arg 2: reg, gp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
+        // arg 2: gp reg, gp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FL: {
         // arg 0: local
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FLE: {
         // arg 0: local
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FE: {
         // arg 0: local
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FNE: {
         // arg 0: local
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FG: {
         // arg 0: local
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1FGE: {
         // arg 0: local
-        // arg 1: reg, fp temp, mem temp, const
-        // arg 2: reg, fp temp, mem temp, const
+        // arg 1: fp reg, fp temp, mem temp, const
+        // arg 2: fp reg, fp temp, mem temp, const
         // TODO
         break;
       }
       case IO_J1Z: {
         // arg 0: local
-        // arg 1: reg, gp temp, fp temp, mem temp, const
+        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
         // TODO
+        // TODO: also split this into two operations at IR level
         break;
       }
       case IO_J1NZ: {
         // arg 0: local
-        // arg 1: reg, gp temp, fp temp, mem temp, const
+        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
         // TODO
+        // TODO: ditto
         break;
       }
       case IO_CALL: {
