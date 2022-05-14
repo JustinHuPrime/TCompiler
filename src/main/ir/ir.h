@@ -1,4 +1,4 @@
-// Copyright 2019, 2021 Justin Hu
+// Copyright 2019, 2021-2022 Justin Hu
 //
 // This file is part of the T Language Compiler.
 //
@@ -525,7 +525,8 @@ typedef enum IROperator {
    * jump table jump
    *
    * two operands
-   * 0: REG | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH - target
+   * 0: REG | TEMP, read, allocation == (GP | MEM); size == POINTER_WIDTH -
+   *    target
    * 1: LOCAL - reference to possible targets
    */
   IO_JUMPTABLE,

@@ -1,4 +1,4 @@
-// Copyright 2020-2021 Justin Hu
+// Copyright 2020-2022 Justin Hu
 //
 // This file is part of the T Language Compiler.
 //
@@ -42,7 +42,7 @@ typedef enum {
   X86_64_LINUX_RDX,
   X86_64_LINUX_RSI,
   X86_64_LINUX_RDI,
-  X86_64_LINUX_RSP,
+  X86_64_LINUX_RSP,  // special register, not allocated
   X86_64_LINUX_RBP,
   X86_64_LINUX_R8,
   X86_64_LINUX_R9,
@@ -68,7 +68,7 @@ typedef enum {
   X86_64_LINUX_XMM13,
   X86_64_LINUX_XMM14,
   X86_64_LINUX_XMM15,
-  X86_64_LINUX_RFLAGS,
+  X86_64_LINUX_RFLAGS,  // special register, not allocated
 } X86_64LinuxRegister;
 
 char const *x86_64LinuxPrettyPrintRegister(size_t reg);
@@ -91,9 +91,6 @@ typedef struct {
       AllocHint kind;
       bool escapes;
     } temp;
-    struct {
-      int64_t offset;
-    } offset;
   } data;
 } X86_64LinuxOperand;
 
@@ -129,7 +126,6 @@ typedef struct {
    * format string:
    * `d for a define
    * `u for a use
-   * `o for other
    * `` for a literal backtick
    */
   char *skeleton;

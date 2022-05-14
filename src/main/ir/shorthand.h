@@ -1,4 +1,4 @@
-// Copyright 2019, 2021 Justin Hu
+// Copyright 2019, 2021-2022 Justin Hu
 //
 // This file is part of the T Language Compiler.
 //
@@ -101,9 +101,8 @@ IRInstruction *MEM_STORE(IROperand *addr, IROperand *src, IROperand *offset);
 IRInstruction *MEM_LOAD(IROperand *dest, IROperand *addr, IROperand *offset);
 /**
  * store to stack
- * @param offset destination stack offset as offset (0 == return address; stack
- * pointer changes due to temps will tweak the offset anyways) (interpretation
- * of signedness is architecture-specific)
+ * @param offset destination stack offset as offset (0 == top of stack) (must be
+ * non-negative)
  * @param src source temp, reg, constant, or label
  */
 IRInstruction *STK_STORE(IROperand *offset, IROperand *src);

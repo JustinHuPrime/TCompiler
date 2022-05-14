@@ -2,9 +2,11 @@
 
 ;; generates the argument type variants for assembly instructions (up to three arguments)
 
-(define OP "move")
-(define ARG0 '(gpreg fpreg gptemp fptemp memtemp))
-(define ARG1 '(gpreg fpreg gptemp fptemp memtemp const))
+;; possible types: gpreg fpreg gptemp fptemp memtemp const
+
+(define OP "stack load")
+(define ARG0 '(gpreg gptemp fpreg fptemp memtemp))
+(define ARG1 '(gpreg gptemp memtemp const))
 (define ARG2 '())
 
 (define (type->predicate type index)
@@ -27,7 +29,7 @@
        [merged (map (curryr string-join " && ")
                     predicates)]
        [wrapped (string-join merged
-                             ") {\n  //TODO\n} else if ("
+                             ") {\n  // TODO\n} else if ("
                              #:before-first "if ("
-                             #:after-last (format ") {\n  //TODO\n} else {\n  error(__FILE__, __LINE__, \"unhandled arguments to ~a\");\n}" OP))])
+                             #:after-last (format ") {\n  // TODO\n} else {\n  error(__FILE__, __LINE__, \"unhandled arguments to ~a\");\n}" OP))])
   (displayln wrapped))
