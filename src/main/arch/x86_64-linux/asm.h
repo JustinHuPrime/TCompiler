@@ -76,8 +76,13 @@ char const *x86_64LinuxPrettyPrintRegister(size_t reg);
 typedef enum {
   X86_64_LINUX_OK_REG,
   X86_64_LINUX_OK_TEMP,
+  X86_64_LINUX_OK_OFFSET_TEMP,
 } X86_64LinuxOperandKind;
-typedef struct {
+typedef enum {
+  X86_64_LINUX_TOK_CONSTANT,
+  X86_64_LINUX_TOK_OPERAND,
+} X86_64LinuxTempOffsetKind;
+typedef struct X86_64LinuxOperand {
   X86_64LinuxOperandKind kind;
   union {
     struct {
@@ -91,6 +96,15 @@ typedef struct {
       AllocHint kind;
       bool escapes;
     } temp;
+    struct {
+      struct X86_64LinuxOperand *base; /**< base, must be a temp whose kind = AH_MEM */
+      X86_64LinuxTempOffsetKind kind;
+      union {
+        char *constant; /**< constant offset */
+        struct X86_64LinuxOperand
+            *operand; /**< variable offset, must be a temp whose kind = AH_GP */
+      } offset;
+    } offsetTemp;
   } data;
 } X86_64LinuxOperand;
 
