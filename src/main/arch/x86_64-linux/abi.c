@@ -292,9 +292,7 @@ void x86_64LinuxGenerateFunctionEntry(LinkedList *blocks,
     size_t numSSE = (argTypeClass[0] == X86_64_LINUX_TC_SSE ? 1U : 0U) +
                     (argTypeClass[1] == X86_64_LINUX_TC_SSE ? 1U : 0U);
 
-    argumentEntry->data.variable.temp =
-        fresh(file);  // TODO: increase the size of the temp if the argument is
-                      // too small
+    argumentEntry->data.variable.temp = fresh(file);
     if (argTypeClass[0] == X86_64_LINUX_TC_MEMORY ||
         gpArgIdx + numGP > GP_ARG_REG_MAX ||
         sseArgIdx + numSSE > SSE_ARG_REG_MAX) {
