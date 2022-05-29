@@ -4686,16 +4686,26 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
       }
       case IO_Z: {
         // arg 0: gp reg, gp temp, mem temp
-        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
-        // TODO: split this into IO_Z and IO_FZ at the IR level
         break;
       }
       case IO_NZ: {
         // arg 0: gp reg, gp temp, mem temp
-        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
-        // TODO: ditto
+        break;
+      }
+      case IO_FZ: {
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // TODO
+        break;
+      }
+      case IO_FNZ: {
+        // arg 0: gp reg, gp temp, mem temp
+        // arg 1: fp reg, fp temp, mem temp, const
+        // TODO
         break;
       }
       case IO_LNOT: {
@@ -4871,16 +4881,26 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
       }
       case IO_J1Z: {
         // arg 0: local
-        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
-        // TODO: also split this into two operations at IR level
         break;
       }
       case IO_J1NZ: {
         // arg 0: local
-        // arg 1: gp reg, fp reg, gp temp, fp temp, mem temp, const
+        // arg 1: gp reg, gp temp, mem temp, const
         // TODO
-        // TODO: ditto
+        break;
+      }
+      case IO_J1FZ: {
+        // arg 0: local
+        // arg 1: fp reg, fp temp, mem temp, const
+        // TODO
+        break;
+      }
+      case IO_J1FNZ: {
+        // arg 0: local
+        // arg 1: fp reg, fp temp, mem temp, const
+        // TODO
         break;
       }
       case IO_CALL: {

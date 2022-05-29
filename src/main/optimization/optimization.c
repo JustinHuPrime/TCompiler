@@ -141,7 +141,9 @@ static void markReachable(IRBlock *b, bool *seen, LinkedList *blocks,
     case IO_J2FG:
     case IO_J2FGE:
     case IO_J2Z:
-    case IO_J2NZ: {
+    case IO_J2NZ:
+    case IO_J2FZ:
+    case IO_J2FNZ: {
       markReachable(findBlock(blocks, localOperandName(last->args[0])), seen,
                     blocks, frags);
       markReachable(findBlock(blocks, localOperandName(last->args[1])), seen,
@@ -303,6 +305,8 @@ static void deadTempElimination(LinkedList *blocks, size_t maxTemps) {
           case IO_NOT:
           case IO_Z:
           case IO_NZ:
+          case IO_FZ:
+          case IO_FNZ:
           case IO_LNOT:
           case IO_SX:
           case IO_ZX:
@@ -339,7 +343,9 @@ static void deadTempElimination(LinkedList *blocks, size_t maxTemps) {
             break;
           }
           case IO_J2Z:
-          case IO_J2NZ: {
+          case IO_J2NZ:
+          case IO_J2FZ:
+          case IO_J2FNZ: {
             markTempUse(seen, i->args[1]);
             markTempUse(seen, i->args[2]);
             break;
@@ -410,6 +416,8 @@ static void deadTempElimination(LinkedList *blocks, size_t maxTemps) {
           case IO_FGE:
           case IO_Z:
           case IO_NZ:
+          case IO_FZ:
+          case IO_FNZ:
           case IO_LNOT:
           case IO_SX:
           case IO_ZX:
@@ -525,7 +533,9 @@ static void deadLabelElimination(LinkedList *instructions, Vector *frags,
       case IO_J1FG:
       case IO_J1FGE:
       case IO_J1Z:
-      case IO_J1NZ: {
+      case IO_J1NZ:
+      case IO_J1FZ:
+      case IO_J1FNZ: {
         seen[localOperandName(i->args[0])] = true;
         break;
       }

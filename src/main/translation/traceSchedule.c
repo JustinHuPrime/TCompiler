@@ -112,6 +112,12 @@ static IRInstruction *oneArgJumpFromTwoArgJump(IRInstruction *i) {
     case IO_J2NZ: {
       return oneArgBJumpCreate(IO_J1NZ, i->args[0], i->args[2]);
     }
+    case IO_J2FZ: {
+      return oneArgBJumpCreate(IO_J1FZ, i->args[0], i->args[2]);
+    }
+    case IO_J2FNZ: {
+      return oneArgBJumpCreate(IO_J1FNZ, i->args[0], i->args[2]);
+    }
     default: {
       error(__FILE__, __LINE__,
             "invalid jump given to traceSchedule despite passing validation");
@@ -189,7 +195,9 @@ static void scheduleBlock(IRBlock *b, IRBlock *out, LinkedList *blocks,
     case IO_J2FG:
     case IO_J2FGE:
     case IO_J2Z:
-    case IO_J2NZ: {
+    case IO_J2NZ:
+    case IO_J2FZ:
+    case IO_J2FNZ: {
       // both must be jumps to locals - assume falsehood is more likely
       IR(out, oneArgJumpFromTwoArgJump(last));
       IRBlock *found = findBlock(blocks, localOperandName(last->args[1]));

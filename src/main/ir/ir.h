@@ -448,10 +448,19 @@ typedef enum IROperator {
    *
    * two operands
    * 0: REG | TEMP, written; size == BYTE_WIDTH - destination
-   * 1: REG | TEMP, read | CONST - arg
+   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST - arg
    */
   IO_Z,
   IO_NZ,
+  /**
+   * floating unary comparison
+   *
+   * two operands
+   * 0: REG | TEMP, written; size == BYTE_WIDTH - destination
+   * 1: REG | TEMP, read, allocation == (FP | MEM) | CONST - arg
+   */
+  IO_FZ,
+  IO_FNZ,
   /**
    * logical not
    *
@@ -574,14 +583,24 @@ typedef enum IROperator {
    * three operands
    * 0: LOCAL - true target
    * 1: LOCAL - false target
-   * 2: REG | TEMP, read | CONST - arg
+   * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST - arg
    */
   IO_J2Z,
   IO_J2NZ,
   /**
+   * floating unary comparison conditional jump
+   *
+   * three operands
+   * 0: LOCAL - true target
+   * 1: LOCAL - false target
+   * 2: REG | TEMP, read, allocation == (FP | MEM) | CONST - arg
+   */
+  IO_J2FZ,
+  IO_J2FNZ,
+  /**
    * integer binary comparison conditional jump (fallthrough version)
    *
-   * four operands
+   * three operands
    * 0: LOCAL - true target
    * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST - lhs
    * 2: REG | TEMP, read, allocation == (GP | MEM) | CONST - rhs
@@ -601,7 +620,7 @@ typedef enum IROperator {
   /**
    * floating binary comparison conditional jump (fallthrough version)
    *
-   * four operands
+   * three operands
    * 0: LOCAL - true target
    * 1: REG | TEMP, read, allocation == (FP | MEM) | CONST - lhs
    * 2: REG | TEMP, read, allocation == (FP | MEM) | CONST - rhs
@@ -617,12 +636,20 @@ typedef enum IROperator {
   /**
    * unary comparison conditional jump (fallthrough version)
    *
-   * three operands
+   * two operands
    * 0: LOCAL - true target
-   * 1: REG | TEMP, read | CONST - arg
+   * 1: REG | TEMP, read, allocation == (GP | MEM) | CONST - arg
    */
   IO_J1Z,
   IO_J1NZ,
+  /**
+   * unary comparison conditional jump (fallthrough version)
+   *
+   * 0: LOCAL - true target
+   * 1: REG | TEMP, read, allocation == (FP | MEM) | CONST - arg
+   */
+  IO_J1FZ,
+  IO_J1FNZ,
 
   // function calling
   /**

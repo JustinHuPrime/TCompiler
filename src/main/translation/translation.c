@@ -1205,11 +1205,16 @@ static IROperand *translateCast(IRBlock *b, IROperand *src,
         error(__FILE__, __LINE__, "invalid integral type keyword");
       }
     }
-  } else if ((typeNumeric(fromType) || typePointer(fromType)) &&
+  } else if ((typeIntegral(fromType) || typePointer(fromType)) &&
              typeBoolean(toType)) {
-    // integral, floating, pointer to boolean
+    // integral, pointer to boolean
     IROperand *out = TEMPOF(fresh(file), toType);
     IR(b, UNOP(IO_Z, irOperandCopy(out), src));
+    return out;
+  } else if (typeFloating(fromType) && typeBoolean(toType)) {
+    // floating to boolean
+    IROperand *out = TEMPOF(fresh(file), toType);
+    IR(b, UNOP(IO_FZ, irOperandCopy(out), src));
     return out;
   } else {
     // pointer-pointer and aliasing are all no-op conversions
@@ -3760,9 +3765,9 @@ static void translateStmt(LinkedList *blocks, Node *stmt, size_t label,
       free(caseLabels);
 
       qsort(jumpTable, jumpTableLen, sizeof(JumpTableEntry),
-            (int (*)(void const *,
-                     void const *))(isSigned ? compareSignedJumpTableEntry
-                                             : compareUnsignedJumpTableEntry));
+            (int (*)(void const *, void const *))(
+                isSigned ? compareSignedJumpTableEntry
+                         : compareUnsignedJumpTableEntry));
       if (defaultLabel == 0) defaultLabel = nextLabel;
       size_t curr = jumpSectionLabel;
       if (isSigned) {
