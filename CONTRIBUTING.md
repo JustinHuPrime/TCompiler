@@ -26,7 +26,7 @@ The compiler follows the standard pass structure, modified to support context-se
 - `misc` contains miscellaneous files
 - `src` contains the source code for the compiler and its tests
   - `main` contains the compiler
-    - `arch` contains architecture-specific code
+    - `arch` contains architecture-specific code in subfolders, as well as the generic interface for each architecture
     - `ast` contains the definition of the abstract syntax tree, environments, symbol tables, and types
     - `ir` contains the definition of the intermediate representation
     - `lexer` contains the lexer - while this could be a subfolder of `parser`, it's usable on its own, so it remains separate
