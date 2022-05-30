@@ -4277,7 +4277,239 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         // arg 0: gp reg, gp temp, mem temp
         // arg 1: gp reg, gp temp, mem temp, const
         // arg 2: gp reg, gp temp, mem temp, const
-        // TODO
+        if ((isGpReg(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isGpTemp(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isGpTemp(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isMemTemp(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isMemTemp(ir->args[1]) &&
+             isGpTemp(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isMemTemp(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isMemTemp(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isMemTemp(ir->args[1]) &&
+             isMemTemp(ir->args[2])) ||
+            (isGpTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isGpTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isGpTemp(ir->args[2])) ||
+            (isGpTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isMemTemp(ir->args[2])) ||
+            (isGpTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isGpTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isGpTemp(ir->args[2])) ||
+            (isGpTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isMemTemp(ir->args[2])) ||
+            (isGpTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isGpTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+             isGpTemp(ir->args[2])) ||
+            (isGpTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+             isMemTemp(ir->args[2])) ||
+            (isMemTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isMemTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isGpTemp(ir->args[2])) ||
+            (isMemTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isMemTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isGpTemp(ir->args[2]))) {
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tadd `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+        } else if ((isGpReg(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpReg(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpReg(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isConst(ir->args[2]))) {
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[2]);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tadd `d, %s\n", constant));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+          free(constant);
+        } else if ((isGpReg(ir->args[0]) && isConst(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isGpReg(ir->args[0]) && isConst(ir->args[1]) &&
+                    isGpTemp(ir->args[2])) ||
+                   (isGpReg(ir->args[0]) && isConst(ir->args[1]) &&
+                    isMemTemp(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                    isGpTemp(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                    isMemTemp(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                    isGpTemp(ir->args[2]))) {
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[1]);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, %s\n", constant));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tadd `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+          free(constant);
+        } else if ((isGpReg(ir->args[0]) && isConst(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                    isConst(ir->args[2]))) {
+          char *arg1 = x86_64LinuxSmallConstantToString(ir->args[1]);
+          char *arg2 = x86_64LinuxSmallConstantToString(ir->args[2]);
+          i = INST(X86_64_LINUX_IK_REGULAR,
+                   format("\tmov `d, %s + %s\n", arg1, arg2));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+          free(arg1);
+          free(arg2);
+        } else if ((isMemTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isMemTemp(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isMemTemp(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isGpTemp(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isMemTemp(ir->args[2]))) {
+          size_t patchTemp = fresh(file);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                       AH_GP));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tadd `d, `u\n"));
+          DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                       AH_GP));
+          USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                    AH_GP));
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                    AH_GP));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+        } else if (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                   isConst(ir->args[2])) {
+          size_t patchTemp = fresh(file);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                       AH_GP));
+          USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[2]);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tadd `d, %s\n", constant));
+          DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                       AH_GP));
+          USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                    AH_GP));
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                    AH_GP));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+          free(constant);
+        } else if (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                   isMemTemp(ir->args[2])) {
+          size_t patchTemp = fresh(file);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                       AH_GP));
+          USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[1]);
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tadd `d, %s\n", constant));
+          DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                       AH_GP));
+          USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                    AH_GP));
+          DONE(assembly, i);
+
+          i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                    AH_GP));
+          MOVES(i, 0, 0);
+          DONE(assembly, i);
+          free(constant);
+        } else if (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                   isConst(ir->args[2])) {
+          char *arg1 = x86_64LinuxSmallConstantToString(ir->args[1]);
+          char *arg2 = x86_64LinuxSmallConstantToString(ir->args[2]);
+          if (irOperandSizeof(ir->args[0]) != 8) {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tmov `d, %s + %s\n", arg1, arg2));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            DONE(assembly, i);
+          } else {
+            size_t patchTemp = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tmov `d, %s + %s\n", arg1, arg2));
+            DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                         AH_GP));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], patchTemp,
+                                                      AH_GP));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+          }
+          free(arg1);
+          free(arg2);
+        } else {
+          error(__FILE__, __LINE__, "unhandled arguments to add");
+        }
         break;
       }
       case IO_SUB: {
