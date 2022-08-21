@@ -1717,6 +1717,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
                     isGpReg(ir->args[2])) ||
                    (isConst(ir->args[0]) && isGpTemp(ir->args[1]) &&
                     isGpTemp(ir->args[2]))) {
+          // TODO: can't have 64 bit literal here, or elsewhere in addresses
           char *constant = x86_64LinuxSmallConstantToString(ir->args[0]);
           i = INST(X86_64_LINUX_IK_REGULAR,
                    format("\tmov %s [%s + `u], `u\n",
@@ -2267,6 +2268,7 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
                     isGpReg(ir->args[2])) ||
                    (isGpTemp(ir->args[0]) && isConst(ir->args[1]) &&
                     isGpTemp(ir->args[2]))) {
+          // TODO: can't have 64 bit literal here
           char *base = x86_64LinuxSmallConstantToString(ir->args[1]);
           i = INST(X86_64_LINUX_IK_REGULAR,
                    format("\tmov `d, %s [%s + `u]\n",
