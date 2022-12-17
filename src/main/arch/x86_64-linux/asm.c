@@ -92,6 +92,19 @@ static X86_64LinuxOperand *x86_64LinuxTempOperandCreatePatch(
   retval->data.temp.escapes = false;
   return retval;
 }
+static X86_64LinuxOperand *x86_64LinuxTempOperandCreateCustom(size_t name,
+                                                              size_t alignment,
+                                                              size_t size,
+                                                              AllocHint kind) {
+  X86_64LinuxOperand *retval =
+      x86_64LinuxOperandCreateBase(X86_64_LINUX_OK_TEMP);
+  retval->data.temp.name = name;
+  retval->data.temp.alignment = alignment;
+  retval->data.temp.size = size;
+  retval->data.temp.kind = kind;
+  retval->data.temp.escapes = false;
+  return retval;
+}
 static X86_64LinuxOperand *x86_64LinuxTempOperandCreateConstOffset(
     IROperand const *temp, char *offset) {
   X86_64LinuxOperand *retval =
@@ -4734,7 +4747,470 @@ static X86_64LinuxFrag *x86_64LinuxGenerateTextAsm(IRFrag *frag,
         // arg 0: gp reg, gp temp, mem temp
         // arg 1: gp reg, gp temp, mem temp, const
         // arg 2: gp reg, gp temp, mem temp, const
-        // TODO
+        if ((isGpReg(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isGpTemp(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isGpReg(ir->args[1]) &&
+             isMemTemp(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isGpTemp(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isGpTemp(ir->args[1]) &&
+             isMemTemp(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isMemTemp(ir->args[1]) &&
+             isGpReg(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isMemTemp(ir->args[1]) &&
+             isGpTemp(ir->args[2])) ||
+            (isGpReg(ir->args[0]) && isMemTemp(ir->args[1]) &&
+             isMemTemp(ir->args[2]))) {
+          if (irOperandSizeof(ir->args[0]) != 1) {
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            DONE(assembly, i);
+          } else {
+            size_t resultPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(resultPatch, 2, 2,
+                                                          AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+
+            size_t rhsPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i,
+                    x86_64LinuxTempOperandCreateCustom(rhsPatch, 2, 2, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(resultPatch, 2, 2,
+                                                          AH_GP));
+            USES(i, x86_64LinuxTempOperandCreateCustom(rhsPatch, 2, 2, AH_GP));
+            USES(i,
+                 x86_64LinuxTempOperandCreateCustom(resultPatch, 2, 2, AH_GP));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i,
+                 x86_64LinuxTempOperandCreateCustom(resultPatch, 1, 1, AH_GP));
+            DONE(assembly, i);
+          }
+        } else if ((isGpReg(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpReg(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpReg(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isConst(ir->args[2]))) {
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[2]);
+          if (irOperandSizeof(ir->args[0]) == 8) {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tmov `d, %s\n", constant));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+          } else if (irOperandSizeof(ir->args[0]) == 4 ||
+                     irOperandSizeof(ir->args[0]) == 2) {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\timul `d, `u, %s\n", constant));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+          } else {
+            size_t lhsPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i,
+                    x86_64LinuxTempOperandCreateCustom(lhsPatch, 2, 2, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+
+            size_t resultPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\timul `d, `u, %s\n", constant));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(resultPatch, 2, 2,
+                                                          AH_GP));
+            USES(i, x86_64LinuxTempOperandCreateCustom(lhsPatch, 2, 2, AH_GP));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i,
+                 x86_64LinuxTempOperandCreateCustom(resultPatch, 1, 1, AH_GP));
+            DONE(assembly, i);
+          }
+          free(constant);
+        } else if ((isGpReg(ir->args[0]) && isConst(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isGpReg(ir->args[0]) && isConst(ir->args[1]) &&
+                    isGpTemp(ir->args[2])) ||
+                   (isGpReg(ir->args[0]) && isConst(ir->args[1]) &&
+                    isMemTemp(ir->args[2]))) {
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[1]);
+          if (irOperandSizeof(ir->args[0]) == 8) {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tmov `d, %s\n", constant));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            DONE(assembly, i);
+          } else if (irOperandSizeof(ir->args[0]) == 4 ||
+                     irOperandSizeof(ir->args[0]) == 2) {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\timul `d, `u, %s\n", constant));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            DONE(assembly, i);
+          } else {
+            size_t rhsPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i,
+                    x86_64LinuxTempOperandCreateCustom(rhsPatch, 2, 2, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\timul `d, `u, %s\n", constant));
+            DEFINES(i,
+                    x86_64LinuxRegOperandCreate(ir->args[0]->data.reg.name, 2));
+            USES(i, x86_64LinuxTempOperandCreateCustom(rhsPatch, 2, 2, AH_GP));
+            DONE(assembly, i);
+          }
+          free(constant);
+        } else if ((isGpReg(ir->args[0]) && isConst(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                    isConst(ir->args[2]))) {
+          char *arg1 = x86_64LinuxSmallConstantToString(ir->args[1]);
+          char *arg2 = x86_64LinuxSmallConstantToString(ir->args[2]);
+          i = INST(X86_64_LINUX_IK_REGULAR,
+                   format("\tmov `d, %s * %s\n", arg1, arg2));
+          DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+          DONE(assembly, i);
+          free(arg1);
+          free(arg2);
+        } else if ((isGpTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isGpTemp(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isMemTemp(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isGpTemp(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isMemTemp(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isGpTemp(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isMemTemp(ir->args[2]))) {
+          if (irOperandSizeof(ir->args[0]) != 1) {
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            DONE(assembly, i);
+          } else {
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(
+                           ir->args[0]->data.temp.name, 2, 2, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+
+            size_t rhsPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i,
+                    x86_64LinuxTempOperandCreateCustom(rhsPatch, 2, 2, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(
+                           ir->args[0]->data.temp.name, 2, 2, AH_GP));
+            USES(i, x86_64LinuxTempOperandCreateCustom(rhsPatch, 1, 1, AH_GP));
+            USES(i, x86_64LinuxTempOperandCreateCustom(
+                        ir->args[0]->data.temp.name, 2, 2, AH_GP));
+            DONE(assembly, i);
+          }
+        } else if ((isGpTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isConst(ir->args[2]))) {
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[2]);
+          if (irOperandSizeof(ir->args[0]) == 8) {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tmov `d, %s\n", constant));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+          } else if (irOperandSizeof(ir->args[0]) == 4 ||
+                     irOperandSizeof(ir->args[0]) == 2) {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\timul `d, `u, %s\n", constant));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+          } else {
+            size_t lhsPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i,
+                    x86_64LinuxTempOperandCreateCustom(lhsPatch, 2, 2, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\timul `d, `u, %s\n", constant));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(
+                           ir->args[0]->data.temp.name, 2, 2, AH_GP));
+            USES(i, x86_64LinuxTempOperandCreateCustom(lhsPatch, 2, 2, AH_GP));
+            DONE(assembly, i);
+          }
+          free(constant);
+        } else if ((isGpTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                    isGpTemp(ir->args[2])) ||
+                   (isGpTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                    isMemTemp(ir->args[2]))) {
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[1]);
+          if (irOperandSizeof(ir->args[0]) == 8) {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tmov `d, %s\n", constant));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            DONE(assembly, i);
+          } else if (irOperandSizeof(ir->args[0]) == 4 ||
+                     irOperandSizeof(ir->args[0]) == 2) {
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\timul `d, `u, %s\n", constant));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            DONE(assembly, i);
+          } else {
+            size_t rhsPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i,
+                    x86_64LinuxTempOperandCreateCustom(rhsPatch, 2, 2, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\timul `d, `u, %s\n", constant));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(
+                           ir->args[0]->data.temp.name, 2, 2, AH_GP));
+            USES(i, x86_64LinuxTempOperandCreateCustom(rhsPatch, 2, 2, AH_GP));
+            DONE(assembly, i);
+          }
+          free(constant);
+        } else if ((isMemTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isGpTemp(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isMemTemp(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isGpTemp(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isMemTemp(ir->args[2]))) {
+          if (irOperandSizeof(ir->args[0]) != 1) {
+            size_t resultPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                         resultPatch, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                         resultPatch, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], resultPatch,
+                                                      AH_GP));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], resultPatch,
+                                                      AH_GP));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+          } else {
+            size_t resultPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(resultPatch, 2, 2,
+                                                          AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+
+            size_t rhsPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i,
+                    x86_64LinuxTempOperandCreateCustom(rhsPatch, 2, 2, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[2]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(resultPatch, 2, 2,
+                                                          AH_GP));
+            USES(i, x86_64LinuxTempOperandCreateCustom(rhsPatch, 2, 2, AH_GP));
+            USES(i,
+                 x86_64LinuxTempOperandCreateCustom(resultPatch, 2, 2, AH_GP));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i,
+                 x86_64LinuxTempOperandCreateCustom(resultPatch, 1, 1, AH_GP));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+          }
+        } else if ((isMemTemp(ir->args[0]) && isGpReg(ir->args[1]) &&
+                    isConst(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isGpTemp(ir->args[1]) &&
+                    isConst(ir->args[2]))) {
+          char *constant = x86_64LinuxSmallConstantToString(ir->args[2]);
+          if (irOperandSizeof(ir->args[0]) == 8) {
+            size_t resultPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\tmov `d, %s\n", constant));
+            DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                         resultPatch, AH_GP));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\timul `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                         resultPatch, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], resultPatch,
+                                                      AH_GP));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], resultPatch,
+                                                      AH_GP));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+          } else if (irOperandSizeof(ir->args[0]) == 4 ||
+                     irOperandSizeof(ir->args[0]) == 2) {
+            size_t resultPath = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\timul `d, `u, %s\n", constant));
+            DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                         resultPath, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0], resultPath,
+                                                      AH_GP));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+          } else {
+            size_t resultPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmovsx `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(resultPatch, 2, 2,
+                                                          AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR,
+                     format("\timul `d, `u, %s\n", constant));
+            DEFINES(i, x86_64LinuxTempOperandCreateCustom(resultPatch, 2, 2,
+                                                          AH_GP));
+            USES(i,
+                 x86_64LinuxTempOperandCreateCustom(resultPatch, 2, 2, AH_GP));
+            DONE(assembly, i);
+
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxOperandCreate(ir->args[0]));
+            USES(i,
+                 x86_64LinuxTempOperandCreateCustom(resultPatch, 1, 1, AH_GP));
+            MOVES(i, 0, 0);
+            DONE(assembly, i);
+          }
+          free(constant);
+        } else if ((isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isGpReg(ir->args[2])) ||
+                   (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                    isGpTemp(ir->args[2]))) {
+          if (irOperandSizeof(ir->args[0]) != 1) {
+            size_t resultPatch = fresh(file);
+            i = INST(X86_64_LINUX_IK_REGULAR, format("\tmov `d, `u\n"));
+            DEFINES(i, x86_64LinuxTempOperandCreatePatch(ir->args[0],
+                                                         resultPatch, AH_GP));
+            USES(i, x86_64LinuxOperandCreate(ir->args[1]));
+            DONE(assembly, i);
+
+          } else {
+            // TODO
+          }
+        } else if (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                   isMemTemp(ir->args[2])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isMemTemp(ir->args[1]) &&
+                   isConst(ir->args[2])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                   isGpReg(ir->args[2])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                   isGpTemp(ir->args[2])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                   isMemTemp(ir->args[2])) {
+          // TODO
+        } else if (isMemTemp(ir->args[0]) && isConst(ir->args[1]) &&
+                   isConst(ir->args[2])) {
+          // TODO
+        } else {
+          error(__FILE__, __LINE__, "unhandled arguments to signed multiply");
+        }
         break;
       }
       case IO_UMUL: {
