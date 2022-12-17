@@ -82,8 +82,10 @@ enum {
   CODE_IR_ERROR,
 };
 
-// compile the given declaration and code files into one assembly file per code
-// file, given the flags
+/**
+ * compile the given declaration and code files into one assembly file per code
+ * file, given the flags
+ */
 int main(int argc, char **argv) {
   // handle overriding command line arguments
   if (helpRequested((size_t)argc, argv)) {

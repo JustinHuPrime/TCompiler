@@ -470,7 +470,6 @@ void optimizeBlockedIr(void) {
         // TODO: (difficult) tail call optimization
         shortCircuitJumps(blocks);
         deadBlockElimination(blocks, irFrags);
-        // TODO: dead label elimination
         deadTempElimination(blocks, file->nextId);
       }
     }

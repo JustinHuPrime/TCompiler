@@ -23,8 +23,12 @@
 #include <string.h>
 
 Options options = {
-    OPTION_W_ERROR, OPTION_W_ERROR, OPTION_W_ERROR,
-    OPTION_DD_NONE, false,          OPTION_A_X86_64_LINUX,
+    .duplicateFile = OPTION_W_ERROR,
+    .duplicateImport = OPTION_W_ERROR,
+    .unrecognizedFile = OPTION_W_ERROR,
+    .dump = OPTION_DD_NONE,
+    .debugValidateIr = false,
+    .arch = OPTION_A_X86_64_LINUX,
 };
 
 int parseArgs(size_t argc, char const *const *argv, size_t *numFilesOut) {
