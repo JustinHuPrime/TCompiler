@@ -1,6 +1,6 @@
 # The T Programming Language version 0.2.0
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/JustinHuPrime/TCompiler/Unit%20Tests)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/JustinHuPrime/TCompiler/unit-test.yml?branch=main)
 ![GitHub](https://img.shields.io/github/license/JustinHuPrime/TCompiler)
 ![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/JustinHuPrime/TCompiler?include_prereleases)
 <!-- Github issues and pr status goes here once we shift to that workflow -->
