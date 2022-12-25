@@ -58,25 +58,6 @@ static void x86_64LinuxOperandFree(X86_64LinuxOperand *o) {
   free(o);
 }
 
-static X86_64LinuxInstruction *INST(X86_64LinuxInstructionKind kind,
-                                    char *skeleton) {
-  X86_64LinuxInstruction *retval = malloc(sizeof(X86_64LinuxInstruction));
-  retval->kind = kind;
-  retval->skeleton = skeleton;
-  vectorInit(&retval->operands);
-  switch (retval->kind) {
-    case X86_64_LINUX_IK_JUMP:
-    case X86_64_LINUX_IK_CJUMP:
-    case X86_64_LINUX_IK_JUMPTABLE: {
-      sizeVectorInit(&retval->data.jumpTargets);
-      break;
-    }
-    default: {
-      break;
-    }
-  }
-  return retval;
-}
 static void x86_64LinuxInstructionFree(X86_64LinuxInstruction *i) {
   switch (i->kind) {
     case X86_64_LINUX_IK_JUMP:
@@ -303,6 +284,31 @@ typedef struct {
   } data;
 } IRRequirementClause;
 
+static void irRequirementClauseFree(IRRequirementClause *clause) {
+  switch (clause->kind) {
+    case OK_TEMP: {
+      sizeVectorUninit(&clause->data.temp.alignments);
+      sizeVectorUninit(&clause->data.temp.sizes);
+      sizeVectorUninit(&clause->data.temp.kinds);
+      break;
+    }
+    case OK_REG: {
+      sizeVectorUninit(&clause->data.reg.sizes);
+      break;
+    }
+    case OK_CONSTANT: {
+      sizeVectorUninit(&clause->data.constant.sizes);
+      sizeVectorUninit(&clause->data.constant.types);
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid operand kind");
+    }
+  }
+
+  free(clause);
+}
+
 typedef struct {
   /**
    * list of clauses; require at least one met; empty = allow any
@@ -310,10 +316,22 @@ typedef struct {
   Vector clauses;
 } IRRequirement;
 
+static void irRequirementFree(IRRequirement *requirement) {
+  vectorUninit(&requirement->clauses,
+               (void (*)(void *))irRequirementClauseFree);
+  free(requirement);
+}
+
 typedef struct {
   char *skeleton;
   SizeVector operands;
-} InstructionTemplate;
+} AsmTemplate;
+
+static void asmTemplateFree(AsmTemplate *template) {
+  free(template->skeleton);
+  sizeVectorUninit(&template->operands);
+  free(template);
+}
 
 typedef struct {
   /**
@@ -332,6 +350,12 @@ typedef struct {
   Vector templates;
 } AsmInstruction;
 
+static void asmInstructionFree(AsmInstruction *instruction) {
+  vectorUninit(&instruction->requirements, (void (*)(void *))irRequirementFree);
+  vectorUninit(&instruction->templates, (void (*)(void *))asmTemplateFree);
+  free(instruction);
+}
+
 typedef struct {
   /**
    * source IROperand type
@@ -348,6 +372,18 @@ typedef struct {
    */
   Vector templates;
 } AsmCast;
+
+static void asmCastFree(AsmCast *cast) {
+  irRequirementFree(&cast->source);
+  irRequirementFree(&cast->destination);
+  vectorUninit(&cast->templates, (void (*)(void *))asmTemplateFree);
+  free(cast);
+}
+
+static void generateAsmInstructions(Vector *instructions, Vector *casts) {
+  vectorInit(instructions);
+  vectorInit(casts);
+}
 
 static X86_64LinuxOperand *operandCreate(IROperand const *ir) {
   X86_64LinuxOperand *operand = malloc(sizeof(X86_64LinuxOperand));
@@ -449,6 +485,10 @@ static void x86_64LinuxGenerateTextAsm(IRFrag *frag, FileListEntry *file) {
 }
 
 void x86_64LinuxGenerateAsm(void) {
+  Vector asmInstructions;
+  Vector asmCasts;
+  generateAsmInstructions(&asmInstructions, &asmCasts);
+
   for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
     FileListEntry *file = &fileList.entries[fileIdx];
     file->asmFile = x86_64LinuxFileCreate(strdup(""), strdup(""));
@@ -472,4 +512,7 @@ void x86_64LinuxGenerateAsm(void) {
       }
     }
   }
+
+  vectorUninit(&asmInstructions, (void (*)(void *))asmInstructionFree);
+  vectorUninit(&asmCasts, (void (*)(void *))asmCastFree);
 }
