@@ -122,9 +122,9 @@ void irDatumFree(IRDatum *);
 
 /** the kind of an operand */
 typedef enum {
-  OK_TEMP,
-  OK_REG,
-  OK_CONSTANT,
+  OK_TEMP = 1,
+  OK_REG = 2,
+  OK_CONSTANT = 4,
 } OperandKind;
 /** an operand in an IR entry */
 typedef struct IROperand {

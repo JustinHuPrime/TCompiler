@@ -40,6 +40,395 @@ char const *x86_64LinuxPrettyPrintRegister(size_t reg) {
   return REGISTER_NAMES[reg];
 }
 
+static void x86_64LinuxOperandFree(X86_64LinuxOperand *o) {
+  switch (o->kind) {
+    case X86_64_LINUX_OK_OFFSET_TEMP: {
+      x86_64LinuxOperandFree(o->data.offsetTemp.base);
+      x86_64LinuxOperandFree(o->data.offsetTemp.offset);
+      break;
+    }
+    case X86_64_LINUX_OK_GLOBAL_LABEL: {
+      free(o->data.globalLabel.label);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  free(o);
+}
+
+static X86_64LinuxInstruction *INST(X86_64LinuxInstructionKind kind,
+                                    char *skeleton) {
+  X86_64LinuxInstruction *retval = malloc(sizeof(X86_64LinuxInstruction));
+  retval->kind = kind;
+  retval->skeleton = skeleton;
+  vectorInit(&retval->operands);
+  switch (retval->kind) {
+    case X86_64_LINUX_IK_JUMP:
+    case X86_64_LINUX_IK_CJUMP:
+    case X86_64_LINUX_IK_JUMPTABLE: {
+      sizeVectorInit(&retval->data.jumpTargets);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  return retval;
+}
+static void x86_64LinuxInstructionFree(X86_64LinuxInstruction *i) {
+  switch (i->kind) {
+    case X86_64_LINUX_IK_JUMP:
+    case X86_64_LINUX_IK_CJUMP:
+    case X86_64_LINUX_IK_JUMPTABLE: {
+      sizeVectorUninit(&i->data.jumpTargets);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  free(i->skeleton);
+  vectorUninit(&i->operands, (void (*)(void *))x86_64LinuxOperandFree);
+  free(i);
+}
+
+static X86_64LinuxFrag *x86_64LinuxFragCreate(X86_64LinuxFragKind kind) {
+  X86_64LinuxFrag *retval = malloc(sizeof(X86_64LinuxFrag));
+  retval->kind = kind;
+  return retval;
+}
+static X86_64LinuxFrag *x86_64LinuxDataFragCreate(char *data) {
+  X86_64LinuxFrag *retval = x86_64LinuxFragCreate(X86_64_LINUX_FK_DATA);
+  retval->data.data.data = data;
+  return retval;
+}
+static X86_64LinuxFrag *x86_64LinuxTextFragCreate(char *header, char *footer) {
+  X86_64LinuxFrag *retval = x86_64LinuxFragCreate(X86_64_LINUX_FK_TEXT);
+  retval->data.text.header = header;
+  retval->data.text.footer = footer;
+  linkedListInit(&retval->data.text.instructions);
+  return retval;
+}
+static void x86_64LinuxFragFree(X86_64LinuxFrag *frag) {
+  switch (frag->kind) {
+    case X86_64_LINUX_FK_TEXT: {
+      free(frag->data.text.header);
+      free(frag->data.text.footer);
+      linkedListUninit(&frag->data.text.instructions,
+                       (void (*)(void *))x86_64LinuxInstructionFree);
+      break;
+    }
+    case X86_64_LINUX_FK_DATA: {
+      free(frag->data.data.data);
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid fragment kind enum encountered");
+    }
+  }
+  free(frag);
+}
+
+static X86_64LinuxFile *x86_64LinuxFileCreate(char *header, char *footer) {
+  X86_64LinuxFile *retval = malloc(sizeof(X86_64LinuxFile));
+  retval->header = header;
+  retval->footer = footer;
+  vectorInit(&retval->frags);
+  return retval;
+}
+void x86_64LinuxFileFree(X86_64LinuxFile *file) {
+  free(file->header);
+  free(file->footer);
+  vectorUninit(&file->frags, (void (*)(void *))x86_64LinuxFragFree);
+  free(file);
+}
+
+static char *x86_64LinuxDataToString(Vector *v) {
+  char *data = strdup("");
+  for (size_t idx = 0; idx < v->size; ++idx) {
+    IRDatum *d = v->elements[idx];
+    switch (d->type) {
+      case DT_BYTE: {
+        char *old = data;
+        data = format("%s\tdb %hhu\n", old, d->data.byteVal);
+        free(old);
+        break;
+      }
+      case DT_SHORT: {
+        char *old = data;
+        data = format("%s\tdw %hu\n", old, d->data.shortVal);
+        free(old);
+        break;
+      }
+      case DT_INT: {
+        char *old = data;
+        data = format("%s\tdd %u\n", old, d->data.intVal);
+        free(old);
+        break;
+      }
+      case DT_LONG: {
+        char *old = data;
+        data = format("%s\tdq %lu\n", old, d->data.longVal);
+        free(old);
+        break;
+      }
+      case DT_PADDING: {
+        char *old = data;
+        data = format("%s\tresb %zu\n", old, d->data.paddingLength);
+        free(old);
+        break;
+      }
+      case DT_STRING: {
+        for (uint8_t *in = d->data.string; *in != 0; ++in) {
+          char *old = data;
+          data = format("%s\tdb %hhu\n", old, *in);
+          free(old);
+        }
+        char *old = data;
+        data = format("%s\tdb 0\n", old);
+        free(old);
+        break;
+      }
+      case DT_WSTRING: {
+        for (uint32_t *in = d->data.wstring; *in != 0; ++in) {
+          char *old = data;
+          data = format("%s\tdd %u\n", old, *in);
+          free(old);
+        }
+        char *old = data;
+        data = format("%s\tdd 0\n", old);
+        free(old);
+        break;
+      }
+      case DT_LOCAL: {
+        char *old = data;
+        data = format("%s\tdq L%zu\n", old, d->data.localLabel);
+        free(old);
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__, "invalid datum type");
+      }
+    }
+  }
+  return data;
+}
+
+static void x86_64LinuxGenerateDataAsm(IRFrag *frag, FileListEntry *file) {
+  char *section;
+  switch (frag->type) {
+    case FT_BSS: {
+      section = format("section .bss align=%zu\n", frag->data.data.alignment);
+      break;
+    }
+    case FT_RODATA: {
+      section =
+          format("section .rodata align=%zu\n", frag->data.data.alignment);
+      break;
+    }
+    case FT_DATA: {
+      section = format("section .data align=%zu\n", frag->data.data.alignment);
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid data fragment type");
+    }
+  }
+  char *name;
+  switch (frag->nameType) {
+    case FNT_LOCAL: {
+      name = format("L%zu:\n", frag->name.local);
+      break;
+    }
+    case FNT_GLOBAL: {
+      name = format("global %s:data (%s.end - %s)\n%s:\n", frag->name.global,
+                    frag->name.global, frag->name.global, frag->name.global);
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid fragment name type");
+    }
+  }
+  char *data = x86_64LinuxDataToString(&frag->data.data.data);
+
+  vectorInsert(
+      &((X86_64LinuxFile *)&file->asmFile)->frags,
+      x86_64LinuxDataFragCreate(format("%s%s%s.end:\n", section, name, data)));
+  free(section);
+  free(name);
+  free(data);
+}
+
+typedef struct {
+  OperandKind kind;  // bitmask for the kinds allowed
+  bool constantDetails;
+  DatumType constantTypeRequired;
+  bool tempDetails;
+  AllocHint tempKindRequired;
+} IRRequirement;
+
+typedef struct {
+  char *skeleton;
+  SizeVector operands;
+} InstructionTemplate;
+
+typedef struct {
+  /**
+   * which op this implements
+   */
+  IROperator op;
+  /**
+   * requirements for IR Operands
+   *
+   * vector of IRRequirement
+   */
+  Vector requirements;
+  /**
+   * generated instruction templates
+   */
+  Vector templates;
+} AsmInstruction;
+
+typedef struct {
+  /**
+   * source IROperand type
+   */
+  IRRequirement source;
+  /**
+   * destination IROperand type
+   */
+  IRRequirement destination;
+  /**
+   * generated instruction templates
+   *
+   * assumes source operand is index 1 and destination operand is index 2
+   */
+  Vector templates;
+} AsmCast;
+
+static X86_64LinuxOperand *operandCreate(IROperand const *ir) {
+  X86_64LinuxOperand *operand = malloc(sizeof(X86_64LinuxOperand));
+
+  switch (ir->kind) {
+    case OK_TEMP: {
+      operand->kind = X86_64_LINUX_OK_TEMP;
+      operand->data.temp.name = ir->data.temp.name;
+      operand->data.temp.alignment = ir->data.temp.alignment;
+      operand->data.temp.size = ir->data.temp.size;
+      operand->data.temp.kind = ir->data.temp.kind;
+      operand->data.temp.escapes = false;
+      break;
+    }
+    case OK_REG: {
+      operand->kind = X86_64_LINUX_OK_REG;
+      operand->data.reg.reg = ir->data.reg.name;
+      operand->data.reg.size = ir->data.reg.size;
+      break;
+    }
+    case OK_CONSTANT: {
+      if (ir->data.constant.data.size != 1) {
+        error(__FILE__, __LINE__,
+              "constant too large to convert to a single operand");
+      }
+
+      IRDatum *d = ir->data.constant.data.elements[0];
+      switch (d->type) {
+        case DT_BYTE:
+        case DT_SHORT:
+        case DT_INT:
+        case DT_LONG: {
+          operand->kind = X86_64_LINUX_OK_NUMBER;
+          switch (d->type) {
+            case DT_BYTE: {
+              operand->data.number.value = d->data.byteVal;
+              operand->data.number.size = 1;
+              break;
+            }
+            case DT_SHORT: {
+              operand->data.number.value = d->data.shortVal;
+              operand->data.number.size = 2;
+              break;
+            }
+            case DT_INT: {
+              operand->data.number.value = d->data.intVal;
+              operand->data.number.size = 4;
+              break;
+            }
+            case DT_LONG: {
+              operand->data.number.value = d->data.longVal;
+              operand->data.number.size = 8;
+              break;
+            }
+            default: {
+              error(__FILE__, __LINE__,
+                    "impossible invalid datum type (CPU error?)");
+            }
+          }
+          break;
+        }
+        case DT_LOCAL: {
+          operand->kind = X86_64_LINUX_OK_LOCAL_LABEL;
+          operand->data.localLabel.label = d->data.localLabel;
+          break;
+        }
+        case DT_GLOBAL: {
+          operand->kind = X86_64_LINUX_OK_GLOBAL_LABEL;
+          operand->data.globalLabel.label = strdup(d->data.globalLabel);
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid constant type");
+        }
+      }
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid operand kind");
+    }
+  }
+
+  return operand;
+}
+
+static void x86_64LinuxGenerateTextAsm(IRFrag *frag, FileListEntry *file) {
+  X86_64LinuxFile *asmFile = file->asmFile;
+  X86_64LinuxFrag *assembly = x86_64LinuxTextFragCreate(
+      format("section .text\nglobal %s:function\n%s:\n", frag->name.global,
+             frag->name.global),
+      strdup(""));
+  IRBlock *b = frag->data.text.blocks.head->next->data;
+  for (ListNode *currInst = b->instructions.head->next;
+       currInst != b->instructions.tail; currInst = currInst->next) {
+    IRInstruction *ir = currInst->data;
+    // TODO
+  }
+  vectorInsert(&asmFile->frags, assembly);
+}
+
 void x86_64LinuxGenerateAsm(void) {
-  // TODO
+  for (size_t fileIdx = 0; fileIdx < fileList.size; ++fileIdx) {
+    FileListEntry *file = &fileList.entries[fileIdx];
+    file->asmFile = x86_64LinuxFileCreate(strdup(""), strdup(""));
+
+    for (size_t fragIdx = 0; fragIdx < file->irFrags.size; ++fragIdx) {
+      IRFrag *frag = file->irFrags.elements[fragIdx];
+      switch (frag->type) {
+        case FT_BSS:
+        case FT_RODATA:
+        case FT_DATA: {
+          x86_64LinuxGenerateDataAsm(frag, file);
+          break;
+        }
+        case FT_TEXT: {
+          x86_64LinuxGenerateTextAsm(frag, file);
+          break;
+        }
+        default: {
+          error(__FILE__, __LINE__, "invalid fragment type");
+        }
+      }
+    }
+  }
 }
