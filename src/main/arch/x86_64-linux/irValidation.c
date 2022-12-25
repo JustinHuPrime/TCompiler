@@ -59,14 +59,70 @@ int x86_64LinuxValidateIRArchSpecific(char const *phase, bool blocked) {
                   break;
                 }
                 case OK_TEMP: {
-                  if (arg->data.temp.alignment > 16) {
-                    fprintf(
-                        stderr,
-                        "%s: internal compiler error: x86_64-linux specific IR "
-                        "validation after %s failed - invalid temp alignment "
-                        "(%zu) encountered\n",
-                        file->inputFilename, phase, arg->data.temp.alignment);
-                    file->errored = true;
+                  switch (arg->data.temp.kind) {
+                    case AH_GP: {
+                      if (arg->data.temp.size != 1 &&
+                          arg->data.temp.size != 2 &&
+                          arg->data.temp.size != 4 &&
+                          arg->data.temp.size != 8) {
+                        fprintf(
+                            stderr,
+                            "%s: internal compiler error: x86_64-linux "
+                            "specific IR validation after %s failed - invalid "
+                            "temp size for GP temp (%zu) encountered\n",
+                            file->inputFilename, phase, arg->data.temp.size);
+                        file->errored = true;
+                      }
+
+                      if (arg->data.temp.alignment != arg->data.temp.size) {
+                        fprintf(
+                            stderr,
+                            "%s: internal compiler error: x86_64-linux "
+                            "specific IR validation after %s failed - invalid "
+                            "temp alignment for GP temp (%zu) encountered\n",
+                            file->inputFilename, phase,
+                            arg->data.temp.alignment);
+                        file->errored = true;
+                      }
+                      break;
+                    }
+                    case AH_FP: {
+                      if (arg->data.temp.size != 4 &&
+                          arg->data.temp.size != 8) {
+                        fprintf(
+                            stderr,
+                            "%s: internal compiler error: x86_64-linux "
+                            "specific IR validation after %s failed - invalid "
+                            "temp size for FP temp (%zu) encountered\n",
+                            file->inputFilename, phase, arg->data.temp.size);
+                        file->errored = true;
+                      }
+
+                      if (arg->data.temp.alignment != arg->data.temp.size) {
+                        fprintf(
+                            stderr,
+                            "%s: internal compiler error: x86_64-linux "
+                            "specific IR validation after %s failed - invalid "
+                            "temp alignment for FP temp (%zu) encountered",
+                            file->inputFilename, phase,
+                            arg->data.temp.alignment);
+                        file->errored = true;
+                      }
+                      break;
+                    }
+                    case AH_MEM: {
+                      if (arg->data.temp.alignment > 16) {
+                        fprintf(
+                            stderr,
+                            "%s: internal compiler error: x86_64-linux "
+                            "specific IR validation after %s failed - invalid "
+                            "mem temp alignment (%zu) encountered\n",
+                            file->inputFilename, phase,
+                            arg->data.temp.alignment);
+                        file->errored = true;
+                      }
+                      break;
+                    }
                   }
                   break;
                 }
