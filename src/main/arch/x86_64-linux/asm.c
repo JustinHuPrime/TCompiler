@@ -262,11 +262,52 @@ static void x86_64LinuxGenerateDataAsm(IRFrag *frag, FileListEntry *file) {
 }
 
 typedef struct {
-  OperandKind kind;  // bitmask for the kinds allowed
-  bool constantDetails;
-  DatumType constantTypeRequired;
-  bool tempDetails;
-  AllocHint tempKindRequired;
+  /**
+   * what kind is allowed
+   */
+  OperandKind kind;
+  /**
+   * detail for each kind
+   */
+  union {
+    struct {
+      /**
+       * allowed alignments; empty = allow any
+       */
+      SizeVector alignments;
+      /**
+       * allowed sizes; empty = allow any
+       */
+      SizeVector sizes;
+      /**
+       * allowed alloc kinds; empty = allow any
+       */
+      SizeVector kinds;
+    } temp;
+    struct {
+      /**
+       * allowed sizes; empty = allow any
+       */
+      SizeVector sizes;
+    } reg;
+    struct {
+      /**
+       * allowed sizes; empty = allow any
+       */
+      SizeVector sizes;
+      /**
+       * allowed datum type (must be single datum); empty = allow any
+       */
+      SizeVector types;
+    } constant;
+  } data;
+} IRRequirementClause;
+
+typedef struct {
+  /**
+   * list of clauses; require at least one met; empty = allow any
+   */
+  Vector clauses;
 } IRRequirement;
 
 typedef struct {
@@ -282,7 +323,7 @@ typedef struct {
   /**
    * requirements for IR Operands
    *
-   * vector of IRRequirement
+   * vector of IRRequirement; one element per operand
    */
   Vector requirements;
   /**
