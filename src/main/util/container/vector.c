@@ -61,4 +61,10 @@ void sizeVectorInsert(SizeVector *vector, size_t element) {
   }
   vector->elements[vector->size++] = element;
 }
+bool sizeVectorContains(SizeVector const *v, size_t elm) {
+  for (size_t idx = 0; idx < v->size; ++idx) {
+    if (v->elements[idx] == elm) return true;
+  }
+  return false;
+}
 void sizeVectorUninit(SizeVector *vector) { free(vector->elements); }

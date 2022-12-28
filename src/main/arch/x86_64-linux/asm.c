@@ -372,9 +372,9 @@ typedef struct {
     } reg;
     struct {
       /**
-       * allowed sizes; empty = allow any
+       * allowed alignments; empty = allow any
        */
-      SizeVector sizes;
+      SizeVector alignments;
       /**
        * allowed datum type (must be single datum); empty = allow any
        */
@@ -399,35 +399,39 @@ typedef struct {
  */
 static bool operandSatisfiesClause(IRRequirementClause const *clause,
                                    IROperand const *operand) {
-  return false;  // TODO
-}
-/**
- * is clause satisfied by anything that satisfies category?
- */
-static bool clauseSatisfiesClause(IRRequirementClause const *clause,
-                                  IRRequirementClause const *category) {
-  return false;  // TODO
-}
-/**
- * is clause satisfied by anything that satisfies requirement?
- */
-static bool requirementSatisfiesClause(IRRequirementClause const *clause,
-                                       IRRequirement const *requirement) {
-  if (requirement->clauses.size == 0) {
-    return false;  // no - anything is allowed, but I require at least a
-                   // specific kind
+  if (clause->kind != operand->kind) {
+    return false;
   }
-
-  for (size_t idx = 0; idx < requirement->clauses.size; ++idx) {
-    IRRequirementClause *categoryClause = requirement->clauses.elements[idx];
-    if (!clauseSatisfiesClause(clause, categoryClause)) {
-      return false;  // not satisfied - this category allows things that don't
-                     // satisfy me
+  switch (operand->kind) {
+    case OK_TEMP: {
+      return (clause->data.temp.alignments.size == 0 ||
+              sizeVectorContains(&clause->data.temp.alignments,
+                                 operand->data.temp.alignment)) &&
+             (clause->data.temp.sizes.size == 0 ||
+              sizeVectorContains(&clause->data.temp.sizes,
+                                 operand->data.temp.size)) &&
+             (clause->data.temp.kinds.size == 0 ||
+              sizeVectorContains(&clause->data.temp.kinds,
+                                 operand->data.temp.kind));
+    }
+    case OK_REG: {
+      return clause->data.reg.sizes.size == 0 ||
+             sizeVectorContains(&clause->data.reg.sizes,
+                                operand->data.reg.size);
+    }
+    case OK_CONSTANT: {
+      if (operand->data.constant.data.size != 1) return false;
+      IRDatum const *constant = operand->data.constant.data.elements[0];
+      return (clause->data.constant.alignments.size == 0 ||
+              sizeVectorContains(&clause->data.constant.alignments,
+                                 operand->data.constant.alignment)) &&
+             (clause->data.constant.types.size == 0 ||
+              sizeVectorContains(&clause->data.constant.types, constant->type));
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid operand kind");
     }
   }
-
-  // everything allowed by the requirement satisfies me
-  return true;
 }
 static void irRequirementClauseFree(IRRequirementClause *clause) {
   switch (clause->kind) {
@@ -442,7 +446,7 @@ static void irRequirementClauseFree(IRRequirementClause *clause) {
       break;
     }
     case OK_CONSTANT: {
-      sizeVectorUninit(&clause->data.constant.sizes);
+      sizeVectorUninit(&clause->data.constant.alignments);
       sizeVectorUninit(&clause->data.constant.types);
       break;
     }
@@ -463,21 +467,6 @@ static bool operandSatisfiesRequirement(IRRequirement const *requirement,
   for (size_t idx = 0; idx < requirement->clauses.size; ++idx) {
     IRRequirementClause *clause = requirement->clauses.elements[idx];
     if (operandSatisfiesClause(clause, operand)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-static bool requirementSatisfiesRequirement(IRRequirement const *requirement,
-                                            IRRequirement const *category) {
-  if (requirement->clauses.size == 0) {
-    return true;  // requirement allows any
-  }
-
-  for (size_t idx = 0; idx < requirement->clauses.size; ++idx) {
-    IRRequirementClause *clause = requirement->clauses.elements[idx];
-    if (requirementSatisfiesClause(clause, category)) {
       return true;
     }
   }
@@ -535,9 +524,9 @@ typedef struct {
    */
   IRRequirement *source;
   /**
-   * destination IROperand type
+   * destination IROperand template
    */
-  IRRequirement *destination;
+  IROperand *destination;
   /**
    * generated instruction templates
    *
@@ -557,8 +546,8 @@ static AsmCast const *findCast(Vector const *casts,
                                IROperand const *source) {
   for (size_t idx = 0; idx < casts->size; ++idx) {
     AsmCast const *cast = casts->elements[idx];
-    if (requirementSatisfiesRequirement(destination, cast->destination) &&
-        operandSatisfiesRequirement(cast->destination, source)) {
+    if (operandSatisfiesRequirement(destination, cast->destination) &&
+        operandSatisfiesRequirement(cast->source, source)) {
       return cast;
     }
   }
@@ -568,7 +557,7 @@ static AsmCast const *findCast(Vector const *casts,
 
 static void asmCastFree(AsmCast *cast) {
   irRequirementFree(cast->source);
-  irRequirementFree(cast->destination);
+  irOperandFree(cast->destination);
   vectorUninit(&cast->templates, (void (*)(void *))asmTemplateFree);
   free(cast);
 }

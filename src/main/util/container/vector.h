@@ -78,6 +78,10 @@ void sizeVectorInit(SizeVector *v);
  */
 void sizeVectorInsert(SizeVector *v, size_t elm);
 /**
+ * search - linear time
+ */
+bool sizeVectorContains(SizeVector const *v, size_t elm);
+/**
  * in place dtor
  */
 void sizeVectorUninit(SizeVector *v);
