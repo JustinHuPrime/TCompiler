@@ -156,22 +156,21 @@ typedef enum {
   X86_64_LINUX_IK_REGULAR, /**< regular instruction, goes to next instruction */
   X86_64_LINUX_IK_MOVE,  /**< move instruction, can elide instruction if the two
                             operands are in the same register */
-  X86_64_LINUX_IK_JUMP,  /**< jump instruction, goes to jump target */
-  X86_64_LINUX_IK_CJUMP, /**< conditional jump instruction, goes to jump target
-                            or next instruction */
+  X86_64_LINUX_IK_JUMP,  /**< jump instruction, goes to only element in jumpData
+                          */
+  X86_64_LINUX_IK_CJUMP, /**< conditional jump instruction, goes only element in
+                            jumpData or next instruction */
   X86_64_LINUX_IK_JUMPTABLE, /**< jump table, goes to any listed instruction in
-                                jump table */
+                                jumpData */
   X86_64_LINUX_IK_LEAVE,     /**< instruction leaves the function entirely */
-  X86_64_LINUX_IK_LABEL,     /**< label */
+  X86_64_LINUX_IK_LABEL,     /**< label; see only element of jumpData for numeric
+                                value */
 } X86_64LinuxInstructionKind;
 typedef struct {
   X86_64LinuxInstructionKind kind;
   char *skeleton;
   Vector operands;
-  union {
-    SizeVector jumpTargets;
-    size_t label;
-  } data;
+  SizeVector jumpData;
 } X86_64LinuxInstruction;
 
 typedef enum {

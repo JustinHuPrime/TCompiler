@@ -69,8 +69,9 @@ static void x86_64LinuxInstructionFree(X86_64LinuxInstruction *i) {
   switch (i->kind) {
     case X86_64_LINUX_IK_JUMP:
     case X86_64_LINUX_IK_CJUMP:
-    case X86_64_LINUX_IK_JUMPTABLE: {
-      sizeVectorUninit(&i->data.jumpTargets);
+    case X86_64_LINUX_IK_JUMPTABLE:
+    case X86_64_LINUX_IK_LABEL: {
+      sizeVectorUninit(&i->jumpData);
       break;
     }
     default: {
@@ -480,10 +481,110 @@ static void irRequirementFree(IRRequirement *requirement) {
 }
 
 typedef struct {
+  X86_64LinuxInstructionKind kind;
   char *skeleton;
   SizeVector operands;
+  /**
+   * one of:
+   *
+   * operand index of jump table; expects operand to be a local label pointing
+   * to a rodata frag of local labels
+   *
+   * operand index of label; expects operand to be a local label
+   */
+  size_t label;
 } AsmTemplate;
 
+static X86_64LinuxOperand *asmOperandCopy(X86_64LinuxOperand const *operand) {
+  X86_64LinuxOperand *copy = malloc(sizeof(X86_64LinuxOperand));
+  copy->mode = operand->mode;
+  copy->kind = operand->kind;
+  switch (operand->kind) {
+    case X86_64_LINUX_OK_REG: {
+      copy->data.reg.reg = operand->data.reg.reg;
+      copy->data.reg.size = operand->data.reg.size;
+      break;
+    }
+    case X86_64_LINUX_OK_TEMP: {
+      copy->data.temp.name = operand->data.temp.name;
+      copy->data.temp.alignment = operand->data.temp.alignment;
+      copy->data.temp.size = operand->data.temp.size;
+      copy->data.temp.kind = operand->data.temp.kind;
+      copy->data.temp.escapes = operand->data.temp.escapes;
+      break;
+    }
+    case X86_64_LINUX_OK_OFFSET_TEMP: {
+      copy->data.offsetTemp.base =
+          asmOperandCopy(operand->data.offsetTemp.base);
+      copy->data.offsetTemp.offset =
+          asmOperandCopy(operand->data.offsetTemp.offset);
+      break;
+    }
+    case X86_64_LINUX_OK_LOCAL_LABEL: {
+      copy->data.globalLabel.label = strdup(operand->data.globalLabel.label);
+      break;
+    }
+    case X86_64_LINUX_OK_GLOBAL_LABEL: {
+      copy->data.localLabel.label = operand->data.localLabel.label;
+      break;
+    }
+    case X86_64_LINUX_OK_NUMBER: {
+      copy->data.number.value = operand->data.number.value;
+      copy->data.number.size = operand->data.number.size;
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid operand kind");
+    }
+  }
+  return copy;
+}
+static X86_64LinuxInstruction *instantiateTemplate(
+    AsmTemplate const *template, X86_64LinuxOperand **operands,
+    FileListEntry const *file) {
+  X86_64LinuxInstruction *instruction = malloc(sizeof(X86_64LinuxInstruction));
+  instruction->kind = template->kind;
+  instruction->skeleton = strdup(template->skeleton);
+  vectorInit(&instruction->operands);
+  for (size_t idx = 0; idx < template->operands.size; ++idx) {
+    size_t operandIdx = template->operands.elements[idx];
+    vectorInsert(&instruction->operands, asmOperandCopy(operands[operandIdx]));
+  }
+
+  switch (template->kind) {
+    case X86_64_LINUX_IK_JUMP:
+    case X86_64_LINUX_IK_CJUMP:
+    case X86_64_LINUX_IK_LABEL: {
+      sizeVectorInit(&instruction->jumpData);
+      sizeVectorInsert(&instruction->jumpData,
+                       operands[template->label]->data.localLabel.label);
+      break;
+    }
+    case X86_64_LINUX_IK_JUMPTABLE: {
+      sizeVectorInit(&instruction->jumpData);
+      for (size_t fragIdx = 0; fragIdx < file->irFrags.size; ++fragIdx) {
+        IRFrag *frag = file->irFrags.elements[fragIdx];
+        if (frag->type == FT_RODATA && frag->nameType == FNT_LOCAL &&
+            frag->name.local ==
+                operands[template->label]->data.localLabel.label) {
+          // found jumptable - fill it in
+          for (size_t labelIdx = 0; labelIdx < frag->data.data.data.size;
+               ++labelIdx) {
+            IRDatum *label = frag->data.data.data.elements[labelIdx];
+            sizeVectorInsert(&instruction->jumpData, label->data.localLabel);
+          }
+          break;
+        }
+      }
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+
+  return instruction;
+}
 static void asmTemplateFree(AsmTemplate *template) {
   free(template->skeleton);
   sizeVectorUninit(&template->operands);
@@ -509,8 +610,22 @@ typedef struct {
 
 static void instantiateInstruction(AsmInstruction const *instruction,
                                    X86_64LinuxOperand **operands,
-                                   X86_64LinuxFrag *assembly) {
-  // TODO
+                                   X86_64LinuxFrag *assembly,
+                                   FileListEntry const *file) {
+  // instantiate each template
+  for (size_t templateIdx = 0; templateIdx < instruction->templates.size;
+       ++templateIdx) {
+    insertNodeEnd(
+        &assembly->data.text.instructions,
+        instantiateTemplate(instruction->templates.elements[templateIdx],
+                            operands, file));
+  }
+
+  // cleanup operands; we own it
+  for (size_t argIdx = 0; argIdx < instruction->requirements.size; ++argIdx) {
+    x86_64LinuxOperandFree(operands[argIdx]);
+  }
+  free(operands);
 }
 static void asmInstructionFree(AsmInstruction *instruction) {
   vectorUninit(&instruction->requirements, (void (*)(void *))irRequirementFree);
@@ -525,20 +640,42 @@ typedef struct {
   IRRequirement *source;
   /**
    * destination IROperand template
+   *
+   * if kind = OK_TEMP, then name is unspecified and will be filled in with a
+   * fresh name otherwise, all elements should be specified
    */
   IROperand *destination;
   /**
    * generated instruction templates
    *
-   * assumes source operand is index 1 and destination operand is index 2
+   * assumes source operand is index 1 and destination operand is index 0
    */
   Vector templates;
 } AsmCast;
 
 static X86_64LinuxOperand *instantiateCast(AsmCast const *cast,
                                            IROperand const *source,
-                                           X86_64LinuxFrag *assembly) {
-  return NULL;  // TODO
+                                           X86_64LinuxFrag *assembly,
+                                           FileListEntry *file) {
+  X86_64LinuxOperand *operands[2];
+
+  operands[0] = operandCreate(cast->destination);
+  if (cast->destination->kind == OK_TEMP)
+    operands[0]->data.temp.name = fresh(file);
+
+  operands[1] = operandCreate(source);
+
+  // instantiate each template
+  for (size_t templateIdx = 0; templateIdx < cast->templates.size;
+       ++templateIdx) {
+    insertNodeEnd(&assembly->data.text.instructions,
+                  instantiateTemplate(cast->templates.elements[templateIdx],
+                                      operands, file));
+  }
+
+  x86_64LinuxOperandFree(operands[1]);
+
+  return operands[0];
 }
 
 static AsmCast const *findCast(Vector const *casts,
@@ -570,6 +707,9 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
                             Vector const *asmInstructions,
                             Vector const *asmCasts) {
+  // TODO: this is probably generic enough to be non-arch-specific
+  // just need to make the operand->text function arch-specific
+
   X86_64LinuxFile *asmFile = file->asmFile;
   X86_64LinuxFrag *assembly = x86_64LinuxTextFragCreate(
       format("section .text\nglobal %s:function\n%s:\n", frag->name.global,
@@ -664,14 +804,14 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
         operands[argIdx] = operandCreate(ir->args[argIdx]);
       } else {
         // do cast
-        operands[argIdx] =
-            instantiateCast(selectedCasts[argIdx], ir->args[argIdx], assembly);
+        operands[argIdx] = instantiateCast(selectedCasts[argIdx],
+                                           ir->args[argIdx], assembly, file);
       }
     }
     free(selectedCasts);  // done with casts
 
     // generate instruction
-    instantiateInstruction(selectedInstruction, operands, assembly);
+    instantiateInstruction(selectedInstruction, operands, assembly, file);
   }
   vectorInsert(&asmFile->frags, assembly);
 }
