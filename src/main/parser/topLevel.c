@@ -307,7 +307,6 @@ static Node *parseExtendedIntLiteral(FileListEntry *entry) {
       if (n == NULL) errorIntOverflow(entry, &peek);
       return n;
     }
-    case TT_LIT_INT_0:
     case TT_LIT_INT_D: {
       int8_t sign;
       uint64_t magnitude;
@@ -375,7 +374,6 @@ static Node *parseAggregateInitializer(FileListEntry *entry, Token *start) {
       case TT_LIT_WSTRING:
       case TT_LIT_CHAR:
       case TT_LIT_WCHAR:
-      case TT_LIT_INT_0:
       case TT_LIT_INT_B:
       case TT_LIT_INT_O:
       case TT_LIT_INT_D:
@@ -456,7 +454,6 @@ static Node *parseLiteral(FileListEntry *entry) {
     case TT_LIT_WCHAR:
     case TT_LIT_INT_B:
     case TT_LIT_INT_O:
-    case TT_LIT_INT_0:
     case TT_LIT_INT_D:
     case TT_LIT_INT_H:
     case TT_ID: {

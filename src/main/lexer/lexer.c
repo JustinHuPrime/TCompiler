@@ -559,38 +559,63 @@ static void lexNumber(FileListEntry *entry, Token *token) {
 
   if (next == '0') {
     // [+-]0
-    // maybe hex, dec (float), oct, bin, or zero
+    // maybe decimal, hex, dec (float), oct, bin, or zero
     char second = get(state);
     switch (second) {
       case 'b': {
         // [+-]0b
-        // is binary, lex it
+        // is binary, remove leading zeros and lex it
+        while ((next = get(state)) == '0')
+          ;
+        put(state, 1);
         lexBinary(entry, token, start);
         return;
       }
       case 'x': {
         // [+-]0x
-        // is hex, lex it
+        // is hex, remove leading zeros and lex it
+        while ((next = get(state)) == '0')
+          ;
+        put(state, 1);
         lexHex(entry, token, start);
         return;
       }
       case 'o': {
         // [+-]0o
-        // is octal, lex it
+        // is octal, remove leading zeros and lex it
+        while ((next = get(state)) == '0')
+          ;
+        put(state, 1);
         lexOctal(entry, token, start);
         return;
       }
       default: {
-        if (second == '.') {
-          // [+-]0.
-          // is a decimal, return the dot and the zero, and lex it
+        // [+-]0[^bxo]
+        // either zero or decimal literal with leading 0's
+        // drop leading zeros
+        if (second == '0') {
+          // if [+-]00 then remove leading 0's
+          while ((next = get(state)) == '0')
+            ;
+        } else {
+          next = second;
+        }
+        if (next == '.') {
+          // [+-]0+[0-9].
+          // is floating point literal, lex it
           put(state, 2);
           lexDecimal(entry, token, start);
           return;
-        } else {
-          // just a zero - [+-]0
+        } else if (next >= '1' && next <= '9') {
+          // [+-]0+[1-9]
+          // is non-zero decimal literal, lex it
           put(state, 1);
-          clip(state, token, start, TT_LIT_INT_0);
+          lexDecimal(entry, token, start);
+          return;
+        } else {
+          // just a zero - [+-]0+
+          put(state, 1);
+          clip(state, token, start, TT_LIT_INT_D);
           return;
         }
       }

@@ -141,7 +141,6 @@ typedef enum {
   TT_LIT_WSTRING,
   TT_LIT_CHAR,
   TT_LIT_WCHAR,
-  TT_LIT_INT_0,
   TT_LIT_INT_B,
   TT_LIT_INT_O,
   TT_LIT_INT_D,

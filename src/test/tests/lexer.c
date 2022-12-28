@@ -156,7 +156,7 @@ static void testAllTokens(void) {
       {TT_LIT_INT_B, 10, 71, "0b1"},
       {TT_LIT_INT_O, 10, 74, "+0o377"},
 
-      {TT_LIT_INT_0, 14, 1, "0"},
+      {TT_LIT_INT_D, 14, 1, "0"},
       {TT_LIT_DOUBLE, 14, 3, "1.1"},
       {TT_LIT_FLOAT, 14, 6, "+1.1f"},
 
