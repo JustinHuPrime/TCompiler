@@ -246,19 +246,35 @@ static void generateDataAsm(IRFrag const *frag, FileListEntry *file) {
   }
   char *data = dataToString(&frag->data.data.data);
 
-  vectorInsert(
-      &((X86_64LinuxFile *)&file->asmFile)->frags,
-      x86_64LinuxDataFragCreate(format("%s%s%s.end:\n", section, name, data)));
+  X86_64LinuxFile *asmFile = file->asmFile;
+  vectorInsert(&asmFile->frags, x86_64LinuxDataFragCreate(format(
+                                    "%s%s%s.end:\n", section, name, data)));
   free(section);
   free(name);
   free(data);
+}
+
+static size_t generateLargeConstantDataAsm(IROperand const *constant,
+                                           FileListEntry *file) {
+  size_t label = fresh(file);
+  char *data = dataToString(&constant->data.constant.data);
+
+  X86_64LinuxFile *asmFile = file->asmFile;
+  vectorInsert(&asmFile->frags,
+               x86_64LinuxDataFragCreate(
+                   format("section .rodata align=%zu\nL%zu:\n%s.end:\n",
+                          constant->data.constant.alignment, label, data)));
+  free(data);
+
+  return label;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // text frags                                                                //
 ///////////////////////////////////////////////////////////////////////////////
 
-static X86_64LinuxOperand *operandCreate(IROperand const *ir) {
+static X86_64LinuxOperand *operandCreate(IROperand const *ir,
+                                         FileListEntry *file) {
   X86_64LinuxOperand *operand = malloc(sizeof(X86_64LinuxOperand));
   operand->mode = 0;
 
@@ -278,59 +294,59 @@ static X86_64LinuxOperand *operandCreate(IROperand const *ir) {
       break;
     }
     case OK_CONSTANT: {
-      if (ir->data.constant.data.size != 1) {
-        error(__FILE__, __LINE__,
-              "constant too large to convert to a single operand");
-      }
-
-      IRDatum *d = ir->data.constant.data.elements[0];
-      switch (d->type) {
-        case DT_BYTE:
-        case DT_SHORT:
-        case DT_INT:
-        case DT_LONG: {
-          operand->kind = X86_64_LINUX_OK_NUMBER;
-          switch (d->type) {
-            case DT_BYTE: {
-              operand->data.number.value = d->data.byteVal;
-              operand->data.number.size = 1;
-              break;
+      if (ir->data.constant.data.size == 1) {
+        IRDatum *d = ir->data.constant.data.elements[0];
+        switch (d->type) {
+          case DT_BYTE:
+          case DT_SHORT:
+          case DT_INT:
+          case DT_LONG: {
+            operand->kind = X86_64_LINUX_OK_NUMBER;
+            switch (d->type) {
+              case DT_BYTE: {
+                operand->data.number.value = d->data.byteVal;
+                operand->data.number.size = 1;
+                break;
+              }
+              case DT_SHORT: {
+                operand->data.number.value = d->data.shortVal;
+                operand->data.number.size = 2;
+                break;
+              }
+              case DT_INT: {
+                operand->data.number.value = d->data.intVal;
+                operand->data.number.size = 4;
+                break;
+              }
+              case DT_LONG: {
+                operand->data.number.value = d->data.longVal;
+                operand->data.number.size = 8;
+                break;
+              }
+              default: {
+                error(__FILE__, __LINE__,
+                      "impossible invalid datum type (CPU error?)");
+              }
             }
-            case DT_SHORT: {
-              operand->data.number.value = d->data.shortVal;
-              operand->data.number.size = 2;
-              break;
-            }
-            case DT_INT: {
-              operand->data.number.value = d->data.intVal;
-              operand->data.number.size = 4;
-              break;
-            }
-            case DT_LONG: {
-              operand->data.number.value = d->data.longVal;
-              operand->data.number.size = 8;
-              break;
-            }
-            default: {
-              error(__FILE__, __LINE__,
-                    "impossible invalid datum type (CPU error?)");
-            }
+            break;
           }
-          break;
+          case DT_LOCAL: {
+            operand->kind = X86_64_LINUX_OK_LOCAL_LABEL;
+            operand->data.localLabel.label = d->data.localLabel;
+            break;
+          }
+          case DT_GLOBAL: {
+            operand->kind = X86_64_LINUX_OK_GLOBAL_LABEL;
+            operand->data.globalLabel.label = strdup(d->data.globalLabel);
+            break;
+          }
+          default: {
+            error(__FILE__, __LINE__, "invalid constant type");
+          }
         }
-        case DT_LOCAL: {
-          operand->kind = X86_64_LINUX_OK_LOCAL_LABEL;
-          operand->data.localLabel.label = d->data.localLabel;
-          break;
-        }
-        case DT_GLOBAL: {
-          operand->kind = X86_64_LINUX_OK_GLOBAL_LABEL;
-          operand->data.globalLabel.label = strdup(d->data.globalLabel);
-          break;
-        }
-        default: {
-          error(__FILE__, __LINE__, "invalid constant type");
-        }
+      } else {
+        operand->kind = X86_64_LINUX_OK_LOCAL_LABEL;
+        operand->data.localLabel.label = generateLargeConstantDataAsm(ir, file);
       }
       break;
     }
@@ -372,6 +388,12 @@ typedef struct {
       SizeVector sizes;
     } reg;
     struct {
+      /**
+       * if true, constant must be exactly 1 datum
+       *
+       * if false, constant must be more than 1 datum
+       */
+      bool small;
       /**
        * allowed alignments; empty = allow any
        */
@@ -429,6 +451,7 @@ static IRRequirementClause *requirementClauseCreate(OperandKind kind) {
       break;
     }
     case OK_CONSTANT: {
+      clause->data.constant.small = true;
       sizeVectorInit(&clause->data.constant.alignments);
       sizeVectorInit(&clause->data.constant.types);
       break;
@@ -462,13 +485,21 @@ static bool operandSatisfiesClause(IRRequirementClause const *clause,
                                 operand->data.reg.size);
     }
     case OK_CONSTANT: {
-      if (operand->data.constant.data.size != 1) return false;
-      IRDatum const *constant = operand->data.constant.data.elements[0];
-      return (clause->data.constant.alignments.size == 0 ||
-              sizeVectorContains(&clause->data.constant.alignments,
-                                 operand->data.constant.alignment)) &&
-             (clause->data.constant.types.size == 0 ||
-              sizeVectorContains(&clause->data.constant.types, constant->type));
+      if (clause->data.constant.small) {
+        if (operand->data.constant.data.size != 1) return false;
+        IRDatum const *constant = operand->data.constant.data.elements[0];
+        return (clause->data.constant.alignments.size == 0 ||
+                sizeVectorContains(&clause->data.constant.alignments,
+                                   operand->data.constant.alignment)) &&
+               (clause->data.constant.types.size == 0 ||
+                sizeVectorContains(&clause->data.constant.types,
+                                   constant->type));
+      } else {
+        if (operand->data.constant.data.size <= 1) return false;
+        return (clause->data.constant.alignments.size == 0 ||
+                sizeVectorContains(&clause->data.constant.alignments,
+                                   operand->data.constant.alignment));
+      }
     }
     default: {
       error(__FILE__, __LINE__, "invalid operand kind");
@@ -654,7 +685,6 @@ static X86_64LinuxOperand *asmOperandCopy(X86_64LinuxOperand const *operand) {
 static X86_64LinuxInstruction *instantiateTemplate(
     AsmTemplate const *template, IRInstruction const *irInstruction,
     X86_64LinuxOperand const *const *operands, FileListEntry const *file) {
-  // TODO: must set mode of operand
   X86_64LinuxInstruction *instruction = malloc(sizeof(X86_64LinuxInstruction));
   instruction->kind = template->kind;
   instruction->skeleton = strdup(template->skeleton);
@@ -671,7 +701,7 @@ static X86_64LinuxInstruction *instantiateTemplate(
       }
       case TOK_FIXED: {
         X86_64LinuxOperand *operand =
-            operandCreate(templateOperand->data.fixed.fixed);
+            operandCreate(templateOperand->data.fixed.fixed, file);
         operand->mode = templateOperand->data.fixed.mode;
         vectorInsert(&instruction->operands, operand);
         break;
@@ -820,11 +850,11 @@ static X86_64LinuxOperand *instantiateCastPrefix(
     IROperand const *source, X86_64LinuxFrag *assembly, FileListEntry *file) {
   X86_64LinuxOperand *operands[2];
 
-  operands[0] = operandCreate(cast->destination);
+  operands[0] = operandCreate(cast->destination, file);
   if (cast->destination->kind == OK_TEMP)
     operands[0]->data.temp.name = fresh(file);
 
-  operands[1] = operandCreate(source);
+  operands[1] = operandCreate(source, file);
 
   // instantiate each template
   for (size_t templateIdx = 0; templateIdx < cast->prefixTemplates.size;
@@ -850,7 +880,7 @@ static void instantiateCastPostfix(AsmCast const *cast,
   X86_64LinuxOperand *operands[2];
 
   operands[0] = destination;
-  operands[1] = operandCreate(source);
+  operands[1] = operandCreate(source, file);
 
   // instantiate each template
   for (size_t templateIdx = 0; templateIdx < cast->postfixTemplates.size;
@@ -1143,7 +1173,7 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
     vectorInsert(instructions, i);
   }
 
-  // IO_MOVE (memcpy)
+  // IO_MOVE (memcpy temp, temp)
   {
     i = asmInstructionCreate(IO_MOVE);
     i->avoid = true;
@@ -1186,6 +1216,84 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
       vectorInsert(&i->templates, t);
 
       t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR, format("\tlea {}, {}\n"));
+      vectorInsert(&t->operands, fixedTemplateOperandCreate(
+                                     regOperandCreate(X86_64_LINUX_RSI, 8),
+                                     X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(1, X86_64_LINUX_OM_READ));
+      vectorInsert(&i->templates, t);
+
+      t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR, format("\tmov {}, {}\n"));
+      vectorInsert(&t->operands, fixedTemplateOperandCreate(
+                                     regOperandCreate(X86_64_LINUX_RCX, 8),
+                                     X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   specialTemplateOperandCreate(TOK_SPECIAL_OPSIZE));
+      vectorInsert(&i->templates, t);
+
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\trep movsb\n"));
+      vectorInsert(&t->operands,
+                   fixedTemplateOperandCreate(
+                       regOperandCreate(X86_64_LINUX_RDI, 8),
+                       X86_64_LINUX_OM_READ | X86_64_LINUX_OM_WRITE |
+                           X86_64_LINUX_OM_IMPLICIT));
+      vectorInsert(&t->operands,
+                   fixedTemplateOperandCreate(
+                       regOperandCreate(X86_64_LINUX_RSI, 8),
+                       X86_64_LINUX_OM_READ | X86_64_LINUX_OM_WRITE |
+                           X86_64_LINUX_OM_IMPLICIT));
+      vectorInsert(&t->operands,
+                   fixedTemplateOperandCreate(
+                       regOperandCreate(X86_64_LINUX_RCX, 8),
+                       X86_64_LINUX_OM_READ | X86_64_LINUX_OM_WRITE |
+                           X86_64_LINUX_OM_IMPLICIT));
+      vectorInsert(&i->templates, t);
+    }
+  }
+
+  // IO_MOVE (memcpy temp, constant)
+  {
+    i = asmInstructionCreate(IO_MOVE);
+    i->avoid = true;
+
+    // arg 0
+    {
+      r = requirementCreate(CT_WRITE);
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    // arg 1
+    {
+      r = requirementCreate(CT_READ);
+
+      // LARGE CONSTANT
+      {
+        c = requirementClauseCreate(OK_CONSTANT);
+        c->data.constant.small = false;
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tlea {}, {}\n"));
+      vectorInsert(&t->operands, fixedTemplateOperandCreate(
+                                     regOperandCreate(X86_64_LINUX_RDI, 8),
+                                     X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_READ));
+      vectorInsert(&i->templates, t);
+
+      t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR, format("\tmov {}, {}\n"));
       vectorInsert(&t->operands, fixedTemplateOperandCreate(
                                      regOperandCreate(X86_64_LINUX_RSI, 8),
                                      X86_64_LINUX_OM_WRITE));
@@ -1328,7 +1436,7 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
          ++argIdx) {
       if (selectedCasts[argIdx] == NULL) {
         // no cast required
-        operands[argIdx] = operandCreate(ir->args[argIdx]);
+        operands[argIdx] = operandCreate(ir->args[argIdx], file);
       } else {
         // do cast
         operands[argIdx] = instantiateCastPrefix(
