@@ -74,10 +74,10 @@ typedef enum {
 char const *x86_64LinuxPrettyPrintRegister(size_t reg);
 
 typedef enum {
-  X86_64_LINUX_OM_READ = 1,  /**< operation depends on this operand's value */
-  x86_64_LINUX_OM_WRITE = 2, /**< operation writes to this operand */
+  X86_64_LINUX_OM_READ = 0x1,  /**< operation depends on this operand's value */
+  x86_64_LINUX_OM_WRITE = 0x2, /**< operation writes to this operand */
   X86_64_LINUX_OM_IMPLICIT =
-      4, /**< this operand isn't directly used in the operation */
+      0x4, /**< this operand isn't directly used in the operation */
 } X86_64LinuxOperandMode;
 typedef enum {
   X86_64_LINUX_OK_REG,
@@ -163,8 +163,8 @@ typedef enum {
   X86_64_LINUX_IK_JUMPTABLE, /**< jump table, goes to any listed instruction in
                                 jumpData */
   X86_64_LINUX_IK_LEAVE,     /**< instruction leaves the function entirely */
-  X86_64_LINUX_IK_LABEL,     /**< label; see only element of jumpData for numeric
-                                value */
+  X86_64_LINUX_IK_LABEL, /**< label; see only element of jumpData for numeric
+                            value */
 } X86_64LinuxInstructionKind;
 typedef struct {
   X86_64LinuxInstructionKind kind;

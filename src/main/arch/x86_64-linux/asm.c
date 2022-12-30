@@ -640,6 +640,18 @@ typedef struct {
    */
   IROperand *destination;
   /**
+   * supported destination usage modes
+   *
+   * used to select proper cast
+   *
+   * two main supported modes - read only and read-write;
+   *
+   * read-only only has prefix templates
+   *
+   * read-write has prefix and postfix templates
+   */
+  X86_64LinuxOperandMode destinationMode;
+  /**
    * generated instruction templates
    *
    * assumes source operand is index 1 and destination operand is index 0
@@ -701,7 +713,9 @@ static AsmCast const *findCast(Vector const *casts,
   for (size_t idx = 0; idx < casts->size; ++idx) {
     AsmCast const *cast = casts->elements[idx];
     if (operandSatisfiesRequirement(destination, cast->destination) &&
-        operandSatisfiesRequirement(cast->source, source)) {
+        operandSatisfiesRequirement(cast->source, source) &&
+        (destination->mode & (destination->mode & cast->destinationMode)) ==
+            destination->mode) {
       return cast;
     }
   }
