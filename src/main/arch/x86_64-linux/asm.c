@@ -540,7 +540,7 @@ static X86_64LinuxOperand *asmOperandCopy(X86_64LinuxOperand const *operand) {
   return copy;
 }
 static X86_64LinuxInstruction *instantiateTemplate(
-    AsmTemplate const *template, X86_64LinuxOperand **operands,
+    AsmTemplate const *template, X86_64LinuxOperand const *const *operands,
     FileListEntry const *file) {
   X86_64LinuxInstruction *instruction = malloc(sizeof(X86_64LinuxInstruction));
   instruction->kind = template->kind;
@@ -609,7 +609,7 @@ typedef struct {
 } AsmInstruction;
 
 static void instantiateInstruction(AsmInstruction const *instruction,
-                                   X86_64LinuxOperand **operands,
+                                   X86_64LinuxOperand const *const *operands,
                                    X86_64LinuxFrag *assembly,
                                    FileListEntry const *file) {
   // instantiate each template
@@ -620,12 +620,6 @@ static void instantiateInstruction(AsmInstruction const *instruction,
         instantiateTemplate(instruction->templates.elements[templateIdx],
                             operands, file));
   }
-
-  // cleanup operands; we own it
-  for (size_t argIdx = 0; argIdx < instruction->requirements.size; ++argIdx) {
-    x86_64LinuxOperandFree(operands[argIdx]);
-  }
-  free(operands);
 }
 static void asmInstructionFree(AsmInstruction *instruction) {
   vectorUninit(&instruction->requirements, (void (*)(void *))irRequirementFree);
@@ -650,13 +644,14 @@ typedef struct {
    *
    * assumes source operand is index 1 and destination operand is index 0
    */
-  Vector templates;
+  Vector prefixTemplates;
+  Vector postfixTemplates;
 } AsmCast;
 
-static X86_64LinuxOperand *instantiateCast(AsmCast const *cast,
-                                           IROperand const *source,
-                                           X86_64LinuxFrag *assembly,
-                                           FileListEntry *file) {
+static X86_64LinuxOperand *instantiateCastPrefix(AsmCast const *cast,
+                                                 IROperand const *source,
+                                                 X86_64LinuxFrag *assembly,
+                                                 FileListEntry *file) {
   X86_64LinuxOperand *operands[2];
 
   operands[0] = operandCreate(cast->destination);
@@ -666,11 +661,12 @@ static X86_64LinuxOperand *instantiateCast(AsmCast const *cast,
   operands[1] = operandCreate(source);
 
   // instantiate each template
-  for (size_t templateIdx = 0; templateIdx < cast->templates.size;
+  for (size_t templateIdx = 0; templateIdx < cast->prefixTemplates.size;
        ++templateIdx) {
-    insertNodeEnd(&assembly->data.text.instructions,
-                  instantiateTemplate(cast->templates.elements[templateIdx],
-                                      operands, file));
+    insertNodeEnd(
+        &assembly->data.text.instructions,
+        instantiateTemplate(cast->prefixTemplates.elements[templateIdx],
+                            (X86_64LinuxOperand const *const *)operands, file));
   }
 
   x86_64LinuxOperandFree(operands[1]);
@@ -678,6 +674,27 @@ static X86_64LinuxOperand *instantiateCast(AsmCast const *cast,
   return operands[0];
 }
 
+static void instantiateCastPostfix(AsmCast const *cast,
+                                   X86_64LinuxOperand *destination,
+                                   IROperand const *source,
+                                   X86_64LinuxFrag *assembly,
+                                   FileListEntry *file) {
+  X86_64LinuxOperand *operands[2];
+
+  operands[0] = destination;
+  operands[1] = operandCreate(source);
+
+  // instantiate each template
+  for (size_t templateIdx = 0; templateIdx < cast->postfixTemplates.size;
+       ++templateIdx) {
+    insertNodeEnd(
+        &assembly->data.text.instructions,
+        instantiateTemplate(cast->postfixTemplates.elements[templateIdx],
+                            (X86_64LinuxOperand const *const *)operands, file));
+  }
+
+  x86_64LinuxOperandFree(operands[1]);
+}
 static AsmCast const *findCast(Vector const *casts,
                                IRRequirement const *destination,
                                IROperand const *source) {
@@ -695,7 +712,8 @@ static AsmCast const *findCast(Vector const *casts,
 static void asmCastFree(AsmCast *cast) {
   irRequirementFree(cast->source);
   irOperandFree(cast->destination);
-  vectorUninit(&cast->templates, (void (*)(void *))asmTemplateFree);
+  vectorUninit(&cast->prefixTemplates, (void (*)(void *))asmTemplateFree);
+  vectorUninit(&cast->postfixTemplates, (void (*)(void *))asmTemplateFree);
   free(cast);
 }
 
@@ -791,7 +809,11 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
     }
 
     if (selectedInstruction == NULL) {
-      error(__FILE__, __LINE__, "no instruction template found");
+      // note: yes, this leaks, but it aborts immiediately after, so it's GC'd
+      // by the OS
+      error(__FILE__, __LINE__,
+            format("no instruction template found for %s",
+                   IROPERATOR_NAMES[ir->op]));
     }
 
     // get operands (with casts)
@@ -804,14 +826,32 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
         operands[argIdx] = operandCreate(ir->args[argIdx]);
       } else {
         // do cast
-        operands[argIdx] = instantiateCast(selectedCasts[argIdx],
-                                           ir->args[argIdx], assembly, file);
+        operands[argIdx] = instantiateCastPrefix(
+            selectedCasts[argIdx], ir->args[argIdx], assembly, file);
       }
     }
-    free(selectedCasts);  // done with casts
 
     // generate instruction
-    instantiateInstruction(selectedInstruction, operands, assembly, file);
+    instantiateInstruction(selectedInstruction,
+                           (X86_64LinuxOperand const *const *)operands,
+                           assembly, file);
+
+    // generate cast finalization
+    for (size_t argIdx = 0; argIdx < selectedInstruction->requirements.size;
+         ++argIdx) {
+      if (selectedCasts[argIdx] != NULL) {
+        // finalize cast
+        instantiateCastPostfix(selectedCasts[argIdx], operands[argIdx],
+                               ir->args[argIdx], assembly, file);
+      }
+    }
+
+    // clean up
+    for (size_t argIdx = 0; argIdx < selectedInstruction->requirements.size;
+         ++argIdx)
+      x86_64LinuxOperandFree(operands[argIdx]);
+    free(operands);
+    free(selectedCasts);
   }
   vectorInsert(&asmFile->frags, assembly);
 }
