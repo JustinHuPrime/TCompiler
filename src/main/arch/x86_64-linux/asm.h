@@ -75,9 +75,12 @@ char const *x86_64LinuxPrettyPrintRegister(size_t reg);
 
 typedef enum {
   X86_64_LINUX_OM_READ = 0x1,  /**< operation depends on this operand's value */
-  x86_64_LINUX_OM_WRITE = 0x2, /**< operation writes to this operand */
+  X86_64_LINUX_OM_WRITE = 0x2, /**< operation writes to this operand */
   X86_64_LINUX_OM_IMPLICIT =
       0x4, /**< this operand isn't directly used in the operation */
+  X86_64_LINUX_OM_ESCAPES =
+      0x8, /**< this operand has its address taken and must not share space with
+              any other operand*/
 } X86_64LinuxOperandMode;
 typedef enum {
   X86_64_LINUX_OK_REG,
@@ -107,15 +110,12 @@ typedef struct X86_64LinuxOperand {
      * xmm0
      * If kind = AH_MEM, then it's a stack location, for example:
      * [rsp + 8]
-     * If escapes is true (it has its address taken), then it's always allocated
-     * its own memory location
      */
     struct {
       size_t name;
       size_t alignment;
       size_t size;
       AllocHint kind;
-      bool escapes;
     } temp;
     /**
      * An offset temporary variable

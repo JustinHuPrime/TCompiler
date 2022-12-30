@@ -268,7 +268,6 @@ static X86_64LinuxOperand *operandCreate(IROperand const *ir) {
       operand->data.temp.alignment = ir->data.temp.alignment;
       operand->data.temp.size = ir->data.temp.size;
       operand->data.temp.kind = ir->data.temp.kind;
-      operand->data.temp.escapes = false;
       break;
     }
     case OK_REG: {
@@ -395,9 +394,31 @@ typedef struct {
   Vector clauses;
 } IRRequirement;
 
-/**
- * is clause satisfied by operand?
- */
+static IRRequirementClause *requirementClauseCreate(OperandKind kind) {
+  IRRequirementClause *clause = malloc(sizeof(IRRequirementClause));
+  clause->kind = kind;
+  switch (kind) {
+    case OK_TEMP: {
+      sizeVectorInit(&clause->data.temp.alignments);
+      sizeVectorInit(&clause->data.temp.sizes);
+      sizeVectorInit(&clause->data.temp.kinds);
+      break;
+    }
+    case OK_REG: {
+      sizeVectorInit(&clause->data.reg.sizes);
+      break;
+    }
+    case OK_CONSTANT: {
+      sizeVectorInit(&clause->data.constant.alignments);
+      sizeVectorInit(&clause->data.constant.types);
+      break;
+    }
+    default: {
+      error(__FILE__, __LINE__, "invalid operand kind");
+    }
+  }
+  return clause;
+}
 static bool operandSatisfiesClause(IRRequirementClause const *clause,
                                    IROperand const *operand) {
   if (clause->kind != operand->kind) {
@@ -459,6 +480,12 @@ static void irRequirementClauseFree(IRRequirementClause *clause) {
   free(clause);
 }
 
+static IRRequirement *requirementCreate(X86_64LinuxOperandMode mode) {
+  IRRequirement *requirement = malloc(sizeof(IRRequirement));
+  requirement->mode = mode;
+  vectorInit(&requirement->clauses);
+  return requirement;
+}
 static bool operandSatisfiesRequirement(IRRequirement const *requirement,
                                         IROperand const *operand) {
   if (requirement->clauses.size == 0) {
@@ -495,6 +522,15 @@ typedef struct {
   size_t label;
 } AsmTemplate;
 
+static AsmTemplate *asmTemplateCreate(X86_64LinuxInstructionKind kind,
+                                      char *skeleton) {
+  AsmTemplate *template = malloc(sizeof(AsmTemplate));
+  template->kind = kind;
+  template->skeleton = skeleton;
+  sizeVectorInit(&template->operands);
+  template->label = 0;
+  return template;
+}
 static X86_64LinuxOperand *asmOperandCopy(X86_64LinuxOperand const *operand) {
   X86_64LinuxOperand *copy = malloc(sizeof(X86_64LinuxOperand));
   copy->mode = operand->mode;
@@ -510,7 +546,6 @@ static X86_64LinuxOperand *asmOperandCopy(X86_64LinuxOperand const *operand) {
       copy->data.temp.alignment = operand->data.temp.alignment;
       copy->data.temp.size = operand->data.temp.size;
       copy->data.temp.kind = operand->data.temp.kind;
-      copy->data.temp.escapes = operand->data.temp.escapes;
       break;
     }
     case X86_64_LINUX_OK_OFFSET_TEMP: {
@@ -607,6 +642,14 @@ typedef struct {
    */
   Vector templates;
 } AsmInstruction;
+
+static AsmInstruction *asmInstructionCreate(IROperator op) {
+  AsmInstruction *instruction = malloc(sizeof(AsmInstruction));
+  instruction->op = op;
+  vectorInit(&instruction->requirements);
+  vectorInit(&instruction->templates);
+  return instruction;
+}
 
 static void instantiateInstruction(AsmInstruction const *instruction,
                                    X86_64LinuxOperand const *const *operands,
@@ -734,6 +777,249 @@ static void asmCastFree(AsmCast *cast) {
 static void generateAsmInstructions(Vector *instructions, Vector *casts) {
   vectorInit(instructions);
   vectorInit(casts);
+
+  AsmInstruction *i;
+  IRRequirement *r;
+  IRRequirementClause *c;
+  AsmTemplate *t;
+
+  // IO_LABEL
+  {
+    i = asmInstructionCreate(IO_LABEL);
+
+    // arg 0
+    {
+      r = requirementCreate(X86_64_LINUX_OM_READ);
+
+      // LOCAL
+      {
+        c = requirementClauseCreate(OK_CONSTANT);
+        sizeVectorInsert(&c->data.constant.types, DT_LOCAL);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_LABEL, format("{}:\n"));
+      sizeVectorInsert(&t->operands, 0);
+      t->label = 0;
+      vectorInsert(&i->templates, t);
+    }
+
+    vectorInsert(instructions, i);
+  }
+
+  // IO_UNINITIALIZED
+  {
+    i = asmInstructionCreate(IO_UNINITIALIZED);
+    // arg 0
+    {
+      r = requirementCreate(X86_64_LINUX_OM_READ | X86_64_LINUX_OM_IMPLICIT);
+      // TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        vectorInsert(&r->clauses, c);
+      }
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR, strdup(""));
+      sizeVectorInsert(&t->operands, 0);
+      vectorInsert(&i->templates, t);
+    }
+
+    vectorInsert(instructions, i);
+  }
+
+  // IO_ADDROF
+  {
+    i = asmInstructionCreate(IO_ADDROF);
+
+    // arg 0
+    {
+      r = requirementCreate(X86_64_LINUX_OM_WRITE);
+
+      // REG
+      {
+        c = requirementClauseCreate(OK_REG);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // GP TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_GP);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    // arg 1
+    {
+      r = requirementCreate(X86_64_LINUX_OM_READ | X86_64_LINUX_OM_ESCAPES);
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR, format("\tlea {}, {}\n"));
+      sizeVectorInsert(&t->operands, 0);
+      sizeVectorInsert(&t->operands, 1);
+      vectorInsert(&i->templates, t);
+    }
+
+    vectorInsert(instructions, i);
+  }
+
+  // IO_NOP
+  {
+    i = asmInstructionCreate(IO_NOP);
+    // no args
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR, strdup(""));
+      vectorInsert(&i->templates, t);
+    }
+
+    vectorInsert(instructions, i);
+  }
+
+  // IO_MOVE (mov r/m*, r*; mov r/m*, imm*)
+  {
+    i = asmInstructionCreate(IO_MOVE);
+
+    // arg 0
+    {
+      r = requirementCreate(X86_64_LINUX_OM_WRITE);
+
+      // REG
+      {
+        c = requirementClauseCreate(OK_REG);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // GP TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_GP);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    // arg 1
+    {
+      r = requirementCreate(X86_64_LINUX_OM_READ);
+
+      // REG
+      {
+        c = requirementClauseCreate(OK_REG);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // GP TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_GP);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // CONST (1, 2, 4 bytes)
+      {
+        c = requirementClauseCreate(OK_CONSTANT);
+        sizeVectorInsert(&c->data.constant.types, DT_BYTE);
+        sizeVectorInsert(&c->data.constant.types, DT_SHORT);
+        sizeVectorInsert(&c->data.constant.types, DT_INT);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tmov {}, {}\n"));
+      sizeVectorInsert(&t->operands, 0);
+      sizeVectorInsert(&t->operands, 1);
+      vectorInsert(&i->templates, t);
+    }
+
+    vectorInsert(instructions, i);
+  }
+
+  // IO_MOVE (mov r*, m*; mov r64, imm64)
+  {
+    i = asmInstructionCreate(IO_MOVE);
+
+    // arg 0
+    {
+      r = requirementCreate(X86_64_LINUX_OM_WRITE);
+
+      // REG
+      {
+        c = requirementClauseCreate(OK_REG);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // GP TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_GP);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    // arg 1
+    {
+      r = requirementCreate(X86_64_LINUX_OM_READ);
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // CONST (8 bytes)
+      {
+        c = requirementClauseCreate(OK_CONSTANT);
+        sizeVectorInsert(&c->data.constant.types, DT_LONG);
+        sizeVectorInsert(&c->data.constant.types, DT_LOCAL);
+        sizeVectorInsert(&c->data.constant.types, DT_GLOBAL);
+        vectorInsert(&r->clauses, c);
+      }
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tmov {}, {}\n"));
+      sizeVectorInsert(&t->operands, 0);
+      sizeVectorInsert(&t->operands, 1);
+      vectorInsert(&i->templates, t);
+    }
+
+    vectorInsert(instructions, i);
+  }
+
+  // TODO
 }
 
 static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
