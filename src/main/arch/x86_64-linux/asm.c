@@ -797,19 +797,17 @@ static X86_64LinuxInstruction *instantiateTemplate(
   return instruction;
 }
 static void instantiateTemplates(Vector const *templates,
+                                 SizeVector *scopedNames,
                                  IRInstruction const *irInstruction,
                                  X86_64LinuxOperand const *const *operands,
                                  X86_64LinuxFrag *assembly,
                                  FileListEntry *file) {
-  SizeVector scopedNames;
-  sizeVectorInit(&scopedNames);
   for (size_t templateIdx = 0; templateIdx < templates->size; ++templateIdx) {
     insertNodeEnd(
         &assembly->data.text.instructions,
         instantiateTemplate(templates->elements[templateIdx], irInstruction,
-                            operands, &scopedNames, file));
+                            operands, scopedNames, file));
   }
-  sizeVectorUninit(&scopedNames);
 }
 static void asmTemplateFree(AsmTemplate *template) {
   free(template->skeleton);
@@ -855,8 +853,11 @@ static void instantiateInstruction(AsmInstruction const *instruction,
                                    X86_64LinuxOperand const *const *operands,
                                    X86_64LinuxFrag *assembly,
                                    FileListEntry *file) {
-  instantiateTemplates(&instruction->templates, irInstruction, operands,
-                       assembly, file);
+  SizeVector scopedNames;
+  sizeVectorInit(&scopedNames);
+  instantiateTemplates(&instruction->templates, &scopedNames, irInstruction,
+                       operands, assembly, file);
+  sizeVectorUninit(&scopedNames);
 }
 static void asmInstructionFree(AsmInstruction *instruction) {
   vectorUninit(&instruction->requirements, (void (*)(void *))irRequirementFree);
@@ -897,8 +898,9 @@ typedef struct {
 } AsmCast;
 
 static X86_64LinuxOperand *instantiateCastPrefix(
-    AsmCast const *cast, IRInstruction const *irInstruction,
-    IROperand const *source, X86_64LinuxFrag *assembly, FileListEntry *file) {
+    AsmCast const *cast, SizeVector *scopedNames,
+    IRInstruction const *irInstruction, IROperand const *source,
+    X86_64LinuxFrag *assembly, FileListEntry *file) {
   X86_64LinuxOperand *operands[2];
 
   operands[0] = operandCreate(cast->destination, file);
@@ -907,7 +909,7 @@ static X86_64LinuxOperand *instantiateCastPrefix(
 
   operands[1] = operandCreate(source, file);
 
-  instantiateTemplates(&cast->prefixTemplates, irInstruction,
+  instantiateTemplates(&cast->prefixTemplates, scopedNames, irInstruction,
                        (X86_64LinuxOperand const *const *)operands, assembly,
                        file);
 
@@ -916,7 +918,7 @@ static X86_64LinuxOperand *instantiateCastPrefix(
   return operands[0];
 }
 
-static void instantiateCastPostfix(AsmCast const *cast,
+static void instantiateCastPostfix(AsmCast const *cast, SizeVector *scopedNames,
                                    IRInstruction const *irInstruction,
                                    X86_64LinuxOperand *destination,
                                    IROperand const *source,
@@ -927,7 +929,7 @@ static void instantiateCastPostfix(AsmCast const *cast,
   operands[0] = destination;
   operands[1] = operandCreate(source, file);
 
-  instantiateTemplates(&cast->postfixTemplates, irInstruction,
+  instantiateTemplates(&cast->postfixTemplates, scopedNames, irInstruction,
                        (X86_64LinuxOperand const *const *)operands, assembly,
                        file);
 
@@ -1766,6 +1768,8 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
     // get operands (with casts)
     X86_64LinuxOperand **operands =
         malloc(sizeof(IROperand *) * selectedInstruction->requirements.size);
+    SizeVector *scopedNames =
+        malloc(sizeof(SizeVector) * selectedInstruction->requirements.size);
     for (size_t argIdx = 0; argIdx < selectedInstruction->requirements.size;
          ++argIdx) {
       if (selectedCasts[argIdx] == NULL) {
@@ -1773,8 +1777,10 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
         operands[argIdx] = operandCreate(ir->args[argIdx], file);
       } else {
         // do cast
-        operands[argIdx] = instantiateCastPrefix(
-            selectedCasts[argIdx], ir, ir->args[argIdx], assembly, file);
+        sizeVectorInit(&scopedNames[argIdx]);
+        operands[argIdx] =
+            instantiateCastPrefix(selectedCasts[argIdx], &scopedNames[argIdx],
+                                  ir, ir->args[argIdx], assembly, file);
       }
     }
 
@@ -1788,8 +1794,10 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
          ++argIdx) {
       if (selectedCasts[argIdx] != NULL) {
         // finalize cast
-        instantiateCastPostfix(selectedCasts[argIdx], ir, operands[argIdx],
-                               ir->args[argIdx], assembly, file);
+        instantiateCastPostfix(selectedCasts[argIdx], &scopedNames[argIdx], ir,
+                               operands[argIdx], ir->args[argIdx], assembly,
+                               file);
+        sizeVectorUninit(&scopedNames[argIdx]);
       }
     }
 
@@ -1797,6 +1805,7 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
     for (size_t argIdx = 0; argIdx < selectedInstruction->requirements.size;
          ++argIdx)
       x86_64LinuxOperandFree(operands[argIdx]);
+    free(scopedNames);
     free(operands);
     free(selectedCasts);
   }
