@@ -638,25 +638,35 @@ size_t typeSizeof(Type const *t) {
       switch (t->data.keyword.keyword) {
         case TK_VOID:  // for void pointer arithmetic
         case TK_UBYTE:
-        case TK_BYTE:
-        case TK_CHAR:
+        case TK_BYTE: {
+          return BYTE_WIDTH;
+        }
+        case TK_CHAR: {
+          return CHAR_WIDTH;
+        }
         case TK_BOOL: {
-          return 1;
+          return BOOL_WIDTH;
         }
         case TK_USHORT:
         case TK_SHORT: {
-          return 2;
+          return SHORT_WIDTH;
         }
         case TK_UINT:
-        case TK_INT:
-        case TK_WCHAR:
+        case TK_INT: {
+          return INT_WIDTH;
+        }
+        case TK_WCHAR: {
+          return WCHAR_WIDTH;
+        }
         case TK_FLOAT: {
-          return 4;
+          return FLOAT_WIDTH;
         }
         case TK_ULONG:
-        case TK_LONG:
+        case TK_LONG: {
+          return LONG_WIDTH;
+        }
         case TK_DOUBLE: {
-          return 8;
+          return DOUBLE_WIDTH;
         }
         default: {
           error(__FILE__, __LINE__, "invalid keyword type");
