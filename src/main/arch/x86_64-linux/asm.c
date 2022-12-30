@@ -527,10 +527,67 @@ static void irRequirementFree(IRRequirement *requirement) {
   free(requirement);
 }
 
+typedef enum {
+  TOK_ARG,
+  TOK_FIXED,
+  TOK_SPECIAL_OPSIZE,
+} AsmTemplateOperandKind;
+typedef struct {
+  AsmTemplateOperandKind kind;
+  union {
+    struct {
+      size_t index;
+      X86_64LinuxOperandMode mode;
+    } arg;
+    struct {
+      IROperand *fixed;
+      X86_64LinuxOperandMode mode;
+    } fixed;
+  } data;
+} AsmTemplateOperand;
+
+static AsmTemplateOperand *argTemplateOperandCreate(
+    size_t arg, X86_64LinuxOperandMode mode) {
+  AsmTemplateOperand *operand = malloc(sizeof(AsmTemplateOperand));
+  operand->kind = TOK_ARG;
+  operand->data.arg.index = arg;
+  operand->data.arg.mode = mode;
+  return operand;
+}
+static AsmTemplateOperand *fixedTemplateOperandCreate(
+    IROperand *fixed, X86_64LinuxOperandMode mode) {
+  AsmTemplateOperand *operand = malloc(sizeof(AsmTemplateOperand));
+  operand->kind = TOK_FIXED;
+  operand->data.fixed.fixed = fixed;
+  operand->data.fixed.mode = mode;
+  return operand;
+}
+static AsmTemplateOperand *specialTemplateOperandCreate(
+    AsmTemplateOperandKind kind) {
+  AsmTemplateOperand *operand = malloc(sizeof(AsmTemplateOperand));
+  operand->kind = kind;
+  return operand;
+}
+static void asmTemplateOperandFree(AsmTemplateOperand *operand) {
+  switch (operand->kind) {
+    case TOK_FIXED: {
+      irOperandFree(operand->data.fixed.fixed);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  free(operand);
+}
+
 typedef struct {
   X86_64LinuxInstructionKind kind;
   char *skeleton;
-  SizeVector operands;
+  /**
+   * vector of AsmTemplateOperand
+   */
+  Vector operands;
   /**
    * one of:
    *
@@ -547,7 +604,7 @@ static AsmTemplate *asmTemplateCreate(X86_64LinuxInstructionKind kind,
   AsmTemplate *template = malloc(sizeof(AsmTemplate));
   template->kind = kind;
   template->skeleton = skeleton;
-  sizeVectorInit(&template->operands);
+  vectorInit(&template->operands);
   template->label = 0;
   return template;
 }
@@ -595,16 +652,42 @@ static X86_64LinuxOperand *asmOperandCopy(X86_64LinuxOperand const *operand) {
   return copy;
 }
 static X86_64LinuxInstruction *instantiateTemplate(
-    AsmTemplate const *template, X86_64LinuxOperand const *const *operands,
-    FileListEntry const *file) {
+    AsmTemplate const *template, IRInstruction const *irInstruction,
+    X86_64LinuxOperand const *const *operands, FileListEntry const *file) {
   // TODO: must set mode of operand
   X86_64LinuxInstruction *instruction = malloc(sizeof(X86_64LinuxInstruction));
   instruction->kind = template->kind;
   instruction->skeleton = strdup(template->skeleton);
   vectorInit(&instruction->operands);
   for (size_t idx = 0; idx < template->operands.size; ++idx) {
-    size_t operandIdx = template->operands.elements[idx];
-    vectorInsert(&instruction->operands, asmOperandCopy(operands[operandIdx]));
+    AsmTemplateOperand *templateOperand = template->operands.elements[idx];
+    switch (templateOperand->kind) {
+      case TOK_ARG: {
+        X86_64LinuxOperand *operand =
+            asmOperandCopy(operands[templateOperand->data.arg.index]);
+        operand->mode = templateOperand->data.arg.mode;
+        vectorInsert(&instruction->operands, operand);
+        break;
+      }
+      case TOK_FIXED: {
+        X86_64LinuxOperand *operand =
+            operandCreate(templateOperand->data.fixed.fixed);
+        operand->mode = templateOperand->data.fixed.mode;
+        vectorInsert(&instruction->operands, operand);
+        break;
+      }
+      case TOK_SPECIAL_OPSIZE: {
+        X86_64LinuxOperand *operand = malloc(sizeof(X86_64LinuxOperand));
+        operand->kind = X86_64_LINUX_OK_NUMBER;
+        operand->mode = X86_64_LINUX_OM_READ;
+        operand->data.number.value = irOperandSizeof(irInstruction->args[0]);
+        operand->data.number.size = 8;
+        break;
+      }
+      default: {
+        error(__FILE__, __LINE__, "invalid template operand kind");
+      }
+    }
   }
 
   switch (template->kind) {
@@ -643,7 +726,7 @@ static X86_64LinuxInstruction *instantiateTemplate(
 }
 static void asmTemplateFree(AsmTemplate *template) {
   free(template->skeleton);
-  sizeVectorUninit(&template->operands);
+  vectorUninit(&template->operands, (void (*)(void *))asmTemplateOperandFree);
   free(template);
 }
 
@@ -673,6 +756,7 @@ static AsmInstruction *asmInstructionCreate(IROperator op) {
 }
 
 static void instantiateInstruction(AsmInstruction const *instruction,
+                                   IRInstruction const *irInstruction,
                                    X86_64LinuxOperand const *const *operands,
                                    X86_64LinuxFrag *assembly,
                                    FileListEntry const *file) {
@@ -682,7 +766,7 @@ static void instantiateInstruction(AsmInstruction const *instruction,
     insertNodeEnd(
         &assembly->data.text.instructions,
         instantiateTemplate(instruction->templates.elements[templateIdx],
-                            operands, file));
+                            irInstruction, operands, file));
   }
 }
 static void asmInstructionFree(AsmInstruction *instruction) {
@@ -723,10 +807,9 @@ typedef struct {
   Vector postfixTemplates;
 } AsmCast;
 
-static X86_64LinuxOperand *instantiateCastPrefix(AsmCast const *cast,
-                                                 IROperand const *source,
-                                                 X86_64LinuxFrag *assembly,
-                                                 FileListEntry *file) {
+static X86_64LinuxOperand *instantiateCastPrefix(
+    AsmCast const *cast, IRInstruction const *irInstruction,
+    IROperand const *source, X86_64LinuxFrag *assembly, FileListEntry *file) {
   X86_64LinuxOperand *operands[2];
 
   operands[0] = operandCreate(cast->destination);
@@ -741,6 +824,7 @@ static X86_64LinuxOperand *instantiateCastPrefix(AsmCast const *cast,
     insertNodeEnd(
         &assembly->data.text.instructions,
         instantiateTemplate(cast->prefixTemplates.elements[templateIdx],
+                            irInstruction,
                             (X86_64LinuxOperand const *const *)operands, file));
   }
 
@@ -750,6 +834,7 @@ static X86_64LinuxOperand *instantiateCastPrefix(AsmCast const *cast,
 }
 
 static void instantiateCastPostfix(AsmCast const *cast,
+                                   IRInstruction const *irInstruction,
                                    X86_64LinuxOperand *destination,
                                    IROperand const *source,
                                    X86_64LinuxFrag *assembly,
@@ -765,6 +850,7 @@ static void instantiateCastPostfix(AsmCast const *cast,
     insertNodeEnd(
         &assembly->data.text.instructions,
         instantiateTemplate(cast->postfixTemplates.elements[templateIdx],
+                            irInstruction,
                             (X86_64LinuxOperand const *const *)operands, file));
   }
 
@@ -822,7 +908,8 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     {
       t = asmTemplateCreate(X86_64_LINUX_IK_LABEL, format("{}:\n"));
-      sizeVectorInsert(&t->operands, 0);
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_READ));
       t->label = 0;
       vectorInsert(&i->templates, t);
     }
@@ -835,7 +922,7 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
     i = asmInstructionCreate(IO_UNINITIALIZED);
     // arg 0
     {
-      r = requirementCreate(X86_64_LINUX_OM_READ | X86_64_LINUX_OM_IMPLICIT);
+      r = requirementCreate(CT_READ);
       // TEMP
       {
         c = requirementClauseCreate(OK_TEMP);
@@ -846,7 +933,9 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     {
       t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR, strdup(""));
-      sizeVectorInsert(&t->operands, 0);
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(
+                       0, X86_64_LINUX_OM_READ | X86_64_LINUX_OM_IMPLICIT));
       vectorInsert(&i->templates, t);
     }
 
@@ -893,8 +982,10 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     {
       t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR, format("\tlea {}, {}\n"));
-      sizeVectorInsert(&t->operands, 0);
-      sizeVectorInsert(&t->operands, 1);
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(1, X86_64_LINUX_OM_READ));
       vectorInsert(&i->templates, t);
     }
 
@@ -975,8 +1066,10 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     {
       t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tmov {}, {}\n"));
-      sizeVectorInsert(&t->operands, 0);
-      sizeVectorInsert(&t->operands, 1);
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(1, X86_64_LINUX_OM_READ));
       vectorInsert(&i->templates, t);
     }
 
@@ -1032,8 +1125,10 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     {
       t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tmov {}, {}\n"));
-      sizeVectorInsert(&t->operands, 0);
-      sizeVectorInsert(&t->operands, 1);
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(1, X86_64_LINUX_OM_READ));
       vectorInsert(&i->templates, t);
     }
 
@@ -1148,12 +1243,12 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
       } else {
         // do cast
         operands[argIdx] = instantiateCastPrefix(
-            selectedCasts[argIdx], ir->args[argIdx], assembly, file);
+            selectedCasts[argIdx], ir, ir->args[argIdx], assembly, file);
       }
     }
 
     // generate instruction
-    instantiateInstruction(selectedInstruction,
+    instantiateInstruction(selectedInstruction, ir,
                            (X86_64LinuxOperand const *const *)operands,
                            assembly, file);
 
@@ -1162,7 +1257,7 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
          ++argIdx) {
       if (selectedCasts[argIdx] != NULL) {
         // finalize cast
-        instantiateCastPostfix(selectedCasts[argIdx], operands[argIdx],
+        instantiateCastPostfix(selectedCasts[argIdx], ir, operands[argIdx],
                                ir->args[argIdx], assembly, file);
       }
     }
