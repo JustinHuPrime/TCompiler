@@ -260,6 +260,7 @@ static void generateDataAsm(IRFrag const *frag, FileListEntry *file) {
 
 static X86_64LinuxOperand *operandCreate(IROperand const *ir) {
   X86_64LinuxOperand *operand = malloc(sizeof(X86_64LinuxOperand));
+  operand->mode = 0;
 
   switch (ir->kind) {
     case OK_TEMP: {
@@ -383,11 +384,30 @@ typedef struct {
   } data;
 } IRRequirementClause;
 
+/**
+ * cast type required for this an operand
+ */
+typedef enum {
+  /**
+   * cast must copy from the actual into the casted value
+   */
+  CT_READ,
+  /**
+   * cast must copy from the casted into the actual value
+   */
+  CT_WRITE,
+  /**
+   * cast must do both
+   *
+   * probably unused
+   */
+  CT_READ_WRITE,
+} CastType;
 typedef struct {
   /**
-   * mode for operand (used for casting purposes)
+   * cast type for operand
    */
-  X86_64LinuxOperandMode mode;
+  CastType castType;
   /**
    * list of clauses; require at least one met; empty = allow any
    */
@@ -480,9 +500,9 @@ static void irRequirementClauseFree(IRRequirementClause *clause) {
   free(clause);
 }
 
-static IRRequirement *requirementCreate(X86_64LinuxOperandMode mode) {
+static IRRequirement *requirementCreate(CastType castType) {
   IRRequirement *requirement = malloc(sizeof(IRRequirement));
-  requirement->mode = mode;
+  requirement->castType = castType;
   vectorInit(&requirement->clauses);
   return requirement;
 }
@@ -577,6 +597,7 @@ static X86_64LinuxOperand *asmOperandCopy(X86_64LinuxOperand const *operand) {
 static X86_64LinuxInstruction *instantiateTemplate(
     AsmTemplate const *template, X86_64LinuxOperand const *const *operands,
     FileListEntry const *file) {
+  // TODO: must set mode of operand
   X86_64LinuxInstruction *instruction = malloc(sizeof(X86_64LinuxInstruction));
   instruction->kind = template->kind;
   instruction->skeleton = strdup(template->skeleton);
@@ -683,17 +704,16 @@ typedef struct {
    */
   IROperand *destination;
   /**
-   * supported destination usage modes
+   * what type of cast is this
    *
-   * used to select proper cast
+   * read = copies source to destination before op
+   * write = copies destination to source after op
+   * both = both
    *
-   * two main supported modes - read only and read-write;
-   *
-   * read-only only has prefix templates
-   *
-   * read-write has prefix and postfix templates
+   * read only has prefix templates
+   * write has prefix and postfix templates
    */
-  X86_64LinuxOperandMode destinationMode;
+  CastType castType;
   /**
    * generated instruction templates
    *
@@ -757,8 +777,7 @@ static AsmCast const *findCast(Vector const *casts,
     AsmCast const *cast = casts->elements[idx];
     if (operandSatisfiesRequirement(destination, cast->destination) &&
         operandSatisfiesRequirement(cast->source, source) &&
-        (destination->mode & (destination->mode & cast->destinationMode)) ==
-            destination->mode) {
+        destination->castType == cast->castType) {
       return cast;
     }
   }
@@ -789,7 +808,7 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     // arg 0
     {
-      r = requirementCreate(X86_64_LINUX_OM_READ);
+      r = requirementCreate(CT_READ);
 
       // LOCAL
       {
@@ -840,11 +859,11 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     // arg 0
     {
-      r = requirementCreate(X86_64_LINUX_OM_WRITE);
-
+      r = requirementCreate(CT_WRITE);
       // REG
       {
         c = requirementClauseCreate(OK_REG);
+        sizeVectorInsert(&c->data.reg.sizes, 8);
         vectorInsert(&r->clauses, c);
       }
 
@@ -901,7 +920,7 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     // arg 0
     {
-      r = requirementCreate(X86_64_LINUX_OM_WRITE);
+      r = requirementCreate(CT_WRITE);
 
       // REG
       {
@@ -928,7 +947,7 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     // arg 1
     {
-      r = requirementCreate(X86_64_LINUX_OM_READ);
+      r = requirementCreate(CT_READ);
 
       // REG
       {
@@ -970,7 +989,7 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     // arg 0
     {
-      r = requirementCreate(X86_64_LINUX_OM_WRITE);
+      r = requirementCreate(CT_WRITE);
 
       // REG
       {
@@ -990,7 +1009,7 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
 
     // arg 1
     {
-      r = requirementCreate(X86_64_LINUX_OM_READ);
+      r = requirementCreate(CT_READ);
 
       // MEM TEMP
       {
@@ -1007,6 +1026,8 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
         sizeVectorInsert(&c->data.constant.types, DT_GLOBAL);
         vectorInsert(&r->clauses, c);
       }
+
+      vectorInsert(&i->requirements, r);
     }
 
     {
