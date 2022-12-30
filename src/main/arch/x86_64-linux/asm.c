@@ -1421,6 +1421,248 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
     }
   }
 
+  // IO_MOVE (movss xmm/m32, xmm)
+  {
+    i = asmInstructionCreate(IO_MOVE);
+
+    // arg 0
+    {
+      r = requirementCreate(CT_WRITE);
+
+      // REG
+      {
+        c = requirementClauseCreate(OK_REG);
+        sizeVectorInsert(&c->data.reg.sizes, 4);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // FP TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_FP);
+        sizeVectorInsert(&c->data.temp.sizes, 4);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        sizeVectorInsert(&c->data.temp.sizes, 4);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    // arg 1
+    {
+      r = requirementCreate(CT_READ);
+
+      // REG
+      {
+        c = requirementClauseCreate(OK_REG);
+        sizeVectorInsert(&c->data.reg.sizes, 4);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // FP TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_FP);
+        sizeVectorInsert(&c->data.temp.sizes, 4);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tmovss {}, {}\n"));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(1, X86_64_LINUX_OM_READ));
+      vectorInsert(&i->templates, t);
+    }
+
+    vectorInsert(instructions, i);
+  }
+
+  // IO_MOVE (movss xmm, m32)
+  {
+    i = asmInstructionCreate(IO_MOVE);
+
+    // arg 0
+    {
+      r = requirementCreate(CT_WRITE);
+
+      // REG
+      {
+        c = requirementClauseCreate(OK_REG);
+        sizeVectorInsert(&c->data.reg.sizes, 4);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // FP TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_FP);
+        sizeVectorInsert(&c->data.temp.sizes, 4);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    // arg 1
+    {
+      r = requirementCreate(CT_READ);
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        sizeVectorInsert(&c->data.temp.sizes, 4);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tmovss {}, {}\n"));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(1, X86_64_LINUX_OM_READ));
+      vectorInsert(&i->templates, t);
+    }
+
+    vectorInsert(instructions, i);
+  }
+
+  // IO_MOVE (movsd xmm/m64, xmm)
+  {
+    i = asmInstructionCreate(IO_MOVE);
+
+    // arg 0
+    {
+      r = requirementCreate(CT_WRITE);
+
+      // REG
+      {
+        c = requirementClauseCreate(OK_REG);
+        sizeVectorInsert(&c->data.reg.sizes, 8);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // FP TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_FP);
+        sizeVectorInsert(&c->data.temp.sizes, 8);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        sizeVectorInsert(&c->data.temp.sizes, 8);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    // arg 1
+    {
+      r = requirementCreate(CT_READ);
+
+      // REG
+      {
+        c = requirementClauseCreate(OK_REG);
+        sizeVectorInsert(&c->data.reg.sizes, 8);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // FP TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_FP);
+        sizeVectorInsert(&c->data.temp.sizes, 8);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tmovsd {}, {}\n"));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(1, X86_64_LINUX_OM_READ));
+      vectorInsert(&i->templates, t);
+    }
+
+    vectorInsert(instructions, i);
+  }
+
+  // IO_MOVE (movsd xmm, xmm/m64)
+  {
+    i = asmInstructionCreate(IO_MOVE);
+
+    // arg 0
+    {
+      r = requirementCreate(CT_WRITE);
+
+      // REG
+      {
+        c = requirementClauseCreate(OK_REG);
+        sizeVectorInsert(&c->data.reg.sizes, 8);
+        vectorInsert(&r->clauses, c);
+      }
+
+      // FP TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_FP);
+        sizeVectorInsert(&c->data.temp.sizes, 8);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    // arg 1
+    {
+      r = requirementCreate(CT_READ);
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        sizeVectorInsert(&c->data.temp.sizes, 8);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tmovsd {}, {}\n"));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(1, X86_64_LINUX_OM_READ));
+      vectorInsert(&i->templates, t);
+    }
+
+    vectorInsert(instructions, i);
+  }
+
   // TODO
 }
 
