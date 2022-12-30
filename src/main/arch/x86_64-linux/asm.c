@@ -1135,6 +1135,83 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
     vectorInsert(instructions, i);
   }
 
+  // IO_MOVE (memcpy)
+  {
+    i = asmInstructionCreate(IO_MOVE);
+
+    // arg 0
+    {
+      r = requirementCreate(CT_WRITE);
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    // arg 1
+    {
+      r = requirementCreate(CT_READ);
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tlea {}, {}\n"));
+      vectorInsert(&t->operands, fixedTemplateOperandCreate(
+                                     regOperandCreate(X86_64_LINUX_RDI, 8),
+                                     X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_READ));
+      vectorInsert(&i->templates, t);
+
+      t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR, format("\tlea {}, {}\n"));
+      vectorInsert(&t->operands, fixedTemplateOperandCreate(
+                                     regOperandCreate(X86_64_LINUX_RSI, 8),
+                                     X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(1, X86_64_LINUX_OM_READ));
+      vectorInsert(&i->templates, t);
+
+      t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR, format("\tmov {}, {}\n"));
+      vectorInsert(&t->operands, fixedTemplateOperandCreate(
+                                     regOperandCreate(X86_64_LINUX_RCX, 8),
+                                     X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   specialTemplateOperandCreate(TOK_SPECIAL_OPSIZE));
+      vectorInsert(&i->templates, t);
+
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\trep movsb\n"));
+      vectorInsert(&t->operands,
+                   fixedTemplateOperandCreate(
+                       regOperandCreate(X86_64_LINUX_RDI, 8),
+                       X86_64_LINUX_OM_READ | X86_64_LINUX_OM_WRITE |
+                           X86_64_LINUX_OM_IMPLICIT));
+      vectorInsert(&t->operands,
+                   fixedTemplateOperandCreate(
+                       regOperandCreate(X86_64_LINUX_RSI, 8),
+                       X86_64_LINUX_OM_READ | X86_64_LINUX_OM_WRITE |
+                           X86_64_LINUX_OM_IMPLICIT));
+      vectorInsert(&t->operands,
+                   fixedTemplateOperandCreate(
+                       regOperandCreate(X86_64_LINUX_RCX, 8),
+                       X86_64_LINUX_OM_READ | X86_64_LINUX_OM_WRITE |
+                           X86_64_LINUX_OM_IMPLICIT));
+      vectorInsert(&i->templates, t);
+    }
+  }
+
   // TODO
 }
 
