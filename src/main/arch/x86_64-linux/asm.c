@@ -745,6 +745,13 @@ typedef struct {
    * generated instruction templates
    */
   Vector templates;
+  /**
+   * do we avoid using this instruction
+   *
+   * (for expensive ops, like memcpy; prefer a cast instead of directly doing a
+   * memcpy)
+   */
+  bool avoid;
 } AsmInstruction;
 
 static AsmInstruction *asmInstructionCreate(IROperator op) {
@@ -752,6 +759,7 @@ static AsmInstruction *asmInstructionCreate(IROperator op) {
   instruction->op = op;
   vectorInit(&instruction->requirements);
   vectorInit(&instruction->templates);
+  instruction->avoid = false;
   return instruction;
 }
 
@@ -1138,6 +1146,7 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
   // IO_MOVE (memcpy)
   {
     i = asmInstructionCreate(IO_MOVE);
+    i->avoid = true;
 
     // arg 0
     {
@@ -1288,8 +1297,11 @@ static void generateTextAsm(IRFrag const *frag, FileListEntry *file,
         selectedInstruction = candidateInstruction;
         selectedCasts = candidateCasts;
         selectedRequiredCasts = candidateRequiredCasts;
-      } else if (selectedRequiredCasts > candidateRequiredCasts) {
+      } else if (selectedRequiredCasts > candidateRequiredCasts ||
+                 (selectedInstruction->avoid && !candidateInstruction->avoid)) {
         // better than current candidate; select it
+        // either because this requires less casts
+        // or because this isn't avoided and the current candidate is
         selectedInstruction = candidateInstruction;
         free(selectedCasts);
         selectedCasts = candidateCasts;
