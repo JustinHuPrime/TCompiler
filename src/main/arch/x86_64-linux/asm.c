@@ -561,6 +561,7 @@ static void irRequirementFree(IRRequirement *requirement) {
 typedef enum {
   TOK_ARG,
   TOK_FIXED,
+  TOK_TEMP,
   TOK_SPECIAL_OPSIZE,
 } AsmTemplateOperandKind;
 typedef struct {
@@ -574,6 +575,13 @@ typedef struct {
       IROperand *fixed;
       X86_64LinuxOperandMode mode;
     } fixed;
+    struct {
+      size_t scopedName;
+      size_t alignment;
+      size_t size;
+      AllocHint kind;
+      X86_64LinuxOperandMode mode;
+    } temp;
   } data;
 } AsmTemplateOperand;
 
@@ -591,6 +599,18 @@ static AsmTemplateOperand *fixedTemplateOperandCreate(
   operand->kind = TOK_FIXED;
   operand->data.fixed.fixed = fixed;
   operand->data.fixed.mode = mode;
+  return operand;
+}
+static AsmTemplateOperand *tempTemplateOperandCreate(
+    size_t scopedName, size_t alignment, size_t size, AllocHint kind,
+    X86_64LinuxOperandMode mode) {
+  AsmTemplateOperand *operand = malloc(sizeof(AsmTemplateOperand));
+  operand->kind = TOK_TEMP;
+  operand->data.temp.scopedName = scopedName;
+  operand->data.temp.alignment = alignment;
+  operand->data.temp.size = size;
+  operand->data.temp.kind = kind;
+  operand->data.temp.mode = mode;
   return operand;
 }
 static AsmTemplateOperand *specialTemplateOperandCreate(
@@ -682,9 +702,19 @@ static X86_64LinuxOperand *asmOperandCopy(X86_64LinuxOperand const *operand) {
   }
   return copy;
 }
+static size_t getOrMakeScopedName(SizeVector *scopedNames, size_t scopedName,
+                                  FileListEntry *file) {
+  while (scopedNames->size <= scopedName) sizeVectorInsert(scopedNames, 0);
+
+  if (scopedNames->elements[scopedName] == 0)
+    scopedNames->elements[scopedName] = fresh(file);
+
+  return scopedNames->elements[scopedName];
+}
 static X86_64LinuxInstruction *instantiateTemplate(
     AsmTemplate const *template, IRInstruction const *irInstruction,
-    X86_64LinuxOperand const *const *operands, FileListEntry const *file) {
+    X86_64LinuxOperand const *const *operands, SizeVector *scopedNames,
+    FileListEntry *file) {
   X86_64LinuxInstruction *instruction = malloc(sizeof(X86_64LinuxInstruction));
   instruction->kind = template->kind;
   instruction->skeleton = strdup(template->skeleton);
@@ -703,6 +733,18 @@ static X86_64LinuxInstruction *instantiateTemplate(
         X86_64LinuxOperand *operand =
             operandCreate(templateOperand->data.fixed.fixed, file);
         operand->mode = templateOperand->data.fixed.mode;
+        vectorInsert(&instruction->operands, operand);
+        break;
+      }
+      case TOK_TEMP: {
+        X86_64LinuxOperand *operand = malloc(sizeof(X86_64LinuxOperand));
+        operand->kind = X86_64_LINUX_OK_TEMP;
+        operand->mode = templateOperand->data.temp.mode;
+        operand->data.temp.name = getOrMakeScopedName(
+            scopedNames, templateOperand->data.temp.scopedName, file);
+        operand->data.temp.alignment = templateOperand->data.temp.alignment;
+        operand->data.temp.size = templateOperand->data.temp.size;
+        operand->data.temp.kind = templateOperand->data.temp.kind;
         vectorInsert(&instruction->operands, operand);
         break;
       }
@@ -754,6 +796,21 @@ static X86_64LinuxInstruction *instantiateTemplate(
 
   return instruction;
 }
+static void instantiateTemplates(Vector const *templates,
+                                 IRInstruction const *irInstruction,
+                                 X86_64LinuxOperand const *const *operands,
+                                 X86_64LinuxFrag *assembly,
+                                 FileListEntry *file) {
+  SizeVector scopedNames;
+  sizeVectorInit(&scopedNames);
+  for (size_t templateIdx = 0; templateIdx < templates->size; ++templateIdx) {
+    insertNodeEnd(
+        &assembly->data.text.instructions,
+        instantiateTemplate(templates->elements[templateIdx], irInstruction,
+                            operands, &scopedNames, file));
+  }
+  sizeVectorUninit(&scopedNames);
+}
 static void asmTemplateFree(AsmTemplate *template) {
   free(template->skeleton);
   vectorUninit(&template->operands, (void (*)(void *))asmTemplateOperandFree);
@@ -797,15 +854,9 @@ static void instantiateInstruction(AsmInstruction const *instruction,
                                    IRInstruction const *irInstruction,
                                    X86_64LinuxOperand const *const *operands,
                                    X86_64LinuxFrag *assembly,
-                                   FileListEntry const *file) {
-  // instantiate each template
-  for (size_t templateIdx = 0; templateIdx < instruction->templates.size;
-       ++templateIdx) {
-    insertNodeEnd(
-        &assembly->data.text.instructions,
-        instantiateTemplate(instruction->templates.elements[templateIdx],
-                            irInstruction, operands, file));
-  }
+                                   FileListEntry *file) {
+  instantiateTemplates(&instruction->templates, irInstruction, operands,
+                       assembly, file);
 }
 static void asmInstructionFree(AsmInstruction *instruction) {
   vectorUninit(&instruction->requirements, (void (*)(void *))irRequirementFree);
@@ -856,15 +907,9 @@ static X86_64LinuxOperand *instantiateCastPrefix(
 
   operands[1] = operandCreate(source, file);
 
-  // instantiate each template
-  for (size_t templateIdx = 0; templateIdx < cast->prefixTemplates.size;
-       ++templateIdx) {
-    insertNodeEnd(
-        &assembly->data.text.instructions,
-        instantiateTemplate(cast->prefixTemplates.elements[templateIdx],
-                            irInstruction,
-                            (X86_64LinuxOperand const *const *)operands, file));
-  }
+  instantiateTemplates(&cast->prefixTemplates, irInstruction,
+                       (X86_64LinuxOperand const *const *)operands, assembly,
+                       file);
 
   x86_64LinuxOperandFree(operands[1]);
 
@@ -882,15 +927,9 @@ static void instantiateCastPostfix(AsmCast const *cast,
   operands[0] = destination;
   operands[1] = operandCreate(source, file);
 
-  // instantiate each template
-  for (size_t templateIdx = 0; templateIdx < cast->postfixTemplates.size;
-       ++templateIdx) {
-    insertNodeEnd(
-        &assembly->data.text.instructions,
-        instantiateTemplate(cast->postfixTemplates.elements[templateIdx],
-                            irInstruction,
-                            (X86_64LinuxOperand const *const *)operands, file));
-  }
+  instantiateTemplates(&cast->postfixTemplates, irInstruction,
+                       (X86_64LinuxOperand const *const *)operands, assembly,
+                       file);
 
   x86_64LinuxOperandFree(operands[1]);
 }
@@ -1171,6 +1210,59 @@ static void generateAsmInstructions(Vector *instructions, Vector *casts) {
     }
 
     vectorInsert(instructions, i);
+  }
+
+  // IO_MOVE (movdqu temp, temp)
+  {
+    i = asmInstructionCreate(IO_MOVE);
+    i->avoid = true;
+
+    // arg 0
+    {
+      r = requirementCreate(CT_WRITE);
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        sizeVectorInsert(&c->data.temp.sizes, 16);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    // arg 1
+    {
+      r = requirementCreate(CT_READ);
+
+      // MEM TEMP
+      {
+        c = requirementClauseCreate(OK_TEMP);
+        sizeVectorInsert(&c->data.temp.kinds, AH_MEM);
+        sizeVectorInsert(&c->data.temp.sizes, 16);
+        vectorInsert(&r->clauses, c);
+      }
+
+      vectorInsert(&i->requirements, r);
+    }
+
+    {
+      t = asmTemplateCreate(X86_64_LINUX_IK_MOVE, format("\tmovdqu {}, {}\n"));
+      vectorInsert(&t->operands, tempTemplateOperandCreate(
+                                     0, 16, 16, AH_FP, X86_64_LINUX_OM_WRITE));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(0, X86_64_LINUX_OM_READ));
+      vectorInsert(&i->templates, t);
+
+      t = asmTemplateCreate(X86_64_LINUX_IK_REGULAR,
+                            format("\tmovdqu {}, {}\n"));
+      vectorInsert(&t->operands,
+                   argTemplateOperandCreate(1, X86_64_LINUX_OM_READ));
+      vectorInsert(&t->operands, tempTemplateOperandCreate(
+                                     0, 16, 16, AH_FP, X86_64_LINUX_OM_READ));
+      vectorInsert(&i->templates, t);
+    }
   }
 
   // IO_MOVE (memcpy temp, temp)
